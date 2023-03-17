@@ -1,0 +1,3 @@
+[submodule "ext/geogram"]
+	path = ext/geogram
+	url = git@github.com:BrunoLevy/geogram.git
