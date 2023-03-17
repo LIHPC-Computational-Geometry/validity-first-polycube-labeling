@@ -4,8 +4,13 @@
 //
 // ## Added
 //
-// - inclusion of <geogram/mesh/mesh_io.h>
+// - inclusion of <geogram/mesh/mesh_io.h> and <geogram/basic/stopwatch.h>
 // - get_bbox(), copied from ext/geogram/src/lib/geogram_gfx/simple_mesh_application.cpp
+// - draw_points() draw_edges() draw_surface() draw_volume(), copied from ext/geogram/src/lib/geogram_gfx/simple_mesh_application.h
+// - initialization of mesh_, mesh_gfx_, anim_speed_, anim_time_, show_vertices_, show_vertices_selection_, vertices_size_, vertices_color_,
+//   vertices_transparency_, show_surface_, show_surface_sides_, show_mesh_, mesh_width_, mesh_color_, show_surface_borders_,
+//   surface_color_, surface_color_2_, show_volume_, cells_shrink_, volume_color_, show_colored_cells_, show_hexes_, show_connectors_,
+//   show_attributes_, current_colormap_texture_, attribute_, attribute_subelements_, attribute_name_, attribute_min_, attribute_max_
 //
 // ## Changed
 // 
@@ -25,6 +30,7 @@
 #include <geogram/basic/command_line.h>
 #include <geogram/bibliography/bibliography.h>
 #include <geogram/mesh/mesh_io.h>
+#include <geogram/basic/stopwatch.h>
 
 #include <geogram_gfx/full_screen_effects/ambient_occlusion.h>
 #include <geogram_gfx/full_screen_effects/unsharp_masking.h>
@@ -175,6 +181,53 @@ namespace {
 	);
 
 	props_pinned_ = false;
+
+    //copied from the constructor of SimpleMeshApplication in ext/geogram/src/lib/geogram_gfx/simple_mesh_application.cpp
+    set_default_filename("out.meshb");
+	
+        anim_speed_ = 1.0f;
+        anim_time_ = 0.0f;
+
+        show_vertices_ = false;
+        show_vertices_selection_ = true;
+        vertices_size_ = 1.0f;
+	vertices_color_ = vec4f(0.0f, 1.0f, 0.0f, 1.0f);
+	vertices_transparency_ = 0.0f;
+	
+        show_surface_ = true;
+        show_surface_sides_ = false;
+        show_mesh_ = true;
+	mesh_color_ = vec4f(0.0f, 0.0f, 0.0f, 1.0f);
+	mesh_width_ = 0.1f;
+	
+        show_surface_borders_ = false;
+	surface_color_ =   vec4f(0.5f, 0.5f, 1.0f, 1.0f);
+	surface_color_2_ = vec4f(1.0f, 0.5f, 0.0f, 1.0f); 
+	
+        show_volume_ = false;
+	volume_color_ = vec4f(0.9f, 0.9f, 0.9f, 1.0f);	
+        cells_shrink_ = 0.0f;
+        show_colored_cells_ = false;
+        show_hexes_ = true;
+	show_connectors_ = true;
+	
+        show_attributes_ = false;
+        current_colormap_texture_ = 0;
+        attribute_min_ = 0.0f;
+        attribute_max_ = 0.0f;
+        attribute_ = "vertices.point_fp32[0]";
+        attribute_name_ = "point_fp32[0]";
+        attribute_subelements_ = MESH_VERTICES;
+
+        add_key_toggle("p", &show_vertices_, "vertices");
+        add_key_toggle("S", &show_surface_, "surface");
+        add_key_toggle("c", &show_surface_sides_, "two-sided");
+        add_key_toggle("B", &show_surface_borders_, "borders");
+        add_key_toggle("m", &show_mesh_, "mesh");
+        add_key_toggle("V", &show_volume_, "volume");
+        add_key_toggle("j", &show_hexes_, "hexes");
+        add_key_toggle("k", &show_connectors_, "connectors");
+        add_key_toggle("C", &show_colored_cells_, "colored cells");
     }
 
     LabelingViewerApp::~LabelingViewerApp() {
@@ -555,6 +608,128 @@ namespace {
     }
 
     void LabelingViewerApp::draw_scene() {
+        // copied from ext/geogram/src/lib/geogram_gfx/simple_mesh_application.cpp
+        if(mesh_gfx_.mesh() == nullptr) {
+            return;
+        }
+
+		init_colormaps();//added
+        
+        if(animate()) {
+            anim_time_ = float(
+                sin(double(anim_speed_) * GEO::SystemStopwatch::now())
+            );
+            anim_time_ = 0.5f * (anim_time_ + 1.0f);
+        }
+        
+        mesh_gfx_.set_lighting(lighting_);
+        mesh_gfx_.set_time(double(anim_time_));
+
+        if(show_attributes_) {
+            mesh_gfx_.set_scalar_attribute(
+                attribute_subelements_, attribute_name_,
+                double(attribute_min_), double(attribute_max_),
+                current_colormap_texture_, 1
+            );
+        } else {
+            mesh_gfx_.unset_scalar_attribute();
+        }
+
+		draw_points();
+		draw_surface();
+		draw_edges();
+		draw_volume();
+    }
+
+    void LabelingViewerApp::draw_points() {
+        if(show_vertices_) {
+	    if(vertices_transparency_ != 0.0f) {
+		glDepthMask(GL_FALSE);
+		glEnable(GL_BLEND);
+		glBlendEquation(GL_FUNC_ADD);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+	    }
+            mesh_gfx_.set_points_color(
+		vertices_color_.x, vertices_color_.y, vertices_color_.z,
+		1.0f - vertices_transparency_
+	    );
+            mesh_gfx_.set_points_size(vertices_size_);
+            mesh_gfx_.draw_vertices();
+
+	    if(vertices_transparency_ != 0.0f) {	    
+		glDisable(GL_BLEND);
+		glDepthMask(GL_TRUE);
+	    }
+        }
+
+        if(show_vertices_selection_) {
+            mesh_gfx_.set_points_color(1.0, 0.0, 0.0);
+            mesh_gfx_.set_points_size(2.0f * vertices_size_);
+            mesh_gfx_.set_vertices_selection("selection");
+            mesh_gfx_.draw_vertices();
+            mesh_gfx_.set_vertices_selection("");            
+        }
+    }
+
+    void LabelingViewerApp::draw_surface() {
+	mesh_gfx_.set_mesh_color(0.0, 0.0, 0.0);
+
+	mesh_gfx_.set_surface_color(
+	    surface_color_.x, surface_color_.y, surface_color_.z
+	);
+        if(show_surface_sides_) {
+	    mesh_gfx_.set_backface_surface_color(
+		surface_color_2_.x, surface_color_2_.y, surface_color_2_.z
+	    );
+        }
+	
+        mesh_gfx_.set_show_mesh(show_mesh_);
+	mesh_gfx_.set_mesh_color(mesh_color_.x, mesh_color_.y, mesh_color_.z);
+	mesh_gfx_.set_mesh_width(index_t(mesh_width_*10.0f));
+	
+        if(show_surface_) {
+	    float specular_backup = glupGetSpecular();
+	    glupSetSpecular(0.4f);
+            mesh_gfx_.draw_surface();
+	    glupSetSpecular(specular_backup);	    
+        }
+        
+        if(show_surface_borders_) {
+            mesh_gfx_.draw_surface_borders();
+        }
+    }
+
+    void LabelingViewerApp::draw_edges() {
+        if(show_mesh_) {
+            mesh_gfx_.draw_edges();
+        }
+    }
+    
+    void LabelingViewerApp::draw_volume() {
+        if(show_volume_) {
+
+            if(
+                glupIsEnabled(GLUP_CLIPPING) &&
+                glupGetClipMode() == GLUP_CLIP_SLICE_CELLS
+            ) {
+                mesh_gfx_.set_lighting(false);
+            }
+            
+            mesh_gfx_.set_shrink(double(cells_shrink_));
+            mesh_gfx_.set_draw_cells(GEO::MESH_HEX, show_hexes_);
+            mesh_gfx_.set_draw_cells(GEO::MESH_CONNECTOR, show_connectors_);
+	    
+            if(show_colored_cells_) {
+                mesh_gfx_.set_cells_colors_by_type();
+            } else {
+                mesh_gfx_.set_cells_color(
+		    volume_color_.x, volume_color_.y, volume_color_.z
+		);
+            }
+            mesh_gfx_.draw_volume();
+
+            mesh_gfx_.set_lighting(lighting_);
+        }
     }
     
     void LabelingViewerApp::draw_graphics() {

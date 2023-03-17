@@ -6,13 +6,18 @@
 //
 // - inclusion of <geogram_gfx/mesh/mesh_gfx.h>
 // - get_bbox(), copied from ext/geogram/src/lib/geogram_gfx/simple_mesh_application.h
+// - draw_points() draw_edges() draw_surface() draw_volume(), copied from ext/geogram/src/lib/geogram_gfx/simple_mesh_application.h
+// - mesh_, mesh_gfx_, anim_speed_, anim_time_, show_vertices_, show_vertices_selection_, vertices_size_, vertices_color_,
+//   vertices_transparency_, show_surface_, show_surface_sides_, show_mesh_, mesh_width_, mesh_color_, show_surface_borders_,
+//   surface_color_, surface_color_2_, show_volume_, cells_shrink_, volume_color_, show_colored_cells_, show_hexes_, show_connectors_,
+//   show_attributes_, current_colormap_texture_, attribute_, attribute_subelements_, attribute_name_, attribute_min_, attribute_max_ attributes
 //
 // ## Changed
 // 
 // - class SimpleApplication renamed to LabelingViewerApp
 // - TextEditor is now GEO::TextEditor
 // - the constructor has no arguments anymore. The application name is hard-coded.
-// - load() no longer virtual
+// - load() and draw_scene() no longer virtual
 //
 // ## Removed
 //
@@ -276,12 +281,17 @@ using namespace GEO;
 	/**
 	 * \brief Draws the scene.
 	 */
-	virtual void draw_scene();
+	void draw_scene();
 
 	/**
 	 * \brief Cleanups OpenGL after scene drawing.
 	 */
 	virtual void draw_scene_end();
+
+    void draw_points();
+    void draw_edges();
+    void draw_surface();
+    void draw_volume();
 	
         /**
          * \brief Draws the viewer properties window frame and contents.
@@ -549,8 +559,41 @@ using namespace GEO;
 	lua_State* lua_state_;
 	bool lua_error_occured_;
 
-    //required by load(), copied from ext/geogram/src/lib/geogram_gfx/simple_mesh_application.h
+    // copied from ext/geogram/src/lib/geogram_gfx/simple_mesh_application.h
     Mesh mesh_;
     MeshGfx mesh_gfx_;
+
+    float anim_speed_;
+    float anim_time_;
+
     bool show_vertices_;
+    bool show_vertices_selection_;
+    float vertices_size_;
+    vec4f vertices_color_;
+    float vertices_transparency_;
+
+    bool show_surface_;
+    bool show_surface_sides_;   
+    bool show_mesh_;
+    float mesh_width_;
+    vec4f mesh_color_;
+
+    bool show_surface_borders_;
+    vec4f surface_color_;
+    vec4f surface_color_2_;
+
+    bool show_volume_;
+    float cells_shrink_;
+    vec4f volume_color_;
+    bool show_colored_cells_;
+    bool show_hexes_;
+    bool show_connectors_;
+
+    bool show_attributes_;
+    GLuint current_colormap_texture_;
+    std::string       attribute_;
+    MeshElementsFlags attribute_subelements_;
+    std::string       attribute_name_;
+    float             attribute_min_;
+    float             attribute_max_;
     };
