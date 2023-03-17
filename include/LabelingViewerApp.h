@@ -2,11 +2,17 @@
 //
 // # Changelog - https://keepachangelog.com
 //
+// ## Added
+//
+// - inclusion of <geogram_gfx/mesh/mesh_gfx.h>
+// - get_bbox(), copied from ext/geogram/src/lib/geogram_gfx/simple_mesh_application.h
+//
 // ## Changed
 // 
 // - class SimpleApplication renamed to LabelingViewerApp
 // - TextEditor is now GEO::TextEditor
 // - the constructor has no arguments anymore. The application name is hard-coded.
+// - load() no longer virtual
 //
 // ## Removed
 //
@@ -24,6 +30,7 @@
 #include <geogram_gfx/full_screen_effects/full_screen_effect.h>
 #include <geogram_gfx/ImGui_ext/imgui_ext.h>
 #include <geogram_gfx/ImGui_ext/icon_font.h>
+#include <geogram_gfx/mesh/mesh_gfx.h>
 
 #include <map>
 #include <functional>
@@ -66,12 +73,10 @@ using namespace GEO;
         
         /**
          * \brief Loads a file.
-         * \details Baseclass implementation does nothing. Derived classes
-         *  may overload this function.
          * \retval true if the file could be sucessfully loaded
          * \retval false otherwise
          */
-        virtual bool load(const std::string& filename);
+        bool load(const std::string& filename);
 
 	/**
 	 * \brief Gets the text editor.
@@ -197,6 +202,20 @@ using namespace GEO;
 	 * \copydoc Application::drop_callback()
 	 */
 	void drop_callback(int nb, const char** f) override;
+
+    /**
+     * \brief Gets the bounding box of a mesh animation.
+     * \details In animated mode, the mesh animation is stored as 
+     *  a mesh with 6d coordinates, that correspond to the geometric 
+     *  location at the vertices at time 0 and at time 1.
+     * \param[in] M_in the mesh
+     * \param[out] xyzmin a pointer to the three minimum coordinates
+     * \param[out] xyzmax a pointer to the three maximum coordinates
+     * \param[in] animate true if displaying a mesh animation
+     */
+    void get_bbox(
+        const Mesh& M_in, double* xyzmin, double* xyzmax, bool animate
+    );
 	
       protected:
 
@@ -529,4 +548,9 @@ using namespace GEO;
 
 	lua_State* lua_state_;
 	bool lua_error_occured_;
+
+    //required by load(), copied from ext/geogram/src/lib/geogram_gfx/simple_mesh_application.h
+    Mesh mesh_;
+    MeshGfx mesh_gfx_;
+    bool show_vertices_;
     };

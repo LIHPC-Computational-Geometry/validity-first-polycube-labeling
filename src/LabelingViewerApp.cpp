@@ -2,10 +2,16 @@
 //
 // # Changelog - https://keepachangelog.com
 //
+// ## Added
+//
+// - inclusion of <geogram/mesh/mesh_io.h>
+// - get_bbox(), copied from ext/geogram/src/lib/geogram_gfx/simple_mesh_application.cpp
+//
 // ## Changed
 // 
 // - class SimpleApplication renamed to LabelingViewerApp
 // - the constructor has no arguments anymore. The application name is hard-coded.
+// - definition of load() replaced by the one in ext/geogram/src/lib/geogram_gfx/gui/simple_mesh_application.cpp
 //
 // ## Removed
 //
@@ -18,6 +24,7 @@
 #include <geogram/basic/logger.h>
 #include <geogram/basic/command_line.h>
 #include <geogram/bibliography/bibliography.h>
+#include <geogram/mesh/mesh_io.h>
 
 #include <geogram_gfx/full_screen_effects/ambient_occlusion.h>
 #include <geogram_gfx/full_screen_effects/unsharp_masking.h>
@@ -1288,12 +1295,63 @@ namespace {
     }
     
     bool LabelingViewerApp::load(const std::string& filename) {
-        Logger::warn("GLUP")
-	    << "Could not load " << filename << std::endl;
-        Logger::warn("GLUP")
-	    << "LabelingViewerApp::load() needs to be overloaded"
-	    << std::endl;
-        return false;
+
+        // based on ext/geogram/src/lib/geogram_gfx/gui/simple_mesh_application.cpp load()
+
+        if(!FileSystem::is_file(filename)) {
+            Logger::out("I/O") << "is not a file" << std::endl;
+        }
+        mesh_gfx_.set_mesh(nullptr);
+
+        mesh_.clear(false,false);
+        
+        if(GEO::CmdLine::get_arg_bool("single_precision")) {
+            mesh_.vertices.set_single_precision();
+        }
+        
+        MeshIOFlags flags;
+        if(CmdLine::get_arg_bool("attributes")) {
+            flags.set_attribute(MESH_FACET_REGION);
+            flags.set_attribute(MESH_CELL_REGION);            
+        } 
+        if(!mesh_load(filename, mesh_, flags)) {
+            return false;
+        }
+
+        if(
+            FileSystem::extension(filename) == "obj6" ||
+            FileSystem::extension(filename) == "tet6"
+        ) {
+            Logger::out("Vorpaview")
+                << "Displaying mesh animation." << std::endl;
+
+	    start_animation();
+            
+            mesh_gfx_.set_animate(true);
+            double xyzmin[3];
+            double xyzmax[3];
+            get_bbox(mesh_, xyzmin, xyzmax, true);
+            set_region_of_interest(
+                xyzmin[0], xyzmin[1], xyzmin[2],
+                xyzmax[0], xyzmax[1], xyzmax[2]
+            );
+        } else {
+            mesh_gfx_.set_animate(false);            
+            mesh_.vertices.set_dimension(3);
+            double xyzmin[3];
+            double xyzmax[3];
+            get_bbox(mesh_, xyzmin, xyzmax, false);
+            set_region_of_interest(
+                xyzmin[0], xyzmin[1], xyzmin[2],
+                xyzmax[0], xyzmax[1], xyzmax[2]
+            );
+        }
+
+        show_vertices_ = (mesh_.facets.nb() == 0);
+        mesh_gfx_.set_mesh(&mesh_);
+
+	    current_file_ = filename;
+        return true;
     }
     
     bool LabelingViewerApp::can_load(const std::string& filename) {
@@ -1485,3 +1543,36 @@ namespace {
 	}
     }
 
+    void LabelingViewerApp::get_bbox(
+        const Mesh& M_in, double* xyzmin, double* xyzmax, bool animate
+    ) {
+        geo_assert(M_in.vertices.dimension() >= index_t(animate ? 6 : 3));
+        for(index_t c = 0; c < 3; c++) {
+            xyzmin[c] = Numeric::max_float64();
+            xyzmax[c] = Numeric::min_float64();
+        }
+
+        for(index_t v = 0; v < M_in.vertices.nb(); ++v) {
+            if(M_in.vertices.single_precision()) {
+                const float* p = M_in.vertices.single_precision_point_ptr(v);
+                for(coord_index_t c = 0; c < 3; ++c) {
+                    xyzmin[c] = std::min(xyzmin[c], double(p[c]));
+                    xyzmax[c] = std::max(xyzmax[c], double(p[c]));
+                    if(animate) {
+                        xyzmin[c] = std::min(xyzmin[c], double(p[c+3]));
+                        xyzmax[c] = std::max(xyzmax[c], double(p[c+3]));
+                    }
+                }
+            } else {
+                const double* p = M_in.vertices.point_ptr(v);
+                for(coord_index_t c = 0; c < 3; ++c) {
+                    xyzmin[c] = std::min(xyzmin[c], p[c]);
+                    xyzmax[c] = std::max(xyzmax[c], p[c]);
+                    if(animate) {
+                        xyzmin[c] = std::min(xyzmin[c], p[c+3]);
+                        xyzmax[c] = std::max(xyzmax[c], p[c+3]);
+                    }
+                }
+            }
+        }
+    }
