@@ -15,6 +15,8 @@
 //   and editable with an ImGui::Checkbox (see draw_object_properties())
 // - load_labeling() method, which is called in load() if the file is a .txt
 // - in draw_scene(), visualization settings according to the value of show_labeling_
+// - inclusion of CustomMeshGfx.h
+// - initialization of labeling_colors_, editable with some ImGui::ColorEdit3WithPalette (see draw_object_properties()). No effect on the scene yet.
 //
 // ## Changed
 // 
@@ -72,6 +74,7 @@ namespace {
 
 #include "LabelingViewerApp.h"
 #include "colormaps_array.h" // for colormap_name, colormap_xpm & macros
+#include "CustomMeshGfx.h"   // for CustomMeshGfx
 
 /******************************************************************************/
 
@@ -226,6 +229,12 @@ namespace {
 
 		// added
 		show_labeling_ = false;
+		labeling_colors_[0] = vec4f(1.0f, 0.0f, 0.0f, 1.0f);//pure red 
+		labeling_colors_[1] = vec4f(0.8f, 0.0f, 0.0f, 1.0f);//dark red
+		labeling_colors_[2] = vec4f(0.0f, 1.0f, 0.0f, 1.0f);//pure green
+		labeling_colors_[3] = vec4f(0.0f, 0.8f, 0.0f, 1.0f);//dark green
+		labeling_colors_[4] = vec4f(0.0f, 0.0f, 1.0f, 1.0f);//pure blue
+		labeling_colors_[5] = vec4f(0.0f, 0.0f, 0.8f, 1.0f);//dark blue
     }
 
     LabelingViewerApp::~LabelingViewerApp() {
@@ -868,6 +877,14 @@ namespace {
     void LabelingViewerApp::draw_object_properties() {
 		if(mesh_.facets.attributes().is_defined("label")) { // if the mesh has a 'label' facet attribute == if there is a labeling
 			ImGui::Checkbox("Show labeling",&show_labeling_); // allow to hide it
+
+			ImGui::ColorEdit3WithPalette("Label 0 = +X", labeling_colors_[0].data());
+			ImGui::ColorEdit3WithPalette("Label 1 = -X", labeling_colors_[1].data());
+			ImGui::ColorEdit3WithPalette("Label 2 = +Y", labeling_colors_[2].data());
+			ImGui::ColorEdit3WithPalette("Label 3 = -Y", labeling_colors_[3].data());
+			ImGui::ColorEdit3WithPalette("Label 4 = +Z", labeling_colors_[4].data());
+			ImGui::ColorEdit3WithPalette("Label 5 = -Z", labeling_colors_[5].data());
+			ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f),"Color modification not effective yet");
 		}
     }
 

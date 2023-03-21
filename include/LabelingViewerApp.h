@@ -7,12 +7,14 @@
 // - inclusion of <geogram_gfx/mesh/mesh_gfx.h>
 // - get_bbox(), copied from ext/geogram/src/lib/geogram_gfx/gui/simple_mesh_application.h
 // - draw_points() draw_edges() draw_surface() draw_volume(), copied from ext/geogram/src/lib/geogram_gfx/gui/simple_mesh_application.h
-// - mesh_, mesh_gfx_, anim_speed_, anim_time_, show_vertices_, show_vertices_selection_, vertices_size_, vertices_color_,
+// - mesh_, anim_speed_, anim_time_, show_vertices_, show_vertices_selection_, vertices_size_, vertices_color_,
 //   vertices_transparency_, show_surface_, show_surface_sides_, show_mesh_, mesh_width_, mesh_color_, show_surface_borders_,
 //   surface_color_, surface_color_2_, show_volume_, cells_shrink_, volume_color_, show_colored_cells_, show_hexes_, show_connectors_,
 //   show_attributes_, current_colormap_texture_, attribute_, attribute_subelements_, attribute_name_, attribute_min_, attribute_max_ attributes
-// - attribute show_labeling_
+// - show_labeling_ and labeling_colors_ attributes
 // - load_labeling() method
+// - inclusion of CustomMeshGfx.h
+// - mesh_gfx_ attribute of type CustomMeshGfx
 //
 // ## Changed
 // 
@@ -24,6 +26,7 @@
 // ## Removed
 //
 // - namespace GEO wrapping the code
+// - inclusion of <geogram_gfx/mesh/mesh_gfx.h>
 
 #pragma once
 
@@ -37,10 +40,11 @@
 #include <geogram_gfx/full_screen_effects/full_screen_effect.h>
 #include <geogram_gfx/ImGui_ext/imgui_ext.h>
 #include <geogram_gfx/ImGui_ext/icon_font.h>
-#include <geogram_gfx/mesh/mesh_gfx.h>
 
 #include <map>
 #include <functional>
+
+#include "CustomMeshGfx.h"   // for CustomMeshGfx
 
 struct lua_State;
 
@@ -566,7 +570,7 @@ using namespace GEO;
 
     // copied from ext/geogram/src/lib/geogram_gfx/gui/simple_mesh_application.h
     Mesh mesh_;
-    MeshGfx mesh_gfx_;
+    CustomMeshGfx mesh_gfx_;
 
     float anim_speed_;
     float anim_time_;
@@ -604,4 +608,5 @@ using namespace GEO;
 
 	// added
 	bool show_labeling_;
+	vec4f labeling_colors_[6];
     };
