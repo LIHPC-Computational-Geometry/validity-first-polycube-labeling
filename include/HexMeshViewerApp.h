@@ -11,10 +11,12 @@
 //   vertices_transparency_, show_surface_, show_surface_sides_, show_mesh_, mesh_width_, mesh_color_, show_surface_borders_,
 //   surface_color_, surface_color_2_, show_volume_, cells_shrink_, volume_color_, show_colored_cells_, show_hexes_, show_connectors_,
 //   show_attributes_, current_colormap_texture_, attribute_, attribute_subelements_, attribute_name_, attribute_min_, attribute_max_ attributes
+// - inclusion of colormaps in <geogram_gfx/gui/colormaps/*.xpm>
+// - colormap_name and colormap_xpm, along with macros for easy indexing
 //
 // ## Changed
 // 
-// - class SimpleApplication renamed to LabelingViewerApp
+// - class SimpleApplication renamed to HexMeshViewerApp
 // - TextEditor is now GEO::TextEditor
 // - the constructor has no arguments anymore. The application name is hard-coded.
 // - load() and draw_scene() no longer virtual
@@ -37,25 +39,77 @@
 #include <geogram_gfx/ImGui_ext/icon_font.h>
 #include <geogram_gfx/mesh/mesh_gfx.h>
 
+#include <geogram_gfx/gui/colormaps/french.xpm>
+#include <geogram_gfx/gui/colormaps/black_white.xpm>
+#include <geogram_gfx/gui/colormaps/viridis.xpm>
+#include <geogram_gfx/gui/colormaps/rainbow.xpm>
+#include <geogram_gfx/gui/colormaps/cei_60757.xpm>
+#include <geogram_gfx/gui/colormaps/inferno.xpm>
+#include <geogram_gfx/gui/colormaps/magma.xpm>
+#include <geogram_gfx/gui/colormaps/parula.xpm>
+#include <geogram_gfx/gui/colormaps/plasma.xpm>
+#include <geogram_gfx/gui/colormaps/blue_red.xpm>
+
 #include <map>
 #include <functional>
+
+#define COLORMAP_FRENCH			0
+#define COLORMAP_BLACK_WHITE	1
+#define COLORMAP_VIRIDIS		2
+#define COLORMAP_RAINBOW		3
+#define COLORMAP_CEI_60757		4
+#define COLORMAP_INFERNO		5
+#define COLORMAP_MAGMA			6
+#define COLORMAP_PARULA			7
+#define COLORMAP_PLASMA			8
+#define COLORMAP_BLUE_RED		9
+
+#define LAST_COLORMAP (COLORMAP_BLUE_RED)
+
+#define TO_GL_TEXTURE_INDEX(colormap_index) (colormap_index+2) // it seems 2 GL textures are defined before the colormaps. One of them is the Geogram logo ? see HexMeshViewerApp::GL_initialize()
+
+static char colormap_name[LAST_COLORMAP+1][15] = {
+	"french",
+	"black_white",
+	"viridis",
+	"rainbow",
+	"cei_60757",
+	"inferno",
+	"magma",
+	"parula",
+	"plasma",
+	"blue_red",
+};
+
+static const char **colormap_xpm[LAST_COLORMAP+1] = {
+	french_xpm,
+	black_white_xpm,
+	viridis_xpm,
+	rainbow_xpm,
+	cei_60757_xpm,
+	inferno_xpm,
+	magma_xpm,
+	parula_xpm,
+	plasma_xpm,
+	blue_red_xpm,
+};
 
 struct lua_State;
 
 using namespace GEO;
 
-    class GEOGRAM_GFX_API LabelingViewerApp : public Application {
+    class GEOGRAM_GFX_API HexMeshViewerApp : public Application {
       public:
 
 	/**
-	 * \brief LabelingViewerApp constructor.
+	 * \brief HexMeshViewerApp constructor.
 	 */
-	LabelingViewerApp();
+	HexMeshViewerApp();
 
 	/**
-	 * \brief LabelingViewerApp destructor.
+	 * \brief HexMeshViewerApp destructor.
 	 */
-	~LabelingViewerApp() override;
+	~HexMeshViewerApp() override;
 	
 	/**
 	 * \copydoc GEO::Application::draw_gui()
@@ -173,8 +227,8 @@ using namespace GEO;
 
 	virtual bool exec_command(const char* command);
 	
-	static LabelingViewerApp* instance() {
-	    return dynamic_cast<LabelingViewerApp*>(
+	static HexMeshViewerApp* instance() {
+	    return dynamic_cast<HexMeshViewerApp*>(
 		GEO::Application::instance()
 	    );
 	}
@@ -596,4 +650,7 @@ using namespace GEO;
     std::string       attribute_name_;
     float             attribute_min_;
     float             attribute_max_;
+
+	// added
+	bool show_SJ_;
     };

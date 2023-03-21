@@ -18,3 +18,11 @@ make
 cd bin
 ./labeling_viewer ../../../data/B0/surface.obj ../../../data/B0/surface_labeling.txt
 ```
+
+## App `hex_mesh_viewer`
+
+```bash
+# from build/Linux64-gcc-dynamic-Release
+cd bin
+./hex_mesh_viewer ../../../data/B0/hex.mesh
+```

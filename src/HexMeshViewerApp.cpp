@@ -11,16 +11,23 @@
 //   vertices_transparency_, show_surface_, show_surface_sides_, show_mesh_, mesh_width_, mesh_color_, show_surface_borders_,
 //   surface_color_, surface_color_2_, show_volume_, cells_shrink_, volume_color_, show_colored_cells_, show_hexes_, show_connectors_,
 //   show_attributes_, current_colormap_texture_, attribute_, attribute_subelements_, attribute_name_, attribute_min_, attribute_max_
+// - compute_scaled_jacobian() called in load()
+// - attribute show_SJ_, which is set to false at init, to true after load(), editable with an ImGui::Checkbox (see draw_object_properties())
+// - in draw_scene(), visualization settings according to the value of show_SJ_
 //
 // ## Changed
 // 
-// - class SimpleApplication renamed to LabelingViewerApp
+// - class SimpleApplication renamed to HexMeshViewerApp
 // - the constructor has no arguments anymore. The application name is hard-coded.
 // - definition of load() replaced by the one in ext/geogram/src/lib/geogram_gfx/gui/simple_mesh_application.cpp
+// - show_surface_ set to false, show_volume_ and show_colored_cells_ set to true
+// - lighting off by default
+// - init_colormaps() now uses the colormap ordering defined in the header
 //
 // ## Removed
 //
 // - namespace GEO wrapping the code
+// - inclusion of colormaps in <geogram_gfx/gui/colormaps/*.xpm> (in the header now)
 
 #include <geogram_gfx/gui/simple_application.h>
 #include <geogram_gfx/gui/geogram_logo_256.xpm>
@@ -34,18 +41,6 @@
 
 #include <geogram_gfx/full_screen_effects/ambient_occlusion.h>
 #include <geogram_gfx/full_screen_effects/unsharp_masking.h>
-
-
-#include <geogram_gfx/gui/colormaps/french.xpm>
-#include <geogram_gfx/gui/colormaps/black_white.xpm>
-#include <geogram_gfx/gui/colormaps/viridis.xpm>
-#include <geogram_gfx/gui/colormaps/rainbow.xpm>
-#include <geogram_gfx/gui/colormaps/cei_60757.xpm>
-#include <geogram_gfx/gui/colormaps/inferno.xpm>
-#include <geogram_gfx/gui/colormaps/magma.xpm>
-#include <geogram_gfx/gui/colormaps/parula.xpm>
-#include <geogram_gfx/gui/colormaps/plasma.xpm>
-#include <geogram_gfx/gui/colormaps/blue_red.xpm>
 
 #ifdef GEOGRAM_WITH_LUA
 
@@ -76,7 +71,8 @@ namespace {
 #  include <geogram_gfx/gui/gui_state.h>
 }
 
-#include "LabelingViewerApp.h"
+#include "HexMeshViewerApp.h"
+#include "hex_mesh.h" // for compute_scaled_jacobian()
 
 /******************************************************************************/
 
@@ -107,11 +103,11 @@ namespace {
 
 /******************************************************************************/
 
-    LabelingViewerApp::LabelingViewerApp() :
-	Application("labeling_viewer"),
+    HexMeshViewerApp::HexMeshViewerApp() :
+	Application("hex_mesh_viewer"),
 	text_editor_(&text_editor_visible_)
     {
-	lighting_ = true;
+	lighting_ = false;
 	edit_light_ = false;
 	clipping_ = false;
 	clip_mode_ = GLUP_CLIP_STRADDLING_CELLS;
@@ -182,7 +178,7 @@ namespace {
 
 	props_pinned_ = false;
 
-    //copied from the constructor of SimpleMeshApplication in ext/geogram/src/lib/geogram_gfx/gui/simple_mesh_application.cpp
+    // based on the constructor of SimpleMeshApplication in ext/geogram/src/lib/geogram_gfx/gui/simple_mesh_application.cpp
     set_default_filename("out.meshb");
 	
         anim_speed_ = 1.0f;
@@ -194,7 +190,7 @@ namespace {
 	vertices_color_ = vec4f(0.0f, 1.0f, 0.0f, 1.0f);
 	vertices_transparency_ = 0.0f;
 	
-        show_surface_ = true;
+        show_surface_ = false;
         show_surface_sides_ = false;
         show_mesh_ = true;
 	mesh_color_ = vec4f(0.0f, 0.0f, 0.0f, 1.0f);
@@ -204,10 +200,10 @@ namespace {
 	surface_color_ =   vec4f(0.5f, 0.5f, 1.0f, 1.0f);
 	surface_color_2_ = vec4f(1.0f, 0.5f, 0.0f, 1.0f); 
 	
-        show_volume_ = false;
+        show_volume_ = true;
 	volume_color_ = vec4f(0.9f, 0.9f, 0.9f, 1.0f);	
         cells_shrink_ = 0.0f;
-        show_colored_cells_ = false;
+        show_colored_cells_ = true;
         show_hexes_ = true;
 	show_connectors_ = true;
 	
@@ -228,9 +224,11 @@ namespace {
         add_key_toggle("j", &show_hexes_, "hexes");
         add_key_toggle("k", &show_connectors_, "connectors");
         add_key_toggle("C", &show_colored_cells_, "colored cells");
+
+		show_SJ_ = false;
     }
 
-    LabelingViewerApp::~LabelingViewerApp() {
+    HexMeshViewerApp::~HexMeshViewerApp() {
 #ifdef GEOGRAM_WITH_LUA
 	if(lua_state_ != nullptr) {
 	    lua_close(lua_state_);
@@ -239,7 +237,7 @@ namespace {
 #endif	
     }
     
-    void LabelingViewerApp::home() {
+    void HexMeshViewerApp::home() {
 	zoom_ = 1.0;
 	object_translation_ = vec3(0.0, 0.0, 0.0);
 	object_rotation_.reset();
@@ -252,7 +250,7 @@ namespace {
 	edit_light_ = false;
     }
 
-    void LabelingViewerApp::add_key_func(
+    void HexMeshViewerApp::add_key_func(
 	const std::string& key, std::function<void()> cb,
 	const char* help
     ) {
@@ -262,7 +260,7 @@ namespace {
 	}
     }
     
-    void LabelingViewerApp::add_key_toggle(
+    void HexMeshViewerApp::add_key_toggle(
 	const std::string& key, bool* p_val,
 	const char* help
     ) {
@@ -273,7 +271,7 @@ namespace {
 	);
     }
 
-    void LabelingViewerApp::char_callback(unsigned int c){
+    void HexMeshViewerApp::char_callback(unsigned int c){
 	Application::char_callback(c);
 	if(text_editor_visible_) {
 	    return;
@@ -286,7 +284,7 @@ namespace {
 	}
     }
 
-    void LabelingViewerApp::key_callback(
+    void HexMeshViewerApp::key_callback(
 	int key, int scancode, int action, int mods
     ) {
 	Application::key_callback(key, scancode, action, mods);
@@ -298,7 +296,7 @@ namespace {
 	}
     }
     
-    void LabelingViewerApp::set_style(const std::string& style) {
+    void HexMeshViewerApp::set_style(const std::string& style) {
 	Application::set_style(style);
 	if(String::string_starts_with(style, "Light")) {
 	    background_color_ = vec4f(1.0f, 1.0f, 1.0f, 1.0f);
@@ -307,7 +305,7 @@ namespace {
 	}
     }
 
-    void LabelingViewerApp::set_region_of_interest(
+    void HexMeshViewerApp::set_region_of_interest(
 	double xmin, double ymin, double zmin,
 	double xmax, double ymax, double zmax
     ) {
@@ -324,7 +322,7 @@ namespace {
 	);
     }
 
-    void LabelingViewerApp::get_region_of_interest(
+    void HexMeshViewerApp::get_region_of_interest(
 	double& xmin, double& ymin, double& zmin,
 	double& xmax, double& ymax, double& zmax
     ) const {
@@ -336,7 +334,7 @@ namespace {
 	zmax = roi_.xyz_max[2];
     }
     
-    void LabelingViewerApp::draw_gui() {
+    void HexMeshViewerApp::draw_gui() {
 #ifdef GEO_OS_ANDROID
 	if(
 	    supported_read_file_extensions() != "" ||
@@ -406,7 +404,7 @@ namespace {
 	}
     }
 
-    void LabelingViewerApp::draw_scene_begin() {
+    void HexMeshViewerApp::draw_scene_begin() {
 
 	glClearColor(
 	    background_color_.x,
@@ -578,7 +576,7 @@ namespace {
 	}
     }
 
-    vec3 LabelingViewerApp::project(const vec3& p) {
+    vec3 HexMeshViewerApp::project(const vec3& p) {
 	vec3 result;
 	glupProject(
 	    p.x, p.y, p.z,
@@ -588,7 +586,7 @@ namespace {
 	return result;
     }
 
-    vec3 LabelingViewerApp::unproject(const vec3& p) {
+    vec3 HexMeshViewerApp::unproject(const vec3& p) {
 	vec3 result;
 	glupUnProject(
 	    p.x, p.y, p.z,
@@ -598,16 +596,16 @@ namespace {
 	return result;
     }
 
-    vec2 LabelingViewerApp::unproject_2d(const vec2& p) {
+    vec2 HexMeshViewerApp::unproject_2d(const vec2& p) {
 	double z = project(vec3(0.0, 0.0, 0.0)).z;
 	vec3 result3d = unproject(vec3(p.x, p.y, z));
 	return vec2(result3d.x, result3d.y);
     }
     
-    void LabelingViewerApp::draw_scene_end() {
+    void HexMeshViewerApp::draw_scene_end() {
     }
 
-    void LabelingViewerApp::draw_scene() {
+    void HexMeshViewerApp::draw_scene() {
         // copied from ext/geogram/src/lib/geogram_gfx/gui/simple_mesh_application.cpp
         if(mesh_gfx_.mesh() == nullptr) {
             return;
@@ -637,9 +635,29 @@ namespace {
 		draw_surface();
 		draw_edges();
 		draw_volume();
+
+		if(show_SJ_) {
+			show_attributes_ = true;
+			current_colormap_texture_ = TO_GL_TEXTURE_INDEX(COLORMAP_PARULA);
+			// reversed colormap:
+			attribute_min_ = 1.0f; // SJ=1 -> blue
+			attribute_max_ = 0.0f; // SJ=0 -> yellow
+			attribute_ = "cells.SJ";
+			attribute_name_ = "SJ";
+			attribute_subelements_ = MESH_CELLS;
+		}
+		else {
+			show_attributes_ = false;
+			current_colormap_texture_ = TO_GL_TEXTURE_INDEX(COLORMAP_FRENCH);
+			attribute_min_ = 0.0f;
+			attribute_max_ = 0.0f;
+			attribute_ = "vertices.point_fp32[0]";
+			attribute_name_ = "point_fp32[0]";
+			attribute_subelements_ = MESH_VERTICES;
+		}
     }
 
-    void LabelingViewerApp::draw_points() {
+    void HexMeshViewerApp::draw_points() {
         if(show_vertices_) {
 	    if(vertices_transparency_ != 0.0f) {
 		glDepthMask(GL_FALSE);
@@ -669,7 +687,7 @@ namespace {
         }
     }
 
-    void LabelingViewerApp::draw_surface() {
+    void HexMeshViewerApp::draw_surface() {
 	mesh_gfx_.set_mesh_color(0.0, 0.0, 0.0);
 
 	mesh_gfx_.set_surface_color(
@@ -697,13 +715,13 @@ namespace {
         }
     }
 
-    void LabelingViewerApp::draw_edges() {
+    void HexMeshViewerApp::draw_edges() {
         if(show_mesh_) {
             mesh_gfx_.draw_edges();
         }
     }
     
-    void LabelingViewerApp::draw_volume() {
+    void HexMeshViewerApp::draw_volume() {
         if(show_volume_) {
 
             if(
@@ -730,7 +748,7 @@ namespace {
         }
     }
     
-    void LabelingViewerApp::draw_graphics() {
+    void HexMeshViewerApp::draw_graphics() {
 	if(!full_screen_effect_.is_null()) {
 	    // Note: on retina, we use window resolution
 	    // rather than frame buffer resolution
@@ -747,7 +765,7 @@ namespace {
 	}
     }
 
-    void LabelingViewerApp::draw_viewer_properties_window() {
+    void HexMeshViewerApp::draw_viewer_properties_window() {
 	if(!viewer_properties_visible_) {
 	    return;
 	}
@@ -760,7 +778,7 @@ namespace {
 	ImGui::End();
     }
 
-    void LabelingViewerApp::draw_viewer_properties() {
+    void HexMeshViewerApp::draw_viewer_properties() {
 	if(phone_screen_ && get_height() >= get_width()) {
 	    if(props_pinned_) {
 		if(ImGui::SimpleButton(
@@ -834,7 +852,7 @@ namespace {
 	}
     }
 
-    void LabelingViewerApp::draw_object_properties_window() {
+    void HexMeshViewerApp::draw_object_properties_window() {
 	if(!object_properties_visible_) {
 	    return;
 	}
@@ -847,10 +865,11 @@ namespace {
 	ImGui::End();
     }
 
-    void LabelingViewerApp::draw_object_properties() {
+    void HexMeshViewerApp::draw_object_properties() {
+		ImGui::Checkbox("Cell color by SJ",&show_SJ_);
     }
 
-    void LabelingViewerApp::draw_command_window() {
+    void HexMeshViewerApp::draw_command_window() {
 	if(Command::current() == nullptr) {
 	    return;
 	}
@@ -867,11 +886,11 @@ namespace {
         ImGui::End();
     }
 
-    void LabelingViewerApp::draw_console() {
+    void HexMeshViewerApp::draw_console() {
 	console_->draw(&console_visible_);
     }
     
-    void LabelingViewerApp::draw_menu_bar() {
+    void HexMeshViewerApp::draw_menu_bar() {
 	if(!menubar_visible_) {
 	    return;
 	}
@@ -988,7 +1007,7 @@ namespace {
 	}
     }
 
-    void LabelingViewerApp::draw_load_menu() {
+    void HexMeshViewerApp::draw_load_menu() {
 #ifdef GEO_OS_EMSCRIPTEN
             ImGui::Text("To load a file,");
             ImGui::Text("use the \"Browse\"");
@@ -1012,7 +1031,7 @@ namespace {
 #endif        
     }
 
-    void LabelingViewerApp::draw_save_menu() {
+    void HexMeshViewerApp::draw_save_menu() {
 #ifdef GEO_OS_EMSCRIPTEN
         if(ImGui::BeginMenu(icon_UTF8("save") + " Save as...")) {
 	    ImGui::MenuItem("Supported extensions:", nullptr, false, false);
@@ -1065,10 +1084,10 @@ namespace {
 #endif        
     }
 
-    void LabelingViewerApp::draw_fileops_menu() {
+    void HexMeshViewerApp::draw_fileops_menu() {
     }
 
-    void LabelingViewerApp::draw_about() {
+    void HexMeshViewerApp::draw_about() {
         ImGui::Separator();
         if(ImGui::BeginMenu(icon_UTF8("info") + " About...")) {
             ImGui::Text("%s : a GEOGRAM application", name().c_str());
@@ -1096,7 +1115,7 @@ namespace {
         }
     }
 
-    void LabelingViewerApp::draw_help() {
+    void HexMeshViewerApp::draw_help() {
 	if(ImGui::BeginMenu(icon_UTF8("question") + " help")) {
 	    ImGui::Text("Key shortcuts");
 	    ImGui::Separator();
@@ -1112,7 +1131,7 @@ namespace {
 	}
     }
     
-    void LabelingViewerApp::draw_windows_menu() {
+    void HexMeshViewerApp::draw_windows_menu() {
 	if(phone_screen_) {
 	    ImGui::MenuItem(
 		"     " + icon_UTF8("window-restore") + " Windows",
@@ -1247,19 +1266,19 @@ namespace {
 	}
     }
     
-    void LabelingViewerApp::set_default_layout() {
+    void HexMeshViewerApp::set_default_layout() {
 	set_gui_state(default_layout());
     }
 
-    const char* LabelingViewerApp::default_layout_android_vertical() const {
+    const char* HexMeshViewerApp::default_layout_android_vertical() const {
 	return (const char*)gui_state_v;
     }
 
-    const char* LabelingViewerApp::default_layout_android_horizontal() const {
+    const char* HexMeshViewerApp::default_layout_android_horizontal() const {
 	return (const char*)gui_state_h;
     }
     
-    const char* LabelingViewerApp::default_layout() const {
+    const char* HexMeshViewerApp::default_layout() const {
 	const char* result = nullptr;
 	if(phone_screen_) {
 	    if(get_height() >= get_width()) {
@@ -1274,7 +1293,7 @@ namespace {
     }
 
     
-    void LabelingViewerApp::resize(
+    void HexMeshViewerApp::resize(
 	index_t w, index_t h, index_t fb_w, index_t fb_h
     ) {
 	Application::resize(w,h,fb_w,fb_h);
@@ -1283,10 +1302,10 @@ namespace {
 	}
     }
     
-    void LabelingViewerApp::draw_application_menus() {
+    void HexMeshViewerApp::draw_application_menus() {
     }
 
-    void LabelingViewerApp::draw_application_icons() {
+    void HexMeshViewerApp::draw_application_icons() {
 	if(phone_screen_) {
 	    if(ImGui::SimpleButton(icon_UTF8("sliders-h"))) {
 		if(object_properties_visible_) {
@@ -1300,11 +1319,11 @@ namespace {
 	}
     }
     
-    void LabelingViewerApp::post_draw() {
+    void HexMeshViewerApp::post_draw() {
 	Command::flush_queue();
     }
 
-    void LabelingViewerApp::mouse_button_callback(
+    void HexMeshViewerApp::mouse_button_callback(
 	int button, int action, int mods, int source
     ) {
 	geo_argused(mods);
@@ -1401,7 +1420,7 @@ namespace {
 	}
     }
 
-    void LabelingViewerApp::cursor_pos_callback(
+    void HexMeshViewerApp::cursor_pos_callback(
 	double x, double y, int source
     ) {
 	geo_argused(source);
@@ -1452,22 +1471,22 @@ namespace {
 	}
     }
 
-    void LabelingViewerApp::scroll_callback(double xoffset, double yoffset) {
+    void HexMeshViewerApp::scroll_callback(double xoffset, double yoffset) {
 	geo_argused(xoffset);
 	double dy = -40.0*double(yoffset) / double(get_height());
 	zoom_ *= (1.0 + dy);
     }
 
-    bool LabelingViewerApp::save(const std::string& filename) {
+    bool HexMeshViewerApp::save(const std::string& filename) {
         Logger::warn("GLUP")
 	    << "Could not save " << filename << std::endl;
         Logger::warn("GLUP")
-	    << "LabelingViewerApp::save() needs to be overloaded"
+	    << "HexMeshViewerApp::save() needs to be overloaded"
 	    << std::endl;
         return false;
     }
     
-    bool LabelingViewerApp::load(const std::string& filename) {
+    bool HexMeshViewerApp::load(const std::string& filename) {
 
         // based on ext/geogram/src/lib/geogram_gfx/gui/simple_mesh_application.cpp load()
 
@@ -1524,10 +1543,15 @@ namespace {
         mesh_gfx_.set_mesh(&mesh_);
 
 	    current_file_ = filename;
+
+		double minSJ = compute_scaled_jacobian(mesh_);
+		Logger::out("I/O") << "minSJ of this hex mesh is " << std::to_string(minSJ) << std::endl;
+		show_SJ_ = true;
+
         return true;
     }
     
-    bool LabelingViewerApp::can_load(const std::string& filename) {
+    bool HexMeshViewerApp::can_load(const std::string& filename) {
         std::string extensions_str = supported_read_file_extensions();
         if(extensions_str == "") {
             return false;
@@ -1546,15 +1570,15 @@ namespace {
         return false;
     }
     
-    std::string LabelingViewerApp::supported_read_file_extensions() {
+    std::string HexMeshViewerApp::supported_read_file_extensions() {
         return "";
     }
 
-    std::string LabelingViewerApp::supported_write_file_extensions() {
+    std::string HexMeshViewerApp::supported_write_file_extensions() {
         return "";
     }
 
-    ImTextureID LabelingViewerApp::convert_to_ImTextureID(
+    ImTextureID HexMeshViewerApp::convert_to_ImTextureID(
 	GLuint gl_texture_id_in
     ) {
         // It is not correct to directly cast a GLuint into a void*
@@ -1568,7 +1592,7 @@ namespace {
         return imgui_texture_id;
     }
 
-    void LabelingViewerApp::GL_initialize() {
+    void HexMeshViewerApp::GL_initialize() {
 	Application::GL_initialize();
         glGenTextures(1, &geogram_logo_texture_);
         glActiveTexture(GL_TEXTURE0 + GLUP_TEXTURE_2D_UNIT);
@@ -1583,7 +1607,7 @@ namespace {
 	}
     }
     
-    void LabelingViewerApp::GL_terminate() {
+    void HexMeshViewerApp::GL_terminate() {
         for(index_t i=0; i<colormaps_.size(); ++i) {
             if(colormaps_[i].texture != 0) {
                 glDeleteTextures(1, &colormaps_[i].texture);
@@ -1598,7 +1622,7 @@ namespace {
     }
 
 
-    void LabelingViewerApp::browse(const std::string& path, bool subdirs) {
+    void HexMeshViewerApp::browse(const std::string& path, bool subdirs) {
         std::vector<std::string> files;
         FileSystem::get_directory_entries(path,files);
         
@@ -1618,7 +1642,7 @@ namespace {
         }
     }
     
-    void LabelingViewerApp::geogram_initialize(int argc, char** argv) {
+    void HexMeshViewerApp::geogram_initialize(int argc, char** argv) {
 	GEO::Application::geogram_initialize(argc, argv);
         if(filenames().size() == 1 &&
 	   FileSystem::is_directory(filenames()[0])
@@ -1643,7 +1667,7 @@ namespace {
 	}
     }
 
-    void LabelingViewerApp::init_colormap(
+    void HexMeshViewerApp::init_colormap(
         const std::string& name, const char** xpm_data
     ) {
         colormaps_.push_back(ColormapInfo());
@@ -1661,20 +1685,13 @@ namespace {
         glBindTexture(GL_TEXTURE_2D, 0);
     }
 
-    void LabelingViewerApp::init_colormaps() {
-        init_colormap("french", french_xpm);
-        init_colormap("black_white", black_white_xpm);
-        init_colormap("viridis", viridis_xpm);
-        init_colormap("rainbow", rainbow_xpm);
-        init_colormap("cei_60757", cei_60757_xpm);
-        init_colormap("inferno", inferno_xpm);
-        init_colormap("magma", magma_xpm);
-        init_colormap("parula", parula_xpm);
-        init_colormap("plasma", plasma_xpm);
-        init_colormap("blue_red", blue_red_xpm);
+    void HexMeshViewerApp::init_colormaps() {
+		for(int i = 0; i <= LAST_COLORMAP; i++) {
+			init_colormap(colormap_name[i],colormap_xpm[i]);
+		}
     }
 
-    bool LabelingViewerApp::exec_command(const char* command) {
+    bool HexMeshViewerApp::exec_command(const char* command) {
 #ifdef GEOGRAM_WITH_LUA	
 	if(luaL_dostring(lua_state_,command)) {
 	    adjust_lua_glup_state(lua_state_);
@@ -1697,7 +1714,7 @@ namespace {
 #endif	
     }
 
-    void LabelingViewerApp::ImGui_initialize() {
+    void HexMeshViewerApp::ImGui_initialize() {
 	if(phone_screen_ && !ImGui_firsttime_init_) {
 	    console_visible_ = false;
 	    // Tooltips do not play well with touch screens.
@@ -1710,13 +1727,13 @@ namespace {
 	Application::ImGui_initialize();
     }
 
-    void LabelingViewerApp::drop_callback(int nb, const char** f) {
+    void HexMeshViewerApp::drop_callback(int nb, const char** f) {
 	for(int i=0; i<nb; ++i) {
 	    load(f[i]);
 	}
     }
 
-    void LabelingViewerApp::get_bbox(
+    void HexMeshViewerApp::get_bbox(
         const Mesh& M_in, double* xyzmin, double* xyzmax, bool animate
     ) {
         geo_assert(M_in.vertices.dimension() >= index_t(animate ? 6 : 3));
