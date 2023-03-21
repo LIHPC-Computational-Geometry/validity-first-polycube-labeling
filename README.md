@@ -16,7 +16,7 @@ make
 ```bash
 # from build/Linux64-gcc-dynamic-Release
 cd bin
-./labeling_viewer ../../../data/B0/surface.obj ../../../data/B0/surface_labeling.txt
+./labeling_viewer ../../../data/B0/surface.obj ../../../data/B0/labeling.txt
 ```
 
 ## App `hex_mesh_viewer`

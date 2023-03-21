@@ -11,12 +11,18 @@
 //   vertices_transparency_, show_surface_, show_surface_sides_, show_mesh_, mesh_width_, mesh_color_, show_surface_borders_,
 //   surface_color_, surface_color_2_, show_volume_, cells_shrink_, volume_color_, show_colored_cells_, show_hexes_, show_connectors_,
 //   show_attributes_, current_colormap_texture_, attribute_, attribute_subelements_, attribute_name_, attribute_min_, attribute_max_
+// - attribute show_labeling_, which is set to false at init, to true at the end of load_labeling() on a labeling suited for the current mesh,
+//   and editable with an ImGui::Checkbox (see draw_object_properties())
+// - load_labeling() method, which is called in load() if the file is a .txt
+// - in draw_scene(), visualization settings according to the value of show_labeling_
 //
 // ## Changed
 // 
 // - class SimpleApplication renamed to LabelingViewerApp
 // - the constructor has no arguments anymore. The application name is hard-coded.
 // - definition of load() replaced by the one in ext/geogram/src/lib/geogram_gfx/gui/simple_mesh_application.cpp
+// - lighting off by default
+// - init_colormaps() now uses the colormap ordering defined include/colormaps_array.h
 //
 // ## Removed
 //
@@ -34,18 +40,6 @@
 
 #include <geogram_gfx/full_screen_effects/ambient_occlusion.h>
 #include <geogram_gfx/full_screen_effects/unsharp_masking.h>
-
-
-#include <geogram_gfx/gui/colormaps/french.xpm>
-#include <geogram_gfx/gui/colormaps/black_white.xpm>
-#include <geogram_gfx/gui/colormaps/viridis.xpm>
-#include <geogram_gfx/gui/colormaps/rainbow.xpm>
-#include <geogram_gfx/gui/colormaps/cei_60757.xpm>
-#include <geogram_gfx/gui/colormaps/inferno.xpm>
-#include <geogram_gfx/gui/colormaps/magma.xpm>
-#include <geogram_gfx/gui/colormaps/parula.xpm>
-#include <geogram_gfx/gui/colormaps/plasma.xpm>
-#include <geogram_gfx/gui/colormaps/blue_red.xpm>
 
 #ifdef GEOGRAM_WITH_LUA
 
@@ -77,6 +71,7 @@ namespace {
 }
 
 #include "LabelingViewerApp.h"
+#include "colormaps_array.h" // for colormap_name, colormap_xpm & macros
 
 /******************************************************************************/
 
@@ -111,7 +106,7 @@ namespace {
 	Application("labeling_viewer"),
 	text_editor_(&text_editor_visible_)
     {
-	lighting_ = true;
+	lighting_ = false;
 	edit_light_ = false;
 	clipping_ = false;
 	clip_mode_ = GLUP_CLIP_STRADDLING_CELLS;
@@ -228,6 +223,9 @@ namespace {
         add_key_toggle("j", &show_hexes_, "hexes");
         add_key_toggle("k", &show_connectors_, "connectors");
         add_key_toggle("C", &show_colored_cells_, "colored cells");
+
+		// added
+		show_labeling_ = false;
     }
 
     LabelingViewerApp::~LabelingViewerApp() {
@@ -637,6 +635,26 @@ namespace {
 		draw_surface();
 		draw_edges();
 		draw_volume();
+
+		//added
+		if(show_labeling_) {
+			show_attributes_ = true;
+			current_colormap_texture_ = TO_GL_TEXTURE_INDEX(COLORMAP_FRENCH);
+			attribute_min_ = 0.0f;
+			attribute_max_ = 5.0f;
+			attribute_ = "facets.label";
+			attribute_name_ = "label";
+			attribute_subelements_ = MESH_FACETS;
+		}
+		else {
+			show_attributes_ = false;
+			current_colormap_texture_ = TO_GL_TEXTURE_INDEX(COLORMAP_FRENCH);
+			attribute_min_ = 0.0f;
+			attribute_max_ = 0.0f;
+			attribute_ = "vertices.point_fp32[0]";
+			attribute_name_ = "point_fp32[0]";
+			attribute_subelements_ = MESH_VERTICES;
+		}
     }
 
     void LabelingViewerApp::draw_points() {
@@ -848,6 +866,9 @@ namespace {
     }
 
     void LabelingViewerApp::draw_object_properties() {
+		if(mesh_.facets.attributes().is_defined("label")) { // if the mesh has a 'label' facet attribute == if there is a labeling
+			ImGui::Checkbox("Show labeling",&show_labeling_); // allow to hide it
+		}
     }
 
     void LabelingViewerApp::draw_command_window() {
@@ -1474,9 +1495,14 @@ namespace {
         if(!FileSystem::is_file(filename)) {
             Logger::out("I/O") << "is not a file" << std::endl;
         }
+
+		if(FileSystem::extension(filename)=="txt") {
+			return load_labeling(filename);
+		}
+
         mesh_gfx_.set_mesh(nullptr);
 
-        mesh_.clear(false,false);
+        mesh_.clear(false,false); // will remove the labeling (facet attribute 'label') if mesh_ had one
         
         if(GEO::CmdLine::get_arg_bool("single_precision")) {
             mesh_.vertices.set_single_precision();
@@ -1521,11 +1547,62 @@ namespace {
         }
 
         show_vertices_ = (mesh_.facets.nb() == 0);
+		show_labeling_ = false; // added
         mesh_gfx_.set_mesh(&mesh_);
 
 	    current_file_ = filename;
         return true;
     }
+
+	bool LabelingViewerApp::load_labeling(const std::string& filename) {
+
+		//open the file
+		std::ifstream ifs(filename);
+		if (!ifs.is_open()) {
+			Logger::out("I/O") << "Could not open labeling file '" << filename << "'" << std::endl;
+			return false;
+		}
+
+		Logger::out("I/O") << "Loading file " << filename << "..." << std::endl;
+
+		int current_label = -1;
+		GEO::index_t current_line_number = 0;
+		GEO::index_t facets_number = mesh_.facets.nb(); // expected line number (one line per facet)
+
+		//add an attribute on facets. see https://github.com/BrunoLevy/geogram/wiki/Mesh#attributes
+		Attribute<int> label(mesh_.facets.attributes(), "label");
+
+		//fill the attribute
+		while (ifs >> current_label) {
+			if(current_line_number >= facets_number) {
+				Logger::out("I/O") << "In load_labeling(), the number of labels is greater than the number of facets\n"
+				                   << "Number of labels so far = " << current_line_number+1 << "\n"
+				                   << "Number of facets = " << facets_number << "\n";
+				label.unbind();
+				mesh_.facets.attributes().delete_attribute_store("label");
+				show_labeling_ = false;
+				Logger::out("I/O") << "Labeling removed" << std::endl;
+            	return false;
+			}
+            label[current_line_number] = current_label;
+            current_line_number++;
+        }
+
+		//compare with expected size
+		if (current_line_number != facets_number){
+            Logger::out("I/O") << "In load_labeling(), the number of labels is lesser than the number of facets\n"
+			                   << "Number of labels = " << current_line_number+1 << "\n"
+			                   << "Number of facets = " << facets_number << "\n";
+			label.unbind();
+			mesh_.facets.attributes().delete_attribute_store("label");
+			show_labeling_ = false;
+			Logger::out("I/O") << "Labeling removed" << std::endl;
+            return false;
+        }
+
+		show_labeling_ = true;
+		return true;
+	}
     
     bool LabelingViewerApp::can_load(const std::string& filename) {
         std::string extensions_str = supported_read_file_extensions();
@@ -1662,16 +1739,9 @@ namespace {
     }
 
     void LabelingViewerApp::init_colormaps() {
-        init_colormap("french", french_xpm);
-        init_colormap("black_white", black_white_xpm);
-        init_colormap("viridis", viridis_xpm);
-        init_colormap("rainbow", rainbow_xpm);
-        init_colormap("cei_60757", cei_60757_xpm);
-        init_colormap("inferno", inferno_xpm);
-        init_colormap("magma", magma_xpm);
-        init_colormap("parula", parula_xpm);
-        init_colormap("plasma", plasma_xpm);
-        init_colormap("blue_red", blue_red_xpm);
+        for(int i = 0; i <= LAST_COLORMAP; i++) {
+			init_colormap(colormap_name[i],colormap_xpm[i]);
+		}
     }
 
     bool LabelingViewerApp::exec_command(const char* command) {

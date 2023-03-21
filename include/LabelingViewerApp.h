@@ -11,6 +11,8 @@
 //   vertices_transparency_, show_surface_, show_surface_sides_, show_mesh_, mesh_width_, mesh_color_, show_surface_borders_,
 //   surface_color_, surface_color_2_, show_volume_, cells_shrink_, volume_color_, show_colored_cells_, show_hexes_, show_connectors_,
 //   show_attributes_, current_colormap_texture_, attribute_, attribute_subelements_, attribute_name_, attribute_min_, attribute_max_ attributes
+// - attribute show_labeling_
+// - load_labeling() method
 //
 // ## Changed
 // 
@@ -82,6 +84,9 @@ using namespace GEO;
          * \retval false otherwise
          */
         bool load(const std::string& filename);
+
+		// added
+		bool load_labeling(const std::string& filename);
 
 	/**
 	 * \brief Gets the text editor.
@@ -596,4 +601,7 @@ using namespace GEO;
     std::string       attribute_name_;
     float             attribute_min_;
     float             attribute_max_;
+
+	// added
+	bool show_labeling_;
     };

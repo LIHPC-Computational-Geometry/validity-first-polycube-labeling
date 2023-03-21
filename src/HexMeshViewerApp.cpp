@@ -22,12 +22,12 @@
 // - definition of load() replaced by the one in ext/geogram/src/lib/geogram_gfx/gui/simple_mesh_application.cpp
 // - show_surface_ set to false, show_volume_ and show_colored_cells_ set to true
 // - lighting off by default
-// - init_colormaps() now uses the colormap ordering defined in the header
+// - init_colormaps() now uses the colormap ordering defined include/colormaps_array.h
 //
 // ## Removed
 //
 // - namespace GEO wrapping the code
-// - inclusion of colormaps in <geogram_gfx/gui/colormaps/*.xpm> (in the header now)
+// - inclusion of colormaps in <geogram_gfx/gui/colormaps/*.xpm> (in src/colormaps_array.cpp now)
 
 #include <geogram_gfx/gui/simple_application.h>
 #include <geogram_gfx/gui/geogram_logo_256.xpm>
@@ -73,6 +73,7 @@ namespace {
 
 #include "HexMeshViewerApp.h"
 #include "hex_mesh.h" // for compute_scaled_jacobian()
+#include "colormaps_array.h" // for colormap_name, colormap_xpm & macros
 
 /******************************************************************************/
 

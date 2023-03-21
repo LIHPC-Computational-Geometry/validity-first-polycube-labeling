@@ -10,6 +10,6 @@ int main(int argc, char** argv) {
 	}
 	
     LabelingViewerApp app;
-	app.start(argc-1,argv);//remove the last argument (labeling file) when calling start()
+	app.start(argc,argv);
     return 0;
 }
