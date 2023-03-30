@@ -16,7 +16,8 @@
 // - load_labeling() method, which is called in load() if the file is a .txt
 // - in draw_scene(), visualization settings according to the value of show_labeling_
 // - inclusion of CustomMeshGfx.h
-// - initialization of labeling_colors_, editable with some ImGui::ColorEdit3WithPalette (see draw_object_properties()). No effect on the scene yet.
+// - initialization of labeling_colors_, editable with some ImGui::ColorEdit4WithPalette (see draw_object_properties())
+// - labeling_colors_ passed by address to mesh_gfx_
 //
 // ## Changed
 // 
@@ -229,12 +230,45 @@ namespace {
 
 		// added
 		show_labeling_ = false;
-		labeling_colors_[0] = vec4f(1.0f, 0.0f, 0.0f, 1.0f);//pure red 
-		labeling_colors_[1] = vec4f(0.8f, 0.0f, 0.0f, 1.0f);//dark red
-		labeling_colors_[2] = vec4f(0.0f, 1.0f, 0.0f, 1.0f);//pure green
-		labeling_colors_[3] = vec4f(0.0f, 0.8f, 0.0f, 1.0f);//dark green
-		labeling_colors_[4] = vec4f(0.0f, 0.0f, 1.0f, 1.0f);//pure blue
-		labeling_colors_[5] = vec4f(0.0f, 0.0f, 0.8f, 1.0f);//dark blue
+		// default colors
+		// label 0 -> red
+		labeling_colors_[0][0] = 1.0f;
+		labeling_colors_[0][1] = 0.0f;
+		labeling_colors_[0][2] = 0.0f;
+		labeling_colors_[0][3] = 1.0f;
+		// label 1 -> dark red
+		labeling_colors_[1][0] = 0.6f;
+		labeling_colors_[1][1] = 0.0f;
+		labeling_colors_[1][2] = 0.0f;
+		labeling_colors_[1][3] = 1.0f;
+		// label 2 -> green
+		labeling_colors_[2][0] = 0.0f;
+		labeling_colors_[2][1] = 1.0f;
+		labeling_colors_[2][2] = 0.0f;
+		labeling_colors_[2][3] = 1.0f;
+		// label 3 -> dark green
+		labeling_colors_[3][0] = 0.0f;
+		labeling_colors_[3][1] = 0.6f;
+		labeling_colors_[3][2] = 0.0f;
+		labeling_colors_[3][3] = 1.0f;
+		// label 4 -> blue
+		labeling_colors_[4][0] = 0.0f;
+		labeling_colors_[4][1] = 0.0f;
+		labeling_colors_[4][2] = 1.0f;
+		labeling_colors_[4][3] = 1.0f;
+		// label 5 -> dark blue
+		labeling_colors_[5][0] = 0.0f;
+		labeling_colors_[5][1] = 0.0f;
+		labeling_colors_[5][2] = 0.6f;
+		labeling_colors_[5][3] = 1.0f;
+
+		// give pointers to these colors to mesh_gfx_
+		mesh_gfx_.bind_int_attribute_value_to_color(0,labeling_colors_[0]);
+		mesh_gfx_.bind_int_attribute_value_to_color(1,labeling_colors_[1]);
+		mesh_gfx_.bind_int_attribute_value_to_color(2,labeling_colors_[2]);
+		mesh_gfx_.bind_int_attribute_value_to_color(3,labeling_colors_[3]);
+		mesh_gfx_.bind_int_attribute_value_to_color(4,labeling_colors_[4]);
+		mesh_gfx_.bind_int_attribute_value_to_color(5,labeling_colors_[5]);
     }
 
     LabelingViewerApp::~LabelingViewerApp() {
@@ -630,40 +664,27 @@ namespace {
         mesh_gfx_.set_lighting(lighting_);
         mesh_gfx_.set_time(double(anim_time_));
 
-        if(show_attributes_) {
-            mesh_gfx_.set_scalar_attribute(
+		if(show_labeling_) {
+			mesh_gfx_.unset_scalar_attribute();
+			mesh_gfx_.set_facets_colors_by_int_attribute("label");
+		}
+		else if (show_attributes_) {
+			mesh_gfx_.unset_facets_colors_by_int_attribute();
+			mesh_gfx_.set_scalar_attribute(
                 attribute_subelements_, attribute_name_,
                 double(attribute_min_), double(attribute_max_),
                 current_colormap_texture_, 1
             );
-        } else {
-            mesh_gfx_.unset_scalar_attribute();
-        }
+		}
+		else {
+			mesh_gfx_.unset_scalar_attribute();
+			mesh_gfx_.unset_facets_colors_by_int_attribute();
+		}
 
 		draw_points();
 		draw_surface();
 		draw_edges();
 		draw_volume();
-
-		//added
-		if(show_labeling_) {
-			show_attributes_ = true;
-			current_colormap_texture_ = TO_GL_TEXTURE_INDEX(COLORMAP_FRENCH);
-			attribute_min_ = 0.0f;
-			attribute_max_ = 5.0f;
-			attribute_ = "facets.label";
-			attribute_name_ = "label";
-			attribute_subelements_ = MESH_FACETS;
-		}
-		else {
-			show_attributes_ = false;
-			current_colormap_texture_ = TO_GL_TEXTURE_INDEX(COLORMAP_FRENCH);
-			attribute_min_ = 0.0f;
-			attribute_max_ = 0.0f;
-			attribute_ = "vertices.point_fp32[0]";
-			attribute_name_ = "point_fp32[0]";
-			attribute_subelements_ = MESH_VERTICES;
-		}
     }
 
     void LabelingViewerApp::draw_points() {
@@ -878,13 +899,12 @@ namespace {
 		if(mesh_.facets.attributes().is_defined("label")) { // if the mesh has a 'label' facet attribute == if there is a labeling
 			ImGui::Checkbox("Show labeling",&show_labeling_); // allow to hide it
 
-			ImGui::ColorEdit3WithPalette("Label 0 = +X", labeling_colors_[0].data());
-			ImGui::ColorEdit3WithPalette("Label 1 = -X", labeling_colors_[1].data());
-			ImGui::ColorEdit3WithPalette("Label 2 = +Y", labeling_colors_[2].data());
-			ImGui::ColorEdit3WithPalette("Label 3 = -Y", labeling_colors_[3].data());
-			ImGui::ColorEdit3WithPalette("Label 4 = +Z", labeling_colors_[4].data());
-			ImGui::ColorEdit3WithPalette("Label 5 = -Z", labeling_colors_[5].data());
-			ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f),"Color modification not effective yet");
+			ImGui::ColorEdit4WithPalette("Label 0 = +X", labeling_colors_[0]);
+			ImGui::ColorEdit4WithPalette("Label 1 = -X", labeling_colors_[1]);
+			ImGui::ColorEdit4WithPalette("Label 2 = +Y", labeling_colors_[2]);
+			ImGui::ColorEdit4WithPalette("Label 3 = -Y", labeling_colors_[3]);
+			ImGui::ColorEdit4WithPalette("Label 4 = +Z", labeling_colors_[4]);
+			ImGui::ColorEdit4WithPalette("Label 5 = -Z", labeling_colors_[5]);
 		}
     }
 

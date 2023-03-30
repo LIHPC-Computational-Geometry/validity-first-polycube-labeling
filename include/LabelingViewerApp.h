@@ -608,5 +608,5 @@ using namespace GEO;
 
 	// added
 	bool show_labeling_;
-	vec4f labeling_colors_[6];
+	float labeling_colors_[6][4];
     };

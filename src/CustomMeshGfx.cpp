@@ -6,10 +6,13 @@
 //
 // - using namespace GEO
 // - inclusion of CustomMeshGfx.h
+// - facets_colors_by_int_attribute initialization
+// - draw_triangles_immediate_by_int_attrib() method
 //
 // ## Changed
 //
 // - replace MeshGfx by CustomMeshGfx
+// - draw_triangles() calls draw_triangles_immediate_by_int_attrib() when facets_colors_by_int_attribute is true
 //
 // ## Removed
 //
@@ -45,6 +48,7 @@ using namespace GEO;
         set_backface_surface_color(1.0f, 0.0f, 0.0f);
         set_cells_color(0.9f, 0.9f, 0.9f);
         cells_colors_by_type_ = false;
+        facets_colors_by_int_attribute_ = false;
         lighting_ = true;
         picking_mode_ = MESH_NONE;
         object_picking_id_ = index_t(-1);
@@ -352,6 +356,10 @@ using namespace GEO;
     /******************************************************************/
 
     void CustomMeshGfx::draw_triangles() {
+        if(facets_colors_by_int_attribute_) {
+            draw_triangles_immediate_by_int_attrib(); // custom draw_triangles() behavior for drawing triangles according to an int attribute
+            return;
+        }
         if(can_use_array_mode(GLUP_TRIANGLES) && facets_VAO_ != 0) {
             draw_triangles_array();
         } else {
@@ -482,6 +490,29 @@ using namespace GEO;
             }
         );
         end_attributes();
+    }
+
+    void CustomMeshGfx::draw_triangles_immediate_by_int_attrib() {
+        // Quite slow, triangles are drawn one by one
+        // We cannot use draw_triangles_array() because it's for scalar attributes. here we need to change the color before each triangle to draw.
+        // Idea for better implementation : compute the labeling graph, and draw chart by chart (no need to change the color between each triangle of a given chart)
+
+        geo_assert(facets_colors_by_int_attribute_==true);
+        geo_assert(int_attribute_.is_bound());
+
+        int label_of_current_triangle = -1;
+        for(index_t f: mesh_->facets) {
+            label_of_current_triangle = int_attribute_[f];
+            geo_assert(value_to_color_.find(label_of_current_triangle)!=value_to_color_.end()); // check if a color was defined for this label. see bind_int_attribute_value_to_color()
+            glupSetColor4fv(GLUP_FRONT_AND_BACK_COLOR,value_to_color_.find(label_of_current_triangle)->second); // set the color to the one associated to label_of_current_triangle
+            // draw triangle f
+            glupBegin(GLUP_TRIANGLES);
+            for(index_t c: mesh_->facets.corners(f)) {
+                index_t v=mesh_->facet_corners.vertex(c);
+                draw_vertex(v);
+            }
+            glupEnd();
+        }
     }
     
     void CustomMeshGfx::draw_quads() {
