@@ -21,6 +21,14 @@
  *   Software.
  */
 
+// # Changelog - https://keepachangelog.com
+//
+// ## Added
+//
+// - inclusion of <cassert>
+// - numElems attribute. Value was given to the constructor and is now stored in the object
+// - getSetsMap() method
+
 #pragma once
 
 #include <cstddef>
@@ -30,6 +38,7 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
+#include <cassert>
 
 
 /* 
@@ -59,7 +68,7 @@ class DisjointSet final {
 	
 	private: std::vector<Node> nodes;
 	private: S numSets = 0;
-	
+	private: const S numElems = 0;
 	
 	
 	/*---- Constructors ----*/
@@ -67,7 +76,7 @@ class DisjointSet final {
 	// Constructs a new set containing the given number of singleton sets.
 	// For example, DisjointSet(3) --> {{0}, {1}, {2}}.
 	// Even if S has a wider range than size_t, it is required that 1 <= numElems <= SIZE_MAX.
-	public: explicit DisjointSet(S numElems) {
+	public: explicit DisjointSet(S numElems) : numElems(numElems) {
 		if (numElems < 0)
 			throw std::domain_error("Number of elements must be non-negative");
 		if (!safeLessEquals(numElems, SIZE_MAX))
@@ -206,6 +215,32 @@ class DisjointSet final {
 	private: static bool safeLessEquals(S x, std::size_t y) {
 		return (std::is_signed<S>::value && x < 0) ||
 			static_cast<typename std::make_unsigned<S>::type>(x) <= y;
+	}
+
+	//////////////////////////////////////////////////////
+	// ADDED
+	//////////////////////////////////////////////////////
+
+	// elemToSetMap must point to an array of numElems*sizeof(S)
+	// return the number of set and fill elemToSetMap
+	public: S getSetsMap(S *elemToSetMap) const {
+
+		assert((numElems == nodes.size()));
+
+		S set_count = 0;
+		for(S i=0; i<nodes.size(); ++i) {
+			if(i != getRepr(i)) continue; // skip non-root element
+			elemToSetMap[i] = set_count;
+			set_count++;
+		}
+
+		assert((set_count == numSets));
+
+		for(S i=0; i<nodes.size(); ++i) { // fill for non-root elements
+			elemToSetMap[i] = elemToSetMap[getRepr(i)];
+		}
+
+		return numSets;
 	}
 	
 };

@@ -11,13 +11,14 @@
 //   vertices_transparency_, show_surface_, show_surface_sides_, show_mesh_, mesh_width_, mesh_color_, show_surface_borders_,
 //   surface_color_, surface_color_2_, show_volume_, cells_shrink_, volume_color_, show_colored_cells_, show_hexes_, show_connectors_,
 //   show_attributes_, current_colormap_texture_, attribute_, attribute_subelements_, attribute_name_, attribute_min_, attribute_max_
-// - attribute show_labeling_, which is set to false at init, to true at the end of load_labeling() on a labeling suited for the current mesh,
+// - attribute show_labeling_
 //   and editable with an ImGui::Checkbox (see draw_object_properties())
 // - load_labeling() method, which is called in load() if the file is a .txt
 // - in draw_scene(), visualization settings according to the value of show_labeling_
 // - inclusion of CustomMeshGfx.h
 // - initialization of labeling_colors_, editable with some ImGui::ColorEdit4WithPalette (see draw_object_properties())
 // - labeling_colors_ passed by address to mesh_gfx_
+// - inclusion of LabelingGraph.h
 //
 // ## Changed
 // 
@@ -76,6 +77,7 @@ namespace {
 #include "LabelingViewerApp.h"
 #include "colormaps_array.h" // for colormap_name, colormap_xpm & macros
 #include "CustomMeshGfx.h"   // for CustomMeshGfx
+#include "LabelingGraph.h"   // for StaticLabelingGraph
 
 /******************************************************************************/
 
@@ -1637,7 +1639,24 @@ namespace {
             return false;
         }
 
-		show_labeling_ = true;
+		show_labeling_ = false; // deactivated. instead, facets will be colored by chart id
+
+		// compute charts
+		StaticLabelingGraph static_labeling_graph(mesh_,"label");
+		index_t nb_charts = static_labeling_graph.get_nb_charts();
+		Logger::out("I/O") << "There are " << nb_charts << " charts in this labeling" << std::endl;
+
+		Attribute<index_t> chart_id(mesh_.facets.attributes(), "chart_id"); // create a facets attribute "chart_id" 
+		memcpy(chart_id.data(),static_labeling_graph.get_facet2chart_ptr(),facets_number*sizeof(index_t)); // array copy from facet2chart of static_labeling_graph
+
+		show_attributes_ = true;
+        current_colormap_texture_ = TO_GL_TEXTURE_INDEX(COLORMAP_CEI_60757); // colormap with lot of color variations
+        attribute_min_ = 0.0f;
+        attribute_max_ = (float) (static_labeling_graph.get_nb_charts()-1);
+        attribute_ = "facets.chart_id";
+        attribute_name_ = "chart_id";
+        attribute_subelements_ = MESH_FACETS;
+
 		return true;
 	}
     
