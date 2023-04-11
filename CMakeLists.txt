@@ -15,6 +15,7 @@ file(GLOB SRCFILES src/*.cpp )
 include_directories(include)
 
 add_subdirectory(ext/geogram)
+include_directories(ext/DisjointSet)
 
 add_executable(labeling_viewer ${SRCFILES} app/labeling_viewer)
 target_link_libraries(labeling_viewer geogram geogram_gfx ${GLFW_LIBRARIES})
