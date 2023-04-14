@@ -1,5 +1,8 @@
 #pragma once
 
+#include <geogram/basic/numeric.h> // for GEO::index_t
+#include <geogram/mesh/mesh.h>     // for GEO::Mesh
+
 // Ordering of hexahedron corners
 //
 //   UltiMaille convention

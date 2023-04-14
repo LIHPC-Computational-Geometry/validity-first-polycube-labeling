@@ -78,6 +78,7 @@ namespace {
 #include "colormaps_array.h" // for colormap_name, colormap_xpm & macros
 #include "CustomMeshGfx.h"   // for CustomMeshGfx
 #include "LabelingGraph.h"   // for StaticLabelingGraph
+#include "labeling.h"		 // for naive_labeling()
 
 /******************************************************************************/
 
@@ -1588,6 +1589,12 @@ namespace {
         show_vertices_ = (mesh_.facets.nb() == 0);
 		show_labeling_ = false; // added
         mesh_gfx_.set_mesh(&mesh_);
+
+		// compute the naive labeling into a facet attribute "label"
+		Logger::out("I/O") << "Computing the naive labeling...";
+		naive_labeling(mesh_,"label");
+		Logger::out("I/O") << "Done" << std::endl;
+		show_labeling_ = true;
 
 	    current_file_ = filename;
         return true;
