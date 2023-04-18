@@ -10,9 +10,10 @@
 
 void naive_labeling(Mesh& mesh, const char* attribute_name) {
     Attribute<int> label(mesh.facets.attributes(), attribute_name); // create a facet attribute in this mesh
+    GEO::vec3 normal;
+    std::array<double,6> weights;
     for(index_t f: mesh.facets) { // for each facet
-        GEO::vec3 normal = Geom::mesh_facet_normal(mesh,f); // get 3 signed components {x,y,z} of the normal
-        std::array<double,6> weights; // per label weights
+        normal = Geom::mesh_facet_normal(mesh,f); // get 3 signed components {x,y,z} of the normal
         // from 3 signed to 6 unsigned components:
         weights = {
             normal.x < 0.0 ? 0.0 : normal.x,  // +X

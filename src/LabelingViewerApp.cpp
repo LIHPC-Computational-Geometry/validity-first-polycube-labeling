@@ -74,6 +74,8 @@ namespace {
 #  include <geogram_gfx/gui/gui_state.h>
 }
 
+#include <fstream>
+
 #include "LabelingViewerApp.h"
 #include "colormaps_array.h" // for colormap_name, colormap_xpm & macros
 #include "CustomMeshGfx.h"   // for CustomMeshGfx
@@ -1650,8 +1652,18 @@ namespace {
 
 		// compute charts
 		StaticLabelingGraph static_labeling_graph(mesh_,"label");
-		index_t nb_charts = static_labeling_graph.get_nb_charts();
+		std::size_t nb_charts = static_labeling_graph.nb_charts();
 		Logger::out("I/O") << "There are " << nb_charts << " charts in this labeling" << std::endl;
+
+		std::ofstream ofs("StaticLabelingGraph.txt");
+		Logger::out("I/O") << "Exporting static_labeling_graph" << std::endl;
+		if(!ofs.good()) {
+			Logger::err("I/O") << "Unable to write StaticLabelingGraph.txt" << std::endl;
+		}
+		else {
+			ofs << static_labeling_graph;
+			ofs.close();
+		}
 
 		Attribute<index_t> chart_id(mesh_.facets.attributes(), "chart_id"); // create a facets attribute "chart_id" 
 		memcpy(chart_id.data(),static_labeling_graph.get_facet2chart_ptr(),facets_number*sizeof(index_t)); // array copy from facet2chart of static_labeling_graph
@@ -1659,7 +1671,7 @@ namespace {
 		show_attributes_ = true;
         current_colormap_texture_ = TO_GL_TEXTURE_INDEX(COLORMAP_CEI_60757); // colormap with lot of color variations
         attribute_min_ = 0.0f;
-        attribute_max_ = (float) (static_labeling_graph.get_nb_charts()-1);
+        attribute_max_ = (float) (static_labeling_graph.nb_charts()-1);
         attribute_ = "facets.chart_id";
         attribute_name_ = "chart_id";
         attribute_subelements_ = MESH_FACETS;

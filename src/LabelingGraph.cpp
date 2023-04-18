@@ -3,12 +3,11 @@
 
 #include <DisjointSet.hpp>
 
-#include <fstream>
 #include <algorithm>
 
 #include "LabelingGraph.h"
 
-StaticLabelingGraph::StaticLabelingGraph(Mesh& mesh, const char* facet_attribute) {
+StaticLabelingGraph::StaticLabelingGraph(const Mesh& mesh, const char* facet_attribute) {
 
     // based on https://github.com/LIHPC-Computational-Geometry/genomesh/blob/main/src/flagging.cpp#L795
     // but here we use a disjoint-set for step 1
@@ -26,8 +25,16 @@ StaticLabelingGraph::StaticLabelingGraph(Mesh& mesh, const char* facet_attribute
             }
         }
     }
-    facet2chart.resize(labeling.size()); // important: memory allocation allowing to call ds.getSetsMap() on the underlying array
-    nb_charts = ds.getSetsMap(facet2chart.data()); // get the map (facet id -> chart id) and the number of charts
+    facet2chart_.resize(labeling.size()); // important: memory allocation allowing to call ds.getSetsMap() on the underlying array
+    std::size_t nb_charts = ds.getSetsMap(facet2chart_.data()); // get the map (facet id -> chart id) and the number of charts
+    charts_.resize(nb_charts);
+
+    // fill the Chart objects
+    for(index_t f: mesh.facets) { // for each facet of the mesh
+        Chart& current_chart = charts_[facet2chart_[f]]; // get the chart associated to this facet
+        current_chart.label = labeling[f]; // (re)define its label
+        current_chart.facets.emplace(f); // register the facet
+    }
 
     // STEP 2 : Walk along boundary edges to assemble boundaries + Identify corners and turning-points
     // TODO
@@ -36,10 +43,22 @@ StaticLabelingGraph::StaticLabelingGraph(Mesh& mesh, const char* facet_attribute
     // TODO
 }
 
-GEO::index_t StaticLabelingGraph::get_nb_charts() const {
-    return nb_charts; // TODO replace by charts.size() when charts will be used
+std::size_t StaticLabelingGraph::nb_charts() const {
+    return charts_.size();
+}
+
+std::size_t StaticLabelingGraph::nb_facets() const {
+    return facet2chart_.size();
+}
+
+const Chart& StaticLabelingGraph::chart(std::size_t index) const {
+    return charts_.at(index);
+}
+
+index_t StaticLabelingGraph::facet2chart(std::size_t index) const {
+    return facet2chart_.at(index);
 }
 
 const index_t* StaticLabelingGraph::get_facet2chart_ptr() const {
-    return facet2chart.data();
+    return facet2chart_.data();
 }
