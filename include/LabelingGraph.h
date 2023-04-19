@@ -40,6 +40,10 @@ struct Corner {
     //// Adjacency //////////////////
 
     std::vector<MeshHalfedges::Halfedge> boundary_edges;
+
+    //// Methods //////////////////
+
+    std::size_t valence(); // number of adjacent boundary edges
 };
 
 // A labeling stored with charts, boundaries and corners

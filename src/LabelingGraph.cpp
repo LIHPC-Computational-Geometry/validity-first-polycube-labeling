@@ -7,6 +7,10 @@
 
 #include "LabelingGraph.h"
 
+std::size_t Corner::valence() {
+    return boundary_edges.size();
+}
+
 StaticLabelingGraph::StaticLabelingGraph(Mesh& mesh, const char* facet_attribute) : mesh_half_edges_(mesh) {
 
     // based on https://github.com/LIHPC-Computational-Geometry/genomesh/blob/main/src/flagging.cpp#L795
@@ -52,7 +56,6 @@ StaticLabelingGraph::StaticLabelingGraph(Mesh& mesh, const char* facet_attribute
 
     int previous_label = -1;
     int current_label = -1;
-    int valence = -1;
     for(index_t f: mesh.facets) { // for each facet
 
         for(index_t c: mesh.facets.corners(f)) { // for each corner of the current facet
@@ -66,22 +69,21 @@ StaticLabelingGraph::StaticLabelingGraph(Mesh& mesh, const char* facet_attribute
             
             // Go around the vertex to compute its valence
 
+            Corner potential_corner;
             previous_label = labeling[initial_half_edge.facet];
-            valence = 0; // number of boundary edges around this vertex
             MeshHalfedges::Halfedge current_half_edge = initial_half_edge; // current_half_edge will be our iterator around current_vertex
             do {
                 mesh_half_edges_.move_to_next_around_vertex(current_half_edge); // moving to the next halfedge allows us to move to the next facet
                 current_label = labeling[current_half_edge.facet];
                 if (previous_label != current_label) { // check if current_half_edge is a boundary, ie between facets of different label/chart
-                    valence++;
+                    potential_corner.boundary_edges.push_back(current_half_edge); // register the current halfedge as outgoing boundary edge
                 }
                 previous_label = current_label; // prepare next iteration
             } while (current_half_edge != initial_half_edge); // until we have not gone all the way around current_vertex
             
-            if (valence >= 3) {
-                corners_.push_back(Corner()); // add a corner
+            if (potential_corner.valence() >= 3) {
+                corners_.push_back(potential_corner); // add a corner
                 corners_.back().vertex = current_vertex; // link this corner to current_vertex
-                // TODO fill the boundary_edges attribute during the exploration
                 vertex2corner_[current_vertex] = (index_t) corners_.size()-1; // link this vertex to the new (last) corner
                 vertex_explored[current_vertex] = true; // mark this vertex
             }   
