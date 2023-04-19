@@ -44,6 +44,7 @@ struct Corner {
     //// Methods //////////////////
 
     std::size_t valence(); // number of adjacent boundary edges
+    void autofill_from_vertex(const MeshHalfedges::Halfedge&, const MeshHalfedges& mesh_he, const Attribute<int>& labeling); // explore a vertex with halfedges. /!\ the result is not a corner if valence() < 3
 };
 
 // A labeling stored with charts, boundaries and corners

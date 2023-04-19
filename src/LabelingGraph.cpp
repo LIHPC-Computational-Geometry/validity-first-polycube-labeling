@@ -11,6 +11,34 @@ std::size_t Corner::valence() {
     return boundary_edges.size();
 }
 
+/**
+ * \brief Explore the vertex at the base of \c initial_halfedge and fill the struct with a potential corner
+ * \param[in] initial_halfedge An half-edge going outwards the vertex to explore
+ * \param[in] mesh_halfedges The half-edges interface of the mesh
+ * \param[in] labeling The facet-to-label association, to detect boundary edges (= edges between 2 labels)
+ */
+void Corner::autofill_from_vertex(const MeshHalfedges::Halfedge& initial_halfedge, const MeshHalfedges& mesh_halfedges, const Attribute<int>& labeling) {
+
+    // init the attributes
+    vertex = mesh_halfedges.mesh().facet_corners.vertex(initial_halfedge.corner); // get the index of the vertex at the base of initial_halfedge
+    boundary_edges.clear();
+
+    // prepare the vertex exploration
+    int previous_label = labeling[initial_halfedge.facet];
+    int current_label = -1;
+    MeshHalfedges::Halfedge current_halfedge = initial_halfedge; // create another Halfedge that we can modify (we need to keep the initial one)
+    
+    // go around the vertex
+    do {
+        mesh_halfedges.move_to_next_around_vertex(current_halfedge); // moving to the next halfedge allows us to move to the next facet
+        current_label = labeling[current_halfedge.facet]; // get the label of the facet associated to this current_halfedge
+        if (previous_label != current_label) { // check if current_halfedge is a boundary, ie between facets of different label
+            boundary_edges.push_back(current_halfedge); // register the current halfedge as outgoing boundary edge
+        }
+        previous_label = current_label; // prepare next iteration
+    } while (current_halfedge != initial_halfedge);
+}
+
 StaticLabelingGraph::StaticLabelingGraph(Mesh& mesh, const char* facet_attribute) : mesh_half_edges_(mesh) {
 
     // based on https://github.com/LIHPC-Computational-Geometry/genomesh/blob/main/src/flagging.cpp#L795
@@ -50,47 +78,34 @@ StaticLabelingGraph::StaticLabelingGraph(Mesh& mesh, const char* facet_attribute
     // But I don't know how to get the adjacent facets of a given vertex.
     // What I can do, with half-edges, is to iterate over all facet corners
     // check if the vertex at this corner was not already explored (because several facet corners are incident to the same vertex),
-    // and go around this vertex with MeshHalfedges::move_to_next_around_vertex()
+    // and go around this vertex with MeshHalfedges::move_to_next_around_vertex(). See Corner::autofill_from_vertex()
+    //
+    // This does not work for shapes having parts connected by a vertex only
+    // TODO (maybe optionnal) re-exploration of vertices
 
     mesh_half_edges_.set_use_facet_region(facet_attribute); // could be useful when exploring boundaries (= borders for Geogram)
 
-    int previous_label = -1;
-    int current_label = -1;
-    for(index_t f: mesh.facets) { // for each facet
+    for(index_t f: mesh.facets) { for(index_t c: mesh.facets.corners(f)) { // for each facet corner (f,c)
+        
+        MeshHalfedges::Halfedge initial_half_edge(f,c); // halfedge on facet f having corner c as base
+        index_t current_vertex = mesh.facet_corners.vertex(initial_half_edge.corner); // get the vertex at the base of initial_half_edge
 
-        for(index_t c: mesh.facets.corners(f)) { // for each corner of the current facet
-
-            MeshHalfedges::Halfedge initial_half_edge(f,c); // halfedge on facet f having corner c as base
-            index_t current_vertex = mesh.facet_corners.vertex(initial_half_edge.corner); // get the vertex at the base of initial_half_edge
-
-            if(vertex_explored[current_vertex]) {
-                continue;
-            }
-            
-            // Go around the vertex to compute its valence
-
-            Corner potential_corner;
-            previous_label = labeling[initial_half_edge.facet];
-            MeshHalfedges::Halfedge current_half_edge = initial_half_edge; // current_half_edge will be our iterator around current_vertex
-            do {
-                mesh_half_edges_.move_to_next_around_vertex(current_half_edge); // moving to the next halfedge allows us to move to the next facet
-                current_label = labeling[current_half_edge.facet];
-                if (previous_label != current_label) { // check if current_half_edge is a boundary, ie between facets of different label/chart
-                    potential_corner.boundary_edges.push_back(current_half_edge); // register the current halfedge as outgoing boundary edge
-                }
-                previous_label = current_label; // prepare next iteration
-            } while (current_half_edge != initial_half_edge); // until we have not gone all the way around current_vertex
-            
-            if (potential_corner.valence() >= 3) {
-                corners_.push_back(potential_corner); // add a corner
-                corners_.back().vertex = current_vertex; // link this corner to current_vertex
-                vertex2corner_[current_vertex] = (index_t) corners_.size()-1; // link this vertex to the new (last) corner
-                vertex_explored[current_vertex] = true; // mark this vertex
-            }   
+        if(vertex_explored[current_vertex]) {
+            continue;
         }
-    }
+        
+        // Go around the vertex to compute its valence
+        Corner potential_corner;
+        potential_corner.autofill_from_vertex(initial_half_edge,mesh_half_edges_,labeling);
+        
+        if (potential_corner.valence() >= 3) {
+            corners_.push_back(potential_corner); // add a corner
+            vertex2corner_[current_vertex] = (index_t) corners_.size()-1; // link this vertex to the new (last) corner
+            vertex_explored[current_vertex] = true; // mark this vertex
+        }
+    }}
 
-    // STEP 3 : Explore boundaries to connect corners
+    // STEP 3 : Explore boundaries to connect corners, fill Chart::neighbors
     // TODO
 
     // STEP 4 : Find boundaries with no corners
