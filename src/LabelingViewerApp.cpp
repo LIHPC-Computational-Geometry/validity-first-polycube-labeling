@@ -274,6 +274,9 @@ namespace {
 		mesh_gfx_.bind_int_attribute_value_to_color(3,labeling_colors_[3]);
 		mesh_gfx_.bind_int_attribute_value_to_color(4,labeling_colors_[4]);
 		mesh_gfx_.bind_int_attribute_value_to_color(5,labeling_colors_[5]);
+
+		// color for custom points (used for LabelingGraph corners)
+		mesh_gfx_.set_custom_points_color(1.0,1.0,0.0,1.0); // yellow
     }
 
     LabelingViewerApp::~LabelingViewerApp() {
@@ -1654,6 +1657,7 @@ namespace {
 		StaticLabelingGraph static_labeling_graph(mesh_,"label");
 		std::size_t nb_charts = static_labeling_graph.nb_charts();
 		Logger::out("I/O") << "There are " << nb_charts << " charts in this labeling" << std::endl;
+		Logger::out("I/O") << "There are " << static_labeling_graph.nb_corners() << " corners in this labeling" << std::endl;
 
 		std::ofstream ofs("StaticLabelingGraph.txt");
 		Logger::out("I/O") << "Exporting static_labeling_graph" << std::endl;
@@ -1665,13 +1669,22 @@ namespace {
 			ofs.close();
 		}
 
+		// store the coordinates of each corner in mesh_gfx_
+		// to be able to draw them
+		for(std::size_t i = 0; i < static_labeling_graph.nb_corners(); ++i) {
+			const double* coordinates = mesh_.vertices.point_ptr(
+				static_labeling_graph.corner(i).vertex
+			);
+			mesh_gfx_.add_custom_point(coordinates[0], coordinates[1], coordinates[2]);
+		}
+
 		Attribute<index_t> chart_id(mesh_.facets.attributes(), "chart_id"); // create a facets attribute "chart_id" 
 		memcpy(chart_id.data(),static_labeling_graph.get_facet2chart_ptr(),facets_number*sizeof(index_t)); // array copy from facet2chart of static_labeling_graph
 
 		show_attributes_ = true;
         current_colormap_texture_ = TO_GL_TEXTURE_INDEX(COLORMAP_CEI_60757); // colormap with lot of color variations
         attribute_min_ = 0.0f;
-        attribute_max_ = (float) (static_labeling_graph.nb_charts()-1);
+        attribute_max_ = (float) (nb_charts-1);
         attribute_ = "facets.chart_id";
         attribute_name_ = "chart_id";
         attribute_subelements_ = MESH_FACETS;

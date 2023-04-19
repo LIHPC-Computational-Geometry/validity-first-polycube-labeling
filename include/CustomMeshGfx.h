@@ -663,6 +663,17 @@ using namespace GEO;
          * \brief Unset primitive filtering
          */
         void unset_filters();
+
+        void set_custom_points_color(float r, float g, float b, float a) {
+            custom_points_color_[0] = r;
+            custom_points_color_[1] = g;
+            custom_points_color_[2] = b;
+            custom_points_color_[3] = a;
+        }
+
+        void add_custom_point(double x, double y, double z) {
+            custom_points_.push_back({x,y,z});
+        }
         
     protected:
         
@@ -967,6 +978,9 @@ using namespace GEO;
 
         std::map<int,const GLUPfloat*> value_to_color_; // used for int attributes only (when facets_colors_by_int_attribute_==true)
         Attribute<int> int_attribute_; // used for int attributes only (when facets_colors_by_int_attribute_==true)
+
+        std::vector<std::array<double,3>> custom_points_;
+        float custom_points_color_[4];
 
         /**
          * \brief Filters primitives based on their id and on
