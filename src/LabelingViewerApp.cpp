@@ -14,9 +14,10 @@
 // - attribute show_labeling_
 //   and editable with an ImGui::Checkbox (see draw_object_properties())
 // - load_labeling() method, which is called in load() if the file is a .txt
-// - in draw_scene(), visualization settings according to the value of show_labeling_
+// - in draw_scene(), visualization settings according to the value of show_labeling_, and calling of mesh_gfx_.draw_custom_edges()
 // - inclusion of CustomMeshGfx.h
 // - initialization of labeling_colors_, editable with some ImGui::ColorEdit4WithPalette (see draw_object_properties())
+// - initialization of axis_colors_
 // - labeling_colors_ passed by address to mesh_gfx_
 // - inclusion of LabelingGraph.h
 //
@@ -75,6 +76,7 @@ namespace {
 }
 
 #include <fstream>
+#include <stdexcept>
 
 #include "LabelingViewerApp.h"
 #include "colormaps_array.h" // for colormap_name, colormap_xpm & macros
@@ -200,7 +202,7 @@ namespace {
 	
         show_surface_ = true;
         show_surface_sides_ = false;
-        show_mesh_ = true;
+        show_mesh_ = false;
 	mesh_color_ = vec4f(0.0f, 0.0f, 0.0f, 1.0f);
 	mesh_width_ = 0.1f;
 	
@@ -266,6 +268,26 @@ namespace {
 		labeling_colors_[5][1] = 0.0f;
 		labeling_colors_[5][2] = 0.6f;
 		labeling_colors_[5][3] = 1.0f;
+
+		// TODO improve. axis color will not be updated if the labeling colors are updated
+
+		// axis 0 = X -> color of label 0 = +X
+		axis_colors_[0][0] = labeling_colors_[0][0];
+		axis_colors_[0][1] = labeling_colors_[0][1];
+		axis_colors_[0][2] = labeling_colors_[0][2];
+		axis_colors_[0][3] = labeling_colors_[0][3];
+
+		// axis 1 = Y -> color of label 2 = +Y
+		axis_colors_[1][0] = labeling_colors_[2][0];
+		axis_colors_[1][1] = labeling_colors_[2][1];
+		axis_colors_[1][2] = labeling_colors_[2][2];
+		axis_colors_[1][3] = labeling_colors_[2][3];
+
+		// axis 2 = Z -> color of label 4 = +Z
+		axis_colors_[2][0] = labeling_colors_[4][0];
+		axis_colors_[2][1] = labeling_colors_[4][1];
+		axis_colors_[2][2] = labeling_colors_[4][2];
+		axis_colors_[2][3] = labeling_colors_[4][3];
 
 		// give pointers to these colors to mesh_gfx_
 		mesh_gfx_.bind_int_attribute_value_to_color(0,labeling_colors_[0]);
@@ -674,7 +696,7 @@ namespace {
 
 		if(show_labeling_) {
 			mesh_gfx_.unset_scalar_attribute();
-			mesh_gfx_.set_facets_colors_by_int_attribute("label");
+			mesh_gfx_.set_facets_colors_by_int_attribute(LABELING_ATTRIBUTE_NAME);
 		}
 		else if (show_attributes_) {
 			mesh_gfx_.unset_facets_colors_by_int_attribute();
@@ -692,6 +714,7 @@ namespace {
 		draw_points();
 		draw_surface();
 		draw_edges();
+		mesh_gfx_.draw_custom_edges();
 		draw_volume();
     }
 
@@ -904,7 +927,7 @@ namespace {
     }
 
     void LabelingViewerApp::draw_object_properties() {
-		if(mesh_.facets.attributes().is_defined("label")) { // if the mesh has a 'label' facet attribute == if there is a labeling
+		if(mesh_.facets.attributes().is_defined(LABELING_ATTRIBUTE_NAME)) { // if the mesh has a 'label' facet attribute == if there is a labeling
 			ImGui::Checkbox("Show labeling",&show_labeling_); // allow to hide it
 
 			ImGui::ColorEdit4WithPalette("Label 0 = +X", labeling_colors_[0]);
@@ -1595,9 +1618,9 @@ namespace {
 		show_labeling_ = false; // added
         mesh_gfx_.set_mesh(&mesh_);
 
-		// compute the naive labeling into a facet attribute "label"
+		// compute the naive labeling into a facet attribute LABELING_ATTRIBUTE_NAME
 		Logger::out("I/O") << "Computing the naive labeling...";
-		naive_labeling(mesh_,"label");
+		naive_labeling(mesh_,LABELING_ATTRIBUTE_NAME);
 		Logger::out("I/O") << "Done" << std::endl;
 		show_labeling_ = true;
 
@@ -1616,48 +1639,65 @@ namespace {
 
 		Logger::out("I/O") << "Loading file " << filename << "..." << std::endl;
 
-		int current_label = -1;
+		std::string current_line;
+		unsigned long current_label; // necessary type for string to unsigned int conversion (stoul)
 		GEO::index_t current_line_number = 0;
 		GEO::index_t facets_number = mesh_.facets.nb(); // expected line number (one line per facet)
 
-		//add an attribute on facets. see https://github.com/BrunoLevy/geogram/wiki/Mesh#attributes
-		Attribute<int> label(mesh_.facets.attributes(), "label");
+		// Add an attribute on facets. see https://github.com/BrunoLevy/geogram/wiki/Mesh#attributes
+		// The type must be Attribute<index_t> to be used with geogram/mesh/mesh_halfedges.h . See MeshHalfedges::facet_region_
+		Attribute<index_t> label(mesh_.facets.attributes(), LABELING_ATTRIBUTE_NAME);
 
 		//fill the attribute
-		while (ifs >> current_label) {
+		while (ifs >> current_line) {
+			try {
+				current_label = std::stoul(current_line);
+				if(current_label > 5) {
+					Logger::err("I/O") << "In load_labeling(), each line must be a label in [0,5]\n"
+									   << "But found " << current_label << std::endl;
+					return false;
+				}
+			}
+			catch (const std::out_of_range& e) { // if stoul() failed
+				Logger::err("I/O") << "In load_labeling(), each line must be an unsigned integer\n"
+								   << "But found " << current_line << '\n'
+								   << e.what() << std::endl;
+				return false;
+			}
 			if(current_line_number >= facets_number) {
-				Logger::out("I/O") << "In load_labeling(), the number of labels is greater than the number of facets\n"
+				Logger::err("I/O") << "In load_labeling(), the number of labels is greater than the number of facets\n"
 				                   << "Number of labels so far = " << current_line_number+1 << "\n"
 				                   << "Number of facets = " << facets_number << "\n";
 				label.unbind();
-				mesh_.facets.attributes().delete_attribute_store("label");
+				mesh_.facets.attributes().delete_attribute_store(LABELING_ATTRIBUTE_NAME);
 				show_labeling_ = false;
-				Logger::out("I/O") << "Labeling removed" << std::endl;
+				Logger::err("I/O") << "Labeling removed" << std::endl;
             	return false;
 			}
-            label[current_line_number] = current_label;
+            label[current_line_number] = (index_t) current_label;
             current_line_number++;
         }
 
 		//compare with expected size
 		if (current_line_number != facets_number){
-            Logger::out("I/O") << "In load_labeling(), the number of labels is lesser than the number of facets\n"
+            Logger::err("I/O") << "In load_labeling(), the number of labels is lesser than the number of facets\n"
 			                   << "Number of labels = " << current_line_number+1 << "\n"
 			                   << "Number of facets = " << facets_number << "\n";
 			label.unbind();
-			mesh_.facets.attributes().delete_attribute_store("label");
+			mesh_.facets.attributes().delete_attribute_store(LABELING_ATTRIBUTE_NAME);
 			show_labeling_ = false;
-			Logger::out("I/O") << "Labeling removed" << std::endl;
+			Logger::err("I/O") << "Labeling removed" << std::endl;
             return false;
         }
 
 		show_labeling_ = false; // deactivated. instead, facets will be colored by chart id
 
 		// compute charts
-		StaticLabelingGraph static_labeling_graph(mesh_,"label");
+		StaticLabelingGraph static_labeling_graph(mesh_,LABELING_ATTRIBUTE_NAME);
 		std::size_t nb_charts = static_labeling_graph.nb_charts();
-		Logger::out("I/O") << "There are " << nb_charts << " charts in this labeling" << std::endl;
-		Logger::out("I/O") << "There are " << static_labeling_graph.nb_corners() << " corners in this labeling" << std::endl;
+		Logger::out("I/O") << "There are " << nb_charts << " charts, "
+						   << static_labeling_graph.nb_corners() << " corners and "
+						   << static_labeling_graph.nb_boundaries() << " boundaries in this labeling." << std::endl;
 
 		std::ofstream ofs("StaticLabelingGraph.txt");
 		Logger::out("I/O") << "Exporting static_labeling_graph" << std::endl;
@@ -1676,6 +1716,25 @@ namespace {
 				static_labeling_graph.corner(i).vertex
 			);
 			mesh_gfx_.add_custom_point(coordinates[0], coordinates[1], coordinates[2]);
+		}
+
+		// store the coordinates of each boundary edge in mesh_gfx_
+		// to be able to draw them
+		for(std::size_t i = 0; i < static_labeling_graph.nb_boundaries(); ++i) {
+			const Boundary& boundary = static_labeling_graph.boundary(i);
+			if(boundary.axis == -1) {
+				// Do not draw boundaries between opposite labels
+				continue;
+			}
+			for(const auto& be : boundary.halfedges) { // for each boundary edge of this boundary
+				const double* coordinates_first_point = halfedge_vertex_from(mesh_,be).data();
+				const double* coordinates_second_point = halfedge_vertex_to(mesh_,be).data();
+				mesh_gfx_.add_custom_edge(
+					axis_colors_[boundary.axis][0], axis_colors_[boundary.axis][1], axis_colors_[boundary.axis][2], axis_colors_[boundary.axis][4], // color
+					coordinates_first_point[0], coordinates_first_point[1], coordinates_first_point[2], // first point
+					coordinates_second_point[0], coordinates_second_point[1], coordinates_second_point[2] // second point
+				);
+			}
 		}
 
 		Attribute<index_t> chart_id(mesh_.facets.attributes(), "chart_id"); // create a facets attribute "chart_id" 

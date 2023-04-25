@@ -404,6 +404,20 @@ using namespace GEO;
         }
     }
 
+    void CustomMeshGfx::draw_custom_edges() {
+        // TODO test draw_surface_borders()
+        // TODO investigate why glupSetMeshWidth() does not work
+        for(const auto& edges_grouped_by_color : custom_edges_) {
+            glupSetColor4fv(GLUP_FRONT_COLOR, edges_grouped_by_color.first.data());
+            glupBegin(GLUP_LINES);
+            for(const auto& edge : edges_grouped_by_color.second) {
+                glupPrivateVertex3dv(edge.first.data());
+                glupPrivateVertex3dv(edge.second.data());
+            }
+            glupEnd();
+        }
+    }
+
     /******************************************************************/
 
     void CustomMeshGfx::draw_triangles() {
@@ -551,7 +565,7 @@ using namespace GEO;
         geo_assert(facets_colors_by_int_attribute_==true);
         geo_assert(int_attribute_.is_bound());
 
-        int label_of_current_triangle = -1;
+        index_t label_of_current_triangle;
         for(index_t f: mesh_->facets) {
             label_of_current_triangle = int_attribute_[f];
             geo_assert(value_to_color_.find(label_of_current_triangle)!=value_to_color_.end()); // check if a color was defined for this label. see bind_int_attribute_value_to_color()

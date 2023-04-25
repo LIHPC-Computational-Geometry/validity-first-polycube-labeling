@@ -5,10 +5,11 @@
 // ## Added
 //
 // - using namespace GEO
-// - facets_colors_by_int_attribute_, value_to_color_ and int_attribute_ class attributes
+// - definition of facets_colors_by_int_attribute_, value_to_color_, int_attribute_, custom_points_, custom_points_color_, custom_edges_ 
 // - bind_int_attribute_value_to_color(), set_facets_colors_by_int_attribute(),
-//   unset_facets_colors_by_int_attribute() and draw_triangles_immediate_by_int_attrib() methods
-// - inclusion of <map>
+//   unset_facets_colors_by_int_attribute(), draw_triangles_immediate_by_int_attrib(),
+//   add_custom_edge() and draw_custom_edges() methods
+// - inclusion of <map>, <utility> and geometry.h
 //
 // ## Changed
 //
@@ -27,6 +28,9 @@
 #include <geogram/mesh/mesh.h>
 
 #include <map>
+#include <utility> // for std::pair
+
+#include "geometry.h" // for vec3d, VecngCompare 
 
 /**
  * \file include/CustomMeshGfx.h
@@ -75,6 +79,8 @@ using namespace GEO;
          * \brief Draws the edges of the mesh.
          */
         void draw_edges();
+
+        void draw_custom_edges();
         
         /**
          * \brief Draws the surfacic part of the mesh.
@@ -446,7 +452,7 @@ using namespace GEO;
         // Bind an int attribute value to a color
         // Used to color a mesh according to an int attribute
         // Active after calling set_facets_colors_by_int_attribute()
-        void bind_int_attribute_value_to_color(int attribute_value, const float* rgba) {
+        void bind_int_attribute_value_to_color(index_t attribute_value, const float* rgba) {
             value_to_color_[attribute_value] = rgba;
         }
 
@@ -464,7 +470,7 @@ using namespace GEO;
 
             if(int_attribute_.is_bound()) int_attribute_.unbind();
 
-            if(!int_attribute_.bind_if_is_defined(mesh_->get_subelements_by_type(MESH_FACETS).attributes(),name)) { // try to bind int_attribute_ to the 'name' facet attribute of mesh_
+            if(!int_attribute_.bind_if_is_defined(mesh_->facets.attributes(),name)) { // try to bind int_attribute_ to the 'name' facet attribute of mesh_
                 Logger::err("MeshGfx") << "No '" << name << "' facet attribute" << std::endl;
                 unset_facets_colors_by_int_attribute();
                 return false;
@@ -673,6 +679,12 @@ using namespace GEO;
 
         void add_custom_point(double x, double y, double z) {
             custom_points_.push_back({x,y,z});
+        }
+
+        void add_custom_edge(float r, float g, float b, float a, double x1, double y1, double z1, double x2, double y2, double z2) {
+            custom_edges_[{r,g,b,a}].push_back(
+                std::make_pair<vec3d,vec3d>({x1,y1,z1},{x2,y2,z2})
+            );
         }
         
     protected:
@@ -976,11 +988,13 @@ using namespace GEO;
 	    ReadOnlyScalarAttributeAdapter tex_coord_attribute_[3]; // used for scalar attributes only
         bool ES_profile_;
 
-        std::map<int,const GLUPfloat*> value_to_color_; // used for int attributes only (when facets_colors_by_int_attribute_==true)
-        Attribute<int> int_attribute_; // used for int attributes only (when facets_colors_by_int_attribute_==true)
+        std::map<index_t,const GLUPfloat*> value_to_color_; // used for int attributes only (when facets_colors_by_int_attribute_==true)
+        Attribute<index_t> int_attribute_; // used for int attributes only (when facets_colors_by_int_attribute_==true)
 
         std::vector<std::array<double,3>> custom_points_;
         float custom_points_color_[4];
+
+        std::map<vec4f,std::vector<std::pair<vec3d,vec3d>>,VecngCompare<4,float>> custom_edges_; // edges grouped by color
 
         /**
          * \brief Filters primitives based on their id and on

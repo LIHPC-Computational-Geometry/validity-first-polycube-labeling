@@ -11,7 +11,8 @@
 //   vertices_transparency_, show_surface_, show_surface_sides_, show_mesh_, mesh_width_, mesh_color_, show_surface_borders_,
 //   surface_color_, surface_color_2_, show_volume_, cells_shrink_, volume_color_, show_colored_cells_, show_hexes_, show_connectors_,
 //   show_attributes_, current_colormap_texture_, attribute_, attribute_subelements_, attribute_name_, attribute_min_, attribute_max_ attributes
-// - show_labeling_ and labeling_colors_ attributes
+// - LABELING_ATTRIBUTE_NAME macro
+// - show_labeling_, labeling_colors_ and axis_colors_ attributes
 // - load_labeling() method
 // - inclusion of CustomMeshGfx.h
 // - mesh_gfx_ attribute of type CustomMeshGfx
@@ -45,6 +46,8 @@
 #include <functional>
 
 #include "CustomMeshGfx.h"   // for CustomMeshGfx
+
+#define LABELING_ATTRIBUTE_NAME "label"
 
 struct lua_State;
 
@@ -609,4 +612,5 @@ using namespace GEO;
 	// added
 	bool show_labeling_;
 	float labeling_colors_[6][4];
+	float axis_colors_[3][4];
     };
