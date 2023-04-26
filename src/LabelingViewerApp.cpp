@@ -13,13 +13,13 @@
 //   show_attributes_, current_colormap_texture_, attribute_, attribute_subelements_, attribute_name_, attribute_min_, attribute_max_
 // - attribute show_labeling_
 //   and editable with an ImGui::Checkbox (see draw_object_properties())
-// - load_labeling() method, which is called in load() if the file is a .txt
+// - load() calls load_labeling() if the file is a .txt
 // - in draw_scene(), visualization settings according to the value of show_labeling_, and calling of mesh_gfx_.draw_custom_edges()
 // - inclusion of CustomMeshGfx.h
 // - initialization of labeling_colors_, editable with some ImGui::ColorEdit4WithPalette (see draw_object_properties())
 // - initialization of axis_colors_
 // - labeling_colors_ passed by address to mesh_gfx_
-// - inclusion of LabelingGraph.h
+// - inclusion of LabelingGraph.h, labeling.h
 //
 // ## Changed
 // 
@@ -82,7 +82,7 @@ namespace {
 #include "colormaps_array.h" // for colormap_name, colormap_xpm & macros
 #include "CustomMeshGfx.h"   // for CustomMeshGfx
 #include "LabelingGraph.h"   // for StaticLabelingGraph
-#include "labeling.h"		 // for naive_labeling()
+#include "labeling.h"		 // for load_labeling(), naive_labeling()
 
 /******************************************************************************/
 
@@ -1565,7 +1565,60 @@ namespace {
         }
 
 		if(FileSystem::extension(filename)=="txt") {
-			return load_labeling(filename);
+			if(!load_labeling(filename,mesh_,LABELING_ATTRIBUTE_NAME)) {
+				show_labeling_ = false;
+				return false;
+			}
+
+			// compute charts
+			StaticLabelingGraph static_labeling_graph(mesh_,LABELING_ATTRIBUTE_NAME);
+			std::size_t nb_charts = static_labeling_graph.nb_charts();
+			Logger::out("I/O") << "There are " << nb_charts << " charts, "
+							<< static_labeling_graph.nb_corners() << " corners and "
+							<< static_labeling_graph.nb_boundaries() << " boundaries in this labeling." << std::endl;
+
+			std::ofstream ofs("StaticLabelingGraph.txt");
+			Logger::out("I/O") << "Exporting static_labeling_graph" << std::endl;
+			if(!ofs.good()) {
+				Logger::err("I/O") << "Unable to write StaticLabelingGraph.txt" << std::endl;
+			}
+			else {
+				ofs << static_labeling_graph;
+				ofs.close();
+			}
+
+			// store the coordinates of each corner in mesh_gfx_
+			// to be able to draw them
+			for(std::size_t i = 0; i < static_labeling_graph.nb_corners(); ++i) {
+				const double* coordinates = mesh_.vertices.point_ptr(
+					static_labeling_graph.corner(i).vertex
+				);
+				mesh_gfx_.add_custom_point(coordinates[0], coordinates[1], coordinates[2]);
+			}
+
+			// store the coordinates of each boundary edge in mesh_gfx_
+			// to be able to draw them
+			for(std::size_t i = 0; i < static_labeling_graph.nb_boundaries(); ++i) {
+				const Boundary& boundary = static_labeling_graph.boundary(i);
+				if(boundary.axis == -1) {
+					// Do not draw boundaries between opposite labels
+					continue;
+				}
+				for(const auto& be : boundary.halfedges) { // for each boundary edge of this boundary
+					const double* coordinates_first_point = halfedge_vertex_from(mesh_,be).data();
+					const double* coordinates_second_point = halfedge_vertex_to(mesh_,be).data();
+					mesh_gfx_.add_custom_edge(
+						axis_colors_[boundary.axis][0], axis_colors_[boundary.axis][1], axis_colors_[boundary.axis][2], axis_colors_[boundary.axis][4], // color
+						coordinates_first_point[0], coordinates_first_point[1], coordinates_first_point[2], // first point
+						coordinates_second_point[0], coordinates_second_point[1], coordinates_second_point[2] // second point
+					);
+				}
+			}
+
+			show_labeling_ = true;
+			show_mesh_ = false; // better to visualize the labeling without the mesh edges (wireframe)
+
+			return true;
 		}
 
         mesh_gfx_.set_mesh(nullptr);
@@ -1616,6 +1669,7 @@ namespace {
 
         show_vertices_ = (mesh_.facets.nb() == 0);
 		show_labeling_ = false; // added
+		show_mesh_ = true; // added
         mesh_gfx_.set_mesh(&mesh_);
 
 		// compute the naive labeling into a facet attribute LABELING_ATTRIBUTE_NAME
@@ -1627,129 +1681,6 @@ namespace {
 	    current_file_ = filename;
         return true;
     }
-
-	bool LabelingViewerApp::load_labeling(const std::string& filename) {
-
-		//open the file
-		std::ifstream ifs(filename);
-		if (!ifs.is_open()) {
-			Logger::out("I/O") << "Could not open labeling file '" << filename << "'" << std::endl;
-			return false;
-		}
-
-		Logger::out("I/O") << "Loading file " << filename << "..." << std::endl;
-
-		std::string current_line;
-		unsigned long current_label; // necessary type for string to unsigned int conversion (stoul)
-		GEO::index_t current_line_number = 0;
-		GEO::index_t facets_number = mesh_.facets.nb(); // expected line number (one line per facet)
-
-		// Add an attribute on facets. see https://github.com/BrunoLevy/geogram/wiki/Mesh#attributes
-		// The type must be Attribute<index_t> to be used with geogram/mesh/mesh_halfedges.h . See MeshHalfedges::facet_region_
-		Attribute<index_t> label(mesh_.facets.attributes(), LABELING_ATTRIBUTE_NAME);
-
-		//fill the attribute
-		while (ifs >> current_line) {
-			try {
-				current_label = std::stoul(current_line);
-				if(current_label > 5) {
-					Logger::err("I/O") << "In load_labeling(), each line must be a label in [0,5]\n"
-									   << "But found " << current_label << std::endl;
-					return false;
-				}
-			}
-			catch (const std::out_of_range& e) { // if stoul() failed
-				Logger::err("I/O") << "In load_labeling(), each line must be an unsigned integer\n"
-								   << "But found " << current_line << '\n'
-								   << e.what() << std::endl;
-				return false;
-			}
-			if(current_line_number >= facets_number) {
-				Logger::err("I/O") << "In load_labeling(), the number of labels is greater than the number of facets\n"
-				                   << "Number of labels so far = " << current_line_number+1 << "\n"
-				                   << "Number of facets = " << facets_number << "\n";
-				label.unbind();
-				mesh_.facets.attributes().delete_attribute_store(LABELING_ATTRIBUTE_NAME);
-				show_labeling_ = false;
-				Logger::err("I/O") << "Labeling removed" << std::endl;
-            	return false;
-			}
-            label[current_line_number] = (index_t) current_label;
-            current_line_number++;
-        }
-
-		//compare with expected size
-		if (current_line_number != facets_number){
-            Logger::err("I/O") << "In load_labeling(), the number of labels is lesser than the number of facets\n"
-			                   << "Number of labels = " << current_line_number+1 << "\n"
-			                   << "Number of facets = " << facets_number << "\n";
-			label.unbind();
-			mesh_.facets.attributes().delete_attribute_store(LABELING_ATTRIBUTE_NAME);
-			show_labeling_ = false;
-			Logger::err("I/O") << "Labeling removed" << std::endl;
-            return false;
-        }
-
-		show_labeling_ = false; // deactivated. instead, facets will be colored by chart id
-
-		// compute charts
-		StaticLabelingGraph static_labeling_graph(mesh_,LABELING_ATTRIBUTE_NAME);
-		std::size_t nb_charts = static_labeling_graph.nb_charts();
-		Logger::out("I/O") << "There are " << nb_charts << " charts, "
-						   << static_labeling_graph.nb_corners() << " corners and "
-						   << static_labeling_graph.nb_boundaries() << " boundaries in this labeling." << std::endl;
-
-		std::ofstream ofs("StaticLabelingGraph.txt");
-		Logger::out("I/O") << "Exporting static_labeling_graph" << std::endl;
-		if(!ofs.good()) {
-			Logger::err("I/O") << "Unable to write StaticLabelingGraph.txt" << std::endl;
-		}
-		else {
-			ofs << static_labeling_graph;
-			ofs.close();
-		}
-
-		// store the coordinates of each corner in mesh_gfx_
-		// to be able to draw them
-		for(std::size_t i = 0; i < static_labeling_graph.nb_corners(); ++i) {
-			const double* coordinates = mesh_.vertices.point_ptr(
-				static_labeling_graph.corner(i).vertex
-			);
-			mesh_gfx_.add_custom_point(coordinates[0], coordinates[1], coordinates[2]);
-		}
-
-		// store the coordinates of each boundary edge in mesh_gfx_
-		// to be able to draw them
-		for(std::size_t i = 0; i < static_labeling_graph.nb_boundaries(); ++i) {
-			const Boundary& boundary = static_labeling_graph.boundary(i);
-			if(boundary.axis == -1) {
-				// Do not draw boundaries between opposite labels
-				continue;
-			}
-			for(const auto& be : boundary.halfedges) { // for each boundary edge of this boundary
-				const double* coordinates_first_point = halfedge_vertex_from(mesh_,be).data();
-				const double* coordinates_second_point = halfedge_vertex_to(mesh_,be).data();
-				mesh_gfx_.add_custom_edge(
-					axis_colors_[boundary.axis][0], axis_colors_[boundary.axis][1], axis_colors_[boundary.axis][2], axis_colors_[boundary.axis][4], // color
-					coordinates_first_point[0], coordinates_first_point[1], coordinates_first_point[2], // first point
-					coordinates_second_point[0], coordinates_second_point[1], coordinates_second_point[2] // second point
-				);
-			}
-		}
-
-		Attribute<index_t> chart_id(mesh_.facets.attributes(), "chart_id"); // create a facets attribute "chart_id" 
-		memcpy(chart_id.data(),static_labeling_graph.get_facet2chart_ptr(),facets_number*sizeof(index_t)); // array copy from facet2chart of static_labeling_graph
-
-		show_attributes_ = true;
-        current_colormap_texture_ = TO_GL_TEXTURE_INDEX(COLORMAP_CEI_60757); // colormap with lot of color variations
-        attribute_min_ = 0.0f;
-        attribute_max_ = (float) (nb_charts-1);
-        attribute_ = "facets.chart_id";
-        attribute_name_ = "chart_id";
-        attribute_subelements_ = MESH_FACETS;
-
-		return true;
-	}
     
     bool LabelingViewerApp::can_load(const std::string& filename) {
         std::string extensions_str = supported_read_file_extensions();

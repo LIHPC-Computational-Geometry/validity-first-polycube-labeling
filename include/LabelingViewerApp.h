@@ -13,7 +13,6 @@
 //   show_attributes_, current_colormap_texture_, attribute_, attribute_subelements_, attribute_name_, attribute_min_, attribute_max_ attributes
 // - LABELING_ATTRIBUTE_NAME macro
 // - show_labeling_, labeling_colors_ and axis_colors_ attributes
-// - load_labeling() method
 // - inclusion of CustomMeshGfx.h
 // - mesh_gfx_ attribute of type CustomMeshGfx
 //
@@ -91,9 +90,6 @@ using namespace GEO;
          * \retval false otherwise
          */
         bool load(const std::string& filename);
-
-		// added
-		bool load_labeling(const std::string& filename);
 
 	/**
 	 * \brief Gets the text editor.

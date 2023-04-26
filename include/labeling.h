@@ -4,6 +4,8 @@
 
 using namespace GEO;
 
+bool load_labeling(const std::string& filename, Mesh& mesh, const char* attribute_name);
+
 /**
  * \brief Compute the naive labeling of a given mesh
  * \details Compute the per-facet nearest-to-normal signed direction +/-{X,Y,Z} of a surface mesh
