@@ -11,6 +11,15 @@
 #include "containers.h"             // for VECTOR_CONTAINS(), MAP_CONTAINS(), index_of_last(), += on std::vector
 #include "CustomMeshHalfedges.h"    // for CustomMeshHalfedges and CustomMeshHalfedges::Halfedge
 
+
+std::ostream& operator<< (std::ostream &out, const Chart& data) {
+    out << "\t label " << data.label;
+    out << "\n\t facets : "; for (auto f: data.facets) out << f << " ";
+    out << "\n\t boundaries : "; for (auto n: data.boundaries) out << n << " ";
+    out << '\n';
+    return out;
+}
+
 std::size_t VertexRingWithBoundaries::valence() const {
     return boundary_edges.size();
 }
@@ -49,6 +58,12 @@ void VertexRingWithBoundaries::check_boundary_edges(const CustomMeshHalfedges& m
     }
 }
 
+std::ostream& operator<< (std::ostream &out, const VertexRingWithBoundaries& data) {
+    out << "\t\t boundary_edges "; for (auto be: data.boundary_edges) out << be << " ";
+    out << '\n';
+    return out;
+}
+
 std::size_t Corner::valence() const {
     // sum the valence of all vertex rings
     std::size_t valence = 0;
@@ -65,6 +80,16 @@ bool Corner::halfedge_is_in_boundary_edges(const CustomMeshHalfedges::Halfedge& 
         }
     }
     return false;
+}
+
+std::ostream& operator<< (std::ostream &out, const Corner& data) {
+    out << "\t vertex " << data.vertex;
+    out << "\n\t " << data.vertex_rings_with_boundaries.size() << " vertex rings with boundaries\n";
+    for (auto vr: data.vertex_rings_with_boundaries) {
+        out << vr;
+    }
+    out << '\n';
+    return out;
 }
 
 bool Boundary::empty() const {
@@ -167,6 +192,17 @@ void Boundary::explore(const CustomMeshHalfedges::Halfedge& initial_halfedge,
             }
         }
     } while (end_corner == LabelingGraph::UNDEFINED); // continue the exploration until a corner is found
+}
+
+std::ostream& operator<< (std::ostream &out, const Boundary& data) {
+    out << "\t axis " << data.axis;
+    out << "\n\t halfedges : "; for (auto he: data.halfedges) out << he << " ";
+    out << "\n\t left_chart " << OPTIONAL_TO_STRING(data.left_chart);
+    out << "\n\t right_chart " << OPTIONAL_TO_STRING(data.right_chart);
+    out << "\n\t start_corner " << OPTIONAL_TO_STRING(data.start_corner);
+    out << "\n\t end_corner " << OPTIONAL_TO_STRING(data.end_corner);
+    out << '\n';
+    return out;
 }
 
 StaticLabelingGraph::StaticLabelingGraph(Mesh& mesh, std::string facet_attribute) : mesh_half_edges_(mesh) {
@@ -320,4 +356,58 @@ index_t StaticLabelingGraph::vertex2corner(std::size_t index) const {
 
 const index_t* StaticLabelingGraph::get_facet2chart_ptr() const {
     return facet2chart_.data();
+}
+
+bool StaticLabelingGraph::dump_to_file(const char* filename) const {
+    std::ofstream ofs(filename);
+    Logger::out("I/O") << "Exporting StaticLabelingGraph..." << std::endl;
+    if(!ofs.good()) {
+        Logger::err("I/O") << "Unable to write in " << filename << std::endl;
+        return false;
+    }
+    ofs << (*this);
+    ofs.close();
+    return true;
+}
+
+std::ostream& operator<< (std::ostream &out, const StaticLabelingGraph& data) {
+
+    // write charts
+
+    for(std::size_t chart_index = 0; chart_index < data.nb_charts(); ++chart_index) {
+        out << "charts[" << chart_index << "]\n";
+        out << data.chart(chart_index);
+    }
+    if(data.nb_charts()==0) out << "no charts\n";
+
+    // write boundaries
+
+    for(std::size_t boundary_index = 0; boundary_index < data.nb_boundaries(); ++boundary_index) {
+        out << "boundaries[" << boundary_index << "]\n";
+        out << data.boundary(boundary_index);
+    }
+    if(data.nb_boundaries()==0) out << "no boundaries\n";
+
+    // write corners
+
+    for(std::size_t corner_index = 0; corner_index < data.nb_corners(); ++corner_index) {
+        out << "corners[" << corner_index << "]\n";
+        out << data.corner(corner_index);
+    }
+    if(data.nb_corners()==0) out << "no corners\n";
+
+    // write facet2chart
+    
+    out << "facet2chart\n";
+    for(std::size_t f = 0; f < data.nb_facets(); ++f) {
+        out << '[' << f << "] " << data.facet2chart(f) << '\n';
+    }
+
+    // write vertex2corner
+    
+    out << "vertex2corner\n";
+    for(std::size_t v = 0; v < data.nb_vertices(); ++v) {
+        out << '[' << v << "] " << OPTIONAL_TO_STRING(data.vertex2corner(v)) << '\n';
+    }
+    return out;
 }

@@ -1577,15 +1577,7 @@ namespace {
 							<< static_labeling_graph.nb_corners() << " corners and "
 							<< static_labeling_graph.nb_boundaries() << " boundaries in this labeling." << std::endl;
 
-			std::ofstream ofs("StaticLabelingGraph.txt");
-			Logger::out("I/O") << "Exporting static_labeling_graph" << std::endl;
-			if(!ofs.good()) {
-				Logger::err("I/O") << "Unable to write StaticLabelingGraph.txt" << std::endl;
-			}
-			else {
-				ofs << static_labeling_graph;
-				ofs.close();
-			}
+			static_labeling_graph.dump_to_file("StaticLabelingGraph.txt");
 
 			// store the coordinates of each corner in mesh_gfx_
 			// to be able to draw them
