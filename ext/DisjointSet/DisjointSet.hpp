@@ -173,7 +173,7 @@ class DisjointSet final {
 		// Now repr0's size >= repr1's size
 		
 		// Graft repr1's subtree onto node repr0
-		nodes.at(repr1).parent = repr0;
+		nodes.at(repr1).parent = (S) repr0;
 		nodes.at(repr0).size += nodes.at(repr1).size;
 		nodes.at(repr1).size = 0;
 		numSets--;
