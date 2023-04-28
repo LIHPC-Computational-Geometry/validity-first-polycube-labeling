@@ -1,22 +1,3 @@
-// based on ext/geogram/src/lib/geogram/mesh/mesh_halfedges.h
-//
-// # Changelog - https://keepachangelog.com
-//
-// ## Added
-//
-// - using namespace GEO
-// - inclusion of CustomMeshHalfedges.h
-// - definition of custom_move_to_next_around_border()
-//
-// ## Changed
-//
-// - move_to_next_around_vertex() and move_to_prev_around_vertex() are independant of facet_region_ if ignore_borders==true
-//
-// ## Removed
-//
-// - namespace GEO wrapping the code
-// - inclusion of <geogram/mesh/mesh_halfedges.h>
-
 #include "CustomMeshHalfedges.h"
 
 using namespace GEO;

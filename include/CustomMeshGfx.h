@@ -1,24 +1,59 @@
-// based on ext/geogram/src/lib/geogram_gfx/mesh/mesh_gfx.h
-//
 // # Changelog - https://keepachangelog.com
 //
-// ## Added
+// Modifications of Geogram's source files
+//   ext/geogram/src/lib/geogram_gfx/mesh/mesh_gfx.h
+// & ext/geogram/src/lib/geogram_gfx/mesh/mesh_gfx.cpp
+//
+// ## Rendering of boundary edges
+//
+// ### Added
+//
+// - new variable : custom_edges_
+// - new functions : add_custom_edge() and draw_custom_edges()
+// - inclusion of <utility> and geometry.h
+//
+// ## Rendering of corners
+//
+// ### Added
+//
+// - new variables : custom_points_, custom_points_color_
+// - new functions : add_custom_point(), set_custom_points_color()
+// - inclusion of <array>
+//
+// ### Changed
+//
+// - draw_vertices() also draws the custom points
+// - set_mesh() clears the custom points
+//
+// ## Rendering of facet labels
+//
+// ### Added
+//
+// - new variables : facets_colors_by_int_attribute_, value_to_color_, int_attribute_
+// - facets_colors_by_int_attribute_ is initialized in the constructor
+// - new functions : bind_int_attribute_value_to_color(), set_facets_colors_by_int_attribute(),
+//   unset_facets_colors_by_int_attribute(), draw_triangles_immediate_by_int_attrib()
+// - inclusion of <map>
+//
+// ### Changed
+//
+// - draw_triangles() calls draw_triangles_immediate_by_int_attrib() when facets_colors_by_int_attribute_ is true
+//
+// ## To have an independent copy of MeshGfx
+//
+// ### Added
 //
 // - using namespace GEO
-// - definition of facets_colors_by_int_attribute_, value_to_color_, int_attribute_, custom_points_, custom_points_color_, custom_edges_ 
-// - bind_int_attribute_value_to_color(), set_facets_colors_by_int_attribute(),
-//   unset_facets_colors_by_int_attribute(), draw_triangles_immediate_by_int_attrib(),
-//   add_custom_edge() and draw_custom_edges() methods
-// - inclusion of <map>, <utility> and geometry.h
 //
-// ## Changed
+// ### Changed
 //
 // - replace MeshGfx by CustomMeshGfx
 // - Geogram's include guard replaced by #pragma once
 //
-// ## Removed
+// ### Removed
 //
 // - namespace GEO wrapping the code
+// - inclusion of <geogram_gfx/mesh/mesh_gfx.h>
 
 #pragma once
 
@@ -28,6 +63,7 @@
 #include <geogram/mesh/mesh.h>
 
 #include <map>
+#include <array>
 #include <utility> // for std::pair
 
 #include "geometry.h" // for vec3d, VecngCompare 

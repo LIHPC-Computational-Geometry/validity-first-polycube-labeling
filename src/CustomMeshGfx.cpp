@@ -1,24 +1,3 @@
-// based on ext/geogram/src/lib/geogram_gfx/mesh/mesh_gfx.cpp
-//
-// # Changelog - https://keepachangelog.com
-//
-// ## Added
-//
-// - using namespace GEO
-// - inclusion of CustomMeshGfx.h
-// - facets_colors_by_int_attribute initialization
-// - draw_triangles_immediate_by_int_attrib() method
-//
-// ## Changed
-//
-// - replace MeshGfx by CustomMeshGfx
-// - draw_triangles() calls draw_triangles_immediate_by_int_attrib() when facets_colors_by_int_attribute is true
-//
-// ## Removed
-//
-// - namespace GEO wrapping the code
-// - inclusion of <geogram_gfx/mesh/mesh_gfx.h>
-
 #include <geogram_gfx/GLUP/GLUP_private.h>
 #include <geogram_gfx/basic/GLSL.h>
 

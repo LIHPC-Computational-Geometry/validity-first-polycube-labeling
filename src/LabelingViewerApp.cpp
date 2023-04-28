@@ -1,38 +1,3 @@
-// copied from ext/geogram/src/lib/geogram_gfx/simple_application.cpp
-//
-// # Changelog - https://keepachangelog.com
-//
-// ## Added
-//
-// - inclusion of <geogram/mesh/mesh_io.h> and <geogram/basic/stopwatch.h>
-// - get_bbox(), copied from ext/geogram/src/lib/geogram_gfx/gui/simple_mesh_application.cpp
-// - draw_points() draw_edges() draw_surface() draw_volume(), copied from ext/geogram/src/lib/geogram_gfx/gui/simple_mesh_application.h
-// - initialization of mesh_, mesh_gfx_, anim_speed_, anim_time_, show_vertices_, show_vertices_selection_, vertices_size_, vertices_color_,
-//   vertices_transparency_, show_surface_, show_surface_sides_, show_mesh_, mesh_width_, mesh_color_, show_surface_borders_,
-//   surface_color_, surface_color_2_, show_volume_, cells_shrink_, volume_color_, show_colored_cells_, show_hexes_, show_connectors_,
-//   show_attributes_, current_colormap_texture_, attribute_, attribute_subelements_, attribute_name_, attribute_min_, attribute_max_
-// - attribute show_labeling_
-//   and editable with an ImGui::Checkbox (see draw_object_properties())
-// - load() calls load_labeling() if the file is a .txt
-// - in draw_scene(), visualization settings according to the value of show_labeling_, and calling of mesh_gfx_.draw_custom_edges()
-// - inclusion of CustomMeshGfx.h
-// - initialization of labeling_colors_, editable with some ImGui::ColorEdit4WithPalette (see draw_object_properties())
-// - initialization of axis_colors_
-// - labeling_colors_ passed by address to mesh_gfx_
-// - inclusion of LabelingGraph.h, labeling.h
-//
-// ## Changed
-// 
-// - class SimpleApplication renamed to LabelingViewerApp
-// - the constructor has no arguments anymore. The application name is hard-coded.
-// - definition of load() replaced by the one in ext/geogram/src/lib/geogram_gfx/gui/simple_mesh_application.cpp
-// - lighting off by default
-// - init_colormaps() now uses the colormap ordering defined include/colormaps_array.h
-//
-// ## Removed
-//
-// - namespace GEO wrapping the code
-
 #include <geogram_gfx/gui/simple_application.h>
 #include <geogram_gfx/gui/geogram_logo_256.xpm>
 #include <geogram/basic/file_system.h>

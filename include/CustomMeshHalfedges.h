@@ -1,21 +1,34 @@
-// based on ext/geogram/src/lib/geogram/mesh/mesh_halfedges.h
-//
 // # Changelog - https://keepachangelog.com
 //
-// ## Added
+// Modifications of Geogram's source files
+//   ext/geogram/src/lib/geogram/mesh/mesh_halfedges.h
+// & ext/geogram/src/lib/geogram/mesh/mesh_halfedges.cpp
+//
+// ## Modified move operators
+//
+// ### Added
+//
+// - new function : custom_move_to_next_around_border()
+//
+// ### Changed
+//
+// - move_to_next_around_vertex() and move_to_prev_around_vertex() are independant of facet_region_ if ignore_borders==true
+//
+// ## To have an independent copy of MeshHalfedges
+//
+// ### Added
 //
 // - using namespace GEO
-// - custom_move_to_next_around_border() method
 //
-// ## Changed
+// ### Changed
 //
 // - replace MeshHalfedges by CustomMeshHalfedges
 // - Geogram's include guard replaced by #pragma once
-// - move_to_next_around_vertex() and move_to_prev_around_vertex() have a new argument (bool ignore_borders)
 //
-// ## Removed
+// ### Removed
 //
 // - namespace GEO and Geom wrapping the code
+// - inclusion of <geogram/mesh/mesh_halfedges.h>
 
 #pragma once
 

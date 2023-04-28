@@ -1,33 +1,82 @@
-// copied from ext/geogram/src/lib/geogram_gfx/simple_application.h
-//
 // # Changelog - https://keepachangelog.com
 //
-// ## Added
+// Modifications of Geogram's source files
+//   ext/geogram/src/lib/geogram_gfx/gui/simple_application.h
+// & ext/geogram/src/lib/geogram_gfx/gui/simple_application.cpp
+//
+// ## Related to the labeling graph
+//
+// ### Added
+//
+// - inclusion of LabelingGraph.h
+// - new variables : static_labeling_graph and axis_colors_
+// - initialization of axis_colors_ in the consctructor
+// - in draw_scene(), mesh_gfx_.draw_custom_edges() is called
+// - in load(), after loading a labeling, computation of the labeling graph,
+//   corners & boundary edges stored in mesh_gfx_ for rendering
+//
+// ## Related to the labeling vector
+//
+// ### Added
+//
+// - LABELING_ATTRIBUTE_NAME macro
+// - inclusion of CustomMeshGfx.h in .h/.cpp
+//   labeling.h, colormaps_array.h in .cpp
+// - mesh_gfx_ attribute of type CustomMeshGfx
+// - new variables : show_labeling_, labeling_colors_. initialized in the consctructor
+// - in draw_object_properties(),
+//   show_labeling_ is editable with an ImGui::Checkbox,
+//   labeling_colors_ is editable with some ImGui::ColorEdit4WithPalette
+// - labeling_colors_ passed by address to mesh_gfx_
+// - specific behavior in load() if the file is a .txt
+//
+// ### Changed
+//
+// - lighting off by default
+// - init_colormaps() now uses the colormap ordering defined include/colormaps_array.h
+// - in draw_scene(), visualization settings according to the value of show_labeling_
+//
+// ### Removed
 //
 // - inclusion of <geogram_gfx/mesh/mesh_gfx.h>
-// - get_bbox(), copied from ext/geogram/src/lib/geogram_gfx/gui/simple_mesh_application.h
-// - draw_points() draw_edges() draw_surface() draw_volume(), copied from ext/geogram/src/lib/geogram_gfx/gui/simple_mesh_application.h
-// - mesh_, anim_speed_, anim_time_, show_vertices_, show_vertices_selection_, vertices_size_, vertices_color_,
+//
+// ## Integration of SimpleMeshApplication features
+//
+// see ext/geogram/src/lib/geogram_gfx/gui/simple_application.h
+//   & ext/geogram/src/lib/geogram_gfx/gui/simple_application.cpp
+//
+// ### Added
+//
+// - inclusion of <geogram_gfx/mesh/mesh_gfx.h> in .h,
+//				  <geogram/mesh/mesh_io.h> and <geogram/basic/stopwatch.h> in .cpp
+// - new functions : draw_points() draw_edges() draw_surface() draw_volume(), get_bbox()
+// - new variables : mesh_, anim_speed_, anim_time_, show_vertices_, show_vertices_selection_, vertices_size_, vertices_color_,
 //   vertices_transparency_, show_surface_, show_surface_sides_, show_mesh_, mesh_width_, mesh_color_, show_surface_borders_,
 //   surface_color_, surface_color_2_, show_volume_, cells_shrink_, volume_color_, show_colored_cells_, show_hexes_, show_connectors_,
 //   show_attributes_, current_colormap_texture_, attribute_, attribute_subelements_, attribute_name_, attribute_min_, attribute_max_ attributes
-// - LABELING_ATTRIBUTE_NAME macro
-// - show_labeling_, labeling_colors_ and axis_colors_ attributes
-// - inclusion of CustomMeshGfx.h
-// - mesh_gfx_ attribute of type CustomMeshGfx
-// - inclusion of LabelingGraph.h
+// - initialization of the new variables in the constructor
 //
-// ## Changed
+// ### Changed
 // 
-// - class SimpleApplication renamed to LabelingViewerApp
-// - TextEditor is now GEO::TextEditor
-// - the constructor has no arguments anymore. The application name is hard-coded.
-// - load() and draw_scene() no longer virtual
+// - load() and draw_scene() no longer virtual. definition of load() replaced by the one in SimpleMeshApplication
 //
-// ## Removed
+// ## To have an independent copy of SimpleApplication, "LabelingViewerApp"
+//
+// ### Added
+//
+// - using namespace GEO
+//
+// ### Changed
+//
+// - class SimpleApplication renamed to LabelingViewerApp
+// - the constructor has no arguments anymore. the application name is hard-coded.
+// - TextEditor replaced by GEO::TextEditor
+// - Geogram's include guard replaced by #pragma once
+//
+// ### Removed
 //
 // - namespace GEO wrapping the code
-// - inclusion of <geogram_gfx/mesh/mesh_gfx.h>
+// - inclusion of <geogram_gfx/gui/simple_application.h>
 
 #pragma once
 
