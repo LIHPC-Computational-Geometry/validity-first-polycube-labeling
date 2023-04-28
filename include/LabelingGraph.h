@@ -127,7 +127,7 @@ struct Boundary {
                  const CustomMeshHalfedges& mesh_halfedges,
                  index_t index_of_self,
                  const std::vector<index_t>& facet2chart,
-                 std::vector<index_t>& vertex2corner_,
+                 std::vector<index_t>& vertex2corner,
                  std::vector<Chart>& charts,
                  std::vector<Corner>& corners,
                  std::map<CustomMeshHalfedges::Halfedge,std::pair<index_t,bool>,HalfedgeCompare>& halfedge2boundary,
@@ -138,10 +138,30 @@ std::ostream& operator<< (std::ostream &out, const Boundary& data);
 
 // A labeling stored with charts, boundaries and corners
 // based on https://github.com/LIHPC-Computational-Geometry/genomesh/blob/main/include/flagging.h#L135
-class StaticLabelingGraph {
+struct StaticLabelingGraph {
 
-public:
-    StaticLabelingGraph(Mesh& mesh, std::string facet_attribute);
+    //// LabelingGraph features //////////////////
+
+    std::vector<Chart> charts;
+    std::vector<Boundary> boundaries;
+    std::vector<Corner> corners;
+
+    //// Mapping from geometry to LabelingGraph features //////////////////
+
+    std::vector<index_t> facet2chart;
+    std::map<CustomMeshHalfedges::Halfedge,std::pair<index_t,bool>,HalfedgeCompare> halfedge2boundary; // for each halfedge, store 1/ the associated boundary (may be LabelingGraph::UNDEFINED) and 2/ if the boundary is in the same orientation
+    std::vector<index_t> vertex2corner;
+
+    //// Quick access to problematic LabelingGraph features //////////////////
+
+    // TODO vector<int> invalid_charts
+    // TODO vector<int> boundaries_between_opposite_labels
+    // TODO vector<int> invalid_corners
+
+    //// Fill & clear //////////////////
+
+    void fill_from(Mesh& mesh, std::string facet_attribute);
+    void clear();
 
     //// Getters for sizes //////////////////
 
@@ -151,44 +171,9 @@ public:
     std::size_t nb_facets() const; // to iterate over facet2chart
     std::size_t nb_vertices() const; // to iterate over vertex2corner
 
-    //// Getters for objects //////////////////
-
-    const Chart& chart(std::size_t index) const;
-    const Boundary& boundary(std::size_t index) const;
-    const Corner& corner(std::size_t index) const;
-    index_t facet2chart(std::size_t index) const;
-    index_t vertex2corner(std::size_t index) const;
-
-    //// Special getters //////////////////
-
-    const index_t* get_facet2chart_ptr() const; // useful to copy the whole chunk of data
-
     //// Export //////////////////
 
     bool dump_to_file(const char* filename) const;
-
-private:
-
-    //// LabelingGraph features //////////////////
-
-    std::vector<Chart> charts_;
-    std::vector<Boundary> boundaries_;
-    std::vector<Corner> corners_;
-
-    //// Mapping from geometry to LabelingGraph features //////////////////
-
-    std::vector<index_t> facet2chart_;
-    std::map<CustomMeshHalfedges::Halfedge,std::pair<index_t,bool>,HalfedgeCompare> halfedge2boundary_; // for each halfedge, store 1/ the associated boundary (may be LabelingGraph::UNDEFINED) and 2/ if the boundary is in the same orientation
-    std::vector<index_t> vertex2corner_;
-
-    //// Quick access to problematic LabelingGraph features //////////////////
-
-    // TODO vector<int> invalid_charts
-    // TODO vector<int> boundaries_between_opposite_labels
-    // TODO vector<int> invalid_corners
-
-    //// Half edges API //////////////////
-    CustomMeshHalfedges mesh_half_edges_;
 };
 
 std::ostream& operator<< (std::ostream &out, const StaticLabelingGraph& data);

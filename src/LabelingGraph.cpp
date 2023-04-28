@@ -205,7 +205,7 @@ std::ostream& operator<< (std::ostream &out, const Boundary& data) {
     return out;
 }
 
-StaticLabelingGraph::StaticLabelingGraph(Mesh& mesh, std::string facet_attribute) : mesh_half_edges_(mesh) {
+void StaticLabelingGraph::fill_from(Mesh& mesh, std::string facet_attribute) {
 
     // based on https://github.com/LIHPC-Computational-Geometry/genomesh/blob/main/src/flagging.cpp#L795
     // but here we use a disjoint-set for step 1
@@ -213,10 +213,12 @@ StaticLabelingGraph::StaticLabelingGraph(Mesh& mesh, std::string facet_attribute
     // expecting a surface triangle mesh
     geo_assert(mesh.facets.are_simplices());
     geo_assert(mesh.cells.nb()==0);
-    geo_assert(corners_.empty());
 
-    facet2chart_.resize(mesh.facets.nb()); // important: memory allocation allowing to call ds.getSetsMap() on the underlying array
-    vertex2corner_.resize(mesh.vertices.nb(),LabelingGraph::UNDEFINED); // contrary to facet2chart_ where all facets are associated to a chart, not all vertices are associated to a corner -> use UNDEFINED for vertices that are not on a corner
+    clear();
+
+    facet2chart.resize(mesh.facets.nb()); // important: memory allocation allowing to call ds.getSetsMap() on the underlying array
+    vertex2corner.resize(mesh.vertices.nb(),LabelingGraph::UNDEFINED); // contrary to facet2chart where all facets are associated to a chart, not all vertices are associated to a corner -> use UNDEFINED for vertices that are not on a corner
+    CustomMeshHalfedges mesh_half_edges_(mesh); // Half edges API
 
     // STEP 1 : Aggregete adjacent triangles of same label as chart
 
@@ -231,12 +233,12 @@ StaticLabelingGraph::StaticLabelingGraph(Mesh& mesh, std::string facet_attribute
             }
         }
     }
-    std::size_t nb_charts = ds.getSetsMap(facet2chart_.data()); // get the map (facet id -> chart id) and the number of charts
-    charts_.resize(nb_charts);
+    std::size_t nb_charts = ds.getSetsMap(facet2chart.data()); // get the map (facet id -> chart id) and the number of charts
+    charts.resize(nb_charts);
 
     // fill the Chart objects
     for(index_t f: mesh.facets) { // for each facet of the mesh
-        Chart& current_chart = charts_[facet2chart_[f]]; // get the chart associated to this facet
+        Chart& current_chart = charts[facet2chart[f]]; // get the chart associated to this facet
         current_chart.label = labeling[f]; // (re)define its label
         current_chart.facets.emplace(f); // register the facet
     }
@@ -267,8 +269,8 @@ StaticLabelingGraph::StaticLabelingGraph(Mesh& mesh, std::string facet_attribute
         }
         // else : we found a corner !
 
-        if(vertex2corner_[current_vertex] != LabelingGraph::UNDEFINED) { // if a corner already exists on this vertex
-            if(corners_[vertex2corner_[current_vertex]].halfedge_is_in_boundary_edges(halfedge)) { // if the current halfedge is already referenced in this corner
+        if(vertex2corner[current_vertex] != LabelingGraph::UNDEFINED) { // if a corner already exists on this vertex
+            if(corners[vertex2corner[current_vertex]].halfedge_is_in_boundary_edges(halfedge)) { // if the current halfedge is already referenced in this corner
                 continue; // nothing to do, skip to next vertex
             }
             else {
@@ -278,10 +280,10 @@ StaticLabelingGraph::StaticLabelingGraph(Mesh& mesh, std::string facet_attribute
         }
         else {
             // we found an unexplored corner
-            corners_.push_back(Corner()); // create a new Corner
-            corners_.back().vertex = current_vertex; // link it to the current vertex
-            corners_.back().vertex_rings_with_boundaries.push_back(current_vertex_ring); // add it the just-explored vertex ring
-            vertex2corner_[current_vertex] = (index_t) index_of_last(corners_); // link the boundary to this corner
+            corners.push_back(Corner()); // create a new Corner
+            corners.back().vertex = current_vertex; // link it to the current vertex
+            corners.back().vertex_rings_with_boundaries.push_back(current_vertex_ring); // add it the just-explored vertex ring
+            vertex2corner[current_vertex] = (index_t) index_of_last(corners); // link the boundary to this corner
             boundary_edges_to_explore += current_vertex_ring.boundary_edges; // the boundary edges around this corner must be explored
         }        
         
@@ -291,21 +293,21 @@ StaticLabelingGraph::StaticLabelingGraph(Mesh& mesh, std::string facet_attribute
             boundary_edges_to_explore.pop_back(); // remove this halfedge from the vector
 
             // Check if this halfedge has already been explored since its insertion in the vector
-            if(MAP_CONTAINS(halfedge2boundary_,halfedge)) {
+            if(MAP_CONTAINS(halfedge2boundary,halfedge)) {
                 // this halfedge is already linked to a boundary, no need to re-explore the boundary
                 continue;
             }
 
-            boundaries_.push_back(Boundary()); // create a new boundary
+            boundaries.push_back(Boundary()); // create a new boundary
             // explore it, edge by edge
-            boundaries_.back().explore(halfedge,
+            boundaries.back().explore(halfedge,
                                        mesh_half_edges_,
-                                       (index_t) index_of_last(boundaries_), // get the index of this boundary
-                                       facet2chart_,
-                                       vertex2corner_,
-                                       charts_,
-                                       corners_,
-                                       halfedge2boundary_,
+                                       (index_t) index_of_last(boundaries), // get the index of this boundary
+                                       facet2chart,
+                                       vertex2corner,
+                                       charts,
+                                       corners,
+                                       halfedge2boundary,
                                        boundary_edges_to_explore);
         }
     }}
@@ -314,48 +316,33 @@ StaticLabelingGraph::StaticLabelingGraph(Mesh& mesh, std::string facet_attribute
     // TODO
 }
 
+void StaticLabelingGraph::clear() {
+    charts.clear();
+    boundaries.clear();
+    corners.clear();
+    facet2chart.clear();
+    halfedge2boundary.clear();
+    vertex2corner.clear();
+}
+
 std::size_t StaticLabelingGraph::nb_charts() const {
-    return charts_.size();
+    return charts.size();
 }
 
 std::size_t StaticLabelingGraph::nb_boundaries() const {
-    return boundaries_.size();
+    return boundaries.size();
 }
 
 std::size_t StaticLabelingGraph::nb_corners() const {
-    return corners_.size();
+    return corners.size();
 }
 
 std::size_t StaticLabelingGraph::nb_facets() const {
-    return facet2chart_.size();
+    return facet2chart.size();
 }
 
 std::size_t StaticLabelingGraph::nb_vertices() const {
-    return vertex2corner_.size();
-}
-
-const Chart& StaticLabelingGraph::chart(std::size_t index) const {
-    return charts_.at(index);
-}
-
-const Boundary& StaticLabelingGraph::boundary(std::size_t index) const {
-    return boundaries_.at(index);
-}
-
-const Corner& StaticLabelingGraph::corner(std::size_t index) const {
-    return corners_.at(index);
-}
-
-index_t StaticLabelingGraph::facet2chart(std::size_t index) const {
-    return facet2chart_.at(index);
-}
-
-index_t StaticLabelingGraph::vertex2corner(std::size_t index) const {
-    return vertex2corner_.at(index);
-}
-
-const index_t* StaticLabelingGraph::get_facet2chart_ptr() const {
-    return facet2chart_.data();
+    return vertex2corner.size();
 }
 
 bool StaticLabelingGraph::dump_to_file(const char* filename) const {
@@ -376,7 +363,7 @@ std::ostream& operator<< (std::ostream &out, const StaticLabelingGraph& data) {
 
     for(std::size_t chart_index = 0; chart_index < data.nb_charts(); ++chart_index) {
         out << "charts[" << chart_index << "]\n";
-        out << data.chart(chart_index);
+        out << data.charts[chart_index];
     }
     if(data.nb_charts()==0) out << "no charts\n";
 
@@ -384,7 +371,7 @@ std::ostream& operator<< (std::ostream &out, const StaticLabelingGraph& data) {
 
     for(std::size_t boundary_index = 0; boundary_index < data.nb_boundaries(); ++boundary_index) {
         out << "boundaries[" << boundary_index << "]\n";
-        out << data.boundary(boundary_index);
+        out << data.boundaries[boundary_index];
     }
     if(data.nb_boundaries()==0) out << "no boundaries\n";
 
@@ -392,7 +379,7 @@ std::ostream& operator<< (std::ostream &out, const StaticLabelingGraph& data) {
 
     for(std::size_t corner_index = 0; corner_index < data.nb_corners(); ++corner_index) {
         out << "corners[" << corner_index << "]\n";
-        out << data.corner(corner_index);
+        out << data.corners[corner_index];
     }
     if(data.nb_corners()==0) out << "no corners\n";
 
@@ -400,14 +387,14 @@ std::ostream& operator<< (std::ostream &out, const StaticLabelingGraph& data) {
     
     out << "facet2chart\n";
     for(std::size_t f = 0; f < data.nb_facets(); ++f) {
-        out << '[' << f << "] " << data.facet2chart(f) << '\n';
+        out << '[' << f << "] " << data.facet2chart[f] << '\n';
     }
 
     // write vertex2corner
     
     out << "vertex2corner\n";
     for(std::size_t v = 0; v < data.nb_vertices(); ++v) {
-        out << '[' << v << "] " << OPTIONAL_TO_STRING(data.vertex2corner(v)) << '\n';
+        out << '[' << v << "] " << OPTIONAL_TO_STRING(data.vertex2corner[v]) << '\n';
     }
     return out;
 }

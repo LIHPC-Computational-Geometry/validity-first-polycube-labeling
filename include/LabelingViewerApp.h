@@ -15,6 +15,7 @@
 // - show_labeling_, labeling_colors_ and axis_colors_ attributes
 // - inclusion of CustomMeshGfx.h
 // - mesh_gfx_ attribute of type CustomMeshGfx
+// - inclusion of LabelingGraph.h
 //
 // ## Changed
 // 
@@ -45,6 +46,7 @@
 #include <functional>
 
 #include "CustomMeshGfx.h"   // for CustomMeshGfx
+#include "LabelingGraph.h"	 // for StaticLabelingGraph
 
 #define LABELING_ATTRIBUTE_NAME "label"
 
@@ -609,4 +611,5 @@ using namespace GEO;
 	bool show_labeling_;
 	float labeling_colors_[6][4];
 	float axis_colors_[3][4];
+	StaticLabelingGraph static_labeling_graph;
     };

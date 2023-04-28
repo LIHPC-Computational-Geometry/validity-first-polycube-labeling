@@ -1570,8 +1570,9 @@ namespace {
 				return false;
 			}
 
-			// compute charts
-			StaticLabelingGraph static_labeling_graph(mesh_,LABELING_ATTRIBUTE_NAME);
+			// compute charts, boundaries and corners of the labeling
+			static_labeling_graph.fill_from(mesh_,LABELING_ATTRIBUTE_NAME);
+
 			std::size_t nb_charts = static_labeling_graph.nb_charts();
 			Logger::out("I/O") << "There are " << nb_charts << " charts, "
 							<< static_labeling_graph.nb_corners() << " corners and "
@@ -1583,7 +1584,7 @@ namespace {
 			// to be able to draw them
 			for(std::size_t i = 0; i < static_labeling_graph.nb_corners(); ++i) {
 				const double* coordinates = mesh_.vertices.point_ptr(
-					static_labeling_graph.corner(i).vertex
+					static_labeling_graph.corners[i].vertex
 				);
 				mesh_gfx_.add_custom_point(coordinates[0], coordinates[1], coordinates[2]);
 			}
@@ -1591,7 +1592,7 @@ namespace {
 			// store the coordinates of each boundary edge in mesh_gfx_
 			// to be able to draw them
 			for(std::size_t i = 0; i < static_labeling_graph.nb_boundaries(); ++i) {
-				const Boundary& boundary = static_labeling_graph.boundary(i);
+				const Boundary& boundary = static_labeling_graph.boundaries[i];
 				if(boundary.axis == -1) {
 					// Do not draw boundaries between opposite labels
 					continue;
