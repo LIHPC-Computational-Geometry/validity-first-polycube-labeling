@@ -1,3 +1,6 @@
+#include <fmt/core.h>
+#include <fmt/ostream.h>
+
 #include <iostream>
 
 #include "HexMeshViewerApp.h"
@@ -5,7 +8,7 @@
 int main(int argc, char** argv) {
     
 	if(argc != 2) {
-		std::cerr << "Usage should be ./hex_mesh_viewer hexmesh.mesh\n";
+		fmt::println(std::cerr,"Usage should be ./hex_mesh_viewer hexmesh.mesh");
 		exit(1);
 	}
 	

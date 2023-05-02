@@ -62,6 +62,9 @@
 #include <geogram_gfx/GLUP/GLUP_private.h>
 #include <geogram/mesh/mesh.h>
 
+#include <fmt/core.h>
+#include <fmt/ostream.h>
+
 #include <map>
 #include <array>
 #include <utility> // for std::pair
@@ -507,7 +510,7 @@ using namespace GEO;
             if(int_attribute_.is_bound()) int_attribute_.unbind();
 
             if(!int_attribute_.bind_if_is_defined(mesh_->facets.attributes(),name)) { // try to bind int_attribute_ to the 'name' facet attribute of mesh_
-                Logger::err("MeshGfx") << "No '" << name << "' facet attribute" << std::endl;
+                fmt::println(Logger::err("MeshGfx"),"No {} facet attribute",name);
                 unset_facets_colors_by_int_attribute();
                 return false;
             }

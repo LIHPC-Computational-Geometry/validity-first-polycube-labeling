@@ -40,6 +40,9 @@ namespace {
 #  include <geogram_gfx/gui/gui_state.h>
 }
 
+#include <fmt/core.h>
+#include <fmt/ostream.h>
+
 #include <fstream>
 #include <stdexcept>
 
@@ -1526,7 +1529,8 @@ namespace {
         // based on ext/geogram/src/lib/geogram_gfx/gui/simple_mesh_application.cpp load()
 
         if(!FileSystem::is_file(filename)) {
-            Logger::out("I/O") << "is not a file" << std::endl;
+			fmt::println(Logger::out("I/O"),"{} is not a file",filename);
+			return false;
         }
 
 		if(FileSystem::extension(filename)=="txt") {
@@ -1539,9 +1543,7 @@ namespace {
 			static_labeling_graph.fill_from(mesh_,LABELING_ATTRIBUTE_NAME);
 
 			std::size_t nb_charts = static_labeling_graph.nb_charts();
-			Logger::out("I/O") << "There are " << nb_charts << " charts, "
-							<< static_labeling_graph.nb_corners() << " corners and "
-							<< static_labeling_graph.nb_boundaries() << " boundaries in this labeling." << std::endl;
+			fmt::println(Logger::out("I/O"),"There are {} charts, {} corners and {} boundaries in this labeling.",nb_charts,static_labeling_graph.nb_corners(),static_labeling_graph.nb_boundaries());
 
 			static_labeling_graph.dump_to_file("StaticLabelingGraph.txt");
 
@@ -1631,9 +1633,9 @@ namespace {
         mesh_gfx_.set_mesh(&mesh_);
 
 		// compute the naive labeling into a facet attribute LABELING_ATTRIBUTE_NAME
-		Logger::out("I/O") << "Computing the naive labeling...";
+		fmt::print(Logger::out("I/O"),"Computing the naive labeling...");
 		naive_labeling(mesh_,LABELING_ATTRIBUTE_NAME);
-		Logger::out("I/O") << "Done" << std::endl;
+		fmt::println(Logger::out("I/O"),"Done");
 		show_labeling_ = true;
 
 	    current_file_ = filename;

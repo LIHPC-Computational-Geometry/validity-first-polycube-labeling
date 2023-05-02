@@ -2,3 +2,6 @@
 	path = ext/geogram
 	url = git@github.com:BrunoLevy/geogram.git
 	ignore = untracked
+[submodule "ext/fmt"]
+	path = ext/fmt
+	url = git@github.com:fmtlib/fmt.git

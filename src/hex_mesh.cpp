@@ -4,6 +4,9 @@
 #include <geogram/basic/logger.h>       // for GEO::Logger
 #include <geogram/mesh/mesh.h>          // for GEO::Mesh
 
+#include <fmt/core.h>
+#include <fmt/ostream.h>
+
 #include <algorithm>    // for std::min()
 #include <ostream>      // for std::endl
 
@@ -16,7 +19,7 @@ double compute_scaled_jacobian(GEO::Mesh& M) {
         
         if (M.cells.type(hex_index) != GEO::MESH_HEX) { // check if the cell is not an hexahedron
             SJ[hex_index] = nanf64("");
-            GEO::Logger::out("") << "Found a cell that is not an hexahedron. type = " << M.cells.type(hex_index) << std::endl;
+            fmt::println(GEO::Logger::out("hex_mesh"),"Found a cell that is not an hexahedron. type = {}",std::to_string(M.cells.type(hex_index)));
             continue;
         }
         double scaled_jacobian = 1.0;

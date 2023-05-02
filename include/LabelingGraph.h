@@ -16,6 +16,10 @@
 #include <geogram/mesh/mesh.h>
 #include <geogram/basic/attributes.h>
 
+#include <fmt/core.h>
+#include <fmt/ostream.h>
+#include <fmt/ranges.h>
+
 #include <iostream>
 #include <ostream>
 #include <vector>
@@ -60,6 +64,10 @@ struct Chart {
 
 std::ostream& operator<< (std::ostream &out, const Chart& data);
 
+// Use the operator<< overloading with {fmt}
+// https://fmt.dev/latest/api.html#std-ostream-support
+template <> struct fmt::formatter<Chart> : ostream_formatter {};
+
 struct VertexRingWithBoundaries {
 
     //// Underlying geometry //////////////////
@@ -79,6 +87,10 @@ struct VertexRingWithBoundaries {
 };
 
 std::ostream& operator<< (std::ostream &out, const VertexRingWithBoundaries& data);
+
+// Use the operator<< overloading with {fmt}
+// https://fmt.dev/latest/api.html#std-ostream-support
+template <> struct fmt::formatter<VertexRingWithBoundaries> : ostream_formatter {};
 
 // A vertex where 3 or more boundaries are meeting
 // based on https://github.com/LIHPC-Computational-Geometry/genomesh/blob/main/include/flagging.h#L126
@@ -100,6 +112,10 @@ struct Corner {
 };
 
 std::ostream& operator<< (std::ostream &out, const Corner& data);
+
+// Use the operator<< overloading with {fmt}
+// https://fmt.dev/latest/api.html#std-ostream-support
+template <> struct fmt::formatter<Corner> : ostream_formatter {};
 
 // A boundary is a list of halfedges between 2 charts
 struct Boundary {
@@ -135,6 +151,10 @@ struct Boundary {
 };
 
 std::ostream& operator<< (std::ostream &out, const Boundary& data);
+
+// Use the operator<< overloading with {fmt}
+// https://fmt.dev/latest/api.html#std-ostream-support
+template <> struct fmt::formatter<Boundary> : ostream_formatter {};
 
 // A labeling stored with charts, boundaries and corners
 // based on https://github.com/LIHPC-Computational-Geometry/genomesh/blob/main/include/flagging.h#L135
@@ -173,7 +193,11 @@ struct StaticLabelingGraph {
 
     //// Export //////////////////
 
-    bool dump_to_file(const char* filename) const;
+    void dump_to_file(const char* filename) const;
 };
 
 std::ostream& operator<< (std::ostream &out, const StaticLabelingGraph& data);
+
+// Use the operator<< overloading with {fmt}
+// https://fmt.dev/latest/api.html#std-ostream-support
+template <> struct fmt::formatter<StaticLabelingGraph> : ostream_formatter {};

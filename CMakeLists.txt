@@ -16,9 +16,12 @@ include_directories(include)
 
 add_subdirectory(ext/geogram)
 include_directories(ext/DisjointSet)
+add_subdirectory(ext/fmt)
+include_directories(ext/fmt/include) # why needed ?
+link_libraries(fmt::fmt) # why needed ?
 
 add_executable(labeling_viewer ${SRCFILES} app/labeling_viewer)
-target_link_libraries(labeling_viewer geogram geogram_gfx ${GLFW_LIBRARIES})
+target_link_libraries(labeling_viewer geogram geogram_gfx ${GLFW_LIBRARIES} fmt::fmt)
 
 add_executable(hex_mesh_viewer ${SRCFILES} app/hex_mesh_viewer)
-target_link_libraries(hex_mesh_viewer geogram geogram_gfx ${GLFW_LIBRARIES})
+target_link_libraries(hex_mesh_viewer geogram geogram_gfx ${GLFW_LIBRARIES}  fmt::fmt)

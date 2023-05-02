@@ -2,6 +2,11 @@
 #include <geogram/basic/attributes.h>
 #include <geogram/basic/assert.h>
 
+#include <fmt/core.h>
+#include <fmt/ostream.h>
+#include <fmt/ranges.h>
+#include <fmt/os.h>
+
 #include <DisjointSet.hpp>
 
 #include <utility> // for std::pair
@@ -11,12 +16,10 @@
 #include "containers.h"             // for VECTOR_CONTAINS(), MAP_CONTAINS(), index_of_last(), += on std::vector
 #include "CustomMeshHalfedges.h"    // for CustomMeshHalfedges and CustomMeshHalfedges::Halfedge
 
-
 std::ostream& operator<< (std::ostream &out, const Chart& data) {
-    out << "\t label " << data.label;
-    out << "\n\t facets : "; for (auto f: data.facets) out << f << " ";
-    out << "\n\t boundaries : "; for (auto n: data.boundaries) out << n << " ";
-    out << '\n';
+    fmt::println(out,"\tlabel : {}",data.label);
+    fmt::println(out,"\tfacets : {}",data.facets);
+    fmt::println(out,"\tboundaries : {}",data.boundaries);
     return out;
 }
 
@@ -59,8 +62,7 @@ void VertexRingWithBoundaries::check_boundary_edges(const CustomMeshHalfedges& m
 }
 
 std::ostream& operator<< (std::ostream &out, const VertexRingWithBoundaries& data) {
-    out << "\t\t boundary_edges "; for (auto be: data.boundary_edges) out << be << " ";
-    out << '\n';
+    fmt::print(out,"{}",data.boundary_edges);
     return out;
 }
 
@@ -83,12 +85,8 @@ bool Corner::halfedge_is_in_boundary_edges(const CustomMeshHalfedges::Halfedge& 
 }
 
 std::ostream& operator<< (std::ostream &out, const Corner& data) {
-    out << "\t vertex " << data.vertex;
-    out << "\n\t " << data.vertex_rings_with_boundaries.size() << " vertex rings with boundaries\n";
-    for (auto vr: data.vertex_rings_with_boundaries) {
-        out << vr;
-    }
-    out << '\n';
+    fmt::println(out,"\tvertex : {}",data.vertex);
+    fmt::println(out,"\t{} vertex ring(s) with boundaries : {}",data.vertex_rings_with_boundaries.size(),data.vertex_rings_with_boundaries);
     return out;
 }
 
@@ -157,7 +155,7 @@ void Boundary::explore(const CustomMeshHalfedges::Halfedge& initial_halfedge,
             mesh_halfedges.custom_move_to_next_around_border(current_halfedge); // cross current_vertex
 
             if(VECTOR_CONTAINS(halfedges,current_halfedge)) { // prevent infinite loops
-                Logger::err("LabelingGraph") << "backtracked while exploring a boundary, no valence>3 vertex ring found :(" << std::endl;
+                fmt::println(Logger::err("LabelingGraph"),"backtracked while exploring a boundary, no valence>3 vertex ring found :(");
                 geo_abort();
             }
 
@@ -195,13 +193,12 @@ void Boundary::explore(const CustomMeshHalfedges::Halfedge& initial_halfedge,
 }
 
 std::ostream& operator<< (std::ostream &out, const Boundary& data) {
-    out << "\t axis " << data.axis;
-    out << "\n\t halfedges : "; for (auto he: data.halfedges) out << he << " ";
-    out << "\n\t left_chart " << OPTIONAL_TO_STRING(data.left_chart);
-    out << "\n\t right_chart " << OPTIONAL_TO_STRING(data.right_chart);
-    out << "\n\t start_corner " << OPTIONAL_TO_STRING(data.start_corner);
-    out << "\n\t end_corner " << OPTIONAL_TO_STRING(data.end_corner);
-    out << '\n';
+    fmt::println(out,"\taxis : {}",data.axis);
+    fmt::println(out,"\thalfedges : {}",data.halfedges);
+    fmt::println(out,"\tleft_chart : {}",OPTIONAL_TO_STRING(data.left_chart));
+    fmt::println(out,"\tright_chart : {}",OPTIONAL_TO_STRING(data.right_chart));
+    fmt::println(out,"\tstart_corner : {}",OPTIONAL_TO_STRING(data.start_corner));
+    fmt::println(out,"\tend_corner : {}",OPTIONAL_TO_STRING(data.end_corner));
     return out;
 }
 
@@ -345,16 +342,9 @@ std::size_t StaticLabelingGraph::nb_vertices() const {
     return vertex2corner.size();
 }
 
-bool StaticLabelingGraph::dump_to_file(const char* filename) const {
-    std::ofstream ofs(filename);
-    Logger::out("I/O") << "Exporting StaticLabelingGraph..." << std::endl;
-    if(!ofs.good()) {
-        Logger::err("I/O") << "Unable to write in " << filename << std::endl;
-        return false;
-    }
-    ofs << (*this);
-    ofs.close();
-    return true;
+void StaticLabelingGraph::dump_to_file(const char* filename) const {
+    auto out = fmt::output_file(filename);
+    out.print("{}",(*this));
 }
 
 std::ostream& operator<< (std::ostream &out, const StaticLabelingGraph& data) {
@@ -362,39 +352,39 @@ std::ostream& operator<< (std::ostream &out, const StaticLabelingGraph& data) {
     // write charts
 
     for(std::size_t chart_index = 0; chart_index < data.nb_charts(); ++chart_index) {
-        out << "charts[" << chart_index << "]\n";
-        out << data.charts[chart_index];
+        fmt::println(out,"chart[{}]",chart_index);
+        fmt::println(out,"{}",data.charts[chart_index]);
     }
-    if(data.nb_charts()==0) out << "no charts\n";
+    if(data.nb_charts()==0) fmt::println(out,"no charts");
 
     // write boundaries
 
     for(std::size_t boundary_index = 0; boundary_index < data.nb_boundaries(); ++boundary_index) {
-        out << "boundaries[" << boundary_index << "]\n";
-        out << data.boundaries[boundary_index];
+        fmt::println(out,"boundaries[{}]",boundary_index);
+        fmt::println(out,"{}",data.boundaries[boundary_index]);
     }
-    if(data.nb_boundaries()==0) out << "no boundaries\n";
+    if(data.nb_boundaries()==0) fmt::println(out,"no boundaries");
 
     // write corners
 
     for(std::size_t corner_index = 0; corner_index < data.nb_corners(); ++corner_index) {
-        out << "corners[" << corner_index << "]\n";
-        out << data.corners[corner_index];
+        fmt::println(out,"corners[{}]",corner_index);
+        fmt::println(out,"{}",data.corners[corner_index]);
     }
-    if(data.nb_corners()==0) out << "no corners\n";
+    if(data.nb_corners()==0) fmt::println(out,"no corners");
 
     // write facet2chart
     
-    out << "facet2chart\n";
+    fmt::println(out,"facet2chart");
     for(std::size_t f = 0; f < data.nb_facets(); ++f) {
-        out << '[' << f << "] " << data.facet2chart[f] << '\n';
+        fmt::println(out,"\t[{}] {}",f,data.facet2chart[f]);
     }
 
     // write vertex2corner
     
-    out << "vertex2corner\n";
+    fmt::println(out,"vertex2corner");
     for(std::size_t v = 0; v < data.nb_vertices(); ++v) {
-        out << '[' << v << "] " << OPTIONAL_TO_STRING(data.vertex2corner[v]) << '\n';
+        fmt::println(out,"\t[{}] {}",v,OPTIONAL_TO_STRING(data.vertex2corner[v]));
     }
     return out;
 }

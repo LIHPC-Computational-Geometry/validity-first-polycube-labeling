@@ -71,6 +71,9 @@ namespace {
 #  include <geogram_gfx/gui/gui_state.h>
 }
 
+#include <fmt/core.h>
+#include <fmt/ostream.h>
+
 #include "HexMeshViewerApp.h"
 #include "hex_mesh.h" // for compute_scaled_jacobian()
 #include "colormaps_array.h" // for colormap_name, colormap_xpm & macros
@@ -1492,7 +1495,8 @@ namespace {
         // based on ext/geogram/src/lib/geogram_gfx/gui/simple_mesh_application.cpp load()
 
         if(!FileSystem::is_file(filename)) {
-            Logger::out("I/O") << "is not a file" << std::endl;
+			fmt::println(Logger::out("I/O"),"{} is not a file",filename);
+			return false;
         }
         mesh_gfx_.set_mesh(nullptr);
 
@@ -1546,7 +1550,7 @@ namespace {
 	    current_file_ = filename;
 
 		double minSJ = compute_scaled_jacobian(mesh_);
-		Logger::out("I/O") << "minSJ of this hex mesh is " << std::to_string(minSJ) << std::endl;
+		fmt::println(Logger::out("I/O"),"minSJ of this hex mesh is %f",minSJ);
 		show_SJ_ = true;
 
         return true;

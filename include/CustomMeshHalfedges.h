@@ -35,6 +35,10 @@
 #include <geogram/basic/common.h>
 #include <geogram/mesh/mesh.h>
 #include <geogram/mesh/mesh_geometry.h>
+
+#include <fmt/core.h>
+#include <fmt/ostream.h>
+
 #include <iostream>
 
 using namespace GEO;
@@ -287,6 +291,10 @@ using namespace GEO::Geom;
     ) {
         return out << '(' << H.facet << ',' << H.corner << ')';
     }
+
+    // Use the operator<< overloading with {fmt}
+    // https://fmt.dev/latest/api.html#std-ostream-support
+    template <> struct fmt::formatter<CustomMeshHalfedges::Halfedge> : ostream_formatter {};
 
         /**
          * \brief Gets the origin point of a Halfedge
