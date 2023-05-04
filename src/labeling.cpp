@@ -16,11 +16,11 @@ bool load_labeling(const std::string& filename, Mesh& mesh, const char* attribut
     //open the file
     std::ifstream ifs(filename);
     if (!ifs.is_open()) {
-        fmt::println(Logger::out("I/O"),"Could not open labeling file '{}'",filename);
+        fmt::println(Logger::out("I/O"),"Could not open labeling file '{}'",filename); 
         return false;
     }
 
-    fmt::println(Logger::out("I/O"),"Loading file {}...",filename);
+    fmt::println(Logger::out("I/O"),"Loading file {}...",filename); Logger::out("I/O") << std::flush;
 
     std::string current_line;
     unsigned long current_label; // necessary type for string to unsigned int conversion (stoul)
@@ -37,38 +37,30 @@ bool load_labeling(const std::string& filename, Mesh& mesh, const char* attribut
             current_label = std::stoul(current_line);
             if(current_label > 5) {
                 fmt::println(Logger::err("I/O"),"In load_labeling(), each line must be a label in [0,5]\nBut found {}",current_label);
-                label.unbind();
-                mesh.facets.attributes().delete_attribute_store(attribute_name);
                 return false;
             }
         }
         catch (const std::exception& e) { // if stoul() failed
             fmt::println(Logger::err("I/O"),"In load_labeling(), each line must be an unsigned integer\nBut found '{}'\nException message : {}",current_line,e.what());
-            label.unbind();
-            mesh.facets.attributes().delete_attribute_store(attribute_name);
             return false;
         }
         if(current_line_number >= facets_number) {
             fmt::println(Logger::err("I/O"),"In load_labeling(), the number of labels is greater than the number of facets");
             fmt::println(Logger::err("I/O"),"Number of labels so far = {}",current_line_number+1);
             fmt::println(Logger::err("I/O"),"Number of facets = {}",facets_number);
-            label.unbind();
-            mesh.facets.attributes().delete_attribute_store(attribute_name);
-            fmt::println(Logger::err("I/O"),"Labeling removed");
             return false;
         }
         label[current_line_number] = (index_t) current_label;
         current_line_number++;
     }
 
+    ifs.close();
+
     //compare with expected size
     if (current_line_number != facets_number){
         fmt::println(Logger::err("I/O"),"In load_labeling(), the number of labels is lesser than the number of facets");
-            fmt::println(Logger::err("I/O"),"Number of labels = {}",current_line_number+1);
-            fmt::println(Logger::err("I/O"),"Number of facets = {}",facets_number);
-        label.unbind();
-        mesh.facets.attributes().delete_attribute_store(attribute_name);
-        fmt::println(Logger::err("I/O"),"Labeling removed");
+        fmt::println(Logger::err("I/O"),"Number of labels = {}",current_line_number+1);
+        fmt::println(Logger::err("I/O"),"Number of facets = {}",facets_number);
         return false;
     }
 

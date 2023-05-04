@@ -1249,6 +1249,7 @@ using namespace GEO;
     }
 
     void CustomMeshGfx::set_mesh(const Mesh* mesh) {
+        clear_custom_drawings();
         mesh_ = mesh;
         triangles_and_quads_ = true;
         quads_ = true;
@@ -1274,7 +1275,6 @@ using namespace GEO;
         vertices_filter_.dirty = true;
         facets_filter_.dirty = true;
         cells_filter_.dirty = true;
-        custom_points_.clear();
     }
     
     void CustomMeshGfx::set_GLUP_parameters() {

@@ -83,7 +83,8 @@ namespace {
 
     LabelingViewerApp::LabelingViewerApp() :
 	Application("labeling_viewer"),
-	text_editor_(&text_editor_visible_)
+	text_editor_(&text_editor_visible_),
+	state(empty)
     {
 	lighting_ = false;
 	edit_light_ = false;
@@ -895,7 +896,24 @@ namespace {
     }
 
     void LabelingViewerApp::draw_object_properties() {
-		if(mesh_.facets.attributes().is_defined(LABELING_ATTRIBUTE_NAME)) { // if the mesh has a 'label' facet attribute == if there is a labeling
+		switch (state) {
+
+		case triangle_mesh:
+			if(ImGui::Button("Compute naive labeling")) {
+				state = empty;
+				show_labeling_ = false;
+				fmt::println(Logger::out("GUI"),"Just before naive_labeling()"); Logger::out("GUI") << std::flush;
+				naive_labeling(mesh_,LABELING_ATTRIBUTE_NAME);
+				fmt::println(Logger::out("GUI"),"Going to change state & show_labeling_"); Logger::out("GUI") << std::flush;
+
+				update_static_labeling_graph();
+
+				state = labeling;
+				show_labeling_ = true;
+				show_mesh_ = false; // better to visualize the labeling without the mesh edges (wireframe)
+			}
+			break;
+		case labeling:
 			ImGui::Checkbox("Show labeling",&show_labeling_); // allow to hide it
 
 			ImGui::ColorEdit4WithPalette("Label 0 = +X", labeling_colors_[0]);
@@ -904,6 +922,10 @@ namespace {
 			ImGui::ColorEdit4WithPalette("Label 3 = -Y", labeling_colors_[3]);
 			ImGui::ColorEdit4WithPalette("Label 4 = +Z", labeling_colors_[4]);
 			ImGui::ColorEdit4WithPalette("Label 5 = -Z", labeling_colors_[5]);
+			break;
+		
+		default:
+			break;
 		}
     }
 
@@ -1535,46 +1557,19 @@ namespace {
 
 		if(FileSystem::extension(filename)=="txt") {
 			if(!load_labeling(filename,mesh_,LABELING_ATTRIBUTE_NAME)) {
+				// Should the labeling be removed ?
+				// If a labeling was already displayed, it should be restored...
+				fmt::println(Logger::err("I/O"),"Labeling removed");
+				mesh_gfx_.clear_custom_drawings();
+				state = triangle_mesh;
 				show_labeling_ = false;
+				show_mesh_ = true;
 				return false;
 			}
 
-			// compute charts, boundaries and corners of the labeling
-			static_labeling_graph.fill_from(mesh_,LABELING_ATTRIBUTE_NAME);
+			update_static_labeling_graph();
 
-			std::size_t nb_charts = static_labeling_graph.nb_charts();
-			fmt::println(Logger::out("I/O"),"There are {} charts, {} corners and {} boundaries in this labeling.",nb_charts,static_labeling_graph.nb_corners(),static_labeling_graph.nb_boundaries());
-
-			static_labeling_graph.dump_to_file("StaticLabelingGraph.txt");
-
-			// store the coordinates of each corner in mesh_gfx_
-			// to be able to draw them
-			for(std::size_t i = 0; i < static_labeling_graph.nb_corners(); ++i) {
-				const double* coordinates = mesh_.vertices.point_ptr(
-					static_labeling_graph.corners[i].vertex
-				);
-				mesh_gfx_.add_custom_point(coordinates[0], coordinates[1], coordinates[2]);
-			}
-
-			// store the coordinates of each boundary edge in mesh_gfx_
-			// to be able to draw them
-			for(std::size_t i = 0; i < static_labeling_graph.nb_boundaries(); ++i) {
-				const Boundary& boundary = static_labeling_graph.boundaries[i];
-				if(boundary.axis == -1) {
-					// Do not draw boundaries between opposite labels
-					continue;
-				}
-				for(const auto& be : boundary.halfedges) { // for each boundary edge of this boundary
-					const double* coordinates_first_point = halfedge_vertex_from(mesh_,be).data();
-					const double* coordinates_second_point = halfedge_vertex_to(mesh_,be).data();
-					mesh_gfx_.add_custom_edge(
-						axis_colors_[boundary.axis][0], axis_colors_[boundary.axis][1], axis_colors_[boundary.axis][2], axis_colors_[boundary.axis][4], // color
-						coordinates_first_point[0], coordinates_first_point[1], coordinates_first_point[2], // first point
-						coordinates_second_point[0], coordinates_second_point[1], coordinates_second_point[2] // second point
-					);
-				}
-			}
-
+			state = labeling;
 			show_labeling_ = true;
 			show_mesh_ = false; // better to visualize the labeling without the mesh edges (wireframe)
 
@@ -1583,7 +1578,7 @@ namespace {
 
         mesh_gfx_.set_mesh(nullptr);
 
-        mesh_.clear(false,false); // will remove the labeling (facet attribute 'label') if mesh_ had one
+        mesh_.clear(true,false); // keep_attributes=true is very important. else runtime error when re-importing files
         
         if(GEO::CmdLine::get_arg_bool("single_precision")) {
             mesh_.vertices.set_single_precision();
@@ -1632,11 +1627,7 @@ namespace {
 		show_mesh_ = true; // added
         mesh_gfx_.set_mesh(&mesh_);
 
-		// compute the naive labeling into a facet attribute LABELING_ATTRIBUTE_NAME
-		fmt::print(Logger::out("I/O"),"Computing the naive labeling...");
-		naive_labeling(mesh_,LABELING_ATTRIBUTE_NAME);
-		fmt::println(Logger::out("I/O"),"Done");
-		show_labeling_ = true;
+		state = triangle_mesh;
 
 	    current_file_ = filename;
         return true;
@@ -1857,3 +1848,43 @@ namespace {
             }
         }
     }
+
+	void LabelingViewerApp::update_static_labeling_graph() {
+
+		// compute charts, boundaries and corners of the labeling
+		static_labeling_graph.fill_from(mesh_,LABELING_ATTRIBUTE_NAME);
+
+		fmt::println(Logger::out("I/O"),"There are {} charts, {} corners and {} boundaries in this labeling.",static_labeling_graph.nb_charts(),static_labeling_graph.nb_corners(),static_labeling_graph.nb_boundaries());
+
+		static_labeling_graph.dump_to_file("StaticLabelingGraph.txt");
+
+		mesh_gfx_.clear_custom_drawings();
+
+		// store the coordinates of each corner in mesh_gfx_
+		// to be able to draw them
+		for(std::size_t i = 0; i < static_labeling_graph.nb_corners(); ++i) {
+			const double* coordinates = mesh_.vertices.point_ptr(
+				static_labeling_graph.corners[i].vertex
+			);
+			mesh_gfx_.add_custom_point(coordinates[0], coordinates[1], coordinates[2]);
+		}
+
+		// store the coordinates of each boundary edge in mesh_gfx_
+		// to be able to draw them
+		for(std::size_t i = 0; i < static_labeling_graph.nb_boundaries(); ++i) {
+			const Boundary& boundary = static_labeling_graph.boundaries[i];
+			if(boundary.axis == -1) {
+				// Do not draw boundaries between opposite labels
+				continue;
+			}
+			for(const auto& be : boundary.halfedges) { // for each boundary edge of this boundary
+				const double* coordinates_first_point = halfedge_vertex_from(mesh_,be).data();
+				const double* coordinates_second_point = halfedge_vertex_to(mesh_,be).data();
+				mesh_gfx_.add_custom_edge(
+					axis_colors_[boundary.axis][0], axis_colors_[boundary.axis][1], axis_colors_[boundary.axis][2], axis_colors_[boundary.axis][4], // color
+					coordinates_first_point[0], coordinates_first_point[1], coordinates_first_point[2], // first point
+					coordinates_second_point[0], coordinates_second_point[1], coordinates_second_point[2] // second point
+				);
+			}
+		}
+	}

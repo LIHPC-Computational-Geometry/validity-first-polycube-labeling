@@ -106,6 +106,12 @@ using namespace GEO;
     class GEOGRAM_GFX_API LabelingViewerApp : public Application {
       public:
 
+	  enum State {
+		empty,
+		triangle_mesh,
+		labeling
+	  };
+
 	/**
 	 * \brief LabelingViewerApp constructor.
 	 */
@@ -547,6 +553,8 @@ using namespace GEO;
 	virtual const char* default_layout() const;
 	virtual const char* default_layout_android_vertical() const;
 	virtual const char* default_layout_android_horizontal() const;		
+
+	void update_static_labeling_graph();
 	
       protected:
 	bool lighting_;
@@ -661,4 +669,19 @@ using namespace GEO;
 	float labeling_colors_[6][4];
 	float axis_colors_[3][4];
 	StaticLabelingGraph static_labeling_graph;
+	State state;
     };
+
+// print specialization of LabelingViewerApp::State for {fmt}
+template <> struct fmt::formatter<LabelingViewerApp::State>: formatter<string_view> {
+  // parse is inherited from formatter<string_view>.
+  template <typename FormatContext>
+  auto format(LabelingViewerApp::State state, FormatContext& ctx) -> decltype(ctx.out()) const {
+    switch (state) {
+    case LabelingViewerApp::State::empty : return formatter<string_view>::format("empty", ctx);
+	case LabelingViewerApp::State::triangle_mesh : return formatter<string_view>::format("triangle_mesh", ctx);
+    case LabelingViewerApp::State::labeling : return formatter<string_view>::format("labeling", ctx);
+    }
+    return formatter<string_view>::format("?", ctx);
+  }
+};
