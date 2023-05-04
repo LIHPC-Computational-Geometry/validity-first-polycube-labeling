@@ -902,9 +902,7 @@ namespace {
 			if(ImGui::Button("Compute naive labeling")) {
 				state = empty;
 				show_labeling_ = false;
-				fmt::println(Logger::out("GUI"),"Just before naive_labeling()"); Logger::out("GUI") << std::flush;
 				naive_labeling(mesh_,LABELING_ATTRIBUTE_NAME);
-				fmt::println(Logger::out("GUI"),"Going to change state & show_labeling_"); Logger::out("GUI") << std::flush;
 
 				update_static_labeling_graph();
 
@@ -1551,15 +1549,20 @@ namespace {
         // based on ext/geogram/src/lib/geogram_gfx/gui/simple_mesh_application.cpp load()
 
         if(!FileSystem::is_file(filename)) {
-			fmt::println(Logger::out("I/O"),"{} is not a file",filename);
+			fmt::println(Logger::out("I/O"),"{} is not a file",filename); Logger::err("I/O").flush();
 			return false;
         }
 
 		if(FileSystem::extension(filename)=="txt") {
+
+			if(state == empty) {
+				fmt::println(Logger::err("I/O"),"You need to import a triangle mesh before importing a labeling"); Logger::err("I/O").flush();
+				return false;
+			}
+
 			if(!load_labeling(filename,mesh_,LABELING_ATTRIBUTE_NAME)) {
 				// Should the labeling be removed ?
 				// If a labeling was already displayed, it should be restored...
-				fmt::println(Logger::err("I/O"),"Labeling removed");
 				mesh_gfx_.clear_custom_drawings();
 				state = triangle_mesh;
 				show_labeling_ = false;
@@ -1592,6 +1595,15 @@ namespace {
         if(!mesh_load(filename, mesh_, flags)) {
             return false;
         }
+
+		if(!mesh_.facets.are_simplices() || mesh_.cells.nb()!=0) { // check if it is a triangle mesh
+			fmt::println(Logger::err("I/O"),"This file does not contain a triangle mesh. Only surface triangle meshes are supported.");  Logger::err("I/O").flush();
+			state = empty;
+			show_labeling_ = false;
+			show_mesh_ = false;
+			// Instead of clearing the mesh, we should load the mesh elsewhere, check the new mesh, then replace the displayed mesh
+			return false;
+		}
 
         if(
             FileSystem::extension(filename) == "obj6" ||

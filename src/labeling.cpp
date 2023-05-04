@@ -20,7 +20,7 @@ bool load_labeling(const std::string& filename, Mesh& mesh, const char* attribut
         return false;
     }
 
-    fmt::println(Logger::out("I/O"),"Loading file {}...",filename); Logger::out("I/O") << std::flush;
+    fmt::println(Logger::out("I/O"),"Loading file {}...",filename); Logger::out("I/O").flush();
 
     std::string current_line;
     unsigned long current_label; // necessary type for string to unsigned int conversion (stoul)
@@ -36,18 +36,18 @@ bool load_labeling(const std::string& filename, Mesh& mesh, const char* attribut
         try {
             current_label = std::stoul(current_line);
             if(current_label > 5) {
-                fmt::println(Logger::err("I/O"),"In load_labeling(), each line must be a label in [0,5]\nBut found {}",current_label);
+                fmt::println(Logger::err("I/O"),"In load_labeling(), each line must be a label in [0,5]\nBut found {}",current_label); Logger::err("I/O").flush();
                 return false;
             }
         }
         catch (const std::exception& e) { // if stoul() failed
-            fmt::println(Logger::err("I/O"),"In load_labeling(), each line must be an unsigned integer\nBut found '{}'\nException message : {}",current_line,e.what());
+            fmt::println(Logger::err("I/O"),"In load_labeling(), each line must be an unsigned integer\nBut found '{}'\nException message : {}",current_line,e.what()); Logger::err("I/O").flush();
             return false;
         }
         if(current_line_number >= facets_number) {
             fmt::println(Logger::err("I/O"),"In load_labeling(), the number of labels is greater than the number of facets");
             fmt::println(Logger::err("I/O"),"Number of labels so far = {}",current_line_number+1);
-            fmt::println(Logger::err("I/O"),"Number of facets = {}",facets_number);
+            fmt::println(Logger::err("I/O"),"Number of facets = {}",facets_number); Logger::err("I/O").flush();
             return false;
         }
         label[current_line_number] = (index_t) current_label;
@@ -60,7 +60,7 @@ bool load_labeling(const std::string& filename, Mesh& mesh, const char* attribut
     if (current_line_number != facets_number){
         fmt::println(Logger::err("I/O"),"In load_labeling(), the number of labels is lesser than the number of facets");
         fmt::println(Logger::err("I/O"),"Number of labels = {}",current_line_number+1);
-        fmt::println(Logger::err("I/O"),"Number of facets = {}",facets_number);
+        fmt::println(Logger::err("I/O"),"Number of facets = {}",facets_number); Logger::err("I/O").flush();
         return false;
     }
 

@@ -510,7 +510,7 @@ using namespace GEO;
             if(int_attribute_.is_bound()) int_attribute_.unbind();
 
             if(!int_attribute_.bind_if_is_defined(mesh_->facets.attributes(),name)) { // try to bind int_attribute_ to the 'name' facet attribute of mesh_
-                fmt::println(Logger::err("MeshGfx"),"No {} facet attribute",name); Logger::out("MeshGfx") << std::flush;
+                fmt::println(Logger::err("MeshGfx"),"No {} facet attribute",name); Logger::out("MeshGfx").flush();
                 unset_facets_colors_by_int_attribute();
                 return false;
             }
