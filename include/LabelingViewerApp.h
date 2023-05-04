@@ -103,6 +103,7 @@
 #define VIEW_TRIANGLE_MESH	0
 #define VIEW_RAW_LABELING	1
 #define VIEW_LABELING_GRAPH	2
+#define VIEW_INVALID_CHARTS	3
 
 struct lua_State;
 

@@ -174,7 +174,7 @@ struct StaticLabelingGraph {
 
     //// Quick access to problematic LabelingGraph features //////////////////
 
-    // TODO vector<int> invalid_charts
+    vector<index_t> invalid_charts;
     // TODO vector<int> boundaries_between_opposite_labels
     // TODO vector<int> invalid_corners
 
@@ -190,6 +190,7 @@ struct StaticLabelingGraph {
     std::size_t nb_corners() const;
     std::size_t nb_facets() const; // to iterate over facet2chart
     std::size_t nb_vertices() const; // to iterate over vertex2corner
+    std::size_t nb_invalid_charts() const;
 
     //// Export //////////////////
 

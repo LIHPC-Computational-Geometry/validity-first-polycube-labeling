@@ -686,7 +686,8 @@ namespace {
 		draw_surface();
 		draw_edges();
 		draw_volume();
-		if((state==labeling) && (labeling_visu_mode_==VIEW_LABELING_GRAPH)) {
+		if( (state==labeling) &&
+			((labeling_visu_mode_==VIEW_LABELING_GRAPH) || (labeling_visu_mode_==VIEW_INVALID_CHARTS))) {
 			mesh_gfx_.draw_custom_points();
 			mesh_gfx_.draw_custom_edges();
 		}
@@ -949,6 +950,12 @@ namespace {
 			if(labeling_visu_mode_!=VIEW_LABELING_GRAPH) ImGui::BeginDisabled();
 			ImGui::ColorEdit4WithPalette("Corners", corners_color_);
 			if(labeling_visu_mode_!=VIEW_LABELING_GRAPH) ImGui::EndDisabled();
+
+			if (ImGui::RadioButton(fmt::format("View invalid charts ({})",static_labeling_graph.nb_invalid_charts()).c_str(),&labeling_visu_mode_,VIEW_INVALID_CHARTS)) {
+				show_mesh_ = false;
+				mesh_gfx_.unset_facets_colors_by_int_attribute();
+				mesh_gfx_.set_scalar_attribute(MESH_FACETS,"on_invalid_chart",0.0,1.0,TO_GL_TEXTURE_INDEX(COLORMAP_BLUE_RED)); // color according to whether the facet in on an invalid chart or not
+			}
 			
 			break;
 		

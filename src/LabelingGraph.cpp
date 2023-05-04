@@ -311,6 +311,20 @@ void StaticLabelingGraph::fill_from(Mesh& mesh, std::string facet_attribute) {
 
     // STEP 3 : Find boundaries with no corners
     // TODO
+
+    // STEP 4 : Find invalid charts
+
+    Attribute<bool> facet_on_invalid_chart(mesh.facets.attributes(),"on_invalid_chart");
+    facet_on_invalid_chart.fill(false);
+    FOR(chart_index,charts.size()) {
+        if(charts[chart_index].boundaries.size() <= 3) { // if this chart has 3 neighbors or less
+            invalid_charts.push_back(chart_index); // register this chart
+
+            for(index_t facet: charts[chart_index].facets) { // for all facets in this chart
+                facet_on_invalid_chart[facet] = true; // mark them
+            }
+        }
+    }
 }
 
 void StaticLabelingGraph::clear() {
@@ -320,6 +334,8 @@ void StaticLabelingGraph::clear() {
     facet2chart.clear();
     halfedge2boundary.clear();
     vertex2corner.clear();
+    invalid_charts.clear();
+    // note : the mesh attributes will not be removed, because we no longer have a ref/pointer to the mesh
 }
 
 std::size_t StaticLabelingGraph::nb_charts() const {
@@ -340,6 +356,10 @@ std::size_t StaticLabelingGraph::nb_facets() const {
 
 std::size_t StaticLabelingGraph::nb_vertices() const {
     return vertex2corner.size();
+}
+
+std::size_t StaticLabelingGraph::nb_invalid_charts() const {
+    return invalid_charts.size();
 }
 
 void StaticLabelingGraph::dump_to_file(const char* filename) const {
