@@ -63,6 +63,8 @@ using namespace GEO;
 	attribute_dim_ = 1;
 	
         ES_profile_ = false;
+
+        custom_points_color_ = nullptr;
     }
 
     CustomMeshGfx::~CustomMeshGfx() {
@@ -251,47 +253,11 @@ using namespace GEO;
             draw_vertices_selection();
         }
 
-        // This method seems to be used to draw different sets of vertices : vertices of the mesh, or selected vertices
-        // See the 2 calls in LabelingViewerApp::draw_points()
-        // 
-        // Currently, to draw custom point (like labeling corners), I added the folowing code
-        // as well as 2 new attributes (custom_points_ & custom_points_color_) and 2 new methods (add_custom_point() & set_custom_points_color()).
-        // So custom points are drawn 2 times (nb of CustomMeshGfx::draw_vertices() calls in LabelingViewerApp::draw_points())
-        // 
-        // Probably there is a better way:
-		// LabelingViewerApp::draw_points() would call CustomMeshGfx::draw_vertices() a 3rd time for corners.
-		// Like the drawing of selected vertices, the drawing of corners would involve a boolean attribute.
-        // LabelingViewerApp::draw_points() would look like:
-        //     if(show_vertices_) {
-        //         mesh_gfx_.set_points_color();
-        //         mesh_gfx_.set_points_size();
-        //         mesh_gfx_.draw_vertices();
-        //     }
-        //     if(show_vertices_selection_) {
-        //         mesh_gfx_.set_points_color();
-        //         mesh_gfx_.set_points_size();
-        //         mesh_gfx_.set_vertices_selection("selection");
-        //         mesh_gfx_.draw_vertices();
-        //         mesh_gfx_.set_vertices_selection("");
-        //     }
-        //     if(show_corners_) {
-        //         mesh_gfx_.set_points_color();
-        //         mesh_gfx_.set_points_size();
-        //         mesh_gfx_.set_vertices_selection("is_corner");
-        //         mesh_gfx_.draw_vertices();
-        //         mesh_gfx_.set_vertices_selection("");
-        //     }
-        // and CustomMeshGfx::draw_vertices() would like like:
-        //     if(vertices_selection_ == "") {
-        //         // draw mesh vertices
-        //     }
-        //     else if ( /* asked to draw corners */) {
-        //         // draw corners
-        //     }
-        //     else {
-        //         draw_vertices_selection();
-        //     }
+        glupDisable(GLUP_PICKING);
+    }
 
+    void CustomMeshGfx::draw_custom_points() {
+        geo_assert(custom_points_color_!=nullptr);
         if(!custom_points_.empty()) { // if there are custom points to draw (used by LabelingViewer to draw labeling corners)
             glupSetColor4fv(GLUP_FRONT_COLOR, custom_points_color_); // used the dedicated color
             glupSetPointSize(10.0f);
@@ -301,8 +267,6 @@ using namespace GEO;
                 glupEnd();
             }
         }
-
-        glupDisable(GLUP_PICKING);
     }
 
     /*********************************** edges ***************/

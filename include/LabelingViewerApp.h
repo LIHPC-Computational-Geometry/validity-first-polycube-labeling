@@ -99,6 +99,11 @@
 
 #define LABELING_ATTRIBUTE_NAME "label"
 
+// values for labeling_visu_mode_
+#define VIEW_TRIANGLE_MESH	0
+#define VIEW_RAW_LABELING	1
+#define VIEW_LABELING_GRAPH	2
+
 struct lua_State;
 
 using namespace GEO;
@@ -665,11 +670,12 @@ using namespace GEO;
     float             attribute_max_;
 
 	// added
-	bool show_labeling_;
 	float labeling_colors_[6][4];
 	float axis_colors_[3][4];
+	float corners_color_[4];
 	StaticLabelingGraph static_labeling_graph;
 	State state;
+	int labeling_visu_mode_; // not a enum, to be used in ImGui
     };
 
 // print specialization of LabelingViewerApp::State for {fmt}

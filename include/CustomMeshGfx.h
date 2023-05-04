@@ -114,6 +114,8 @@ using namespace GEO;
          */
         void draw_vertices();
 
+        void draw_custom_points();
+
         /**
          * \brief Draws the edges of the mesh.
          */
@@ -714,11 +716,8 @@ using namespace GEO;
          */
         void unset_filters();
 
-        void set_custom_points_color(float r, float g, float b, float a) {
-            custom_points_color_[0] = r;
-            custom_points_color_[1] = g;
-            custom_points_color_[2] = b;
-            custom_points_color_[3] = a;
+        void bind_custom_points_color(const float* rgba) {
+            custom_points_color_ = rgba;
         }
 
         void add_custom_point(double x, double y, double z) {
@@ -1036,7 +1035,7 @@ using namespace GEO;
         Attribute<index_t> int_attribute_; // used for int attributes only (when facets_colors_by_int_attribute_==true)
 
         std::vector<std::array<double,3>> custom_points_;
-        float custom_points_color_[4];
+        const float* custom_points_color_;
 
         std::map<vec4f,std::vector<std::pair<vec3d,vec3d>>,VecngCompare<4,float>> custom_edges_; // edges grouped by color
 

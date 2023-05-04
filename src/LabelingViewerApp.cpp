@@ -205,7 +205,7 @@ namespace {
         add_key_toggle("C", &show_colored_cells_, "colored cells");
 
 		// added
-		show_labeling_ = false;
+
 		// default colors
 		// label 0 -> red
 		labeling_colors_[0][0] = 1.0f;
@@ -258,6 +258,12 @@ namespace {
 		axis_colors_[2][2] = labeling_colors_[4][2];
 		axis_colors_[2][3] = labeling_colors_[4][3];
 
+		// corners in black by default
+		corners_color_[0] = 0.0f;
+		corners_color_[1] = 0.0f;
+		corners_color_[2] = 0.0f;
+		corners_color_[3] = 1.0f;
+
 		// give pointers to these colors to mesh_gfx_
 		mesh_gfx_.bind_int_attribute_value_to_color(0,labeling_colors_[0]);
 		mesh_gfx_.bind_int_attribute_value_to_color(1,labeling_colors_[1]);
@@ -265,9 +271,9 @@ namespace {
 		mesh_gfx_.bind_int_attribute_value_to_color(3,labeling_colors_[3]);
 		mesh_gfx_.bind_int_attribute_value_to_color(4,labeling_colors_[4]);
 		mesh_gfx_.bind_int_attribute_value_to_color(5,labeling_colors_[5]);
+		mesh_gfx_.bind_custom_points_color(corners_color_);
 
-		// color for custom points (used for LabelingGraph corners)
-		mesh_gfx_.set_custom_points_color(1.0,1.0,0.0,1.0); // yellow
+		labeling_visu_mode_ = VIEW_RAW_LABELING;
     }
 
     LabelingViewerApp::~LabelingViewerApp() {
@@ -663,28 +669,27 @@ namespace {
         mesh_gfx_.set_lighting(lighting_);
         mesh_gfx_.set_time(double(anim_time_));
 
-		if(show_labeling_) {
-			mesh_gfx_.unset_scalar_attribute();
-			mesh_gfx_.set_facets_colors_by_int_attribute(LABELING_ATTRIBUTE_NAME);
-		}
-		else if (show_attributes_) {
-			mesh_gfx_.unset_facets_colors_by_int_attribute();
-			mesh_gfx_.set_scalar_attribute(
-                attribute_subelements_, attribute_name_,
-                double(attribute_min_), double(attribute_max_),
-                current_colormap_texture_, 1
-            );
-		}
-		else {
-			mesh_gfx_.unset_scalar_attribute();
-			mesh_gfx_.unset_facets_colors_by_int_attribute();
+		switch(state) {
+			case empty:
+				break;
+			case triangle_mesh:
+				show_mesh_ = true;
+				mesh_gfx_.unset_scalar_attribute();
+				mesh_gfx_.unset_facets_colors_by_int_attribute();
+				break;
+			case labeling:
+				//managed in draw_object_properties()
+			break;
 		}
 
 		draw_points();
 		draw_surface();
 		draw_edges();
-		mesh_gfx_.draw_custom_edges();
 		draw_volume();
+		if((state==labeling) && (labeling_visu_mode_==VIEW_LABELING_GRAPH)) {
+			mesh_gfx_.draw_custom_points();
+			mesh_gfx_.draw_custom_edges();
+		}
     }
 
     void LabelingViewerApp::draw_points() {
@@ -900,26 +905,51 @@ namespace {
 
 		case triangle_mesh:
 			if(ImGui::Button("Compute naive labeling")) {
-				state = empty;
-				show_labeling_ = false;
+
 				naive_labeling(mesh_,LABELING_ATTRIBUTE_NAME);
 
 				update_static_labeling_graph();
 
+				mesh_gfx_.unset_scalar_attribute();
+				mesh_gfx_.set_facets_colors_by_int_attribute(LABELING_ATTRIBUTE_NAME);
+				show_mesh_ = false;
 				state = labeling;
-				show_labeling_ = true;
-				show_mesh_ = false; // better to visualize the labeling without the mesh edges (wireframe)
+				labeling_visu_mode_ = VIEW_LABELING_GRAPH;
 			}
 			break;
 		case labeling:
-			ImGui::Checkbox("Show labeling",&show_labeling_); // allow to hide it
 
+			if (ImGui::RadioButton("View triangle mesh",&labeling_visu_mode_,VIEW_TRIANGLE_MESH)) {
+				show_mesh_ = true;
+				mesh_gfx_.unset_scalar_attribute();
+				mesh_gfx_.unset_facets_colors_by_int_attribute();
+			}
+
+			if (ImGui::RadioButton("View raw labeling",&labeling_visu_mode_,VIEW_RAW_LABELING)) {
+				show_mesh_ = true;
+				mesh_gfx_.unset_scalar_attribute();
+				mesh_gfx_.set_facets_colors_by_int_attribute(LABELING_ATTRIBUTE_NAME);
+			}
+
+			if(labeling_visu_mode_==VIEW_TRIANGLE_MESH) ImGui::BeginDisabled();
 			ImGui::ColorEdit4WithPalette("Label 0 = +X", labeling_colors_[0]);
 			ImGui::ColorEdit4WithPalette("Label 1 = -X", labeling_colors_[1]);
 			ImGui::ColorEdit4WithPalette("Label 2 = +Y", labeling_colors_[2]);
 			ImGui::ColorEdit4WithPalette("Label 3 = -Y", labeling_colors_[3]);
 			ImGui::ColorEdit4WithPalette("Label 4 = +Z", labeling_colors_[4]);
 			ImGui::ColorEdit4WithPalette("Label 5 = -Z", labeling_colors_[5]);
+			if(labeling_visu_mode_==VIEW_TRIANGLE_MESH) ImGui::EndDisabled();
+
+			if (ImGui::RadioButton("View labeling graph",&labeling_visu_mode_,VIEW_LABELING_GRAPH)) {
+				show_mesh_ = false;
+				mesh_gfx_.unset_scalar_attribute();
+				mesh_gfx_.set_facets_colors_by_int_attribute(LABELING_ATTRIBUTE_NAME);
+			}
+
+			if(labeling_visu_mode_!=VIEW_LABELING_GRAPH) ImGui::BeginDisabled();
+			ImGui::ColorEdit4WithPalette("Corners", corners_color_);
+			if(labeling_visu_mode_!=VIEW_LABELING_GRAPH) ImGui::EndDisabled();
+			
 			break;
 		
 		default:
@@ -1565,16 +1595,16 @@ namespace {
 				// If a labeling was already displayed, it should be restored...
 				mesh_gfx_.clear_custom_drawings();
 				state = triangle_mesh;
-				show_labeling_ = false;
-				show_mesh_ = true;
 				return false;
 			}
 
 			update_static_labeling_graph();
 
 			state = labeling;
-			show_labeling_ = true;
-			show_mesh_ = false; // better to visualize the labeling without the mesh edges (wireframe)
+			labeling_visu_mode_ = VIEW_LABELING_GRAPH;
+			show_mesh_ = false;
+			mesh_gfx_.unset_scalar_attribute();
+			mesh_gfx_.set_facets_colors_by_int_attribute(LABELING_ATTRIBUTE_NAME);
 
 			return true;
 		}
@@ -1599,8 +1629,6 @@ namespace {
 		if(!mesh_.facets.are_simplices() || mesh_.cells.nb()!=0) { // check if it is a triangle mesh
 			fmt::println(Logger::err("I/O"),"This file does not contain a triangle mesh. Only surface triangle meshes are supported.");  Logger::err("I/O").flush();
 			state = empty;
-			show_labeling_ = false;
-			show_mesh_ = false;
 			// Instead of clearing the mesh, we should load the mesh elsewhere, check the new mesh, then replace the displayed mesh
 			return false;
 		}
@@ -1635,8 +1663,6 @@ namespace {
         }
 
         show_vertices_ = (mesh_.facets.nb() == 0);
-		show_labeling_ = false; // added
-		show_mesh_ = true; // added
         mesh_gfx_.set_mesh(&mesh_);
 
 		state = triangle_mesh;
@@ -1866,7 +1892,7 @@ namespace {
 		// compute charts, boundaries and corners of the labeling
 		static_labeling_graph.fill_from(mesh_,LABELING_ATTRIBUTE_NAME);
 
-		fmt::println(Logger::out("I/O"),"There are {} charts, {} corners and {} boundaries in this labeling.",static_labeling_graph.nb_charts(),static_labeling_graph.nb_corners(),static_labeling_graph.nb_boundaries());
+		fmt::println(Logger::out("I/O"),"There are {} charts, {} corners and {} boundaries in this labeling.",static_labeling_graph.nb_charts(),static_labeling_graph.nb_corners(),static_labeling_graph.nb_boundaries());  Logger::out("I/O").flush();
 
 		static_labeling_graph.dump_to_file("StaticLabelingGraph.txt");
 
