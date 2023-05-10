@@ -84,7 +84,8 @@ namespace {
     LabelingViewerApp::LabelingViewerApp() :
 	Application("labeling_viewer"),
 	text_editor_(&text_editor_visible_),
-	state(empty)
+	previous_state_(empty),
+	current_state_(empty)
     {
 	lighting_ = false;
 	edit_light_ = false;
@@ -264,7 +265,8 @@ namespace {
 		invalid_boundaries_color_[2] = 0.0f;
 		invalid_boundaries_color_[3] = 1.0f;
 
-		labeling_visu_mode_ = VIEW_RAW_LABELING;
+		previous_labeling_visu_mode_ = VIEW_RAW_LABELING;
+		current_labeling_visu_mode_ = VIEW_RAW_LABELING;
     }
 
     LabelingViewerApp::~LabelingViewerApp() {
@@ -660,27 +662,112 @@ namespace {
         mesh_gfx_.set_lighting(lighting_);
         mesh_gfx_.set_time(double(anim_time_));
 
-		switch(state) {
-			case empty:
-				break;
-			case triangle_mesh:
-				show_mesh_ = true;
-				mesh_gfx_.unset_scalar_attribute();
-				mesh_gfx_.unset_facets_colors_by_int_attribute();
-				break;
-			case labeling:
-				//managed in draw_object_properties()
-			break;
+		// manage state transitions
+		if(previous_state_ != current_state_) {
+			switch(current_state_) {
+				case empty:
+					break;
+				case triangle_mesh:
+					show_mesh_ = true;
+					lighting_ = true;
+					mesh_gfx_.unset_scalar_attribute();
+					mesh_gfx_.unset_facets_colors_by_int_attribute();
+					break;
+				case labeling:
+					previous_labeling_visu_mode_ = VIEW_TRIANGLE_MESH;
+					current_labeling_visu_mode_ = VIEW_LABELING_GRAPH;
+					// will trigger a GUI settings update because !=
+					break;
+				default:
+					geo_assert_not_reached;
+			}
+			previous_state_ = current_state_;
+		}
+
+		// manage labeling visu mode transitions (mode editable when current_state_==labeling)
+		if(previous_labeling_visu_mode_ != current_labeling_visu_mode_) {
+			switch(current_labeling_visu_mode_) {
+				case VIEW_TRIANGLE_MESH:
+					show_mesh_ = true;
+					lighting_ = true;
+					mesh_gfx_.unset_scalar_attribute();
+					mesh_gfx_.unset_facets_colors_by_int_attribute();
+					mesh_gfx_.set_custom_points_group_visibility(corner_group_index,false);
+					mesh_gfx_.set_custom_edges_group_visibility(X_boundaries_group_index,false);
+					mesh_gfx_.set_custom_edges_group_visibility(Y_boundaries_group_index,false);
+					mesh_gfx_.set_custom_edges_group_visibility(Z_boundaries_group_index,false);
+					mesh_gfx_.set_custom_edges_group_visibility(invalid_boundaries_group_index,false);
+					mesh_gfx_.set_custom_edges_group_visibility(valid_but_axisless_boundaries_group_index,false);
+					break;
+				case VIEW_RAW_LABELING:
+					show_mesh_ = true;
+					lighting_ = false;
+					mesh_gfx_.unset_scalar_attribute();
+					mesh_gfx_.set_facets_colors_by_int_attribute(LABELING_ATTRIBUTE_NAME);
+					mesh_gfx_.set_custom_points_group_visibility(corner_group_index,false);
+					mesh_gfx_.set_custom_edges_group_visibility(X_boundaries_group_index,false);
+					mesh_gfx_.set_custom_edges_group_visibility(Y_boundaries_group_index,false);
+					mesh_gfx_.set_custom_edges_group_visibility(Z_boundaries_group_index,false);
+					mesh_gfx_.set_custom_edges_group_visibility(invalid_boundaries_group_index,false);
+					mesh_gfx_.set_custom_edges_group_visibility(valid_but_axisless_boundaries_group_index,false);
+					break;
+				case VIEW_LABELING_GRAPH:
+					show_mesh_ = false;
+					lighting_ = false;
+					mesh_gfx_.unset_scalar_attribute();
+					mesh_gfx_.set_facets_colors_by_int_attribute(LABELING_ATTRIBUTE_NAME);
+					mesh_gfx_.set_custom_points_group_visibility(corner_group_index,true);
+					mesh_gfx_.set_custom_edges_group_color(X_boundaries_group_index,labeling_colors_[0]); // axis X -> color of label 0 = +X
+					mesh_gfx_.set_custom_edges_group_color(Y_boundaries_group_index,labeling_colors_[2]); // axis Y -> color of label 2 = +Y
+					mesh_gfx_.set_custom_edges_group_color(Z_boundaries_group_index,labeling_colors_[4]); // axis Z -> color of label 4 = +Z
+					mesh_gfx_.set_custom_edges_group_visibility(X_boundaries_group_index,true);
+					mesh_gfx_.set_custom_edges_group_visibility(Y_boundaries_group_index,true);
+					mesh_gfx_.set_custom_edges_group_visibility(Z_boundaries_group_index,true);
+					mesh_gfx_.set_custom_edges_group_visibility(invalid_boundaries_group_index,false);
+					mesh_gfx_.set_custom_edges_group_visibility(valid_but_axisless_boundaries_group_index,false);
+					break;
+				case VIEW_INVALID_CHARTS:
+					show_mesh_ = false;
+					lighting_ = false;
+					mesh_gfx_.unset_facets_colors_by_int_attribute();
+					mesh_gfx_.set_scalar_attribute(MESH_FACETS,"on_invalid_chart",0.0,1.0,TO_GL_TEXTURE_INDEX(COLORMAP_BLUE_RED)); // color according to whether the facet in on an invalid chart or not
+					mesh_gfx_.set_custom_points_group_visibility(corner_group_index,false);
+					mesh_gfx_.set_custom_edges_group_color(X_boundaries_group_index,labeling_colors_[0]); // axis X -> color of label 0 = +X
+					mesh_gfx_.set_custom_edges_group_color(Y_boundaries_group_index,labeling_colors_[2]); // axis Y -> color of label 2 = +Y
+					mesh_gfx_.set_custom_edges_group_color(Z_boundaries_group_index,labeling_colors_[4]); // axis Z -> color of label 4 = +Z
+					mesh_gfx_.set_custom_edges_group_visibility(X_boundaries_group_index,true);
+					mesh_gfx_.set_custom_edges_group_visibility(Y_boundaries_group_index,true);
+					mesh_gfx_.set_custom_edges_group_visibility(Z_boundaries_group_index,true);
+					mesh_gfx_.set_custom_edges_group_visibility(invalid_boundaries_group_index,false);
+					mesh_gfx_.set_custom_edges_group_visibility(valid_but_axisless_boundaries_group_index,false);
+					break;
+				case VIEW_INVALID_BOUNDARIES:
+					show_mesh_ = false;
+					lighting_ = false;
+					mesh_gfx_.unset_facets_colors_by_int_attribute();
+					mesh_gfx_.unset_scalar_attribute();
+					mesh_gfx_.set_custom_points_group_visibility(corner_group_index,false);
+					mesh_gfx_.set_custom_edges_group_color(X_boundaries_group_index,valid_boundaries_color_);
+					mesh_gfx_.set_custom_edges_group_color(Y_boundaries_group_index,valid_boundaries_color_);
+					mesh_gfx_.set_custom_edges_group_color(Z_boundaries_group_index,valid_boundaries_color_);
+					mesh_gfx_.set_custom_edges_group_visibility(X_boundaries_group_index,true);
+					mesh_gfx_.set_custom_edges_group_visibility(Y_boundaries_group_index,true);
+					mesh_gfx_.set_custom_edges_group_visibility(Z_boundaries_group_index,true);
+					mesh_gfx_.set_custom_edges_group_visibility(invalid_boundaries_group_index,true);
+					mesh_gfx_.set_custom_edges_group_visibility(valid_but_axisless_boundaries_group_index,true);
+					break;
+				default:
+					geo_assert_not_reached;
+			}
+			previous_labeling_visu_mode_ = current_labeling_visu_mode_;
 		}
 
 		draw_points();
 		draw_surface();
 		draw_edges();
 		draw_volume();
-		if(state==labeling) {
-			mesh_gfx_.draw_custom_points(); // per-group visibility managed in mesh_gfx_
-			mesh_gfx_.draw_custom_edges(); // per-group visibility managed in mesh_gfx_
-		}
+		mesh_gfx_.draw_custom_points(); // per-group visibility managed in mesh_gfx_
+		mesh_gfx_.draw_custom_edges(); // per-group visibility managed in mesh_gfx_
     }
 
     void LabelingViewerApp::draw_points() {
@@ -892,7 +979,7 @@ namespace {
     }
 
     void LabelingViewerApp::draw_object_properties() {
-		switch (state) {
+		switch (current_state_) {
 
 		case triangle_mesh:
 			if(ImGui::Button("Compute naive labeling")) {
@@ -901,42 +988,16 @@ namespace {
 
 				update_static_labeling_graph();
 
-				mesh_gfx_.unset_scalar_attribute();
-				mesh_gfx_.set_facets_colors_by_int_attribute(LABELING_ATTRIBUTE_NAME);
-				show_mesh_ = false;
-				state = labeling;
-				labeling_visu_mode_ = VIEW_LABELING_GRAPH;
+				current_state_ = labeling;
 			}
 			break;
 		case labeling:
 
-			if (ImGui::RadioButton("View triangle mesh",&labeling_visu_mode_,VIEW_TRIANGLE_MESH)) {
-				show_mesh_ = true;
-				lighting_ = true;
-				mesh_gfx_.unset_scalar_attribute();
-				mesh_gfx_.unset_facets_colors_by_int_attribute();
-				mesh_gfx_.set_custom_points_group_visibility(corner_group_index,false);
-				mesh_gfx_.set_custom_edges_group_visibility(X_boundaries_group_index,false);
-				mesh_gfx_.set_custom_edges_group_visibility(Y_boundaries_group_index,false);
-				mesh_gfx_.set_custom_edges_group_visibility(Z_boundaries_group_index,false);
-				mesh_gfx_.set_custom_edges_group_visibility(invalid_boundaries_group_index,false);
-				mesh_gfx_.set_custom_edges_group_visibility(valid_but_axisless_boundaries_group_index,false);
-			}
+			ImGui::RadioButton("View triangle mesh",&current_labeling_visu_mode_,VIEW_TRIANGLE_MESH);
 
-			if (ImGui::RadioButton("View raw labeling",&labeling_visu_mode_,VIEW_RAW_LABELING)) {
-				show_mesh_ = true;
-				lighting_ = false;
-				mesh_gfx_.unset_scalar_attribute();
-				mesh_gfx_.set_facets_colors_by_int_attribute(LABELING_ATTRIBUTE_NAME);
-				mesh_gfx_.set_custom_points_group_visibility(corner_group_index,false);
-				mesh_gfx_.set_custom_edges_group_visibility(X_boundaries_group_index,false);
-				mesh_gfx_.set_custom_edges_group_visibility(Y_boundaries_group_index,false);
-				mesh_gfx_.set_custom_edges_group_visibility(Z_boundaries_group_index,false);
-				mesh_gfx_.set_custom_edges_group_visibility(invalid_boundaries_group_index,false);
-				mesh_gfx_.set_custom_edges_group_visibility(valid_but_axisless_boundaries_group_index,false);
-			}
+			ImGui::RadioButton("View raw labeling",&current_labeling_visu_mode_,VIEW_RAW_LABELING);
 
-			ImGui::BeginDisabled( (labeling_visu_mode_!=VIEW_RAW_LABELING) && (labeling_visu_mode_!=VIEW_LABELING_GRAPH) );
+			ImGui::BeginDisabled( (current_labeling_visu_mode_!=VIEW_RAW_LABELING) && (current_labeling_visu_mode_!=VIEW_LABELING_GRAPH) );
 			ImGui::ColorEdit4WithPalette("Label 0 = +X", labeling_colors_[0]);
 			ImGui::ColorEdit4WithPalette("Label 1 = -X", labeling_colors_[1]);
 			ImGui::ColorEdit4WithPalette("Label 2 = +Y", labeling_colors_[2]);
@@ -945,61 +1006,19 @@ namespace {
 			ImGui::ColorEdit4WithPalette("Label 5 = -Z", labeling_colors_[5]);
 			ImGui::EndDisabled();
 
-			if (ImGui::RadioButton("View labeling graph",&labeling_visu_mode_,VIEW_LABELING_GRAPH)) {
-				show_mesh_ = false;
-				lighting_ = false;
-				mesh_gfx_.unset_scalar_attribute();
-				mesh_gfx_.set_facets_colors_by_int_attribute(LABELING_ATTRIBUTE_NAME);
-				mesh_gfx_.set_custom_points_group_visibility(corner_group_index,true);
-				mesh_gfx_.set_custom_edges_group_color(X_boundaries_group_index,labeling_colors_[0]); // axis X -> color of label 0 = +X
-				mesh_gfx_.set_custom_edges_group_color(Y_boundaries_group_index,labeling_colors_[2]); // axis Y -> color of label 2 = +Y
-				mesh_gfx_.set_custom_edges_group_color(Z_boundaries_group_index,labeling_colors_[4]); // axis Z -> color of label 4 = +Z
-				mesh_gfx_.set_custom_edges_group_visibility(X_boundaries_group_index,true);
-				mesh_gfx_.set_custom_edges_group_visibility(Y_boundaries_group_index,true);
-				mesh_gfx_.set_custom_edges_group_visibility(Z_boundaries_group_index,true);
-				mesh_gfx_.set_custom_edges_group_visibility(invalid_boundaries_group_index,false);
-				mesh_gfx_.set_custom_edges_group_visibility(valid_but_axisless_boundaries_group_index,false);
-			}
+			ImGui::RadioButton("View labeling graph",&current_labeling_visu_mode_,VIEW_LABELING_GRAPH);
 
-			ImGui::BeginDisabled(labeling_visu_mode_!=VIEW_LABELING_GRAPH);
+			ImGui::BeginDisabled(current_labeling_visu_mode_!=VIEW_LABELING_GRAPH);
 			ImGui::ColorEdit4WithPalette("Corners", corners_color_);
 			ImGui::EndDisabled();
 
-			if (ImGui::RadioButton(fmt::format("View invalid charts ({})",static_labeling_graph.nb_invalid_charts()).c_str(),&labeling_visu_mode_,VIEW_INVALID_CHARTS)) {
-				show_mesh_ = false;
-				lighting_ = false;
-				mesh_gfx_.unset_facets_colors_by_int_attribute();
-				mesh_gfx_.set_scalar_attribute(MESH_FACETS,"on_invalid_chart",0.0,1.0,TO_GL_TEXTURE_INDEX(COLORMAP_BLUE_RED)); // color according to whether the facet in on an invalid chart or not
-				mesh_gfx_.set_custom_points_group_visibility(corner_group_index,false);
-				mesh_gfx_.set_custom_edges_group_color(X_boundaries_group_index,labeling_colors_[0]); // axis X -> color of label 0 = +X
-				mesh_gfx_.set_custom_edges_group_color(Y_boundaries_group_index,labeling_colors_[2]); // axis Y -> color of label 2 = +Y
-				mesh_gfx_.set_custom_edges_group_color(Z_boundaries_group_index,labeling_colors_[4]); // axis Z -> color of label 4 = +Z
-				mesh_gfx_.set_custom_edges_group_visibility(X_boundaries_group_index,true);
-				mesh_gfx_.set_custom_edges_group_visibility(Y_boundaries_group_index,true);
-				mesh_gfx_.set_custom_edges_group_visibility(Z_boundaries_group_index,true);
-				mesh_gfx_.set_custom_edges_group_visibility(invalid_boundaries_group_index,false);
-				mesh_gfx_.set_custom_edges_group_visibility(valid_but_axisless_boundaries_group_index,false);
-			}
+			ImGui::RadioButton(fmt::format("View invalid charts ({})",static_labeling_graph.nb_invalid_charts()).c_str(),&current_labeling_visu_mode_,VIEW_INVALID_CHARTS);
 
 			ImGui::Text("Bleu = valid chart | Red = invalid chart");
 
-			if (ImGui::RadioButton(fmt::format("View invalid boundaries ({})",static_labeling_graph.nb_invalid_boundaries()).c_str(),&labeling_visu_mode_,VIEW_INVALID_BOUNDARIES)) {
-				show_mesh_ = false;
-				lighting_ = false;
-				mesh_gfx_.unset_facets_colors_by_int_attribute();
-				mesh_gfx_.unset_scalar_attribute();
-				mesh_gfx_.set_custom_points_group_visibility(corner_group_index,false);
-				mesh_gfx_.set_custom_edges_group_color(X_boundaries_group_index,valid_boundaries_color_);
-				mesh_gfx_.set_custom_edges_group_color(Y_boundaries_group_index,valid_boundaries_color_);
-				mesh_gfx_.set_custom_edges_group_color(Z_boundaries_group_index,valid_boundaries_color_);
-				mesh_gfx_.set_custom_edges_group_visibility(X_boundaries_group_index,true);
-				mesh_gfx_.set_custom_edges_group_visibility(Y_boundaries_group_index,true);
-				mesh_gfx_.set_custom_edges_group_visibility(Z_boundaries_group_index,true);
-				mesh_gfx_.set_custom_edges_group_visibility(invalid_boundaries_group_index,true);
-				mesh_gfx_.set_custom_edges_group_visibility(valid_but_axisless_boundaries_group_index,true);
-			}
+			ImGui::RadioButton(fmt::format("View invalid boundaries ({})",static_labeling_graph.nb_invalid_boundaries()).c_str(),&current_labeling_visu_mode_,VIEW_INVALID_BOUNDARIES);
 
-			ImGui::BeginDisabled(labeling_visu_mode_!=VIEW_INVALID_BOUNDARIES);
+			ImGui::BeginDisabled(current_labeling_visu_mode_!=VIEW_INVALID_BOUNDARIES);
 			ImGui::ColorEdit4WithPalette("Valid boundaries", valid_boundaries_color_);
 			ImGui::ColorEdit4WithPalette("Invalid boundaries", invalid_boundaries_color_);
 			ImGui::EndDisabled();
@@ -1639,7 +1658,7 @@ namespace {
 
 		if(FileSystem::extension(filename)=="txt") {
 
-			if(state == empty) {
+			if(current_state_ == empty) {
 				fmt::println(Logger::err("I/O"),"You need to import a triangle mesh before importing a labeling"); Logger::err("I/O").flush();
 				return false;
 			}
@@ -1648,17 +1667,13 @@ namespace {
 				// Should the labeling be removed ?
 				// If a labeling was already displayed, it should be restored...
 				mesh_gfx_.clear_custom_drawings();
-				state = triangle_mesh;
+				current_state_ = triangle_mesh;
 				return false;
 			}
 
 			update_static_labeling_graph();
 
-			state = labeling;
-			labeling_visu_mode_ = VIEW_LABELING_GRAPH;
-			show_mesh_ = false;
-			mesh_gfx_.unset_scalar_attribute();
-			mesh_gfx_.set_facets_colors_by_int_attribute(LABELING_ATTRIBUTE_NAME);
+			current_state_ = labeling;
 
 			return true;
 		}
@@ -1682,7 +1697,7 @@ namespace {
 
 		if(!mesh_.facets.are_simplices() || mesh_.cells.nb()!=0) { // check if it is a triangle mesh
 			fmt::println(Logger::err("I/O"),"This file does not contain a triangle mesh. Only surface triangle meshes are supported.");  Logger::err("I/O").flush();
-			state = empty;
+			current_state_ = empty;
 			// Instead of clearing the mesh, we should load the mesh elsewhere, check the new mesh, then replace the displayed mesh
 			return false;
 		}
@@ -1719,7 +1734,7 @@ namespace {
         show_vertices_ = (mesh_.facets.nb() == 0);
         mesh_gfx_.set_mesh(&mesh_);
 
-		state = triangle_mesh;
+		current_state_ = triangle_mesh;
 
 	    current_file_ = filename;
         return true;

@@ -11,13 +11,14 @@
 // - inclusion of LabelingGraph.h
 // - new type : LabelingViewerApp::State
 // - new variables : corners_color_, valid_boundaries_color_, invalid_boundaries_color_,
-//                   static_labeling_graph, state, labeling_visu_mode_, corner_group_index,
+//                   previous_state_, current_state_,
+//                   previous_labeling_visu_mode_, current_labeling_visu_mode_,
+//                   static_labeling_graph, corner_group_index,
 //                   X_boundaries_group_index, Y_boundaries_group_index, Z_boundaries_group_index,
 //                   invalid_boundaries_group_index, valid_but_axisless_boundaries_group_index
-// - initialization of the colors in the constructor
+// - initializations in the constructor
 // - definition of VIEW_TRIANGLE_MESH, VIEW_RAW_LABELING, VIEW_LABELING_GRAPH, VIEW_INVALID_CHARTS, VIEW_INVALID_BOUNDARIES
 // - new function : update_static_labeling_graph()
-// - in draw_scene(), mesh_gfx_.draw_custom_points() and mesh_gfx_.draw_custom_edges() are called
 // - in load(), after loading a labeling, computation of the labeling graph,
 //   corners & boundary edges stored in mesh_gfx_ for rendering
 //
@@ -25,6 +26,8 @@
 //
 // - surface_color_ is now a light grey for better visibility when labeling_visu_mode_==VIEW_INVALID_BOUNDARIES
 // - draw_object_properties() draw GUI controls for all labeling_visu_mode_
+// - in draw_scene(), mesh_gfx_.draw_custom_points() and mesh_gfx_.draw_custom_edges() are called,
+//                    and adjustment of rendering settings on state/mode transitions
 //
 // ## Related to the labeling vector
 //
@@ -687,8 +690,8 @@ using namespace GEO;
 	float valid_boundaries_color_[4];
 	float invalid_boundaries_color_[4];
 	StaticLabelingGraph static_labeling_graph;
-	State state;
-	int labeling_visu_mode_; // not a enum, to be used in ImGui
+	State previous_state_, current_state_;
+	int previous_labeling_visu_mode_, current_labeling_visu_mode_; // not a enum, to be used in ImGui
 	std::size_t corner_group_index;
 	std::size_t X_boundaries_group_index;
 	std::size_t Y_boundaries_group_index;
