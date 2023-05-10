@@ -9,11 +9,22 @@
 // ### Added
 //
 // - inclusion of LabelingGraph.h
-// - new variables : static_labeling_graph and axis_colors_
-// - initialization of axis_colors_ in the consctructor
-// - in draw_scene(), mesh_gfx_.draw_custom_edges() is called
+// - new type : LabelingViewerApp::State
+// - new variables : corners_color_, valid_boundaries_color_, invalid_boundaries_color_,
+//                   static_labeling_graph, state, labeling_visu_mode_, corner_group_index,
+//                   X_boundaries_group_index, Y_boundaries_group_index, Z_boundaries_group_index,
+//                   invalid_boundaries_group_index, valid_but_axisless_boundaries_group_index
+// - initialization of the colors in the constructor
+// - definition of VIEW_TRIANGLE_MESH, VIEW_RAW_LABELING, VIEW_LABELING_GRAPH, VIEW_INVALID_CHARTS, VIEW_INVALID_BOUNDARIES
+// - new function : update_static_labeling_graph()
+// - in draw_scene(), mesh_gfx_.draw_custom_points() and mesh_gfx_.draw_custom_edges() are called
 // - in load(), after loading a labeling, computation of the labeling graph,
 //   corners & boundary edges stored in mesh_gfx_ for rendering
+//
+// ### Changed
+//
+// - surface_color_ is now a light grey for better visibility when labeling_visu_mode_==VIEW_INVALID_BOUNDARIES
+// - draw_object_properties() draw GUI controls for all labeling_visu_mode_
 //
 // ## Related to the labeling vector
 //
@@ -24,9 +35,8 @@
 //   labeling.h, colormaps_array.h in .cpp
 // - mesh_gfx_ attribute of type CustomMeshGfx
 // - new variables : show_labeling_, labeling_colors_. initialized in the consctructor
-// - in draw_object_properties(),
-//   show_labeling_ is editable with an ImGui::Checkbox,
-//   labeling_colors_ is editable with some ImGui::ColorEdit4WithPalette
+// - in draw_object_properties(), the user can hide and show the labeling,
+//   and labeling_colors_ is editable with some ImGui::ColorEdit4WithPalette
 // - labeling_colors_ passed by address to mesh_gfx_
 // - specific behavior in load() if the file is a .txt
 //
@@ -100,10 +110,11 @@
 #define LABELING_ATTRIBUTE_NAME "label"
 
 // values for labeling_visu_mode_
-#define VIEW_TRIANGLE_MESH	0
-#define VIEW_RAW_LABELING	1
-#define VIEW_LABELING_GRAPH	2
-#define VIEW_INVALID_CHARTS	3
+#define VIEW_TRIANGLE_MESH		0
+#define VIEW_RAW_LABELING		1
+#define VIEW_LABELING_GRAPH		2
+#define VIEW_INVALID_CHARTS		3
+#define VIEW_INVALID_BOUNDARIES	4
 
 struct lua_State;
 
@@ -672,11 +683,18 @@ using namespace GEO;
 
 	// added
 	float labeling_colors_[6][4];
-	float axis_colors_[3][4];
 	float corners_color_[4];
+	float valid_boundaries_color_[4];
+	float invalid_boundaries_color_[4];
 	StaticLabelingGraph static_labeling_graph;
 	State state;
 	int labeling_visu_mode_; // not a enum, to be used in ImGui
+	std::size_t corner_group_index;
+	std::size_t X_boundaries_group_index;
+	std::size_t Y_boundaries_group_index;
+	std::size_t Z_boundaries_group_index;
+	std::size_t invalid_boundaries_group_index;
+	std::size_t valid_but_axisless_boundaries_group_index;
     };
 
 // print specialization of LabelingViewerApp::State for {fmt}

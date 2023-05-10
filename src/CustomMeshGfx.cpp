@@ -63,8 +63,6 @@ using namespace GEO;
 	attribute_dim_ = 1;
 	
         ES_profile_ = false;
-
-        custom_points_color_ = nullptr;
     }
 
     CustomMeshGfx::~CustomMeshGfx() {
@@ -257,14 +255,17 @@ using namespace GEO;
     }
 
     void CustomMeshGfx::draw_custom_points() {
-        geo_assert(custom_points_color_!=nullptr);
-        if(!custom_points_.empty()) { // if there are custom points to draw (used by LabelingViewer to draw labeling corners)
-            glupSetColor4fv(GLUP_FRONT_COLOR, custom_points_color_); // used the dedicated color
-            glupSetPointSize(10.0f);
-            for(std::size_t i = 0; i<custom_points_.size(); ++i) { // for each custom point
-                glupBegin(GLUP_POINTS);
-                glupPrivateVertex3dv(custom_points_[i].data()); // give a pointer to the coordinates to GLUP
-                glupEnd();
+        
+        for(const CustomPointsGroup& group : custom_points_groups_) {
+            if(group.show) {
+                geo_assert(group.color != nullptr);
+                glupSetColor4fv(GLUP_FRONT_COLOR, group.color); // use the color of this group of points
+                glupSetPointSize(10.0f);
+                for(std::size_t i = 0; i<group.points.size(); ++i) { // for each point in this group
+                    glupBegin(GLUP_POINTS);
+                    glupPrivateVertex3dv(group.points[i].data()); // give a pointer to the coordinates to GLUP
+                    glupEnd();
+                }
             }
         }
     }
@@ -350,14 +351,18 @@ using namespace GEO;
     void CustomMeshGfx::draw_custom_edges() {
         // TODO test draw_surface_borders()
         // TODO investigate why glupSetMeshWidth() does not work
-        for(const auto& edges_grouped_by_color : custom_edges_) {
-            glupSetColor4fv(GLUP_FRONT_COLOR, edges_grouped_by_color.first.data());
-            glupBegin(GLUP_LINES);
-            for(const auto& edge : edges_grouped_by_color.second) {
-                glupPrivateVertex3dv(edge.first.data());
-                glupPrivateVertex3dv(edge.second.data());
+
+        for(const auto& group : custom_edges_groups_) {
+            if(group.show) {
+                geo_assert(group.color != nullptr);
+                glupSetColor4fv(GLUP_FRONT_COLOR, group.color); // use the color of this group of edges
+                glupBegin(GLUP_LINES);
+                for(const auto& edge : group.edges) { // for each edge in this group
+                    glupPrivateVertex3dv(edge.first.data()); // give a pointer to the coordinates to GLUP
+                    glupPrivateVertex3dv(edge.second.data()); // give a pointer to the coordinates to GLUP
+                }
+                glupEnd();
             }
-            glupEnd();
         }
     }
 

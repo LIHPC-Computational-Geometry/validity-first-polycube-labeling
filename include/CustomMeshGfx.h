@@ -8,22 +8,29 @@
 //
 // ### Added
 //
-// - new variable : custom_edges_
-// - new functions : add_custom_edge() and draw_custom_edges()
-// - inclusion of <utility> and geometry.h
+// - new type : struct CustomEdgesGroup, storing a group of edges having the same color
+// - new variable : custom_edges_groups_
+// - new functions : new_custom_edges_group(), add_custom_edge(), set_custom_edges_group_color(), set_custom_edges_group_visibility(),
+//                   draw_custom_edges()
+// - inclusion of <utility> for std::pair and std::make_pair()
+//
+// ### Changed
+//
+// - clear_custom_drawings() also clears custom_edges_groups_
 //
 // ## Rendering of corners
 //
 // ### Added
 //
-// - new variables : custom_points_, custom_points_color_
-// - new functions : add_custom_point(), set_custom_points_color()
-// - inclusion of <array>
+// - new type : struct CustomPointsGroup, storing a group of points having the same color
+// - new variable : custom_points_groups_
+// - new functions : new_custom_points_group(), add_custom_point(), set_custom_points_group_color(), set_custom_points_group_visibility(),
+//                   draw_custom_points(), clear_custom_drawings()
+// - inclusion of geometry.h for vec3d type
 //
 // ### Changed
 //
-// - draw_vertices() also draws the custom points
-// - set_mesh() clears the custom points
+// - set_mesh() calls clear_custom_drawings()
 //
 // ## Rendering of facet labels
 //
@@ -66,10 +73,10 @@
 #include <fmt/ostream.h>
 
 #include <map>
-#include <array>
 #include <utility> // for std::pair
 
-#include "geometry.h" // for vec3d, VecngCompare 
+#include "geometry.h" // for vec3d
+#include "containers.h" // for index_of_last
 
 /**
  * \file include/CustomMeshGfx.h
@@ -85,6 +92,24 @@ using namespace GEO;
      */
     class GEOGRAM_GFX_API CustomMeshGfx {
     public:
+
+        struct CustomPointsGroup {
+            std::vector<vec3d> points;
+            const float* color = nullptr; // storing a pointer allows for color modification from the GUI
+            bool show = false;
+
+            CustomPointsGroup(const float* rgba, bool show) : color(rgba), show(show) {}
+            void clear() { points.clear(); color = nullptr; show = false; }
+        };
+
+        struct CustomEdgesGroup {
+            std::vector<std::pair<vec3d,vec3d>> edges;
+            const float* color = nullptr; // storing a pointer allows for color modification from the GUI
+            bool show = false;
+
+            CustomEdgesGroup(const float* rgba, bool show) : color(rgba), show(show) {}
+            void clear() { edges.clear(); color = nullptr; show = false; }
+        };
 
         /**
          * \brief CustomMeshGfx constructor.
@@ -691,8 +716,14 @@ using namespace GEO;
         }
 
         void clear_custom_drawings() {
-            custom_points_.clear();
-            custom_edges_.clear();
+            for(auto& group : custom_points_groups_) {
+                group.clear(); // ensure the vector is cleared
+            }
+            custom_points_groups_.clear();
+            for(auto& group : custom_edges_groups_) {
+                group.clear(); // ensure the vector is cleared
+            }
+            custom_edges_groups_.clear();
         }
 
         /**
@@ -716,18 +747,40 @@ using namespace GEO;
          */
         void unset_filters();
 
-        void bind_custom_points_color(const float* rgba) {
-            custom_points_color_ = rgba;
+        std::size_t new_custom_points_group(const float* rgba, bool show) {
+            custom_points_groups_.push_back(CustomPointsGroup(rgba,show));
+            return index_of_last(custom_points_groups_);
         }
 
-        void add_custom_point(double x, double y, double z) {
-            custom_points_.push_back({x,y,z});
+        std::size_t new_custom_edges_group(const float* rgba, bool show) {
+            custom_edges_groups_.push_back(CustomEdgesGroup(rgba,show));
+            return index_of_last(custom_edges_groups_);
         }
 
-        void add_custom_edge(float r, float g, float b, float a, double x1, double y1, double z1, double x2, double y2, double z2) {
-            custom_edges_[{r,g,b,a}].push_back(
+        void add_custom_point(std::size_t group, double x, double y, double z) {
+            custom_points_groups_.at(group).points.push_back({x,y,z});
+        }
+
+        void add_custom_edge(std::size_t group, double x1, double y1, double z1, double x2, double y2, double z2) {
+            custom_edges_groups_.at(group).edges.push_back(
                 std::make_pair<vec3d,vec3d>({x1,y1,z1},{x2,y2,z2})
             );
+        }
+
+        void set_custom_points_group_color(std::size_t index, const float* new_color) {
+            custom_points_groups_.at(index).color = new_color;
+        }
+
+        void set_custom_edges_group_color(std::size_t index, const float* new_color) {
+            custom_edges_groups_.at(index).color = new_color;
+        }
+
+        void set_custom_points_group_visibility(std::size_t index, bool visible) {
+            custom_points_groups_.at(index).show = visible;
+        }
+
+        void set_custom_edges_group_visibility(std::size_t index, bool visible) {
+            custom_edges_groups_.at(index).show = visible;
         }
         
     protected:
@@ -1034,10 +1087,8 @@ using namespace GEO;
         std::map<index_t,const GLUPfloat*> value_to_color_; // used for int attributes only (when facets_colors_by_int_attribute_==true)
         Attribute<index_t> int_attribute_; // used for int attributes only (when facets_colors_by_int_attribute_==true)
 
-        std::vector<std::array<double,3>> custom_points_;
-        const float* custom_points_color_;
-
-        std::map<vec4f,std::vector<std::pair<vec3d,vec3d>>,VecngCompare<4,float>> custom_edges_; // edges grouped by color
+        vector<CustomPointsGroup> custom_points_groups_;
+        vector<CustomEdgesGroup> custom_edges_groups_;
 
         /**
          * \brief Filters primitives based on their id and on

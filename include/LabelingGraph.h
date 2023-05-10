@@ -175,12 +175,12 @@ struct StaticLabelingGraph {
     //// Quick access to problematic LabelingGraph features //////////////////
 
     vector<index_t> invalid_charts;
-    // TODO vector<int> boundaries_between_opposite_labels
+    vector<index_t> invalid_boundaries;
     // TODO vector<int> invalid_corners
 
     //// Fill & clear //////////////////
 
-    void fill_from(Mesh& mesh, std::string facet_attribute);
+    void fill_from(Mesh& mesh, std::string facet_attribute, bool allow_boundaries_between_opposite_labels);
     void clear();
 
     //// Getters for sizes //////////////////
@@ -191,6 +191,7 @@ struct StaticLabelingGraph {
     std::size_t nb_facets() const; // to iterate over facet2chart
     std::size_t nb_vertices() const; // to iterate over vertex2corner
     std::size_t nb_invalid_charts() const;
+    std::size_t nb_invalid_boundaries() const;
 
     //// Export //////////////////
 

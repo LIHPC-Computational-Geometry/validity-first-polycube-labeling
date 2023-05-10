@@ -202,7 +202,7 @@ std::ostream& operator<< (std::ostream &out, const Boundary& data) {
     return out;
 }
 
-void StaticLabelingGraph::fill_from(Mesh& mesh, std::string facet_attribute) {
+void StaticLabelingGraph::fill_from(Mesh& mesh, std::string facet_attribute, bool allow_boundaries_between_opposite_labels) {
 
     // based on https://github.com/LIHPC-Computational-Geometry/genomesh/blob/main/src/flagging.cpp#L795
     // but here we use a disjoint-set for step 1
@@ -306,6 +306,12 @@ void StaticLabelingGraph::fill_from(Mesh& mesh, std::string facet_attribute) {
                                        corners,
                                        halfedge2boundary,
                                        boundary_edges_to_explore);
+            
+            if((boundaries.back().axis==-1) && allow_boundaries_between_opposite_labels==false) {
+                // this is an invalid boundary
+                // TODO if interior angle < 180°, it should be considered invalid even if allow_boundaries_between_opposite_labels==true
+                invalid_boundaries.push_back((index_t) index_of_last(boundaries));
+            }
         }
     }}
 
@@ -335,6 +341,7 @@ void StaticLabelingGraph::clear() {
     halfedge2boundary.clear();
     vertex2corner.clear();
     invalid_charts.clear();
+    invalid_boundaries.clear();
     // note : the mesh attributes will not be removed, because we no longer have a ref/pointer to the mesh
 }
 
@@ -360,6 +367,10 @@ std::size_t StaticLabelingGraph::nb_vertices() const {
 
 std::size_t StaticLabelingGraph::nb_invalid_charts() const {
     return invalid_charts.size();
+}
+
+std::size_t StaticLabelingGraph::nb_invalid_boundaries() const {
+    return invalid_boundaries.size();
 }
 
 void StaticLabelingGraph::dump_to_file(const char* filename) const {
