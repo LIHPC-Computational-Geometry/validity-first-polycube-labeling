@@ -111,7 +111,12 @@ void Boundary::explore(const CustomMeshHalfedges::Halfedge& initial_halfedge,
                        std::map<CustomMeshHalfedges::Halfedge,std::pair<index_t,bool>,HalfedgeCompare>& halfedge2boundary,
                        std::vector<CustomMeshHalfedges::Halfedge>& boundary_edges_to_explore) {
 
-    geo_assert(empty());
+    // only the start_corner should be filled
+    geo_assert(axis == -1);
+    geo_assert(halfedges.empty());
+    geo_assert(left_chart == LabelingGraph::UNDEFINED);
+    geo_assert(right_chart == LabelingGraph::UNDEFINED);
+    geo_assert(end_corner == LabelingGraph::UNDEFINED);
 
     // initialization
     index_t current_vertex = LabelingGraph::UNDEFINED;
@@ -119,11 +124,7 @@ void Boundary::explore(const CustomMeshHalfedges::Halfedge& initial_halfedge,
     CustomMeshHalfedges::Halfedge current_halfedge = initial_halfedge; // create a modifiable halfedge
 
     // Step 1 : store information we already have with the first boundary edge:
-    // the start corner, the charts at the left and right, and the axis
-
-    // fill start_corner field
-    start_corner = vertex2corner[mesh.facet_corners.vertex(initial_halfedge.corner)];
-    geo_assert(start_corner != LabelingGraph::UNDEFINED);
+    // the charts at the left and right, and the axis
     
     // fill left_chart field
     left_chart = facet2chart[initial_halfedge.facet]; // link the current boundary to the chart at its left
@@ -154,9 +155,11 @@ void Boundary::explore(const CustomMeshHalfedges::Halfedge& initial_halfedge,
 
             mesh_halfedges.custom_move_to_next_around_border(current_halfedge); // cross current_vertex
 
-            if(VECTOR_CONTAINS(halfedges,current_halfedge)) { // prevent infinite loops
-                fmt::println(Logger::err("LabelingGraph"),"backtracked while exploring a boundary, no valence>3 vertex ring found :(");
-                geo_abort();
+            if(VECTOR_CONTAINS(halfedges,current_halfedge)) {
+                // we went back on our steps
+                // -> case of a boundary with no corner
+                geo_assert(start_corner==LabelingGraph::UNDEFINED);
+                break;
             }
 
             halfedge2boundary[current_halfedge] = {index_of_self,true}; // mark this halfedge, link it to the current boundary
@@ -296,6 +299,7 @@ void StaticLabelingGraph::fill_from(Mesh& mesh, std::string facet_attribute, boo
             }
 
             boundaries.push_back(Boundary()); // create a new boundary
+            boundaries.back().start_corner = vertex2corner[mesh.facet_corners.vertex(halfedge.corner)]; // link this boundary to the corner at the beginning
             // explore it, edge by edge
             boundaries.back().explore(halfedge,
                                        mesh_half_edges_,
@@ -316,7 +320,42 @@ void StaticLabelingGraph::fill_from(Mesh& mesh, std::string facet_attribute, boo
     }}
 
     // STEP 3 : Find boundaries with no corners
-    // TODO
+    // explore all half edges
+    // if not linked to a boundary, look at neighboring labels
+    // if they are different, explore this boundary
+    for(index_t f: mesh.facets) { for(index_t c: mesh.facets.corners(f)) {
+        CustomMeshHalfedges::Halfedge halfedge(f,c); // halfedge on facet f having corner c as base
+
+        if (MAP_CONTAINS(halfedge2boundary,halfedge)) {
+            // halfedge is on an already explorer boundary
+            continue;
+        }
+
+        if (!mesh_half_edges_.halfedge_is_border(halfedge)) {
+            // halfedge is inside a chart
+            continue;
+        }
+
+        boundaries.push_back(Boundary()); // create a new boundary
+        boundaries.back().start_corner = LabelingGraph::UNDEFINED; // no corner at the beginning
+        // explore it, edge by edge
+        boundaries.back().explore(halfedge,
+                                  mesh_half_edges_,
+                                  (index_t) index_of_last(boundaries), // get the index of this boundary
+                                  facet2chart,
+                                  vertex2corner,
+                                  charts,
+                                  corners,
+                                  halfedge2boundary,
+                                  boundary_edges_to_explore);
+        if((boundaries.back().axis==-1) && allow_boundaries_between_opposite_labels==false) {
+            // this is an invalid boundary
+            // TODO if interior angle < 180°, it should be considered invalid even if allow_boundaries_between_opposite_labels==true
+            invalid_boundaries.push_back((index_t) index_of_last(boundaries));
+        }
+    }}
+
+    // TODO compute turning points
 
     // STEP 4 : Find invalid charts
 
