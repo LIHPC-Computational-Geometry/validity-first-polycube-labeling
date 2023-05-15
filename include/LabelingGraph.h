@@ -51,6 +51,7 @@ struct Chart {
     //// Properties //////////////////
 
     index_t label = LabelingGraph::UNDEFINED;
+    // validity is not stored because it's inexpensive to compute (boundaries.size() >= 4), and not needed for the visualization (facet attribute instead)
 
     //// Underlying geometry //////////////////
 
@@ -96,9 +97,13 @@ template <> struct fmt::formatter<VertexRingWithBoundaries> : ostream_formatter 
 // based on https://github.com/LIHPC-Computational-Geometry/genomesh/blob/main/include/flagging.h#L126
 struct Corner {
 
+    //// Properties //////////////////
+
+    bool is_valid = false;
+
     //// Underlying geometry //////////////////
 
-    index_t vertex;
+    index_t vertex = LabelingGraph::UNDEFINED;
 
     //// Adjacency //////////////////
 
@@ -123,6 +128,7 @@ struct Boundary {
     //// Properties //////////////////
 
     int axis = -1; // in {0 = X, 1 = Y, 2 = Z, -1 = boundary between opposite labels }
+    bool is_valid = false;
 
     //// Underlying geometry //////////////////
 

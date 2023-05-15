@@ -314,7 +314,11 @@ void StaticLabelingGraph::fill_from(Mesh& mesh, std::string facet_attribute, boo
             if((boundaries.back().axis==-1) && allow_boundaries_between_opposite_labels==false) {
                 // this is an invalid boundary
                 // TODO if interior angle < 180°, it should be considered invalid even if allow_boundaries_between_opposite_labels==true
+                boundaries.back().is_valid = false;
                 invalid_boundaries.push_back((index_t) index_of_last(boundaries));
+            }
+            else {
+                boundaries.back().is_valid = true;
             }
         }
     }}
@@ -351,7 +355,11 @@ void StaticLabelingGraph::fill_from(Mesh& mesh, std::string facet_attribute, boo
         if((boundaries.back().axis==-1) && allow_boundaries_between_opposite_labels==false) {
             // this is an invalid boundary
             // TODO if interior angle < 180°, it should be considered invalid even if allow_boundaries_between_opposite_labels==true
+            boundaries.back().is_valid = false;
             invalid_boundaries.push_back((index_t) index_of_last(boundaries));
+        }
+        else {
+            boundaries.back().is_valid = true;
         }
     }}
 

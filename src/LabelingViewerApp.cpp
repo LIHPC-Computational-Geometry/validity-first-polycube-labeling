@@ -1992,22 +1992,21 @@ namespace {
 				const double* coordinates_first_point = halfedge_vertex_from(mesh_,be).data();
 				const double* coordinates_second_point = halfedge_vertex_to(mesh_,be).data();
 				switch(boundary.axis) {
-					case -1:
-						// May or may not be invalid. We must look at static_labeling_graph.invalid_boundaries
-						if(VECTOR_CONTAINS(static_labeling_graph.invalid_boundaries,i)) {
-							group_index = invalid_boundaries_group_index;
-						}
-						else {
+					case -1: // may or may not be invalid
+						if(boundary.is_valid) {
 							group_index = valid_but_axisless_boundaries_group_index;
 						}
+						else {
+							group_index = invalid_boundaries_group_index;
+						}
 						break;
-					case 0:
+					case 0: // always valid
 						group_index = X_boundaries_group_index;
 						break;
-					case 1:
+					case 1: // always valid
 						group_index = Y_boundaries_group_index;
 						break;
-					case 2:
+					case 2: // always valid
 						group_index = Z_boundaries_group_index;
 						break;
 					default:
