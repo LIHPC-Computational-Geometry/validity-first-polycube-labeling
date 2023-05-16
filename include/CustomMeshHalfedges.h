@@ -257,6 +257,7 @@ using namespace GEO::Geom;
 
         // why move_to_next_around_border() does not have the same behavior ??
         void custom_move_to_next_around_border(Halfedge& H) const;
+        void custom_move_to_prev_around_border(Halfedge& H) const;
 
         /**
          * \brief Replaces a Halfedge with the previous one around the border.

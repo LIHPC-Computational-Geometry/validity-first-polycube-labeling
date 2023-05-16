@@ -93,6 +93,9 @@ std::ostream& operator<< (std::ostream &out, const VertexRingWithBoundaries& dat
 // https://fmt.dev/latest/api.html#std-ostream-support
 template <> struct fmt::formatter<VertexRingWithBoundaries> : ostream_formatter {};
 
+// we must declare that 'Boundary' will be defined later
+struct Boundary;
+
 // A vertex where 3 or more boundaries are meeting
 // based on https://github.com/LIHPC-Computational-Geometry/genomesh/blob/main/include/flagging.h#L126
 struct Corner {
@@ -114,6 +117,8 @@ struct Corner {
     std::size_t valence() const; // number of adjacent boundary edges
 
     bool halfedge_is_in_boundary_edges(const CustomMeshHalfedges::Halfedge& halfedge) const;
+
+    bool compute_validity(const std::vector<Boundary>& boundaries, const std::map<CustomMeshHalfedges::Halfedge,std::pair<index_t,bool>,HalfedgeCompare>& halfedge2boundary, const CustomMeshHalfedges& mesh_halfedges);
 };
 
 std::ostream& operator<< (std::ostream &out, const Corner& data);
@@ -182,7 +187,7 @@ struct StaticLabelingGraph {
 
     vector<index_t> invalid_charts;
     vector<index_t> invalid_boundaries;
-    // TODO vector<int> invalid_corners
+    vector<index_t> invalid_corners;
 
     //// Fill & clear //////////////////
 
@@ -198,6 +203,7 @@ struct StaticLabelingGraph {
     std::size_t nb_vertices() const; // to iterate over vertex2corner
     std::size_t nb_invalid_charts() const;
     std::size_t nb_invalid_boundaries() const;
+    std::size_t nb_invalid_corners() const;
 
     //// Export //////////////////
 

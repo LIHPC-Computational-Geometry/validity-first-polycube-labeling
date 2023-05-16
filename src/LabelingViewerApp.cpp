@@ -265,6 +265,18 @@ namespace {
 		invalid_boundaries_color_[2] = 0.0f;
 		invalid_boundaries_color_[3] = 1.0f;
 
+		// valid corners in blue by default
+		valid_corners_color_[0] = 0.0f;
+		valid_corners_color_[1] = 0.0f;
+		valid_corners_color_[2] = 1.0f;
+		valid_corners_color_[3] = 1.0f;
+
+		// invalid corners in red by default
+		invalid_corners_color_[0] = 1.0f;
+		invalid_corners_color_[1] = 0.0f;
+		invalid_corners_color_[2] = 0.0f;
+		invalid_corners_color_[3] = 1.0f;
+
 		previous_labeling_visu_mode_ = VIEW_RAW_LABELING;
 		current_labeling_visu_mode_ = VIEW_RAW_LABELING;
     }
@@ -692,7 +704,8 @@ namespace {
 					lighting_ = true;
 					mesh_gfx_.unset_scalar_attribute();
 					mesh_gfx_.unset_facets_colors_by_int_attribute();
-					mesh_gfx_.set_custom_points_group_visibility(corner_group_index,false);
+					mesh_gfx_.set_custom_points_group_visibility(valid_corners_group_index,false);
+					mesh_gfx_.set_custom_points_group_visibility(invalid_corners_group_index,false);
 					mesh_gfx_.set_custom_edges_group_visibility(X_boundaries_group_index,false);
 					mesh_gfx_.set_custom_edges_group_visibility(Y_boundaries_group_index,false);
 					mesh_gfx_.set_custom_edges_group_visibility(Z_boundaries_group_index,false);
@@ -704,7 +717,8 @@ namespace {
 					lighting_ = false;
 					mesh_gfx_.unset_scalar_attribute();
 					mesh_gfx_.set_facets_colors_by_int_attribute(LABELING_ATTRIBUTE_NAME);
-					mesh_gfx_.set_custom_points_group_visibility(corner_group_index,false);
+					mesh_gfx_.set_custom_points_group_visibility(valid_corners_group_index,false);
+					mesh_gfx_.set_custom_points_group_visibility(invalid_corners_group_index,false);
 					mesh_gfx_.set_custom_edges_group_visibility(X_boundaries_group_index,false);
 					mesh_gfx_.set_custom_edges_group_visibility(Y_boundaries_group_index,false);
 					mesh_gfx_.set_custom_edges_group_visibility(Z_boundaries_group_index,false);
@@ -716,7 +730,10 @@ namespace {
 					lighting_ = false;
 					mesh_gfx_.unset_scalar_attribute();
 					mesh_gfx_.set_facets_colors_by_int_attribute(LABELING_ATTRIBUTE_NAME);
-					mesh_gfx_.set_custom_points_group_visibility(corner_group_index,true);
+					mesh_gfx_.set_custom_points_group_color(valid_corners_group_index,corners_color_);
+					mesh_gfx_.set_custom_points_group_color(invalid_corners_group_index,corners_color_); // no 	distinction between valid and invalid corners in this view
+					mesh_gfx_.set_custom_points_group_visibility(valid_corners_group_index,true);
+					mesh_gfx_.set_custom_points_group_visibility(invalid_corners_group_index,true);
 					mesh_gfx_.set_custom_edges_group_color(X_boundaries_group_index,labeling_colors_[0]); // axis X -> color of label 0 = +X
 					mesh_gfx_.set_custom_edges_group_color(Y_boundaries_group_index,labeling_colors_[2]); // axis Y -> color of label 2 = +Y
 					mesh_gfx_.set_custom_edges_group_color(Z_boundaries_group_index,labeling_colors_[4]); // axis Z -> color of label 4 = +Z
@@ -731,7 +748,8 @@ namespace {
 					lighting_ = false;
 					mesh_gfx_.unset_facets_colors_by_int_attribute();
 					mesh_gfx_.set_scalar_attribute(MESH_FACETS,"on_invalid_chart",0.0,1.0,TO_GL_TEXTURE_INDEX(COLORMAP_BLUE_RED)); // color according to whether the facet in on an invalid chart or not
-					mesh_gfx_.set_custom_points_group_visibility(corner_group_index,false);
+					mesh_gfx_.set_custom_points_group_visibility(valid_corners_group_index,false);
+					mesh_gfx_.set_custom_points_group_visibility(invalid_corners_group_index,false);
 					mesh_gfx_.set_custom_edges_group_color(X_boundaries_group_index,labeling_colors_[0]); // axis X -> color of label 0 = +X
 					mesh_gfx_.set_custom_edges_group_color(Y_boundaries_group_index,labeling_colors_[2]); // axis Y -> color of label 2 = +Y
 					mesh_gfx_.set_custom_edges_group_color(Z_boundaries_group_index,labeling_colors_[4]); // axis Z -> color of label 4 = +Z
@@ -746,7 +764,8 @@ namespace {
 					lighting_ = false;
 					mesh_gfx_.unset_facets_colors_by_int_attribute();
 					mesh_gfx_.unset_scalar_attribute();
-					mesh_gfx_.set_custom_points_group_visibility(corner_group_index,false);
+					mesh_gfx_.set_custom_points_group_visibility(valid_corners_group_index,false);
+					mesh_gfx_.set_custom_points_group_visibility(invalid_corners_group_index,false);
 					mesh_gfx_.set_custom_edges_group_color(X_boundaries_group_index,valid_boundaries_color_);
 					mesh_gfx_.set_custom_edges_group_color(Y_boundaries_group_index,valid_boundaries_color_);
 					mesh_gfx_.set_custom_edges_group_color(Z_boundaries_group_index,valid_boundaries_color_);
@@ -755,6 +774,24 @@ namespace {
 					mesh_gfx_.set_custom_edges_group_visibility(Z_boundaries_group_index,true);
 					mesh_gfx_.set_custom_edges_group_visibility(invalid_boundaries_group_index,true);
 					mesh_gfx_.set_custom_edges_group_visibility(valid_but_axisless_boundaries_group_index,true);
+					break;
+				case VIEW_INVALID_CORNERS:
+					show_mesh_ = false;
+					lighting_ = false;
+					mesh_gfx_.unset_facets_colors_by_int_attribute();
+					mesh_gfx_.unset_scalar_attribute();
+					mesh_gfx_.set_custom_points_group_color(valid_corners_group_index,valid_corners_color_);
+					mesh_gfx_.set_custom_points_group_color(invalid_corners_group_index,invalid_corners_color_);
+					mesh_gfx_.set_custom_points_group_visibility(valid_corners_group_index,true);
+					mesh_gfx_.set_custom_points_group_visibility(invalid_corners_group_index,true);
+					mesh_gfx_.set_custom_edges_group_color(X_boundaries_group_index,labeling_colors_[0]); // axis X -> color of label 0 = +X
+					mesh_gfx_.set_custom_edges_group_color(Y_boundaries_group_index,labeling_colors_[2]); // axis Y -> color of label 2 = +Y
+					mesh_gfx_.set_custom_edges_group_color(Z_boundaries_group_index,labeling_colors_[4]); // axis Z -> color of label 4 = +Z
+					mesh_gfx_.set_custom_edges_group_visibility(X_boundaries_group_index,true);
+					mesh_gfx_.set_custom_edges_group_visibility(Y_boundaries_group_index,true);
+					mesh_gfx_.set_custom_edges_group_visibility(Z_boundaries_group_index,true);
+					mesh_gfx_.set_custom_edges_group_visibility(invalid_boundaries_group_index,false);
+					mesh_gfx_.set_custom_edges_group_visibility(valid_but_axisless_boundaries_group_index,false);
 					break;
 				default:
 					geo_assert_not_reached;
@@ -1021,6 +1058,13 @@ namespace {
 			ImGui::BeginDisabled(current_labeling_visu_mode_!=VIEW_INVALID_BOUNDARIES);
 			ImGui::ColorEdit4WithPalette("Valid boundaries", valid_boundaries_color_);
 			ImGui::ColorEdit4WithPalette("Invalid boundaries", invalid_boundaries_color_);
+			ImGui::EndDisabled();
+
+			ImGui::RadioButton(fmt::format("View invalid corners ({})",static_labeling_graph.nb_invalid_corners()).c_str(),&current_labeling_visu_mode_,VIEW_INVALID_CORNERS);
+			
+			ImGui::BeginDisabled(current_labeling_visu_mode_!=VIEW_INVALID_CORNERS);
+			ImGui::ColorEdit4WithPalette("Valid corners", valid_corners_color_);
+			ImGui::ColorEdit4WithPalette("Invalid corners", invalid_corners_color_);
 			ImGui::EndDisabled();
 			
 			break;
@@ -1967,7 +2011,8 @@ namespace {
 
 		mesh_gfx_.clear_custom_drawings();
 
-		corner_group_index = mesh_gfx_.new_custom_points_group(corners_color_,true);
+		valid_corners_group_index = mesh_gfx_.new_custom_points_group(corners_color_,true);
+		invalid_corners_group_index = mesh_gfx_.new_custom_points_group(corners_color_,true);
 		X_boundaries_group_index = mesh_gfx_.new_custom_edges_group(labeling_colors_[0],false); // axis X -> color of label 0 = +X
 		Y_boundaries_group_index = mesh_gfx_.new_custom_edges_group(labeling_colors_[2],false); // axis Y -> color of label 2 = +Y
 		Z_boundaries_group_index = mesh_gfx_.new_custom_edges_group(labeling_colors_[4],false); // axis Z -> color of label 4 = +Z
@@ -1980,7 +2025,7 @@ namespace {
 			const double* coordinates = mesh_.vertices.point_ptr(
 				static_labeling_graph.corners[i].vertex
 			);
-			mesh_gfx_.add_custom_point(corner_group_index,coordinates[0], coordinates[1], coordinates[2]);
+			mesh_gfx_.add_custom_point(static_labeling_graph.corners[i].is_valid ? valid_corners_group_index : invalid_corners_group_index,coordinates[0], coordinates[1], coordinates[2]);
 		}
 
 		// store the coordinates of each boundary edge in mesh_gfx_
@@ -2020,7 +2065,8 @@ namespace {
 			}
 		}
 
-		mesh_gfx_.set_custom_points_group_visibility(corner_group_index,true);
+		mesh_gfx_.set_custom_points_group_visibility(valid_corners_group_index,true);
+		mesh_gfx_.set_custom_points_group_visibility(invalid_corners_group_index,true);
 		mesh_gfx_.set_custom_edges_group_visibility(X_boundaries_group_index,true);
 		mesh_gfx_.set_custom_edges_group_visibility(Y_boundaries_group_index,true);
 		mesh_gfx_.set_custom_edges_group_visibility(Z_boundaries_group_index,true);

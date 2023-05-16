@@ -84,8 +84,62 @@ bool Corner::halfedge_is_in_boundary_edges(const CustomMeshHalfedges::Halfedge& 
     return false;
 }
 
+bool Corner::compute_validity(const std::vector<Boundary>& boundaries, const std::map<CustomMeshHalfedges::Halfedge,std::pair<index_t,bool>,HalfedgeCompare>& halfedge2boundary, const CustomMeshHalfedges& mesh_halfedges) {
+    int per_axis_counter[3] = {0,0,0}; // number of X, Y, and Z boundaries
+    int axis_of_previous_boundary_edge = -1;
+    int axis_of_current_boundary_edge = -1;
+    int axis_of_next_boundary_edge = -1;
+    // going around all boundary edges of all vertex rings and count boundary axes
+    for(const auto& vr : vertex_rings_with_boundaries) {
+        for(const auto& be : vr.boundary_edges) {
+            axis_of_current_boundary_edge = boundaries[halfedge2boundary.at(be).first].axis; // get the boundary index, then the axis of this boundary
+            if(axis_of_current_boundary_edge == -1) {
+                // do not count the neighboring boundaries
+
+                // get previous and next boundary edges around the vertex. Easier with halhedges than with lbe indices.
+                CustomMeshHalfedges::Halfedge previous = be, next = be;
+                mesh_halfedges.custom_move_to_prev_around_border(previous);
+                mesh_halfedges.custom_move_to_next_around_border(next);
+
+                // get the axis of these boundaries
+                geo_assert(MAP_CONTAINS(halfedge2boundary,previous));
+                axis_of_previous_boundary_edge = boundaries[halfedge2boundary.at(previous).first].axis;
+                geo_assert((0 <= axis_of_previous_boundary_edge) && (axis_of_previous_boundary_edge <= 2));
+                geo_assert(MAP_CONTAINS(halfedge2boundary,next));
+                axis_of_next_boundary_edge = boundaries[halfedge2boundary.at(next).first].axis;
+                geo_assert((0 <= axis_of_next_boundary_edge) && (axis_of_next_boundary_edge <= 2));
+
+                // un-include them
+                per_axis_counter[axis_of_previous_boundary_edge]--;
+                per_axis_counter[axis_of_next_boundary_edge]--;
+            }
+            else {
+                per_axis_counter[axis_of_current_boundary_edge]++;
+            }
+        }
+    }
+
+    // only X, only Y or only Z boundaries -> invalid
+    if(
+    ((per_axis_counter[1]==0) && (per_axis_counter[2]==0)) ||
+    ((per_axis_counter[0]==0) && (per_axis_counter[2]==0)) ||
+    ((per_axis_counter[0]==0) && (per_axis_counter[1]==0)) ) {
+        is_valid = false;
+        return false;
+    }
+    
+    // to be valid, boundary axes should match two by two, leaving nothing or an {X,Y,Z} group
+    per_axis_counter[0] %= 2;
+    per_axis_counter[1] %= 2;
+    per_axis_counter[2] %= 2;
+    is_valid = ((per_axis_counter[0]==0) && (per_axis_counter[1]==0) && (per_axis_counter[2]==0)) ||
+               ((per_axis_counter[0]==1) && (per_axis_counter[1]==1) && (per_axis_counter[2]==1));
+    return is_valid;
+}
+
 std::ostream& operator<< (std::ostream &out, const Corner& data) {
     fmt::println(out,"\tvertex : {}",data.vertex);
+    fmt::println(out,"\tis_valid : {}",data.is_valid);
     fmt::println(out,"\t{} vertex ring(s) with boundaries : {}",data.vertex_rings_with_boundaries.size(),data.vertex_rings_with_boundaries);
     return out;
 }
@@ -197,6 +251,7 @@ void Boundary::explore(const CustomMeshHalfedges::Halfedge& initial_halfedge,
 
 std::ostream& operator<< (std::ostream &out, const Boundary& data) {
     fmt::println(out,"\taxis : {}",data.axis);
+    fmt::println(out,"\tis_valid : {}",data.is_valid);
     fmt::println(out,"\thalfedges : {}",data.halfedges);
     fmt::println(out,"\tleft_chart : {}",OPTIONAL_TO_STRING(data.left_chart));
     fmt::println(out,"\tright_chart : {}",OPTIONAL_TO_STRING(data.right_chart));
@@ -378,6 +433,13 @@ void StaticLabelingGraph::fill_from(Mesh& mesh, std::string facet_attribute, boo
             }
         }
     }
+
+    // STEP 5 : Find invalid corners
+    FOR(c,corners.size()) {
+        if(corners[c].compute_validity(boundaries,halfedge2boundary,mesh_half_edges_)==false) {
+            invalid_corners.push_back(c);
+        }
+    }
 }
 
 void StaticLabelingGraph::clear() {
@@ -389,6 +451,7 @@ void StaticLabelingGraph::clear() {
     vertex2corner.clear();
     invalid_charts.clear();
     invalid_boundaries.clear();
+    invalid_corners.clear();
     // note : the mesh attributes will not be removed, because we no longer have a ref/pointer to the mesh
 }
 
@@ -418,6 +481,10 @@ std::size_t StaticLabelingGraph::nb_invalid_charts() const {
 
 std::size_t StaticLabelingGraph::nb_invalid_boundaries() const {
     return invalid_boundaries.size();
+}
+
+std::size_t StaticLabelingGraph::nb_invalid_corners() const {
+    return invalid_corners.size();
 }
 
 void StaticLabelingGraph::dump_to_file(const char* filename) const {

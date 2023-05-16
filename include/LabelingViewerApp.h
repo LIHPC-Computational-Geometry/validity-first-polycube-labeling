@@ -118,6 +118,7 @@
 #define VIEW_LABELING_GRAPH		2
 #define VIEW_INVALID_CHARTS		3
 #define VIEW_INVALID_BOUNDARIES	4
+#define VIEW_INVALID_CORNERS	5
 
 struct lua_State;
 
@@ -689,10 +690,13 @@ using namespace GEO;
 	float corners_color_[4];
 	float valid_boundaries_color_[4];
 	float invalid_boundaries_color_[4];
+	float valid_corners_color_[4];
+	float invalid_corners_color_[4];
 	StaticLabelingGraph static_labeling_graph;
 	State previous_state_, current_state_;
 	int previous_labeling_visu_mode_, current_labeling_visu_mode_; // not a enum, to be used in ImGui
-	std::size_t corner_group_index;
+	std::size_t valid_corners_group_index;
+	std::size_t invalid_corners_group_index;
 	std::size_t X_boundaries_group_index;
 	std::size_t Y_boundaries_group_index;
 	std::size_t Z_boundaries_group_index;
