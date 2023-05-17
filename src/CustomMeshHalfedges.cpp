@@ -118,3 +118,22 @@ using namespace GEO;
         }
         geo_assert_not_reached;
     }
+
+    double CustomMeshHalfedges::is_on_lower_than_180_degrees_edge(Halfedge& H) const {
+        // define the plane passing through three points of H.facet
+        index_t vertex0 = mesh_.facet_corners.vertex(mesh_.facets.corner(H.facet,0));
+        index_t vertex1 = mesh_.facet_corners.vertex(mesh_.facets.corner(H.facet,1));
+        index_t vertex2 = mesh_.facet_corners.vertex(mesh_.facets.corner(H.facet,2));
+        Plane plane(mesh_.vertices.point(vertex0),mesh_.vertices.point(vertex1),mesh_.vertices.point(vertex2));
+        // change direction, so that H.facet is the facet at the other side of the edge
+        move_to_opposite(H);
+        // move so that the 3rd vertex of this facet (the one that is not on the original halfedge) is on the tip of the halhedge
+        move_to_next_around_facet(H);
+        vec3 tip = halfedge_vertex_to(mesh_,H); // get the coordinates
+        // move back to the initial halfedge
+        move_to_next_around_facet(H);
+        move_to_next_around_facet(H);
+        move_to_opposite(H);
+        // evaluate the plane equation at tip, return the sign
+        return ((plane.a * tip.x) + (plane.b * tip.y) + (plane.c * tip.z) + plane.d < 0);
+    }

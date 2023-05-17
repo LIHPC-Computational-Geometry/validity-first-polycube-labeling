@@ -85,6 +85,10 @@ struct VertexRingWithBoundaries {
                  const CustomMeshHalfedges& mesh_halfedges);
 
     void check_boundary_edges(const CustomMeshHalfedges& mesh_halfedges) const;
+
+    std::size_t circular_previous(std::size_t index) const;
+
+    std::size_t circular_next(std::size_t index) const;
 };
 
 std::ostream& operator<< (std::ostream &out, const VertexRingWithBoundaries& data);
@@ -118,7 +122,7 @@ struct Corner {
 
     bool halfedge_is_in_boundary_edges(const CustomMeshHalfedges::Halfedge& halfedge) const;
 
-    bool compute_validity(const std::vector<Boundary>& boundaries, const std::map<CustomMeshHalfedges::Halfedge,std::pair<index_t,bool>,HalfedgeCompare>& halfedge2boundary, const CustomMeshHalfedges& mesh_halfedges);
+    bool compute_validity(bool allow_boundaries_between_opposite_labels, const std::vector<Boundary>& boundaries, const std::map<CustomMeshHalfedges::Halfedge,std::pair<index_t,bool>,HalfedgeCompare>& halfedge2boundary);
 };
 
 std::ostream& operator<< (std::ostream &out, const Corner& data);
@@ -159,6 +163,10 @@ struct Boundary {
                  std::vector<Corner>& corners,
                  std::map<CustomMeshHalfedges::Halfedge,std::pair<index_t,bool>,HalfedgeCompare>& halfedge2boundary,
                  std::vector<CustomMeshHalfedges::Halfedge>& boundary_edges_to_explore);
+
+    bool contains_lower_than_180_degrees_angles(const CustomMeshHalfedges& mesh_halfedges);
+
+    bool compute_validity(bool allow_boundaries_between_opposite_labels, const CustomMeshHalfedges& mesh_halfedges);
 };
 
 std::ostream& operator<< (std::ostream &out, const Boundary& data);
@@ -189,6 +197,9 @@ struct StaticLabelingGraph {
     vector<index_t> invalid_boundaries;
     vector<index_t> invalid_corners;
 
+    //// Parameter given to last fill_from() //////////////////
+    bool allow_boundaries_between_opposite_labels_ = false;
+
     //// Fill & clear //////////////////
 
     void fill_from(Mesh& mesh, std::string facet_attribute, bool allow_boundaries_between_opposite_labels);
@@ -204,6 +215,10 @@ struct StaticLabelingGraph {
     std::size_t nb_invalid_charts() const;
     std::size_t nb_invalid_boundaries() const;
     std::size_t nb_invalid_corners() const;
+
+    //// Getters for parameter(s) //////////////////
+
+    std::size_t is_allowing_boundaries_between_opposite_labels() const;
 
     //// Export //////////////////
 

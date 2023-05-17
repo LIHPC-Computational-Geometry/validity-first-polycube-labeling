@@ -575,7 +575,7 @@ using namespace GEO;
 	virtual const char* default_layout_android_vertical() const;
 	virtual const char* default_layout_android_horizontal() const;		
 
-	void update_static_labeling_graph();
+	void update_static_labeling_graph(bool allow_boundaries_between_opposite_labels);
 	
       protected:
 	bool lighting_;
@@ -686,6 +686,7 @@ using namespace GEO;
     float             attribute_max_;
 
 	// added
+	bool allow_boundaries_between_opposite_labels_;
 	float labeling_colors_[6][4];
 	float corners_color_[4];
 	float valid_boundaries_color_[4];

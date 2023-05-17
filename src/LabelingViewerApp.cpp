@@ -207,6 +207,8 @@ namespace {
 
 		// added
 
+		allow_boundaries_between_opposite_labels_ = false; // parameter of StaticLabelingGraph::fill_from()
+
 		// default colors
 		// label 0 -> red
 		labeling_colors_[0][0] = 1.0f;
@@ -758,6 +760,9 @@ namespace {
 					mesh_gfx_.set_custom_edges_group_visibility(Z_boundaries_group_index,true);
 					mesh_gfx_.set_custom_edges_group_visibility(invalid_boundaries_group_index,false);
 					mesh_gfx_.set_custom_edges_group_visibility(valid_but_axisless_boundaries_group_index,false);
+
+					// use mesh_gfx_.draw_surface_borders() ?
+
 					break;
 				case VIEW_INVALID_BOUNDARIES:
 					show_mesh_ = false;
@@ -792,6 +797,9 @@ namespace {
 					mesh_gfx_.set_custom_edges_group_visibility(Z_boundaries_group_index,true);
 					mesh_gfx_.set_custom_edges_group_visibility(invalid_boundaries_group_index,false);
 					mesh_gfx_.set_custom_edges_group_visibility(valid_but_axisless_boundaries_group_index,false);
+
+					// use mesh_gfx_.draw_surface_borders() ?
+					
 					break;
 				default:
 					geo_assert_not_reached;
@@ -1019,16 +1027,30 @@ namespace {
 		switch (current_state_) {
 
 		case triangle_mesh:
+
+			ImGui::Checkbox("Allow boundaries between opposite labels",&allow_boundaries_between_opposite_labels_);
+
 			if(ImGui::Button("Compute naive labeling")) {
 
 				naive_labeling(mesh_,LABELING_ATTRIBUTE_NAME);
 
-				update_static_labeling_graph();
+				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 
 				current_state_ = labeling;
 			}
+			
 			break;
 		case labeling:
+
+			ImGui::Checkbox("Allow boundaries between opposite labels",&allow_boundaries_between_opposite_labels_);
+
+			ImGui::BeginDisabled( allow_boundaries_between_opposite_labels_ == static_labeling_graph.is_allowing_boundaries_between_opposite_labels() ); // allow to recompute only if the UI control value changed
+			if(ImGui::Button("Recompute labeling graph")) {
+				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+			}
+			ImGui::EndDisabled();
+
+			ImGui::Separator();
 
 			ImGui::RadioButton("View triangle mesh",&current_labeling_visu_mode_,VIEW_TRIANGLE_MESH);
 
@@ -1066,6 +1088,16 @@ namespace {
 			ImGui::ColorEdit4WithPalette("Valid corners", valid_corners_color_);
 			ImGui::ColorEdit4WithPalette("Invalid corners", invalid_corners_color_);
 			ImGui::EndDisabled();
+
+			if(
+			(static_labeling_graph.nb_invalid_charts()==0) && 
+			(static_labeling_graph.nb_invalid_boundaries()==0) && 
+			(static_labeling_graph.nb_invalid_corners()==0) ) {
+				ImGui::TextColored(ImVec4(0.0f,0.5f,0.0f,1.0f),"Valid labeling");
+			}
+			else {
+				ImGui::TextColored(ImVec4(0.8f,0.0f,0.0f,1.0f),"Invalid labeling");
+			}
 			
 			break;
 		
@@ -1715,7 +1747,7 @@ namespace {
 				return false;
 			}
 
-			update_static_labeling_graph();
+			update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 
 			current_state_ = labeling;
 
@@ -2000,10 +2032,10 @@ namespace {
         }
     }
 
-	void LabelingViewerApp::update_static_labeling_graph() {
+	void LabelingViewerApp::update_static_labeling_graph(bool allow_boundaries_between_opposite_labels) {
 
 		// compute charts, boundaries and corners of the labeling
-		static_labeling_graph.fill_from(mesh_,LABELING_ATTRIBUTE_NAME,false);
+		static_labeling_graph.fill_from(mesh_,LABELING_ATTRIBUTE_NAME,allow_boundaries_between_opposite_labels);
 
 		fmt::println(Logger::out("I/O"),"There are {} charts, {} corners and {} boundaries in this labeling.",static_labeling_graph.nb_charts(),static_labeling_graph.nb_corners(),static_labeling_graph.nb_boundaries());  Logger::out("I/O").flush();
 

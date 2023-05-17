@@ -276,6 +276,8 @@ using namespace GEO::Geom;
          */
         void move_to_opposite(Halfedge& H) const;
 
+        double is_on_lower_than_180_degrees_edge(Halfedge& H) const;
+
     private:
         Mesh& mesh_;
         Attribute<index_t> facet_region_;

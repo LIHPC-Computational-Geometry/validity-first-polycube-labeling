@@ -68,6 +68,9 @@ bool load_labeling(const std::string& filename, Mesh& mesh, const char* attribut
 }
 
 void naive_labeling(Mesh& mesh, const char* attribute_name) {
+
+    // use GEO::Geom::triangle_normal_axis() instead ?
+
     Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // create a facet attribute in this mesh
     GEO::vec3 normal;
     std::array<double,6> weights;
