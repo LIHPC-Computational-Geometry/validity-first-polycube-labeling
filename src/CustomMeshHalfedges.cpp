@@ -119,7 +119,7 @@ using namespace GEO;
         geo_assert_not_reached;
     }
 
-    double CustomMeshHalfedges::is_on_lower_than_180_degrees_edge(Halfedge& H) const {
+    bool CustomMeshHalfedges::is_on_lower_than_180_degrees_edge(Halfedge& H) const {
         // define the plane passing through three points of H.facet
         index_t vertex0 = mesh_.facet_corners.vertex(mesh_.facets.corner(H.facet,0));
         index_t vertex1 = mesh_.facet_corners.vertex(mesh_.facets.corner(H.facet,1));

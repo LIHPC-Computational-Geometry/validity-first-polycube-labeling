@@ -267,7 +267,7 @@ void Boundary::explore(const CustomMeshHalfedges::Halfedge& initial_halfedge,
 }
 
 bool Boundary::contains_lower_than_180_degrees_angles(const CustomMeshHalfedges& mesh_halfedges) {
-    for(auto be : halfedges) { // need to be mutable, but well be 
+    for(auto be : halfedges) { // need to be mutable, but will be back on the original halfedge
         if(mesh_halfedges.is_on_lower_than_180_degrees_edge(be)) {
             return true;
         }
