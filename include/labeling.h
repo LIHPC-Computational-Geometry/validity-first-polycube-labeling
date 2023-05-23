@@ -2,6 +2,8 @@
 
 #include <geogram/mesh/mesh.h> // for GEO::Mesh
 
+#include "LabelingGraph.h"
+
 using namespace GEO;
 
 bool load_labeling(const std::string& filename, Mesh& mesh, const char* attribute_name);
@@ -14,3 +16,5 @@ bool load_labeling(const std::string& filename, Mesh& mesh, const char* attribut
  * \param[in] attribute_name The name of the facet attribute in which the labeling will be stored
  */
 void naive_labeling(GEO::Mesh& mesh, const char* attribute_name);
+
+unsigned int remove_surrounded_charts(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& static_labeling_graph);

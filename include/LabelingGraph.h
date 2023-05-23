@@ -60,7 +60,7 @@ struct Chart {
     //// Adjacency //////////////////
 
     std::set<index_t> boundaries; // indices of adjacent boundaries
-    // adjacent charts can be retrieved by "looking at the other side" of each boundary
+    // adjacent charts can be retrieved with Boundary::chart_at_the_other_side()
 };
 
 std::ostream& operator<< (std::ostream &out, const Chart& data);
@@ -167,6 +167,8 @@ struct Boundary {
     bool contains_lower_than_180_degrees_angles(const CustomMeshHalfedges& mesh_halfedges);
 
     bool compute_validity(bool allow_boundaries_between_opposite_labels, const CustomMeshHalfedges& mesh_halfedges);
+
+    index_t chart_at_other_side(index_t origin_chart) const;
 };
 
 std::ostream& operator<< (std::ostream &out, const Boundary& data);

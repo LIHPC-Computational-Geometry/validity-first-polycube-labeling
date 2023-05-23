@@ -10,6 +10,7 @@
 #include <iterator>  // for std::distance()
 
 #include "labeling.h"
+#include "LabelingGraph.h"
 
 bool load_labeling(const std::string& filename, Mesh& mesh, const char* attribute_name) {
 
@@ -87,4 +88,38 @@ void naive_labeling(Mesh& mesh, const char* attribute_name) {
         };
         label[f] = (index_t) std::distance(weights.begin(),std::max_element(weights.begin(),weights.end())); // get index of max
     }
+}
+
+unsigned int remove_surrounded_charts(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& static_labeling_graph) {
+    Attribute<index_t> label(mesh.facets.attributes(), attribute_name);
+
+    // Get charts surronded by only 1 label
+    // Broader fix than just looking at charts having 1 boundary
+
+    unsigned int modified_charts_count = 0;
+    for(index_t chart_index : static_labeling_graph.invalid_charts) {
+        auto boundary_iterator = static_labeling_graph.charts[chart_index].boundaries.begin();
+        index_t chart_at_other_side = static_labeling_graph.boundaries[*boundary_iterator].chart_at_other_side(chart_index);
+        index_t surrounding_label = static_labeling_graph.charts[chart_at_other_side].label;
+
+        boundary_iterator++; // go to next boundary
+        for(;boundary_iterator != static_labeling_graph.charts[chart_index].boundaries.end();++boundary_iterator) {
+            chart_at_other_side = static_labeling_graph.boundaries[*boundary_iterator].chart_at_other_side(chart_index);
+            if(surrounding_label != static_labeling_graph.charts[chart_at_other_side].label) {
+                goto skip_modification; // this chart has several labels around (goto because break in nested loops is a worse idea)
+            }
+        }
+
+        // if we are here, the goto was not used, so the only label around is surrounding_label
+        for(index_t facet_index : static_labeling_graph.charts[chart_index].facets) {
+            label[facet_index] = surrounding_label;
+        }
+        modified_charts_count++;
+
+
+        skip_modification:
+            ; // just end this loop interation
+    }
+
+    return modified_charts_count;
 }

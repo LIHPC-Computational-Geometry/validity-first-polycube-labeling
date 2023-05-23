@@ -1098,6 +1098,19 @@ namespace {
 			else {
 				ImGui::TextColored(ImVec4(0.8f,0.0f,0.0f,1.0f),"Invalid labeling");
 			}
+
+			ImGui::Separator();
+
+			if(ImGui::Button("Fix labeling")) {
+
+				unsigned int nb_chart_modified = 0;
+				
+				do {
+					nb_chart_modified = remove_surrounded_charts(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph);
+					fmt::println(Logger::out("fix_labeling"),"{} chart(s) modified with the surrounding label",nb_chart_modified); Logger::out("fix_labeling").flush();
+					update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+				} while (nb_chart_modified != 0);
+			}
 			
 			break;
 		

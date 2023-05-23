@@ -293,6 +293,20 @@ bool Boundary::compute_validity(bool allow_boundaries_between_opposite_labels, c
     return is_valid;
 }
 
+index_t Boundary::chart_at_other_side(index_t origin_chart) const {
+    geo_assert(left_chart != LabelingGraph::UNDEFINED);
+    geo_assert(right_chart != LabelingGraph::UNDEFINED);
+    if(left_chart == origin_chart) {
+        return right_chart;
+    }
+    else if(right_chart == origin_chart) {
+        return left_chart;
+    }
+    else {
+        geo_assert_not_reached;
+    }
+}
+
 std::ostream& operator<< (std::ostream &out, const Boundary& data) {
     fmt::println(out,"\taxis : {}",data.axis);
     fmt::println(out,"\tis_valid : {}",data.is_valid);
