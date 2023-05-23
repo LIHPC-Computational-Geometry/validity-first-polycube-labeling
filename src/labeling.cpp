@@ -174,5 +174,41 @@ unsigned int fix_invalid_boundaries(GEO::Mesh& mesh, const char* attribute_name,
         new_charts_count++;
     }
 
-    return new_charts_count;
+    return new_charts_count; // should be == to slg.invalid_boundaries.size()
+}
+
+unsigned int fix_invalid_corners(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg) {
+    Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // get labeling attribute
+    CustomMeshHalfedges mesh_half_edges_(mesh); // create an halfedges interface for this mesh
+
+    // Replace the labels around invalid corners
+    // by the nearest one from the vertex normal
+
+    unsigned int new_charts_count = 0;
+    index_t new_label;
+    vec3 vertex_normal = {0,0,0};
+    for(index_t corner_index : slg.invalid_corners) { // for each invalid corner
+
+        // compute the normal by adding normals of adjacent facets
+        vertex_normal = {0,0,0};
+        for(auto& vr : slg.corners[corner_index].vertex_rings_with_boundaries) { // for each vertex ring
+            for(auto& be : vr.boundary_edges) { // for each boundary edge
+                vertex_normal += Geom::mesh_facet_normal(mesh,be.facet); // compute normal of associated facet, update vertex_normal
+            }
+        }
+
+        // compute new label
+        new_label = nearest_label(vertex_normal);
+
+        // change the label of adjacent facets
+        for(auto& vr : slg.corners[corner_index].vertex_rings_with_boundaries) { // for each vertex ring
+            for(auto& be : vr.boundary_edges) { // for each boundary edge
+                label[be.facet] = new_label; // change the label of this facet
+            }
+        }
+
+        new_charts_count++;
+    }
+
+    return new_charts_count; // should be == to slg.invalid_corners.size()
 }
