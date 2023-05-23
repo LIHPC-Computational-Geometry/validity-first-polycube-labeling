@@ -5,8 +5,6 @@
 
 #include "CustomMeshHalfedges.h"
 
-typedef vecng<3, Numeric::float64> vec3d; // Geogram only has a float version of vec3
-
 inline int label2axis(GEO::index_t label) {
     // GEO::index_t is unsigned, so no need to check (0 <= label)
     geo_assert(label <= 5);

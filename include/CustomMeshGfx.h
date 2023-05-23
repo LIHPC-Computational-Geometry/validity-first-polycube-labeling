@@ -26,7 +26,6 @@
 // - new variable : custom_points_groups_
 // - new functions : new_custom_points_group(), add_custom_point(), set_custom_points_group_color(), set_custom_points_group_visibility(),
 //                   draw_custom_points(), clear_custom_drawings()
-// - inclusion of geometry.h for vec3d type
 //
 // ### Changed
 //
@@ -75,7 +74,6 @@
 #include <map>
 #include <utility> // for std::pair
 
-#include "geometry.h" // for vec3d
 #include "containers.h" // for index_of_last
 
 /**
@@ -94,7 +92,7 @@ using namespace GEO;
     public:
 
         struct CustomPointsGroup {
-            std::vector<vec3d> points;
+            std::vector<vec3> points;
             const float* color = nullptr; // storing a pointer allows for color modification from the GUI
             bool show = false;
 
@@ -103,7 +101,7 @@ using namespace GEO;
         };
 
         struct CustomEdgesGroup {
-            std::vector<std::pair<vec3d,vec3d>> edges;
+            std::vector<std::pair<vec3,vec3>> edges;
             const float* color = nullptr; // storing a pointer allows for color modification from the GUI
             bool show = false;
 
@@ -763,7 +761,7 @@ using namespace GEO;
 
         void add_custom_edge(std::size_t group, double x1, double y1, double z1, double x2, double y2, double z2) {
             custom_edges_groups_.at(group).edges.push_back(
-                std::make_pair<vec3d,vec3d>({x1,y1,z1},{x2,y2,z2})
+                std::make_pair<vec3,vec3>({x1,y1,z1},{x2,y2,z2})
             );
         }
 
