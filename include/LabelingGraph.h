@@ -142,6 +142,7 @@ struct Boundary {
     //// Underlying geometry //////////////////
 
     std::vector<CustomMeshHalfedges::Halfedge> halfedges;
+    vec3 average_normal = {0,0,0};
 
     //// Adjacency //////////////////
 

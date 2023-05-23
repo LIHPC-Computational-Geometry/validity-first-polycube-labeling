@@ -5,9 +5,10 @@
 #include <fmt/core.h>
 #include <fmt/ostream.h>
 
-#include <array>     // for std::array
-#include <algorithm> // for std::max_element()
-#include <iterator>  // for std::distance()
+#include <array>            // for std::array
+#include <initializer_list> // for std::initializer_list
+#include <algorithm>        // for std::max_element()
+#include <iterator>         // for std::distance()
 
 #include "labeling.h"
 #include "LabelingGraph.h"
@@ -68,50 +69,54 @@ bool load_labeling(const std::string& filename, Mesh& mesh, const char* attribut
     return true;
 }
 
+index_t nearest_label(const vec3& normal) {
+    // from 3 signed to 6 unsigned components:
+    std::array<double,6> weights = {
+        normal.x < 0.0 ? 0.0 : normal.x,  // +X
+        normal.x < 0.0 ? -normal.x : 0.0, // -X
+        normal.y < 0.0 ? 0.0 : normal.y,  // +Y
+        normal.y < 0.0 ? -normal.y : 0.0, // -Y
+        normal.z < 0.0 ? 0.0 : normal.z,  // +Z
+        normal.z < 0.0 ? -normal.z : 0.0  // -Z
+    };
+    // return index of max
+    return (index_t) std::distance(weights.begin(),std::max_element(weights.begin(),weights.end()));
+}
+
 void naive_labeling(Mesh& mesh, const char* attribute_name) {
 
     // use GEO::Geom::triangle_normal_axis() instead ?
 
     Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // create a facet attribute in this mesh
     GEO::vec3 normal;
-    std::array<double,6> weights;
     for(index_t f: mesh.facets) { // for each facet
-        normal = Geom::mesh_facet_normal(mesh,f); // get 3 signed components {x,y,z} of the normal
-        // from 3 signed to 6 unsigned components:
-        weights = {
-            normal.x < 0.0 ? 0.0 : normal.x,  // +X
-            normal.x < 0.0 ? -normal.x : 0.0, // -X
-            normal.y < 0.0 ? 0.0 : normal.y,  // +Y
-            normal.y < 0.0 ? -normal.y : 0.0, // -Y
-            normal.z < 0.0 ? 0.0 : normal.z,  // +Z
-            normal.z < 0.0 ? -normal.z : 0.0  // -Z
-        };
-        label[f] = (index_t) std::distance(weights.begin(),std::max_element(weights.begin(),weights.end())); // get index of max
+        normal = Geom::mesh_facet_normal(mesh,f);
+        label[f] = nearest_label(normal);
     }
 }
 
-unsigned int remove_surrounded_charts(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& static_labeling_graph) {
+unsigned int remove_surrounded_charts(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg) {
     Attribute<index_t> label(mesh.facets.attributes(), attribute_name);
 
     // Get charts surronded by only 1 label
     // Broader fix than just looking at charts having 1 boundary
 
     unsigned int modified_charts_count = 0;
-    for(index_t chart_index : static_labeling_graph.invalid_charts) {
-        auto boundary_iterator = static_labeling_graph.charts[chart_index].boundaries.begin();
-        index_t chart_at_other_side = static_labeling_graph.boundaries[*boundary_iterator].chart_at_other_side(chart_index);
-        index_t surrounding_label = static_labeling_graph.charts[chart_at_other_side].label;
+    for(index_t chart_index : slg.invalid_charts) {
+        auto boundary_iterator = slg.charts[chart_index].boundaries.begin();
+        index_t chart_at_other_side = slg.boundaries[*boundary_iterator].chart_at_other_side(chart_index);
+        index_t surrounding_label = slg.charts[chart_at_other_side].label;
 
         boundary_iterator++; // go to next boundary
-        for(;boundary_iterator != static_labeling_graph.charts[chart_index].boundaries.end();++boundary_iterator) {
-            chart_at_other_side = static_labeling_graph.boundaries[*boundary_iterator].chart_at_other_side(chart_index);
-            if(surrounding_label != static_labeling_graph.charts[chart_at_other_side].label) {
+        for(;boundary_iterator != slg.charts[chart_index].boundaries.end();++boundary_iterator) {
+            chart_at_other_side = slg.boundaries[*boundary_iterator].chart_at_other_side(chart_index);
+            if(surrounding_label != slg.charts[chart_at_other_side].label) {
                 goto skip_modification; // this chart has several labels around (goto because break in nested loops is a worse idea)
             }
         }
 
         // if we are here, the goto was not used, so the only label around is surrounding_label
-        for(index_t facet_index : static_labeling_graph.charts[chart_index].facets) {
+        for(index_t facet_index : slg.charts[chart_index].facets) {
             label[facet_index] = surrounding_label;
         }
         modified_charts_count++;
@@ -122,4 +127,52 @@ unsigned int remove_surrounded_charts(GEO::Mesh& mesh, const char* attribute_nam
     }
 
     return modified_charts_count;
+}
+
+unsigned int fix_invalid_boundaries(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg) {
+    Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // get labeling attribute
+    CustomMeshHalfedges mesh_half_edges_(mesh); // create an halfedges interface for this mesh
+
+    // For each invalid boundary,
+    // go through each vertex
+    // and modify the labels in the vertex ring
+
+    unsigned int new_charts_count = 0;
+    index_t new_label;
+    CustomMeshHalfedges::Halfedge current_halfedge;
+    for(index_t boundary_index : slg.invalid_boundaries) { // for each invalid boundary
+        const Boundary& current_boundary = slg.boundaries[boundary_index];
+        new_label = nearest_label(current_boundary.average_normal);
+
+        // Change the labels around the start/end corner, but only in place of the 2 charts next to the boundary
+        for(auto current_corner : std::initializer_list<index_t>({current_boundary.start_corner,current_boundary.end_corner})) {
+            geo_assert(current_corner != LabelingGraph::UNDEFINED);
+            for(auto& vr : slg.corners[current_corner].vertex_rings_with_boundaries) { // for each vertex ring
+                for(auto& be : vr.boundary_edges) { // for each boundary edge
+                    if(
+                    (slg.facet2chart[be.facet] == current_boundary.left_chart) || 
+                    (slg.facet2chart[be.facet] == current_boundary.right_chart) ) {
+                        // so be.facet is on one of the charts to shrink
+                        label[be.facet] = new_label;
+                    }
+                }
+            }
+        }
+
+        // Change the labels around the vertices between the two corners
+        auto boundary_halfedge = current_boundary.halfedges.cbegin();
+        boundary_halfedge++;
+        for(; boundary_halfedge != current_boundary.halfedges.cend(); ++boundary_halfedge) { // walk along the boundary
+            current_halfedge = (*boundary_halfedge); // copy the boundary halfedge into a mutable variable
+            // modify the labels around this vertex
+            do {
+                label[current_halfedge.facet] = new_label;
+                mesh_half_edges_.move_to_next_around_vertex(current_halfedge,true);
+            } while (current_halfedge != *boundary_halfedge); // go around the vertex, until we are back on the initial boundary edge
+        }
+
+        new_charts_count++;
+    }
+
+    return new_charts_count;
 }

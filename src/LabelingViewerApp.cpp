@@ -1110,6 +1110,11 @@ namespace {
 					fmt::println(Logger::out("fix_labeling"),"{} chart(s) modified with the surrounding label",nb_chart_modified); Logger::out("fix_labeling").flush();
 					update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 				} while (nb_chart_modified != 0);
+
+				nb_chart_modified = fix_invalid_boundaries(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph);
+				fmt::println(Logger::out("fix_labeling"),"{} chart(s) added to fix invalid boundaries",nb_chart_modified); Logger::out("fix_labeling").flush();
+				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+				
 			}
 			
 			break;

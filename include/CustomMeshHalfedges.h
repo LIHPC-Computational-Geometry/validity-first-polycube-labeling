@@ -278,6 +278,8 @@ using namespace GEO::Geom;
 
         bool is_on_lower_than_180_degrees_edge(Halfedge& H) const;
 
+        vec3 normal(Halfedge& H) const;
+
     private:
         Mesh& mesh_;
         Attribute<index_t> facet_region_;

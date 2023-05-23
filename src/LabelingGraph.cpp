@@ -194,6 +194,8 @@ void Boundary::explore(const CustomMeshHalfedges::Halfedge& initial_halfedge,
     const Mesh& mesh = mesh_halfedges.mesh();
     CustomMeshHalfedges::Halfedge current_halfedge = initial_halfedge; // create a modifiable halfedge
 
+    geo_assert(mesh_halfedges.halfedge_is_border(current_halfedge));
+
     // Step 1 : store information we already have with the first boundary edge:
     // the charts at the left and right, and the axis
     
@@ -214,6 +216,9 @@ void Boundary::explore(const CustomMeshHalfedges::Halfedge& initial_halfedge,
         label2axis(charts[left_chart].label),
         label2axis(charts[right_chart].label)
     );
+
+    // start computation of the average normal
+    average_normal = mesh_halfedges.normal(current_halfedge);
 
     // Step 2 : go from boundary edge to boundary edge until we found a corner
 
@@ -238,6 +243,9 @@ void Boundary::explore(const CustomMeshHalfedges::Halfedge& initial_halfedge,
 
             mesh_halfedges.move_to_opposite(current_halfedge); // switch orientation
             halfedge2boundary[current_halfedge] = {index_of_self,false}; // mark this halfedge, link it to the current boundary (opposite orientation)
+
+            // update the averge normal of the boundary
+            average_normal += mesh_halfedges.normal(current_halfedge);
 
             // the vertex at the base of halfedge will be explored in the next interation
         }

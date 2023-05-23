@@ -137,3 +137,13 @@ using namespace GEO;
         // evaluate the plane equation at tip, return the sign
         return ((plane.a * tip.x) + (plane.b * tip.y) + (plane.c * tip.z) + plane.d < 0);
     }
+
+    vec3 CustomMeshHalfedges::normal(Halfedge& H) const {
+        vec3 normal = Geom::mesh_facet_normal(mesh_,H.facet);
+        // change direction, so that H.facet is the facet at the other side of the edge
+        move_to_opposite(H);
+        normal += Geom::mesh_facet_normal(mesh_,H.facet);
+        // move back to the initial halfedge
+        move_to_opposite(H);
+        return normal;
+    }
