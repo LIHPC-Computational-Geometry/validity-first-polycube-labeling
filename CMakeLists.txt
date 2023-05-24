@@ -14,14 +14,29 @@ include(${CMAKE_SOURCE_DIR}/cmake/automatic_polycube.cmake)
 file(GLOB SRCFILES src/*.cpp )
 include_directories(include)
 
+#################
+# DEPENDENCIES
+#################
+
+# Geogram
 add_subdirectory(ext/geogram)
+
+# DisjointSet
 include_directories(ext/DisjointSet)
+
+# {fmt}
 add_subdirectory(ext/fmt)
 include_directories(ext/fmt/include) # why needed ?
-link_libraries(fmt::fmt) # why needed ?
+
+# GraphCutOptimization
+add_subdirectory(ext/GraphCutOptimization)
+
+#################
+# EXECUTABLES
+#################
 
 add_executable(labeling_viewer ${SRCFILES} app/labeling_viewer)
 target_link_libraries(labeling_viewer geogram geogram_gfx ${GLFW_LIBRARIES} fmt::fmt)
 
 add_executable(hex_mesh_viewer ${SRCFILES} app/hex_mesh_viewer)
-target_link_libraries(hex_mesh_viewer geogram geogram_gfx ${GLFW_LIBRARIES}  fmt::fmt)
+target_link_libraries(hex_mesh_viewer geogram geogram_gfx ${GLFW_LIBRARIES} fmt::fmt)
