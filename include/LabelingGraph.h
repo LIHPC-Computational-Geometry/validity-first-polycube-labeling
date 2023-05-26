@@ -208,6 +208,9 @@ struct StaticLabelingGraph {
     void fill_from(Mesh& mesh, std::string facet_attribute, bool allow_boundaries_between_opposite_labels);
     void clear();
 
+    //// Validity //////////////////
+    bool is_valid();
+
     //// Getters for sizes //////////////////
 
     std::size_t nb_charts() const;

@@ -30,13 +30,14 @@ include_directories(ext/fmt/include) # why needed ?
 
 # GraphCutOptimization
 add_subdirectory(ext/GraphCutOptimization)
+include_directories(ext/GraphCutOptimization/src) # why needed ?
 
 #################
 # EXECUTABLES
 #################
 
 add_executable(labeling_viewer ${SRCFILES} app/labeling_viewer)
-target_link_libraries(labeling_viewer geogram geogram_gfx ${GLFW_LIBRARIES} fmt::fmt)
+target_link_libraries(labeling_viewer geogram geogram_gfx ${GLFW_LIBRARIES} fmt::fmt gco)
 
 add_executable(hex_mesh_viewer ${SRCFILES} app/hex_mesh_viewer)
 target_link_libraries(hex_mesh_viewer geogram geogram_gfx ${GLFW_LIBRARIES} fmt::fmt)

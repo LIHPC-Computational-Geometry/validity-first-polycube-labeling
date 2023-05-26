@@ -1089,10 +1089,7 @@ namespace {
 			ImGui::ColorEdit4WithPalette("Invalid corners", invalid_corners_color_);
 			ImGui::EndDisabled();
 
-			if(
-			(static_labeling_graph.nb_invalid_charts()==0) && 
-			(static_labeling_graph.nb_invalid_boundaries()==0) && 
-			(static_labeling_graph.nb_invalid_corners()==0) ) {
+			if(static_labeling_graph.is_valid()) {
 				ImGui::TextColored(ImVec4(0.0f,0.5f,0.0f,1.0f),"Valid labeling");
 			}
 			else {
@@ -1101,24 +1098,30 @@ namespace {
 
 			ImGui::Separator();
 
-			if(ImGui::Button("Fix labeling")) {
+			ImGui::Text("Fix labeling");
 
-				unsigned int nb_chart_modified = 0;
-				
-				do {
-					nb_chart_modified = remove_surrounded_charts(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph);
-					fmt::println(Logger::out("fix_labeling"),"{} chart(s) modified with the surrounding label",nb_chart_modified); Logger::out("fix_labeling").flush();
-					update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
-				} while (nb_chart_modified != 0);
+			if(ImGui::Button("Remove surrounded charts")) {
+				unsigned int nb_chart_modified = remove_surrounded_charts(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph);
+				fmt::println(Logger::out("fix_labeling"),"{} chart(s) modified with the surrounding label",nb_chart_modified); Logger::out("fix_labeling").flush();
+				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+			}
 
-				nb_chart_modified = fix_invalid_boundaries(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph);
+			if(ImGui::Button("Fix invalid boundaries")) {
+				unsigned int nb_chart_modified = fix_invalid_boundaries(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph);
 				fmt::println(Logger::out("fix_labeling"),"{} chart(s) added to fix invalid boundaries",nb_chart_modified); Logger::out("fix_labeling").flush();
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+			}
 
-				nb_chart_modified = fix_invalid_corners(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph);
+			if(ImGui::Button("Fix invalid corners")) {
+				unsigned int nb_chart_modified = fix_invalid_corners(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph);
 				fmt::println(Logger::out("fix_labeling"),"{} chart(s) added to fix invalid corners",nb_chart_modified); Logger::out("fix_labeling").flush();
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
-				
+			}
+
+			if(ImGui::Button("Remove invalid charts")) {
+				remove_invalid_charts(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph);
+				fmt::println(Logger::out("fix_labeling"),"invalid charts removed using gco"); Logger::out("fix_labeling").flush();
+				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 			
 			break;
@@ -2061,7 +2064,7 @@ namespace {
 
 		fmt::println(Logger::out("I/O"),"There are {} charts, {} corners and {} boundaries in this labeling.",static_labeling_graph.nb_charts(),static_labeling_graph.nb_corners(),static_labeling_graph.nb_boundaries());  Logger::out("I/O").flush();
 
-		static_labeling_graph.dump_to_file("StaticLabelingGraph.txt");
+		// static_labeling_graph.dump_to_file("StaticLabelingGraph.txt");
 
 		mesh_gfx_.clear_custom_drawings();
 

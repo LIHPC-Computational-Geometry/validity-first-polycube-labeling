@@ -510,6 +510,12 @@ void StaticLabelingGraph::clear() {
     // note : the mesh attributes will not be removed, because we no longer have a ref/pointer to the mesh
 }
 
+bool StaticLabelingGraph::is_valid() {
+    return (nb_invalid_charts()==0) && 
+		   (nb_invalid_boundaries()==0) && 
+		   (nb_invalid_corners()==0);
+}
+
 std::size_t StaticLabelingGraph::nb_charts() const {
     return charts.size();
 }
