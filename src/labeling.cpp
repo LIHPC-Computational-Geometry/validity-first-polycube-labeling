@@ -226,14 +226,12 @@ void remove_invalid_charts(GEO::Mesh& mesh, const char* attribute_name, const St
     // Fill invalid charts using a Graph-Cut optimization,
     // preventing existing label from being re-applied
 
-    GraphCutLabeling gcl(mesh,1,1);
-
-    gcl.lock_all_facets(label);
+    GraphCutLabeling gcl(mesh,1,label); // start by locking all the labels, so valid charts will not be modified
 
     for(index_t chart_index : slg.invalid_charts) { // for each invalid chart
 
         for(index_t facet_index : slg.charts[chart_index].facets) { // for each facet inside this chart
-            gcl.restore_initial_weights_of_facet(facet_index);
+            gcl.set_fidelity_based_data_cost(facet_index,1);
             gcl.forbid_label_on_facet(facet_index,label[facet_index]); // prevent the label from staying the same
         }
     }

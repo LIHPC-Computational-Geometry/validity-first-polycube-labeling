@@ -13,7 +13,15 @@
 #include <array>
 #include <map>
 
+#define HIGH_COST 10e4
+
 using namespace GEO;
+
+// to avoid redundancy with constructors, methods...
+inline void _facet_neighbors__set_compactness_based(index_t facet_index, GCoptimizationGeneralGraph& gco, const vec3& facet_normal, const Mesh& mesh, int compact_coeff);
+inline void _facet_data_cost__set_fidelity_based(index_t facet_index, std::vector<int>& data_cost, const vec3& facet_normal, int fidelity);
+inline void _facet_data_cost__lock_label(index_t facet_index, index_t locked_label, std::vector<int>& data_cost);
+inline void _smooth_cost__fill(std::vector<int>& smooth_cost); // for now, no other arguments
 
 class GraphCutLabeling {
 
@@ -28,6 +36,14 @@ public:
      * \param[in] fidelity_coeff Fidelity coefficient
      */
     GraphCutLabeling(const Mesh& mesh, int compact_coeff, int fidelity_coeff);
+
+    /**
+     * \brief Prepare a labeling computation with a Graph-Cut optimization, and enfore all the labels (useless optimization if set_fidelity_based_data_cost() is not used after)
+     * \param[in] mesh A surface triangle mesh
+     * \param[in] compact_coeff Compactness coefficient
+     * \param[in] per_facet_locked_labels Enforced labels
+     */
+    GraphCutLabeling(const Mesh& mesh, int compact_coeff, const Attribute<index_t>& per_facet_locked_label);
 
     //// Tweak weigths //////////////////
 
@@ -46,32 +62,30 @@ public:
     void forbid_label_on_facet(index_t facet_index, index_t forbidden_label);
 
     /**
-     * \brief Enforce all the labels (useless optimization if restore_initial_weights_of_facet() is not used after)
-     * \param[in] per_facet_locked_label Labels to lock on the facets
-     */
-    void lock_all_facets(const Attribute<index_t>& per_facet_locked_label);
-
-    /**
-     * \brief Restore initial weigths, computed in the constructor, for a given facet
+     * \brief Set per label cost based on how far the label direction is from the facet normal
      * \param[in] facet_index Which facet
+     * \param[in] fidelity_coeff Fidelity coefficient
      */
-    void restore_initial_weights_of_facet(index_t facet_index);
+    void set_fidelity_based_data_cost(index_t facet_index, int fidelity_coeff);
+
+    //// Debug //////////////////
+
+    void dump_costs();
 
     //// Optimization //////////////////
 
     /**
      * \brief Launch optimizer and store result
-     * \param[in] output_labeling Facet attribute in which the labeling will be stored
+     * \param[out] output_labeling Facet attribute in which the labeling will be stored
      * \param[in] max_nb_iterations Maximum number of iteration for the GCoptimization::expansion() function
      */
     void compute_solution(Attribute<index_t>& output_labeling, int max_nb_iterations = 2);
 
 private:
 
-    const index_t NB_FACETS;
-    const int HIGH_COST;
-    std::vector<int> data_cost;
-    std::vector<int> data_cost_initial; // not memory-friendly...
-    std::vector<int> smooth_cost;
-    GCoptimizationGeneralGraph gco;
+    const index_t NB_FACETS_;
+    const Mesh& mesh_; // needed in set_fidelity_based_data_cost()
+    std::vector<int> data_cost_;
+    std::vector<int> smooth_cost_;
+    GCoptimizationGeneralGraph gco_;
 };
