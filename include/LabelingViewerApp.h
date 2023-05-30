@@ -8,7 +8,7 @@
 //
 // ### Added
 //
-// - inclusion of LabelingGraph.h
+// - inclusion of LabelingGraph.h, CustomMeshGfx.h
 // - new type : LabelingViewerApp::State
 // - new variables : corners_color_, valid_boundaries_color_, invalid_boundaries_color_,
 //                   previous_state_, current_state_,
@@ -24,6 +24,7 @@
 //
 // ### Changed
 //
+// - mesh_gfx_ is now of type CustomMeshGfx
 // - surface_color_ is now a light grey for better visibility when labeling_visu_mode_==VIEW_INVALID_BOUNDARIES
 // - draw_object_properties() draw GUI controls for all labeling_visu_mode_
 // - in draw_scene(), mesh_gfx_.draw_custom_points() and mesh_gfx_.draw_custom_edges() are called,
@@ -34,13 +35,10 @@
 // ### Added
 //
 // - LABELING_ATTRIBUTE_NAME macro
-// - inclusion of CustomMeshGfx.h in .h/.cpp
 //   labeling.h, colormaps_array.h in .cpp
-// - mesh_gfx_ attribute of type CustomMeshGfx
-// - new variables : show_labeling_, labeling_colors_. initialized in the consctructor
+// - new variables : show_labeling_, labeling_colors_as_char_, labeling_colors_as_float_. initialized in the consctructor
 // - in draw_object_properties(), the user can hide and show the labeling,
-//   and labeling_colors_ is editable with some ImGui::ColorEdit4WithPalette
-// - labeling_colors_ passed by address to mesh_gfx_
+//   and labeling colors are editable with some ImGui::ColorEdit4WithPalette
 // - specific behavior in load() if the file is a .txt
 //
 // ### Changed
@@ -639,6 +637,22 @@ using namespace GEO;
             }
             GLuint texture;
             std::string name;
+			void update_texture(unsigned char * data) {
+				// based on init_colormap() and glTexImage2Dxpm() but without glGenTextures()
+				glBindTexture(GL_TEXTURE_2D, texture);
+				glTexImage2D(
+					GL_TEXTURE_2D, 0,
+					GL_RGBA, 6, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, data
+				);
+				glGenerateMipmap(GL_TEXTURE_2D);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+				glTexParameteri(
+					GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR
+				);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+				glBindTexture(GL_TEXTURE_2D, 0);
+			}
         };
 
         vector<ColormapInfo> colormaps_;
@@ -687,7 +701,8 @@ using namespace GEO;
 
 	// added
 	bool allow_boundaries_between_opposite_labels_;
-	float labeling_colors_[6][4];
+	unsigned char labeling_colors_as_char_[6*4]; // for the colormap (facets colors)
+	float labeling_colors_as_float_[6*4]; // for ImGui controls & custom edges (boundaries colors)
 	float corners_color_[4];
 	float valid_boundaries_color_[4];
 	float invalid_boundaries_color_[4];

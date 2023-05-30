@@ -1691,7 +1691,7 @@ namespace {
     }
 
     void HexMeshViewerApp::init_colormaps() {
-		for(int i = 0; i <= LAST_COLORMAP; i++) {
+		for(int i = 0; i <= LAST_XPM_COLORMAP; i++) {
 			init_colormap(colormap_name[i],colormap_xpm[i]);
 		}
     }

@@ -211,43 +211,39 @@ namespace {
 
 		// default colors
 		// label 0 -> red
-		labeling_colors_[0][0] = 1.0f;
-		labeling_colors_[0][1] = 0.0f;
-		labeling_colors_[0][2] = 0.0f;
-		labeling_colors_[0][3] = 1.0f;
+		labeling_colors_as_char_[4*0+0] = 255;
+		labeling_colors_as_char_[4*0+1] = 0;
+		labeling_colors_as_char_[4*0+2] = 0;
+		labeling_colors_as_char_[4*0+3] = 255;
 		// label 1 -> dark red
-		labeling_colors_[1][0] = 0.6f;
-		labeling_colors_[1][1] = 0.0f;
-		labeling_colors_[1][2] = 0.0f;
-		labeling_colors_[1][3] = 1.0f;
+		labeling_colors_as_char_[4*1+0] = 152;
+		labeling_colors_as_char_[4*1+1] = 0;
+		labeling_colors_as_char_[4*1+2] = 0;
+		labeling_colors_as_char_[4*1+3] = 255;
 		// label 2 -> green
-		labeling_colors_[2][0] = 0.0f;
-		labeling_colors_[2][1] = 1.0f;
-		labeling_colors_[2][2] = 0.0f;
-		labeling_colors_[2][3] = 1.0f;
+		labeling_colors_as_char_[4*2+0] = 0;
+		labeling_colors_as_char_[4*2+1] = 255;
+		labeling_colors_as_char_[4*2+2] = 0;
+		labeling_colors_as_char_[4*2+3] = 255;
 		// label 3 -> dark green
-		labeling_colors_[3][0] = 0.0f;
-		labeling_colors_[3][1] = 0.6f;
-		labeling_colors_[3][2] = 0.0f;
-		labeling_colors_[3][3] = 1.0f;
+		labeling_colors_as_char_[4*3+0] = 0;
+		labeling_colors_as_char_[4*3+1] = 152;
+		labeling_colors_as_char_[4*3+2] = 0;
+		labeling_colors_as_char_[4*3+3] = 255;
 		// label 4 -> blue
-		labeling_colors_[4][0] = 0.0f;
-		labeling_colors_[4][1] = 0.0f;
-		labeling_colors_[4][2] = 1.0f;
-		labeling_colors_[4][3] = 1.0f;
+		labeling_colors_as_char_[4*4+0] = 0;
+		labeling_colors_as_char_[4*4+1] = 0;
+		labeling_colors_as_char_[4*4+2] = 255;
+		labeling_colors_as_char_[4*4+3] = 255;
 		// label 5 -> dark blue
-		labeling_colors_[5][0] = 0.0f;
-		labeling_colors_[5][1] = 0.0f;
-		labeling_colors_[5][2] = 0.6f;
-		labeling_colors_[5][3] = 1.0f;
+		labeling_colors_as_char_[4*5+0] = 0;
+		labeling_colors_as_char_[4*5+1] = 0;
+		labeling_colors_as_char_[4*5+2] = 152;
+		labeling_colors_as_char_[4*5+3] = 255;
 
-		// give pointers to these colors to mesh_gfx_
-		mesh_gfx_.bind_int_attribute_value_to_color(0,labeling_colors_[0]);
-		mesh_gfx_.bind_int_attribute_value_to_color(1,labeling_colors_[1]);
-		mesh_gfx_.bind_int_attribute_value_to_color(2,labeling_colors_[2]);
-		mesh_gfx_.bind_int_attribute_value_to_color(3,labeling_colors_[3]);
-		mesh_gfx_.bind_int_attribute_value_to_color(4,labeling_colors_[4]);
-		mesh_gfx_.bind_int_attribute_value_to_color(5,labeling_colors_[5]);
+		FOR(i,4*6) {
+			labeling_colors_as_float_[i] = ((float) labeling_colors_as_char_[i]) / 255.0f;
+		}
 
 		// corners in black by default
 		corners_color_[0] = 0.0f;
@@ -685,7 +681,6 @@ namespace {
 					show_mesh_ = true;
 					lighting_ = true;
 					mesh_gfx_.unset_scalar_attribute();
-					mesh_gfx_.unset_facets_colors_by_int_attribute();
 					break;
 				case labeling:
 					previous_labeling_visu_mode_ = VIEW_TRIANGLE_MESH;
@@ -705,7 +700,6 @@ namespace {
 					show_mesh_ = true;
 					lighting_ = true;
 					mesh_gfx_.unset_scalar_attribute();
-					mesh_gfx_.unset_facets_colors_by_int_attribute();
 					mesh_gfx_.set_custom_points_group_visibility(valid_corners_group_index,false);
 					mesh_gfx_.set_custom_points_group_visibility(invalid_corners_group_index,false);
 					mesh_gfx_.set_custom_edges_group_visibility(X_boundaries_group_index,false);
@@ -717,8 +711,7 @@ namespace {
 				case VIEW_RAW_LABELING:
 					show_mesh_ = true;
 					lighting_ = false;
-					mesh_gfx_.unset_scalar_attribute();
-					mesh_gfx_.set_facets_colors_by_int_attribute(LABELING_ATTRIBUTE_NAME);
+					mesh_gfx_.set_scalar_attribute(MESH_FACETS,LABELING_ATTRIBUTE_NAME,-0.5,5.5,TO_GL_TEXTURE_INDEX(COLORMAP_LABELING),1);
 					mesh_gfx_.set_custom_points_group_visibility(valid_corners_group_index,false);
 					mesh_gfx_.set_custom_points_group_visibility(invalid_corners_group_index,false);
 					mesh_gfx_.set_custom_edges_group_visibility(X_boundaries_group_index,false);
@@ -730,15 +723,14 @@ namespace {
 				case VIEW_LABELING_GRAPH:
 					show_mesh_ = false;
 					lighting_ = false;
-					mesh_gfx_.unset_scalar_attribute();
-					mesh_gfx_.set_facets_colors_by_int_attribute(LABELING_ATTRIBUTE_NAME);
+					mesh_gfx_.set_scalar_attribute(MESH_FACETS,LABELING_ATTRIBUTE_NAME,-0.5,5.5,TO_GL_TEXTURE_INDEX(COLORMAP_LABELING),1);
 					mesh_gfx_.set_custom_points_group_color(valid_corners_group_index,corners_color_);
 					mesh_gfx_.set_custom_points_group_color(invalid_corners_group_index,corners_color_); // no 	distinction between valid and invalid corners in this view
 					mesh_gfx_.set_custom_points_group_visibility(valid_corners_group_index,true);
 					mesh_gfx_.set_custom_points_group_visibility(invalid_corners_group_index,true);
-					mesh_gfx_.set_custom_edges_group_color(X_boundaries_group_index,labeling_colors_[0]); // axis X -> color of label 0 = +X
-					mesh_gfx_.set_custom_edges_group_color(Y_boundaries_group_index,labeling_colors_[2]); // axis Y -> color of label 2 = +Y
-					mesh_gfx_.set_custom_edges_group_color(Z_boundaries_group_index,labeling_colors_[4]); // axis Z -> color of label 4 = +Z
+					mesh_gfx_.set_custom_edges_group_color(X_boundaries_group_index,&labeling_colors_as_float_[4*0]); // axis X -> color of label 0 = +X
+					mesh_gfx_.set_custom_edges_group_color(Y_boundaries_group_index,&labeling_colors_as_float_[4*2]); // axis Y -> color of label 2 = +Y
+					mesh_gfx_.set_custom_edges_group_color(Z_boundaries_group_index,&labeling_colors_as_float_[4*4]); // axis Z -> color of label 4 = +Z
 					mesh_gfx_.set_custom_edges_group_visibility(X_boundaries_group_index,true);
 					mesh_gfx_.set_custom_edges_group_visibility(Y_boundaries_group_index,true);
 					mesh_gfx_.set_custom_edges_group_visibility(Z_boundaries_group_index,true);
@@ -748,13 +740,12 @@ namespace {
 				case VIEW_INVALID_CHARTS:
 					show_mesh_ = false;
 					lighting_ = false;
-					mesh_gfx_.unset_facets_colors_by_int_attribute();
 					mesh_gfx_.set_scalar_attribute(MESH_FACETS,"on_invalid_chart",0.0,1.0,TO_GL_TEXTURE_INDEX(COLORMAP_BLUE_RED)); // color according to whether the facet in on an invalid chart or not
 					mesh_gfx_.set_custom_points_group_visibility(valid_corners_group_index,false);
 					mesh_gfx_.set_custom_points_group_visibility(invalid_corners_group_index,false);
-					mesh_gfx_.set_custom_edges_group_color(X_boundaries_group_index,labeling_colors_[0]); // axis X -> color of label 0 = +X
-					mesh_gfx_.set_custom_edges_group_color(Y_boundaries_group_index,labeling_colors_[2]); // axis Y -> color of label 2 = +Y
-					mesh_gfx_.set_custom_edges_group_color(Z_boundaries_group_index,labeling_colors_[4]); // axis Z -> color of label 4 = +Z
+					mesh_gfx_.set_custom_edges_group_color(X_boundaries_group_index,&labeling_colors_as_float_[4*0]); // axis X -> color of label 0 = +X
+					mesh_gfx_.set_custom_edges_group_color(Y_boundaries_group_index,&labeling_colors_as_float_[4*2]); // axis Y -> color of label 2 = +Y
+					mesh_gfx_.set_custom_edges_group_color(Z_boundaries_group_index,&labeling_colors_as_float_[4*4]); // axis Z -> color of label 4 = +Z
 					mesh_gfx_.set_custom_edges_group_visibility(X_boundaries_group_index,true);
 					mesh_gfx_.set_custom_edges_group_visibility(Y_boundaries_group_index,true);
 					mesh_gfx_.set_custom_edges_group_visibility(Z_boundaries_group_index,true);
@@ -767,7 +758,6 @@ namespace {
 				case VIEW_INVALID_BOUNDARIES:
 					show_mesh_ = false;
 					lighting_ = false;
-					mesh_gfx_.unset_facets_colors_by_int_attribute();
 					mesh_gfx_.unset_scalar_attribute();
 					mesh_gfx_.set_custom_points_group_visibility(valid_corners_group_index,false);
 					mesh_gfx_.set_custom_points_group_visibility(invalid_corners_group_index,false);
@@ -783,15 +773,14 @@ namespace {
 				case VIEW_INVALID_CORNERS:
 					show_mesh_ = false;
 					lighting_ = false;
-					mesh_gfx_.unset_facets_colors_by_int_attribute();
 					mesh_gfx_.unset_scalar_attribute();
 					mesh_gfx_.set_custom_points_group_color(valid_corners_group_index,valid_corners_color_);
 					mesh_gfx_.set_custom_points_group_color(invalid_corners_group_index,invalid_corners_color_);
 					mesh_gfx_.set_custom_points_group_visibility(valid_corners_group_index,true);
 					mesh_gfx_.set_custom_points_group_visibility(invalid_corners_group_index,true);
-					mesh_gfx_.set_custom_edges_group_color(X_boundaries_group_index,labeling_colors_[0]); // axis X -> color of label 0 = +X
-					mesh_gfx_.set_custom_edges_group_color(Y_boundaries_group_index,labeling_colors_[2]); // axis Y -> color of label 2 = +Y
-					mesh_gfx_.set_custom_edges_group_color(Z_boundaries_group_index,labeling_colors_[4]); // axis Z -> color of label 4 = +Z
+					mesh_gfx_.set_custom_edges_group_color(X_boundaries_group_index,&labeling_colors_as_float_[4*0]); // axis X -> color of label 0 = +X
+					mesh_gfx_.set_custom_edges_group_color(Y_boundaries_group_index,&labeling_colors_as_float_[4*2]); // axis Y -> color of label 2 = +Y
+					mesh_gfx_.set_custom_edges_group_color(Z_boundaries_group_index,&labeling_colors_as_float_[4*4]); // axis Z -> color of label 4 = +Z
 					mesh_gfx_.set_custom_edges_group_visibility(X_boundaries_group_index,true);
 					mesh_gfx_.set_custom_edges_group_visibility(Y_boundaries_group_index,true);
 					mesh_gfx_.set_custom_edges_group_visibility(Z_boundaries_group_index,true);
@@ -1057,12 +1046,36 @@ namespace {
 			ImGui::RadioButton("View raw labeling",&current_labeling_visu_mode_,VIEW_RAW_LABELING);
 
 			ImGui::BeginDisabled( (current_labeling_visu_mode_!=VIEW_RAW_LABELING) && (current_labeling_visu_mode_!=VIEW_LABELING_GRAPH) );
-			ImGui::ColorEdit4WithPalette("Label 0 = +X", labeling_colors_[0]);
-			ImGui::ColorEdit4WithPalette("Label 1 = -X", labeling_colors_[1]);
-			ImGui::ColorEdit4WithPalette("Label 2 = +Y", labeling_colors_[2]);
-			ImGui::ColorEdit4WithPalette("Label 3 = -Y", labeling_colors_[3]);
-			ImGui::ColorEdit4WithPalette("Label 4 = +Z", labeling_colors_[4]);
-			ImGui::ColorEdit4WithPalette("Label 5 = -Z", labeling_colors_[5]);
+			if(ImGui::ColorEdit4WithPalette("Label 0 = +X", &labeling_colors_as_float_[4*0])) {
+				FOR(i,4)
+					labeling_colors_as_char_[4*0+i] = static_cast<unsigned char>(labeling_colors_as_float_[4*0+i]*255.0f);
+				colormaps_.rbegin()->update_texture(labeling_colors_as_char_);
+			}
+			if(ImGui::ColorEdit4WithPalette("Label 1 = -X", &labeling_colors_as_float_[4*1])) {
+				FOR(i,4)
+					labeling_colors_as_char_[4*1+i] = static_cast<unsigned char>(labeling_colors_as_float_[4*1+i]*255.0f);
+				colormaps_.rbegin()->update_texture(labeling_colors_as_char_);
+			}
+			if(ImGui::ColorEdit4WithPalette("Label 2 = +Y", &labeling_colors_as_float_[4*2])) {
+				FOR(i,4)
+					labeling_colors_as_char_[4*2+i] = static_cast<unsigned char>(labeling_colors_as_float_[4*2+i]*255.0f);
+				colormaps_.rbegin()->update_texture(labeling_colors_as_char_);
+			}
+			if(ImGui::ColorEdit4WithPalette("Label 3 = -Y", &labeling_colors_as_float_[4*3])) {
+				FOR(i,4)
+					labeling_colors_as_char_[4*3+i] = static_cast<unsigned char>(labeling_colors_as_float_[4*3+i]*255.0f);
+				colormaps_.rbegin()->update_texture(labeling_colors_as_char_);
+			}
+			if(ImGui::ColorEdit4WithPalette("Label 4 = +Z", &labeling_colors_as_float_[4*4])) {
+				FOR(i,4)
+					labeling_colors_as_char_[4*4+i] = static_cast<unsigned char>(labeling_colors_as_float_[4*4+i]*255.0f);
+				colormaps_.rbegin()->update_texture(labeling_colors_as_char_);
+			}
+			if(ImGui::ColorEdit4WithPalette("Label 5 = -Z", &labeling_colors_as_float_[4*5])) {
+				FOR(i,4)
+					labeling_colors_as_char_[4*5+i] = static_cast<unsigned char>(labeling_colors_as_float_[4*5+i]*255.0f);
+				colormaps_.rbegin()->update_texture(labeling_colors_as_char_);
+			}
 			ImGui::EndDisabled();
 
 			ImGui::RadioButton("View labeling graph",&current_labeling_visu_mode_,VIEW_LABELING_GRAPH);
@@ -1976,9 +1989,27 @@ namespace {
     }
 
     void LabelingViewerApp::init_colormaps() {
-        for(int i = 0; i <= LAST_COLORMAP; i++) {
+        for(int i = 0; i <= LAST_XPM_COLORMAP; i++) {
 			init_colormap(colormap_name[i],colormap_xpm[i]);
 		}
+
+		// init labeling colormap
+		colormaps_.push_back(ColormapInfo());
+        colormaps_.rbegin()->name = "labeling";
+        glGenTextures(1, &colormaps_.rbegin()->texture);
+        glBindTexture(GL_TEXTURE_2D, colormaps_.rbegin()->texture);
+        glTexImage2D(
+			GL_TEXTURE_2D, 0,
+			GL_RGBA, 6, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, labeling_colors_as_char_
+		);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(
+            GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR
+        );
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glBindTexture(GL_TEXTURE_2D, 0);
     }
 
     bool LabelingViewerApp::exec_command(const char* command) {
@@ -2070,9 +2101,9 @@ namespace {
 
 		valid_corners_group_index = mesh_gfx_.new_custom_points_group(corners_color_,true);
 		invalid_corners_group_index = mesh_gfx_.new_custom_points_group(corners_color_,true);
-		X_boundaries_group_index = mesh_gfx_.new_custom_edges_group(labeling_colors_[0],false); // axis X -> color of label 0 = +X
-		Y_boundaries_group_index = mesh_gfx_.new_custom_edges_group(labeling_colors_[2],false); // axis Y -> color of label 2 = +Y
-		Z_boundaries_group_index = mesh_gfx_.new_custom_edges_group(labeling_colors_[4],false); // axis Z -> color of label 4 = +Z
+		X_boundaries_group_index = mesh_gfx_.new_custom_edges_group(&labeling_colors_as_float_[4*0],false); // axis X -> color of label 0 = +X
+		Y_boundaries_group_index = mesh_gfx_.new_custom_edges_group(&labeling_colors_as_float_[4*2],false); // axis Y -> color of label 2 = +Y
+		Z_boundaries_group_index = mesh_gfx_.new_custom_edges_group(&labeling_colors_as_float_[4*4],false); // axis Z -> color of label 4 = +Z
 		invalid_boundaries_group_index = mesh_gfx_.new_custom_edges_group(invalid_boundaries_color_,false);
 		valid_but_axisless_boundaries_group_index = mesh_gfx_.new_custom_edges_group(valid_boundaries_color_,false);
 

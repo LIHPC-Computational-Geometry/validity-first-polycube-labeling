@@ -11,7 +11,7 @@
 
 #include "colormaps_array.h"
 
-const char colormap_name[LAST_COLORMAP+1][15] = {
+const char colormap_name[LAST_XPM_COLORMAP+1][15] = {
 	"french",
 	"black_white",
 	"viridis",
@@ -24,7 +24,7 @@ const char colormap_name[LAST_COLORMAP+1][15] = {
 	"blue_red",
 };
 
-const char **colormap_xpm[LAST_COLORMAP+1] = {
+const char **colormap_xpm[LAST_XPM_COLORMAP+1] = {
 	french_xpm,
 	black_white_xpm,
 	viridis_xpm,

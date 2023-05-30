@@ -31,20 +31,6 @@
 //
 // - set_mesh() calls clear_custom_drawings()
 //
-// ## Rendering of facet labels
-//
-// ### Added
-//
-// - new variables : facets_colors_by_int_attribute_, value_to_color_, int_attribute_
-// - facets_colors_by_int_attribute_ is initialized in the constructor
-// - new functions : bind_int_attribute_value_to_color(), set_facets_colors_by_int_attribute(),
-//   unset_facets_colors_by_int_attribute(), draw_triangles_immediate_by_int_attrib()
-// - inclusion of <map>
-//
-// ### Changed
-//
-// - draw_triangles() calls draw_triangles_immediate_by_int_attrib() when facets_colors_by_int_attribute_ is true
-//
 // ## To have an independent copy of MeshGfx
 //
 // ### Added
@@ -71,7 +57,6 @@
 #include <fmt/core.h>
 #include <fmt/ostream.h>
 
-#include <map>
 #include <utility> // for std::pair
 
 #include "containers.h" // for index_of_last
@@ -512,46 +497,6 @@ using namespace GEO;
             set_cells_color(MESH_PYRAMID,   0.0f, 0.0f, 1.0f);
             set_cells_color(MESH_CONNECTOR, 1.0f, 0.8f, 0.0f);            
         }
-
-        // Bind an int attribute value to a color
-        // Used to color a mesh according to an int attribute
-        // Active after calling set_facets_colors_by_int_attribute()
-        void bind_int_attribute_value_to_color(index_t attribute_value, const float* rgba) {
-            value_to_color_[attribute_value] = rgba;
-        }
-
-        // Ask to color the mesh according to the facet attribute 'name'
-        // Return true if ok ('name' is a valid int facet attribute)
-        bool set_facets_colors_by_int_attribute(const std::string& name) {
-            // based on set_scalar_attribute()
-
-            if( (facets_colors_by_int_attribute_ == true) &&
-                (attribute_name_ == name) &&
-                (int_attribute_.is_bound()) ) {
-                // already set, nothing to do
-                return true;
-            }
-
-            if(int_attribute_.is_bound()) int_attribute_.unbind();
-
-            if(!int_attribute_.bind_if_is_defined(mesh_->facets.attributes(),name)) { // try to bind int_attribute_ to the 'name' facet attribute of mesh_
-                fmt::println(Logger::err("MeshGfx"),"No {} facet attribute",name); Logger::out("MeshGfx").flush();
-                unset_facets_colors_by_int_attribute();
-                return false;
-            }
-
-            geo_assert(int_attribute_.is_bound());
-
-            facets_colors_by_int_attribute_ = true;
-            attribute_name_ = name;
-            return true;
-        }
-
-        // Cancel settings of set_facets_colors_by_int_attribute()
-        void unset_facets_colors_by_int_attribute() {
-            facets_colors_by_int_attribute_ = false;
-            attribute_name_.clear();
-        }
         
         /**
          * \brief Gets the lighing flag
@@ -796,7 +741,6 @@ using namespace GEO;
         void draw_triangles_array();
         void draw_triangles_immediate_plain();
         void draw_triangles_immediate_attrib();
-        void draw_triangles_immediate_by_int_attrib();
 
         void draw_quads();
         void draw_quads_array();
@@ -1039,7 +983,6 @@ using namespace GEO;
         float backface_surface_color_[4];
         float cells_color_[MESH_NB_CELL_TYPES][4];
         bool cells_colors_by_type_;
-        bool facets_colors_by_int_attribute_; // new drawing mode
 
         bool lighting_;
 
@@ -1070,20 +1013,17 @@ using namespace GEO;
         GLuint cell_indices_VBO_;
         GLuint vertices_attribute_VBO_;
         
-        MeshElementsFlags attribute_subelements_; // used for scalar attributes only
-        std::string attribute_name_; // used for scalar attributes & for int attributes (in this case, store the name of the attribute currently in int_attribute_)
-	    index_t attribute_dim_; // used for scalar attributes only
-        double attribute_min_; // used for scalar attributes only
-        double attribute_max_; // used for scalar attributes only
-        GLuint attribute_texture_; // used for scalar attributes only
-	    index_t attribute_texture_dim_; // used for scalar attributes only
-        index_t attribute_repeat_; // used for scalar attributes only
-        ReadOnlyScalarAttributeAdapter scalar_attribute_; // used for scalar attributes only
-	    ReadOnlyScalarAttributeAdapter tex_coord_attribute_[3]; // used for scalar attributes only
+        MeshElementsFlags attribute_subelements_;
+        std::string attribute_name_;
+	    index_t attribute_dim_;
+        double attribute_min_;
+        double attribute_max_;
+        GLuint attribute_texture_;
+	    index_t attribute_texture_dim_;
+        index_t attribute_repeat_;
+        ReadOnlyScalarAttributeAdapter scalar_attribute_;
+	    ReadOnlyScalarAttributeAdapter tex_coord_attribute_[3];
         bool ES_profile_;
-
-        std::map<index_t,const GLUPfloat*> value_to_color_; // used for int attributes only (when facets_colors_by_int_attribute_==true)
-        Attribute<index_t> int_attribute_; // used for int attributes only (when facets_colors_by_int_attribute_==true)
 
         vector<CustomPointsGroup> custom_points_groups_;
         vector<CustomEdgesGroup> custom_edges_groups_;
