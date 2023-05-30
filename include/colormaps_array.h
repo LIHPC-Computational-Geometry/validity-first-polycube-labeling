@@ -16,6 +16,7 @@
 #define LAST_XPM_COLORMAP (COLORMAP_BLUE_RED)
 
 #define COLORMAP_LABELING       10
+#define COLORMAP_VALIDITY       11
 
 #define TO_GL_TEXTURE_INDEX(colormap_index) (colormap_index+2) // it seems apps based on SimpleApplication have 2 GL textures defined before the colormaps. One of them is the Geogram logo ? see SimpleApplication::GL_initialize()
 

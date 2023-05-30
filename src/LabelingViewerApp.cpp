@@ -251,29 +251,21 @@ namespace {
 		corners_color_[2] = 0.0f;
 		corners_color_[3] = 1.0f;
 
-		// valid boundaries in blue by default
-		valid_boundaries_color_[0] = 0.0f;
-		valid_boundaries_color_[1] = 0.0f;
-		valid_boundaries_color_[2] = 1.0f;
-		valid_boundaries_color_[3] = 1.0f;
+		// invalid charts/boundaries/corners in red by default
+		validity_colors_as_char_[4*0+0] = 255;
+		validity_colors_as_char_[4*0+1] = 64;
+		validity_colors_as_char_[4*0+2] = 64;
+		validity_colors_as_char_[4*0+3] = 255;
 
-		// invalid boundaries in red by default
-		invalid_boundaries_color_[0] = 1.0f;
-		invalid_boundaries_color_[1] = 0.0f;
-		invalid_boundaries_color_[2] = 0.0f;
-		invalid_boundaries_color_[3] = 1.0f;
+		// valid charts/boundaries/corners in blue by default
+		validity_colors_as_char_[4*1+0] = 64;
+		validity_colors_as_char_[4*1+1] = 64;
+		validity_colors_as_char_[4*1+2] = 255;
+		validity_colors_as_char_[4*1+3] = 255;
 
-		// valid corners in blue by default
-		valid_corners_color_[0] = 0.0f;
-		valid_corners_color_[1] = 0.0f;
-		valid_corners_color_[2] = 1.0f;
-		valid_corners_color_[3] = 1.0f;
-
-		// invalid corners in red by default
-		invalid_corners_color_[0] = 1.0f;
-		invalid_corners_color_[1] = 0.0f;
-		invalid_corners_color_[2] = 0.0f;
-		invalid_corners_color_[3] = 1.0f;
+		FOR(i,2*4) {
+			validity_colors_as_float_[i] = ((float) validity_colors_as_char_[i]) / 255.0f;
+		}
 
 		previous_labeling_visu_mode_ = VIEW_RAW_LABELING;
 		current_labeling_visu_mode_ = VIEW_RAW_LABELING;
@@ -740,7 +732,7 @@ namespace {
 				case VIEW_INVALID_CHARTS:
 					show_mesh_ = false;
 					lighting_ = false;
-					mesh_gfx_.set_scalar_attribute(MESH_FACETS,"on_invalid_chart",0.0,1.0,TO_GL_TEXTURE_INDEX(COLORMAP_BLUE_RED)); // color according to whether the facet in on an invalid chart or not
+					mesh_gfx_.set_scalar_attribute(MESH_FACETS,"on_invalid_chart",1.5,-0.5,TO_GL_TEXTURE_INDEX(COLORMAP_VALIDITY)); // color according to whether the facet in on an invalid chart or not
 					mesh_gfx_.set_custom_points_group_visibility(valid_corners_group_index,false);
 					mesh_gfx_.set_custom_points_group_visibility(invalid_corners_group_index,false);
 					mesh_gfx_.set_custom_edges_group_color(X_boundaries_group_index,&labeling_colors_as_float_[4*0]); // axis X -> color of label 0 = +X
@@ -761,9 +753,9 @@ namespace {
 					mesh_gfx_.unset_scalar_attribute();
 					mesh_gfx_.set_custom_points_group_visibility(valid_corners_group_index,false);
 					mesh_gfx_.set_custom_points_group_visibility(invalid_corners_group_index,false);
-					mesh_gfx_.set_custom_edges_group_color(X_boundaries_group_index,valid_boundaries_color_);
-					mesh_gfx_.set_custom_edges_group_color(Y_boundaries_group_index,valid_boundaries_color_);
-					mesh_gfx_.set_custom_edges_group_color(Z_boundaries_group_index,valid_boundaries_color_);
+					mesh_gfx_.set_custom_edges_group_color(X_boundaries_group_index,&validity_colors_as_float_[4*1]); // apply the color of valid LabelingGraph components
+					mesh_gfx_.set_custom_edges_group_color(Y_boundaries_group_index,&validity_colors_as_float_[4*1]); // apply the color of valid LabelingGraph components
+					mesh_gfx_.set_custom_edges_group_color(Z_boundaries_group_index,&validity_colors_as_float_[4*1]); // apply the color of valid LabelingGraph components
 					mesh_gfx_.set_custom_edges_group_visibility(X_boundaries_group_index,true);
 					mesh_gfx_.set_custom_edges_group_visibility(Y_boundaries_group_index,true);
 					mesh_gfx_.set_custom_edges_group_visibility(Z_boundaries_group_index,true);
@@ -774,8 +766,8 @@ namespace {
 					show_mesh_ = false;
 					lighting_ = false;
 					mesh_gfx_.unset_scalar_attribute();
-					mesh_gfx_.set_custom_points_group_color(valid_corners_group_index,valid_corners_color_);
-					mesh_gfx_.set_custom_points_group_color(invalid_corners_group_index,invalid_corners_color_);
+					mesh_gfx_.set_custom_points_group_color(valid_corners_group_index,&validity_colors_as_float_[4*1]); // apply the color of valid LabelingGraph components
+					mesh_gfx_.set_custom_points_group_color(invalid_corners_group_index,&validity_colors_as_float_[4*0]); // apply the color of invalid LabelingGraph components
 					mesh_gfx_.set_custom_points_group_visibility(valid_corners_group_index,true);
 					mesh_gfx_.set_custom_points_group_visibility(invalid_corners_group_index,true);
 					mesh_gfx_.set_custom_edges_group_color(X_boundaries_group_index,&labeling_colors_as_float_[4*0]); // axis X -> color of label 0 = +X
@@ -1049,32 +1041,32 @@ namespace {
 			if(ImGui::ColorEdit4WithPalette("Label 0 = +X", &labeling_colors_as_float_[4*0])) {
 				FOR(i,4)
 					labeling_colors_as_char_[4*0+i] = static_cast<unsigned char>(labeling_colors_as_float_[4*0+i]*255.0f);
-				colormaps_.rbegin()->update_texture(labeling_colors_as_char_);
+				colormaps_[COLORMAP_LABELING].update_texture(6,1,labeling_colors_as_char_);
 			}
 			if(ImGui::ColorEdit4WithPalette("Label 1 = -X", &labeling_colors_as_float_[4*1])) {
 				FOR(i,4)
 					labeling_colors_as_char_[4*1+i] = static_cast<unsigned char>(labeling_colors_as_float_[4*1+i]*255.0f);
-				colormaps_.rbegin()->update_texture(labeling_colors_as_char_);
+				colormaps_[COLORMAP_LABELING].update_texture(6,1,labeling_colors_as_char_);
 			}
 			if(ImGui::ColorEdit4WithPalette("Label 2 = +Y", &labeling_colors_as_float_[4*2])) {
 				FOR(i,4)
 					labeling_colors_as_char_[4*2+i] = static_cast<unsigned char>(labeling_colors_as_float_[4*2+i]*255.0f);
-				colormaps_.rbegin()->update_texture(labeling_colors_as_char_);
+				colormaps_[COLORMAP_LABELING].update_texture(6,1,labeling_colors_as_char_);
 			}
 			if(ImGui::ColorEdit4WithPalette("Label 3 = -Y", &labeling_colors_as_float_[4*3])) {
 				FOR(i,4)
 					labeling_colors_as_char_[4*3+i] = static_cast<unsigned char>(labeling_colors_as_float_[4*3+i]*255.0f);
-				colormaps_.rbegin()->update_texture(labeling_colors_as_char_);
+				colormaps_[COLORMAP_LABELING].update_texture(6,1,labeling_colors_as_char_);
 			}
 			if(ImGui::ColorEdit4WithPalette("Label 4 = +Z", &labeling_colors_as_float_[4*4])) {
 				FOR(i,4)
 					labeling_colors_as_char_[4*4+i] = static_cast<unsigned char>(labeling_colors_as_float_[4*4+i]*255.0f);
-				colormaps_.rbegin()->update_texture(labeling_colors_as_char_);
+				colormaps_[COLORMAP_LABELING].update_texture(6,1,labeling_colors_as_char_);
 			}
 			if(ImGui::ColorEdit4WithPalette("Label 5 = -Z", &labeling_colors_as_float_[4*5])) {
 				FOR(i,4)
 					labeling_colors_as_char_[4*5+i] = static_cast<unsigned char>(labeling_colors_as_float_[4*5+i]*255.0f);
-				colormaps_.rbegin()->update_texture(labeling_colors_as_char_);
+				colormaps_[COLORMAP_LABELING].update_texture(6,1,labeling_colors_as_char_);
 			}
 			ImGui::EndDisabled();
 
@@ -1086,20 +1078,23 @@ namespace {
 
 			ImGui::RadioButton(fmt::format("View invalid charts ({})",static_labeling_graph.nb_invalid_charts()).c_str(),&current_labeling_visu_mode_,VIEW_INVALID_CHARTS);
 
-			ImGui::Text("Bleu = valid chart | Red = invalid chart");
-
 			ImGui::RadioButton(fmt::format("View invalid boundaries ({})",static_labeling_graph.nb_invalid_boundaries()).c_str(),&current_labeling_visu_mode_,VIEW_INVALID_BOUNDARIES);
-
-			ImGui::BeginDisabled(current_labeling_visu_mode_!=VIEW_INVALID_BOUNDARIES);
-			ImGui::ColorEdit4WithPalette("Valid boundaries", valid_boundaries_color_);
-			ImGui::ColorEdit4WithPalette("Invalid boundaries", invalid_boundaries_color_);
-			ImGui::EndDisabled();
 
 			ImGui::RadioButton(fmt::format("View invalid corners ({})",static_labeling_graph.nb_invalid_corners()).c_str(),&current_labeling_visu_mode_,VIEW_INVALID_CORNERS);
 			
-			ImGui::BeginDisabled(current_labeling_visu_mode_!=VIEW_INVALID_CORNERS);
-			ImGui::ColorEdit4WithPalette("Valid corners", valid_corners_color_);
-			ImGui::ColorEdit4WithPalette("Invalid corners", invalid_corners_color_);
+			ImGui::BeginDisabled( (current_labeling_visu_mode_!=VIEW_INVALID_CHARTS) && 
+								  (current_labeling_visu_mode_!=VIEW_INVALID_BOUNDARIES) && 
+								  (current_labeling_visu_mode_!=VIEW_INVALID_CORNERS) );
+			if(ImGui::ColorEdit4WithPalette("Invalid", &validity_colors_as_float_[4*0])) {
+				FOR(i,4)
+					validity_colors_as_char_[4*0+i] = static_cast<unsigned char>(validity_colors_as_float_[4*0+i]*255.0f);
+				colormaps_[COLORMAP_VALIDITY].update_texture(2,1,validity_colors_as_char_);
+			}
+			if(ImGui::ColorEdit4WithPalette("Valid", &validity_colors_as_float_[4*1])) {
+				FOR(i,4)
+					validity_colors_as_char_[4*1+i] = static_cast<unsigned char>(validity_colors_as_float_[4*1+i]*255.0f);
+				colormaps_[COLORMAP_VALIDITY].update_texture(2,1,validity_colors_as_char_);
+			}
 			ImGui::EndDisabled();
 
 			if(static_labeling_graph.is_valid()) {
@@ -1993,7 +1988,7 @@ namespace {
 			init_colormap(colormap_name[i],colormap_xpm[i]);
 		}
 
-		// init labeling colormap
+		// init labeling colormap. like init_colormap() but without XPM data
 		colormaps_.push_back(ColormapInfo());
         colormaps_.rbegin()->name = "labeling";
         glGenTextures(1, &colormaps_.rbegin()->texture);
@@ -2001,6 +1996,24 @@ namespace {
         glTexImage2D(
 			GL_TEXTURE_2D, 0,
 			GL_RGBA, 6, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, labeling_colors_as_char_
+		);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(
+            GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR
+        );
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+		// init validity colormap. like init_colormap() but without XPM data
+		colormaps_.push_back(ColormapInfo());
+        colormaps_.rbegin()->name = "validity";
+        glGenTextures(1, &colormaps_.rbegin()->texture);
+        glBindTexture(GL_TEXTURE_2D, colormaps_.rbegin()->texture);
+        glTexImage2D(
+			GL_TEXTURE_2D, 0,
+			GL_RGBA, 2, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, validity_colors_as_char_
 		);
         glGenerateMipmap(GL_TEXTURE_2D);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -2104,8 +2117,8 @@ namespace {
 		X_boundaries_group_index = mesh_gfx_.new_custom_edges_group(&labeling_colors_as_float_[4*0],false); // axis X -> color of label 0 = +X
 		Y_boundaries_group_index = mesh_gfx_.new_custom_edges_group(&labeling_colors_as_float_[4*2],false); // axis Y -> color of label 2 = +Y
 		Z_boundaries_group_index = mesh_gfx_.new_custom_edges_group(&labeling_colors_as_float_[4*4],false); // axis Z -> color of label 4 = +Z
-		invalid_boundaries_group_index = mesh_gfx_.new_custom_edges_group(invalid_boundaries_color_,false);
-		valid_but_axisless_boundaries_group_index = mesh_gfx_.new_custom_edges_group(valid_boundaries_color_,false);
+		invalid_boundaries_group_index = mesh_gfx_.new_custom_edges_group(&validity_colors_as_float_[4*0],false); // color of invalid LabelingGraph components
+		valid_but_axisless_boundaries_group_index = mesh_gfx_.new_custom_edges_group(&validity_colors_as_float_[4*1],false); // color of valid LabelingGraph components
 
 		// store the coordinates of each corner in mesh_gfx_
 		// to be able to draw them

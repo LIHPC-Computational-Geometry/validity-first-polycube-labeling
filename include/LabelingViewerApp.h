@@ -10,7 +10,7 @@
 //
 // - inclusion of LabelingGraph.h, CustomMeshGfx.h
 // - new type : LabelingViewerApp::State
-// - new variables : corners_color_, valid_boundaries_color_, invalid_boundaries_color_,
+// - new variables : corners_color_, validity_colors_as_char_, validity_colors_as_float_
 //                   previous_state_, current_state_,
 //                   previous_labeling_visu_mode_, current_labeling_visu_mode_,
 //                   static_labeling_graph, corner_group_index,
@@ -637,12 +637,12 @@ using namespace GEO;
             }
             GLuint texture;
             std::string name;
-			void update_texture(unsigned char * data) {
+			void update_texture(int width, int height, unsigned char * data) {
 				// based on init_colormap() and glTexImage2Dxpm() but without glGenTextures()
 				glBindTexture(GL_TEXTURE_2D, texture);
 				glTexImage2D(
 					GL_TEXTURE_2D, 0,
-					GL_RGBA, 6, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, data
+					GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data
 				);
 				glGenerateMipmap(GL_TEXTURE_2D);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -704,10 +704,8 @@ using namespace GEO;
 	unsigned char labeling_colors_as_char_[6*4]; // for the colormap (facets colors)
 	float labeling_colors_as_float_[6*4]; // for ImGui controls & custom edges (boundaries colors)
 	float corners_color_[4];
-	float valid_boundaries_color_[4];
-	float invalid_boundaries_color_[4];
-	float valid_corners_color_[4];
-	float invalid_corners_color_[4];
+	unsigned char validity_colors_as_char_[2*4]; // for facets (invalid/valid charts)
+	float validity_colors_as_float_[2*4]; // for edges and points (invalid/valid boundaries, invalid/valid corners)
 	StaticLabelingGraph static_labeling_graph;
 	State previous_state_, current_state_;
 	int previous_labeling_visu_mode_, current_labeling_visu_mode_; // not a enum, to be used in ImGui
