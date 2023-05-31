@@ -251,6 +251,14 @@ namespace {
 		corners_color_[2] = 0.0f;
 		corners_color_[3] = 1.0f;
 
+		// turning points in yellow by default
+		turning_points_color_[0] = 1.0f;
+		turning_points_color_[1] = 1.0f;
+		turning_points_color_[2] = 0.0f;
+		turning_points_color_[3] = 1.0f;
+
+		nb_turning_points = 0;
+
 		// invalid charts/boundaries/corners in red by default
 		validity_colors_as_char_[4*0+0] = 255;
 		validity_colors_as_char_[4*0+1] = 64;
@@ -1074,6 +1082,7 @@ namespace {
 
 			ImGui::BeginDisabled(current_labeling_visu_mode_!=VIEW_LABELING_GRAPH);
 			ImGui::ColorEdit4WithPalette("Corners", corners_color_);
+			ImGui::ColorEdit4WithPalette(fmt::format("Turning points ({})",nb_turning_points).c_str(), turning_points_color_);
 			ImGui::EndDisabled();
 
 			ImGui::RadioButton(fmt::format("View invalid charts ({})",static_labeling_graph.nb_invalid_charts()).c_str(),&current_labeling_visu_mode_,VIEW_INVALID_CHARTS);
@@ -1102,6 +1111,13 @@ namespace {
 			}
 			else {
 				ImGui::TextColored(ImVec4(0.8f,0.0f,0.0f,1.0f),"Invalid labeling");
+			}
+
+			if(nb_turning_points==0) {
+				ImGui::TextColored(ImVec4(0.0f,0.5f,0.0f,1.0f),"All monotone boundaries");
+			}
+			else {
+				ImGui::TextColored(ImVec4(0.8f,0.0f,0.0f,1.0f),"Non-monotone boundaries");
 			}
 
 			ImGui::Separator();
@@ -2105,6 +2121,7 @@ namespace {
 
 		// compute charts, boundaries and corners of the labeling
 		static_labeling_graph.fill_from(mesh_,LABELING_ATTRIBUTE_NAME,allow_boundaries_between_opposite_labels);
+		nb_turning_points = static_labeling_graph.nb_turning_points();
 
 		fmt::println(Logger::out("I/O"),"There are {} charts, {} corners and {} boundaries in this labeling.",static_labeling_graph.nb_charts(),static_labeling_graph.nb_corners(),static_labeling_graph.nb_boundaries());  Logger::out("I/O").flush();
 
@@ -2114,6 +2131,7 @@ namespace {
 
 		valid_corners_group_index = mesh_gfx_.new_custom_points_group(corners_color_,true);
 		invalid_corners_group_index = mesh_gfx_.new_custom_points_group(corners_color_,true);
+		turning_points_group_index = mesh_gfx_.new_custom_points_group(turning_points_color_,true);
 		X_boundaries_group_index = mesh_gfx_.new_custom_edges_group(&labeling_colors_as_float_[4*0],false); // axis X -> color of label 0 = +X
 		Y_boundaries_group_index = mesh_gfx_.new_custom_edges_group(&labeling_colors_as_float_[4*2],false); // axis Y -> color of label 2 = +Y
 		Z_boundaries_group_index = mesh_gfx_.new_custom_edges_group(&labeling_colors_as_float_[4*4],false); // axis Z -> color of label 4 = +Z
@@ -2127,6 +2145,13 @@ namespace {
 				static_labeling_graph.corners[i].vertex
 			);
 			mesh_gfx_.add_custom_point(static_labeling_graph.corners[i].is_valid ? valid_corners_group_index : invalid_corners_group_index,coordinates[0], coordinates[1], coordinates[2]);
+		}
+
+		for(index_t i : static_labeling_graph.non_monotone_boundaries) {
+			for(index_t j : static_labeling_graph.boundaries[i].turning_points) {
+				vec3 coordinates = mesh_vertex(mesh_, mesh_.facet_corners.vertex(static_labeling_graph.boundaries[i].halfedges[j].corner));
+				mesh_gfx_.add_custom_point(turning_points_group_index,coordinates.x,coordinates.y,coordinates.z);
+			}
 		}
 
 		// store the coordinates of each boundary edge in mesh_gfx_

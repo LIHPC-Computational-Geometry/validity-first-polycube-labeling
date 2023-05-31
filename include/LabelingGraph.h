@@ -31,6 +31,8 @@
 #include "geometry.h" // for HalfedgeCompare
 #include "CustomMeshHalfedges.h"
 
+#define FALLOFF_BINARY 1.0 // smaller value -> more turning points. https://github.com/LIHPC-Computational-Geometry/evocube/blob/master/src/graphcut_labeling.cpp#L183
+
 using namespace GEO;
 
 namespace LabelingGraph {
@@ -138,6 +140,7 @@ struct Boundary {
 
     int axis = -1; // in {0 = X, 1 = Y, 2 = Z, -1 = boundary between opposite labels }
     bool is_valid = false;
+    std::vector<index_t> turning_points;
 
     //// Underlying geometry //////////////////
 
@@ -169,6 +172,8 @@ struct Boundary {
 
     bool compute_validity(bool allow_boundaries_between_opposite_labels, const CustomMeshHalfedges& mesh_halfedges);
 
+    bool find_turning_points(const CustomMeshHalfedges& mesh_halfedges); // return true if the boundary contains turning-points
+
     index_t chart_at_other_side(index_t origin_chart) const;
 };
 
@@ -199,6 +204,7 @@ struct StaticLabelingGraph {
     vector<index_t> invalid_charts;
     vector<index_t> invalid_boundaries;
     vector<index_t> invalid_corners;
+    vector<index_t> non_monotone_boundaries;
 
     //// Parameter given to last fill_from() //////////////////
     bool allow_boundaries_between_opposite_labels_ = false;
@@ -221,6 +227,7 @@ struct StaticLabelingGraph {
     std::size_t nb_invalid_charts() const;
     std::size_t nb_invalid_boundaries() const;
     std::size_t nb_invalid_corners() const;
+    std::size_t nb_turning_points() const;
 
     //// Getters for parameter(s) //////////////////
 

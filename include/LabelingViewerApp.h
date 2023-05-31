@@ -704,6 +704,8 @@ using namespace GEO;
 	unsigned char labeling_colors_as_char_[6*4]; // for the colormap (facets colors)
 	float labeling_colors_as_float_[6*4]; // for ImGui controls & custom edges (boundaries colors)
 	float corners_color_[4];
+	float turning_points_color_[4];
+	std::size_t nb_turning_points;
 	unsigned char validity_colors_as_char_[2*4]; // for facets (invalid/valid charts)
 	float validity_colors_as_float_[2*4]; // for edges and points (invalid/valid boundaries, invalid/valid corners)
 	StaticLabelingGraph static_labeling_graph;
@@ -711,6 +713,7 @@ using namespace GEO;
 	int previous_labeling_visu_mode_, current_labeling_visu_mode_; // not a enum, to be used in ImGui
 	std::size_t valid_corners_group_index;
 	std::size_t invalid_corners_group_index;
+	std::size_t turning_points_group_index;
 	std::size_t X_boundaries_group_index;
 	std::size_t Y_boundaries_group_index;
 	std::size_t Z_boundaries_group_index;

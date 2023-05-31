@@ -9,12 +9,15 @@
 
 #include <DisjointSet.hpp>
 
+#include <GCoptimization.h>
+
 #include <utility> // for std::pair
 
 #include "LabelingGraph.h"
 #include "geometry.h"               // for other_axis(), HalfedgeCompare
 #include "containers.h"             // for VECTOR_CONTAINS(), MAP_CONTAINS(), index_of_last(), += on std::vector
 #include "CustomMeshHalfedges.h"    // for CustomMeshHalfedges and CustomMeshHalfedges::Halfedge
+#include "labeling.h"               // for label2vector
 
 std::ostream& operator<< (std::ostream &out, const Chart& data) {
     fmt::println(out,"\tlabel : {}",data.label);
@@ -184,6 +187,7 @@ void Boundary::explore(const CustomMeshHalfedges::Halfedge& initial_halfedge,
 
     // only the start_corner should be filled
     geo_assert(axis == -1);
+    geo_assert(turning_points.empty());
     geo_assert(halfedges.empty());
     geo_assert(left_chart == LabelingGraph::UNDEFINED);
     geo_assert(right_chart == LabelingGraph::UNDEFINED);
@@ -299,6 +303,86 @@ bool Boundary::compute_validity(bool allow_boundaries_between_opposite_labels, c
         is_valid = true;
     }
     return is_valid;
+}
+
+bool Boundary::find_turning_points(const CustomMeshHalfedges& mesh_halfedges) {
+
+    // based on https://github.com/LIHPC-Computational-Geometry/evocube/blob/master/src/graphcut_labeling.cpp#L142 graphcutTurningPoints()
+
+    geo_assert(!halfedges.empty());
+    std::size_t nb_elem = halfedges.size(); // != nb vertices because first vertex cannot be a turning point (?). elem n°0 is vertex 0, which is between halfedge 0 and halfedge 1, and so on
+
+    // if boundary of 1 edge only -> no turning point
+    if(nb_elem == 1) return false;
+
+    // if axis==-1, no direction to compare with edges
+    if (axis == -1) return false;
+
+    std::vector<int> per_vertex_result(nb_elem);
+
+    // unary costs
+    std::vector<int> data_cost(nb_elem*2); // 2 "labels" : is a turning point, or is not a turning point
+    vec3 desired_direction = label2vector[axis*2]; // vector corresponding to the axis
+
+    FOR(i,nb_elem) {
+        vec3 edge =  normalize(halfedge_vector(mesh_halfedges.mesh(),halfedges[i])); // edge from vertex i to vertex i+1 -> halfedge i
+        double dot = (GEO::dot(desired_direction,edge))/0.9;
+        double cost = 1.0 - std::exp(-(1./2.)*std::pow(dot,2));
+        if (GEO::dot(desired_direction,edge) > 0){
+            data_cost[i*2 + 0] = (int) (100.0 * cost);
+        }
+        else {
+            data_cost[i*2 + 1] = (int) (100.0 * cost);
+        }
+    }
+
+	// binary cost coefficients
+	std::vector<int> smooth_cost(2*2);
+	for(unsigned int l1 = 0; l1 < 2; l1++ ){
+		for(unsigned int l2 = 0; l2 < 2; l2++ ){ 
+			if (l1==l2) smooth_cost[l1+l2*2] = 0;
+            else smooth_cost[l1+l2*2] = 1;
+        }
+    }
+
+    try{
+		GCoptimizationGeneralGraph *gc = new GCoptimizationGeneralGraph( (GCoptimization::SiteID) nb_elem,2);
+		gc->setDataCost(data_cost.data());
+		gc->setSmoothCost(smooth_cost.data());
+		
+        FOR(i,nb_elem-1) {
+            vec3 edge1 = normalize(halfedge_vector(mesh_halfedges.mesh(),halfedges[i])); // edge from vertex i to vertex i+1 -> halfedge i
+            vec3 edge2 = normalize(halfedge_vector(mesh_halfedges.mesh(),halfedges[i+1])); // edge from vertex i+1 to vertex i+2 -> halfedge i+1
+            double dot = (GEO::dot(edge1,edge2) - 1.0)/FALLOFF_BINARY;
+            double cost = std::exp(-(1./2.0)*std::pow(dot,2));
+            gc->setNeighbors( (GCoptimization::SiteID) i, (GCoptimization::SiteID) i+1, (int) (100.0*cost));
+        }
+
+		gc->expansion(2);// run expansion for 2 iterations
+		
+		for ( std::size_t  i = 0; i < nb_elem; i++ )
+			per_vertex_result[i] = gc->whatLabel( (GCoptimization::SiteID) i);
+
+		delete gc;
+	}
+	catch (GCException e){
+		e.Report();
+	}
+
+    // parse result for turning-points
+    for (unsigned int i=1; i<per_vertex_result.size(); i++){
+        if (per_vertex_result[i] != per_vertex_result[i-1]){
+            turning_points.push_back( (index_t) i);
+        }
+    }
+
+    // handle loops
+    if ( (start_corner == end_corner) &&
+         ((*per_vertex_result.begin()) != (*per_vertex_result.rbegin())) ) {
+        turning_points.push_back( (index_t) 0); // ?? Contradictory with comments of nb_elem declaration
+    }
+
+    return !turning_points.empty(); // true if there are turning-points, else false
 }
 
 index_t Boundary::chart_at_other_side(index_t origin_chart) const {
@@ -432,6 +516,9 @@ void StaticLabelingGraph::fill_from(Mesh& mesh, std::string facet_attribute, boo
                                        corners,
                                        halfedge2boundary,
                                        boundary_edges_to_explore);
+            if(boundaries.back().find_turning_points(mesh_half_edges_)) {
+                non_monotone_boundaries.push_back((index_t) index_of_last(boundaries));
+            }
             if(boundaries.back().compute_validity(allow_boundaries_between_opposite_labels,mesh_half_edges_)==false) {
                 invalid_boundaries.push_back((index_t) index_of_last(boundaries));
             }
@@ -467,6 +554,9 @@ void StaticLabelingGraph::fill_from(Mesh& mesh, std::string facet_attribute, boo
                                   corners,
                                   halfedge2boundary,
                                   boundary_edges_to_explore);
+        if(boundaries.back().find_turning_points(mesh_half_edges_)) {
+            non_monotone_boundaries.push_back((index_t) index_of_last(boundaries));
+        }
         if(boundaries.back().compute_validity(allow_boundaries_between_opposite_labels,mesh_half_edges_)==false) {
             invalid_boundaries.push_back((index_t) index_of_last(boundaries));
         }
@@ -506,6 +596,7 @@ void StaticLabelingGraph::clear() {
     invalid_charts.clear();
     invalid_boundaries.clear();
     invalid_corners.clear();
+    non_monotone_boundaries.clear();
     allow_boundaries_between_opposite_labels_ = false;
     // note : the mesh attributes will not be removed, because we no longer have a ref/pointer to the mesh
 }
@@ -546,6 +637,14 @@ std::size_t StaticLabelingGraph::nb_invalid_boundaries() const {
 
 std::size_t StaticLabelingGraph::nb_invalid_corners() const {
     return invalid_corners.size();
+}
+
+std::size_t StaticLabelingGraph::nb_turning_points() const {
+    std::size_t count = 0;
+    for(index_t i : non_monotone_boundaries) {
+        count += boundaries[i].turning_points.size();
+    }
+    return count;
 }
 
 std::size_t StaticLabelingGraph::is_allowing_boundaries_between_opposite_labels() const {
