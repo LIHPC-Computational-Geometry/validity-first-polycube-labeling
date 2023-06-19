@@ -2,7 +2,7 @@
 #include <geogram/basic/geometry.h>     // for GEO::vec3
 #include <geogram/basic/vecg.h>         // for GEO::vec3.normalize()
 #include <geogram/basic/logger.h>       // for GEO::Logger
-#include <geogram/mesh/mesh.h>          // for GEO::Mesh
+#include <geogram/mesh/mesh.h>          // for GEO::Mesh and set_double_precision()
 
 #include <fmt/core.h>
 #include <fmt/ostream.h>
@@ -13,6 +13,7 @@
 #include "hex_mesh.h"
 
 double compute_scaled_jacobian(GEO::Mesh& M) {
+    M.vertices.set_double_precision(); // in order to use M.vertices.point()
     GEO::Attribute<double> SJ(M.cells.attributes(), "SJ");
     double minSJ = 1.0;
     for (GEO::index_t hex_index : M.cells) { // for each hexahedron in mesh M

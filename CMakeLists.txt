@@ -40,4 +40,4 @@ add_executable(labeling_viewer ${SRCFILES} app/labeling_viewer)
 target_link_libraries(labeling_viewer geogram geogram_gfx ${GLFW_LIBRARIES} fmt::fmt gco)
 
 add_executable(hex_mesh_viewer ${SRCFILES} app/hex_mesh_viewer)
-target_link_libraries(hex_mesh_viewer geogram geogram_gfx ${GLFW_LIBRARIES} fmt::fmt)
+target_link_libraries(hex_mesh_viewer geogram geogram_gfx ${GLFW_LIBRARIES} fmt::fmt gco)

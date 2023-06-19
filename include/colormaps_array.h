@@ -1,6 +1,7 @@
 #pragma once
 
 // define an ordered list of Geogram colormaps, to allow indexing with macros
+// same ordering as in ext/geogram/src/lib/geogram_gfx/gui/simple_application.cpp init_colormaps()
 
 #define COLORMAP_FRENCH			0
 #define COLORMAP_BLACK_WHITE	1

@@ -1,7 +1,7 @@
 [submodule "ext/geogram"]
 	path = ext/geogram
 	url = git@github.com:BrunoLevy/geogram.git
-	ignore = untracked
+	ignore = dirty
 [submodule "ext/fmt"]
 	path = ext/fmt
 	url = git@github.com:fmtlib/fmt.git
