@@ -75,15 +75,15 @@ struct VertexRingWithBoundaries {
 
     //// Underlying geometry //////////////////
 
-    std::vector<CustomMeshHalfedges::Halfedge> boundary_edges;
+    std::vector<MeshHalfedges::Halfedge> boundary_edges;
 
     //// Methods //////////////////
 
     std::size_t valence() const; // number of adjacent boundary edges
 
-    bool halfedge_is_in_boundary_edges(const CustomMeshHalfedges::Halfedge& halfedge) const;
+    bool halfedge_is_in_boundary_edges(const MeshHalfedges::Halfedge& halfedge) const;
 
-    void explore(const CustomMeshHalfedges::Halfedge& initial_halfedge,
+    void explore(const MeshHalfedges::Halfedge& initial_halfedge,
                  const CustomMeshHalfedges& mesh_halfedges);
 
     void check_boundary_edges(const CustomMeshHalfedges& mesh_halfedges) const;
@@ -122,9 +122,9 @@ struct Corner {
 
     std::size_t valence() const; // number of adjacent boundary edges
 
-    bool halfedge_is_in_boundary_edges(const CustomMeshHalfedges::Halfedge& halfedge) const;
+    bool halfedge_is_in_boundary_edges(const MeshHalfedges::Halfedge& halfedge) const;
 
-    bool compute_validity(bool allow_boundaries_between_opposite_labels, const std::vector<Boundary>& boundaries, const std::map<CustomMeshHalfedges::Halfedge,std::pair<index_t,bool>,HalfedgeCompare>& halfedge2boundary);
+    bool compute_validity(bool allow_boundaries_between_opposite_labels, const std::vector<Boundary>& boundaries, const std::map<MeshHalfedges::Halfedge,std::pair<index_t,bool>,HalfedgeCompare>& halfedge2boundary);
 };
 
 std::ostream& operator<< (std::ostream &out, const Corner& data);
@@ -144,7 +144,7 @@ struct Boundary {
 
     //// Underlying geometry //////////////////
 
-    std::vector<CustomMeshHalfedges::Halfedge> halfedges;
+    std::vector<MeshHalfedges::Halfedge> halfedges;
     vec3 average_normal = {0,0,0};
 
     //// Adjacency //////////////////
@@ -158,15 +158,15 @@ struct Boundary {
 
     bool empty() const;
 
-    void explore(const CustomMeshHalfedges::Halfedge& initial_halfedge,
+    void explore(const MeshHalfedges::Halfedge& initial_halfedge,
                  const CustomMeshHalfedges& mesh_halfedges,
                  index_t index_of_self,
                  const std::vector<index_t>& facet2chart,
                  std::vector<index_t>& vertex2corner,
                  std::vector<Chart>& charts,
                  std::vector<Corner>& corners,
-                 std::map<CustomMeshHalfedges::Halfedge,std::pair<index_t,bool>,HalfedgeCompare>& halfedge2boundary,
-                 std::vector<CustomMeshHalfedges::Halfedge>& boundary_edges_to_explore);
+                 std::map<MeshHalfedges::Halfedge,std::pair<index_t,bool>,HalfedgeCompare>& halfedge2boundary,
+                 std::vector<MeshHalfedges::Halfedge>& boundary_edges_to_explore);
 
     bool contains_lower_than_180_degrees_angles(const CustomMeshHalfedges& mesh_halfedges);
 
@@ -196,7 +196,7 @@ struct StaticLabelingGraph {
     //// Mapping from geometry to LabelingGraph features //////////////////
 
     std::vector<index_t> facet2chart;
-    std::map<CustomMeshHalfedges::Halfedge,std::pair<index_t,bool>,HalfedgeCompare> halfedge2boundary; // for each halfedge, store 1/ the associated boundary (may be LabelingGraph::UNDEFINED) and 2/ if the boundary is in the same orientation
+    std::map<MeshHalfedges::Halfedge,std::pair<index_t,bool>,HalfedgeCompare> halfedge2boundary; // for each halfedge, store 1/ the associated boundary (may be LabelingGraph::UNDEFINED) and 2/ if the boundary is in the same orientation
     std::vector<index_t> vertex2corner;
 
     //// Quick access to problematic LabelingGraph features //////////////////

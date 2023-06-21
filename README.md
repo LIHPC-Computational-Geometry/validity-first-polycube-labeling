@@ -6,23 +6,27 @@ Automatic polycube generation for hex-meshing. WIP
 ```bash
 git clone --recurse-submodules https://github.com/LIHPC-Computational-Geometry/automatic_polycube.git
 cd automatic_polycube
+```
+
+Open `ext/geogram/src/lib/geogram/mesh/mesh_halfedges.h` and change accessibility of `MeshHalfedges` variables from `private` to `protected`. Then:
+
+```bash
+# from automatic_polycube/
 ./configure.sh
 cd build/Linux64-gcc-dynamic-Release/
 make
 ```
 
-## App `labeling_viewer`
+## Run `automatic_polycube` app
 
 ```bash
 # from build/Linux64-gcc-dynamic-Release
-cd bin
-./labeling_viewer ../../../data/B0/surface.obj ../../../data/B0/labeling.txt
+./bin/automatic_polycube ../../data/B0/surface.obj
 ```
 
-## App `hex_mesh_viewer`
+## Run `hex_mesh_viewer` app
 
 ```bash
 # from build/Linux64-gcc-dynamic-Release
-cd bin
-./hex_mesh_viewer ../../../data/B0/hex.mesh
+./bin/hex_mesh_viewer ../../data/B0/hex.mesh
 ```

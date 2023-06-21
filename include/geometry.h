@@ -1,7 +1,8 @@
 #pragma once
 
-#include <geogram/basic/numeric.h>  // for GEO::index_t
-#include <geogram/basic/vecg.h>     // for GEO::vecng
+#include <geogram/basic/numeric.h>          // for GEO::index_t
+#include <geogram/basic/vecg.h>             // for GEO::vecng
+#include <geogram/mesh/mesh_halfedges.h>    // for MeshHalfedges::Halfedge
 
 #include "CustomMeshHalfedges.h"
 
@@ -26,7 +27,7 @@ inline int other_axis(int axis1, int axis2) {
 // in order to have halfedges as key of std::map, we have to define comparison between halfedge
 
 struct HalfedgeCompare {
-    bool operator()(const CustomMeshHalfedges::Halfedge& a, const CustomMeshHalfedges::Halfedge& b) const {
+    bool operator()(const MeshHalfedges::Halfedge& a, const MeshHalfedges::Halfedge& b) const {
         // compare facet, then corner 
         if( a.facet < b.facet ) return true;
         else if( a.facet == b.facet ) return (a.corner < b.corner);

@@ -6,11 +6,10 @@
 #include <fmt/core.h>
 #include <fmt/ostream.h>
 
-#include <vector>
 #include <string>
 
 #include "hex_mesh.h" // for compute_scaled_jacobian()
-#include "colormaps_array.h" // for colormaps index macros
+#include "SimpleMeshApplicationExt.h" // for colormaps indices
 
 using namespace GEO;
 
@@ -75,42 +74,21 @@ private:
             mesh_.vertices.set_single_precision();
         }
         MeshIOFlags flags;
-        if(CmdLine::get_arg_bool("attributes")) {
-            flags.set_attribute(MESH_FACET_REGION);
-            flags.set_attribute(MESH_CELL_REGION);            
-        } 
         if(!mesh_load(filename, mesh_, flags)) {
             show_SJ_ = false;               // added
             drawing_settings_dirty_ = true; // added
             return false;
         }
-        if(
-            FileSystem::extension(filename) == "obj6" ||
-            FileSystem::extension(filename) == "tet6"
-        ) {
-            Logger::out("Vorpaview") << "Displaying mesh animation." << std::endl;
-	        start_animation();
-            mesh_gfx_.set_animate(true);
-            double xyzmin[3];
-            double xyzmax[3];
-            get_bbox(mesh_, xyzmin, xyzmax, true);
-            set_region_of_interest(
-                xyzmin[0], xyzmin[1], xyzmin[2],
-                xyzmax[0], xyzmax[1], xyzmax[2]
-            );
-        }
-        else {
-            mesh_gfx_.set_animate(false);            
-            mesh_.vertices.set_dimension(3);
-            double xyzmin[3];
-            double xyzmax[3];
-            get_bbox(mesh_, xyzmin, xyzmax, false);
-            set_region_of_interest(
-                xyzmin[0], xyzmin[1], xyzmin[2],
-                xyzmax[0], xyzmax[1], xyzmax[2]
-            );
-        }
-        show_vertices_ = (mesh_.facets.nb() == 0);
+        mesh_gfx_.set_animate(false);            
+        mesh_.vertices.set_dimension(3);
+        double xyzmin[3];
+        double xyzmax[3];
+        get_bbox(mesh_, xyzmin, xyzmax, false);
+        set_region_of_interest(
+            xyzmin[0], xyzmin[1], xyzmin[2],
+            xyzmax[0], xyzmax[1], xyzmax[2]
+        );
+        mesh_.vertices.set_double_precision(); // added
         mesh_gfx_.set_mesh(&mesh_);
 	    current_file_ = filename;
 

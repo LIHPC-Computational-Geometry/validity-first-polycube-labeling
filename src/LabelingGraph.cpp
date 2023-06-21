@@ -1,6 +1,7 @@
 #include <geogram/mesh/mesh.h>
 #include <geogram/basic/attributes.h>
 #include <geogram/basic/assert.h>
+#include <geogram/mesh/mesh_halfedges.h>    // for MeshHalfedges::Halfedge
 
 #include <fmt/core.h>
 #include <fmt/ostream.h>
@@ -16,7 +17,7 @@
 #include "LabelingGraph.h"
 #include "geometry.h"               // for other_axis(), HalfedgeCompare
 #include "containers.h"             // for VECTOR_CONTAINS(), MAP_CONTAINS(), index_of_last(), += on std::vector
-#include "CustomMeshHalfedges.h"    // for CustomMeshHalfedges and CustomMeshHalfedges::Halfedge
+#include "CustomMeshHalfedges.h"    // for CustomMeshHalfedges
 #include "labeling.h"               // for label2vector
 
 std::ostream& operator<< (std::ostream &out, const Chart& data) {
@@ -30,7 +31,7 @@ std::size_t VertexRingWithBoundaries::valence() const {
     return boundary_edges.size();
 }
 
-bool VertexRingWithBoundaries::halfedge_is_in_boundary_edges(const CustomMeshHalfedges::Halfedge& halfedge) const {
+bool VertexRingWithBoundaries::halfedge_is_in_boundary_edges(const MeshHalfedges::Halfedge& halfedge) const {
     if(VECTOR_CONTAINS(boundary_edges,halfedge)) {
         return true;
     }
@@ -43,11 +44,11 @@ bool VertexRingWithBoundaries::halfedge_is_in_boundary_edges(const CustomMeshHal
  * \param[in] mesh_halfedges The half-edges interface of the mesh
  * \param[in] labeling The facet-to-label association, to detect boundary edges (= edges between 2 labels)
  */
-void VertexRingWithBoundaries::explore(const CustomMeshHalfedges::Halfedge& initial_halfedge,
+void VertexRingWithBoundaries::explore(const MeshHalfedges::Halfedge& initial_halfedge,
                                        const CustomMeshHalfedges& mesh_halfedges) {
     
     // prepare the vertex exploration
-    CustomMeshHalfedges::Halfedge current_halfedge = initial_halfedge; // create another Halfedge that we can modify (we need to keep the initial one)
+    MeshHalfedges::Halfedge current_halfedge = initial_halfedge; // create another Halfedge that we can modify (we need to keep the initial one)
 
     // go around the vertex, from boundary edge to boundary edge
     do {
@@ -86,7 +87,7 @@ std::size_t Corner::valence() const {
     return valence;
 }
 
-bool Corner::halfedge_is_in_boundary_edges(const CustomMeshHalfedges::Halfedge& halfedge) const {
+bool Corner::halfedge_is_in_boundary_edges(const MeshHalfedges::Halfedge& halfedge) const {
     for(const VertexRingWithBoundaries& vertex_ring_with_boundaries: vertex_rings_with_boundaries) { // parse boundary edges grouped by vertex ring
         if(vertex_ring_with_boundaries.halfedge_is_in_boundary_edges(halfedge)) {
             return true;
@@ -95,7 +96,7 @@ bool Corner::halfedge_is_in_boundary_edges(const CustomMeshHalfedges::Halfedge& 
     return false;
 }
 
-bool Corner::compute_validity(bool allow_boundaries_between_opposite_labels, const std::vector<Boundary>& boundaries, const std::map<CustomMeshHalfedges::Halfedge,std::pair<index_t,bool>,HalfedgeCompare>& halfedge2boundary) {
+bool Corner::compute_validity(bool allow_boundaries_between_opposite_labels, const std::vector<Boundary>& boundaries, const std::map<MeshHalfedges::Halfedge,std::pair<index_t,bool>,HalfedgeCompare>& halfedge2boundary) {
     int per_axis_counter[3] = {0,0,0}; // number of X, Y, and Z boundaries
     std::size_t nb_boundary_edges_in_vertex_ring;
     // going around all boundary edges of all vertex rings and count boundary axes
@@ -175,15 +176,15 @@ bool Boundary::empty() const {
     );
 }
 
-void Boundary::explore(const CustomMeshHalfedges::Halfedge& initial_halfedge,
+void Boundary::explore(const MeshHalfedges::Halfedge& initial_halfedge,
                        const CustomMeshHalfedges& mesh_halfedges,
                        index_t index_of_self,
                        const std::vector<index_t>& facet2chart,
                        std::vector<index_t>& vertex2corner,
                        std::vector<Chart>& charts,
                        std::vector<Corner>& corners,
-                       std::map<CustomMeshHalfedges::Halfedge,std::pair<index_t,bool>,HalfedgeCompare>& halfedge2boundary,
-                       std::vector<CustomMeshHalfedges::Halfedge>& boundary_edges_to_explore) {
+                       std::map<MeshHalfedges::Halfedge,std::pair<index_t,bool>,HalfedgeCompare>& halfedge2boundary,
+                       std::vector<MeshHalfedges::Halfedge>& boundary_edges_to_explore) {
 
     // only the start_corner should be filled
     geo_assert(axis == -1);
@@ -196,7 +197,7 @@ void Boundary::explore(const CustomMeshHalfedges::Halfedge& initial_halfedge,
     // initialization
     index_t current_vertex = LabelingGraph::UNDEFINED;
     const Mesh& mesh = mesh_halfedges.mesh();
-    CustomMeshHalfedges::Halfedge current_halfedge = initial_halfedge; // create a modifiable halfedge
+    MeshHalfedges::Halfedge current_halfedge = initial_halfedge; // create a modifiable halfedge
 
     geo_assert(mesh_halfedges.halfedge_is_border(current_halfedge));
 
@@ -458,12 +459,12 @@ void StaticLabelingGraph::fill_from(Mesh& mesh, std::string facet_attribute, boo
     // This works for shapes having several solids connected by a vertex only
 
     mesh_half_edges_.set_use_facet_region(facet_attribute); // indicate to Geogram the attribute with the charts (= regions for Geogram) from which we want to find the boundaries (= borders for Geogram)
-    std::vector<CustomMeshHalfedges::Halfedge> boundary_edges_to_explore; // vector of boundary edges we encountered, and that must be explored later
+    std::vector<MeshHalfedges::Halfedge> boundary_edges_to_explore; // vector of boundary edges we encountered, and that must be explored later
 
     index_t current_vertex = LabelingGraph::UNDEFINED;
     for(index_t f: mesh.facets) { for(index_t c: mesh.facets.corners(f)) { // for each facet corner (f,c)
         
-        CustomMeshHalfedges::Halfedge halfedge(f,c); // halfedge on facet f having corner c as base
+        MeshHalfedges::Halfedge halfedge(f,c); // halfedge on facet f having corner c as base
         current_vertex = mesh.facet_corners.vertex(halfedge.corner); // get the vertex at the base of halfedge
         
         // (re)explore this vertex, because maybe it was explored from another solid of the same shape (multiple vertex rings)
@@ -530,7 +531,7 @@ void StaticLabelingGraph::fill_from(Mesh& mesh, std::string facet_attribute, boo
     // if not linked to a boundary, look at neighboring labels
     // if they are different, explore this boundary
     for(index_t f: mesh.facets) { for(index_t c: mesh.facets.corners(f)) {
-        CustomMeshHalfedges::Halfedge halfedge(f,c); // halfedge on facet f having corner c as base
+        MeshHalfedges::Halfedge halfedge(f,c); // halfedge on facet f having corner c as base
 
         if (MAP_CONTAINS(halfedge2boundary,halfedge)) {
             // halfedge is on an already explorer boundary

@@ -139,7 +139,7 @@ unsigned int fix_invalid_boundaries(GEO::Mesh& mesh, const char* attribute_name,
 
     unsigned int new_charts_count = 0;
     index_t new_label;
-    CustomMeshHalfedges::Halfedge current_halfedge;
+    MeshHalfedges::Halfedge current_halfedge;
     for(index_t boundary_index : slg.invalid_boundaries) { // for each invalid boundary
         const Boundary& current_boundary = slg.boundaries[boundary_index];
         new_label = nearest_label(current_boundary.average_normal);
