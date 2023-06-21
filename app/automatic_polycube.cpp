@@ -153,14 +153,8 @@ private:
 					show_mesh_ = true;
 					lighting_ = true;
 					show_attributes_ = false;
-					set_points_group_visibility(valid_corners_group_index,false);
-					set_points_group_visibility(invalid_corners_group_index,false);
-					set_points_group_visibility(turning_points_group_index,false);
-					set_edges_group_visibility(X_boundaries_group_index,false);
-					set_edges_group_visibility(Y_boundaries_group_index,false);
-					set_edges_group_visibility(Z_boundaries_group_index,false);
-					set_edges_group_visibility(invalid_boundaries_group_index,false);
-					set_edges_group_visibility(valid_but_axisless_boundaries_group_index,false);
+					points_groups_show_only({}); // show none
+					edges_groups_show_only({}); // show none
 					break;
 				case VIEW_RAW_LABELING:
 					show_mesh_ = true;
@@ -172,14 +166,8 @@ private:
 					attribute_name_ = LABELING_ATTRIBUTE_NAME;
 					attribute_min_ = -0.5f;
 					attribute_max_ = 5.5f;
-					set_points_group_visibility(valid_corners_group_index,false);
-					set_points_group_visibility(invalid_corners_group_index,false);
-					set_points_group_visibility(turning_points_group_index,false);
-					set_edges_group_visibility(X_boundaries_group_index,false);
-					set_edges_group_visibility(Y_boundaries_group_index,false);
-					set_edges_group_visibility(Z_boundaries_group_index,false);
-					set_edges_group_visibility(invalid_boundaries_group_index,false);
-					set_edges_group_visibility(valid_but_axisless_boundaries_group_index,false);
+					points_groups_show_only({}); // show none
+					edges_groups_show_only({}); // show none
 					break;
 				case VIEW_LABELING_GRAPH:
 					show_mesh_ = false;
@@ -191,19 +179,15 @@ private:
 					attribute_name_ = LABELING_ATTRIBUTE_NAME;
 					attribute_min_ = -0.5f;
 					attribute_max_ = 5.5f;
+					// points in overlay
 					set_points_group_color(valid_corners_group_index,corners_color_);
 					set_points_group_color(invalid_corners_group_index,corners_color_); // no 	distinction between valid and invalid corners in this view
-					set_points_group_visibility(valid_corners_group_index,true);
-					set_points_group_visibility(invalid_corners_group_index,true);
-					set_points_group_visibility(turning_points_group_index,true);
+					points_groups_show_only({valid_corners_group_index, invalid_corners_group_index, turning_points_group_index});
+					// edges in overlay
 					set_edges_group_color(X_boundaries_group_index,&labeling_colors_as_float_[4*0]); // axis X -> color of label 0 = +X
 					set_edges_group_color(Y_boundaries_group_index,&labeling_colors_as_float_[4*2]); // axis Y -> color of label 2 = +Y
 					set_edges_group_color(Z_boundaries_group_index,&labeling_colors_as_float_[4*4]); // axis Z -> color of label 4 = +Z
-					set_edges_group_visibility(X_boundaries_group_index,true);
-					set_edges_group_visibility(Y_boundaries_group_index,true);
-					set_edges_group_visibility(Z_boundaries_group_index,true);
-					set_edges_group_visibility(invalid_boundaries_group_index,false);
-					set_edges_group_visibility(valid_but_axisless_boundaries_group_index,false);
+					edges_groups_show_only({X_boundaries_group_index, Y_boundaries_group_index, Z_boundaries_group_index});
 					break;
 				case VIEW_INVALID_CHARTS:
 					show_mesh_ = false;
@@ -215,17 +199,13 @@ private:
 					attribute_name_ = "on_invalid_chart";
 					attribute_min_ = 1.5;
 					attribute_max_ = -0.5;
-					set_points_group_visibility(valid_corners_group_index,false);
-					set_points_group_visibility(invalid_corners_group_index,false);
-					set_points_group_visibility(turning_points_group_index,false);
+					// points in overlay
+					points_groups_show_only({}); // show none
+					// edges in overlay
 					set_edges_group_color(X_boundaries_group_index,&labeling_colors_as_float_[4*0]); // axis X -> color of label 0 = +X
 					set_edges_group_color(Y_boundaries_group_index,&labeling_colors_as_float_[4*2]); // axis Y -> color of label 2 = +Y
 					set_edges_group_color(Z_boundaries_group_index,&labeling_colors_as_float_[4*4]); // axis Z -> color of label 4 = +Z
-					set_edges_group_visibility(X_boundaries_group_index,true);
-					set_edges_group_visibility(Y_boundaries_group_index,true);
-					set_edges_group_visibility(Z_boundaries_group_index,true);
-					set_edges_group_visibility(invalid_boundaries_group_index,false);
-					set_edges_group_visibility(valid_but_axisless_boundaries_group_index,false);
+					edges_groups_show_only({X_boundaries_group_index, Y_boundaries_group_index, Z_boundaries_group_index});
 
 					// use mesh_gfx_.draw_surface_borders() ?
 
@@ -234,35 +214,27 @@ private:
 					show_mesh_ = false;
 					lighting_ = false;
 					show_attributes_ = false;
-					set_points_group_visibility(valid_corners_group_index,false);
-					set_points_group_visibility(invalid_corners_group_index,false);
-					set_points_group_visibility(turning_points_group_index,false);
+					// points in overlay
+					points_groups_show_only({}); // show none
+					// edges in overlay
 					set_edges_group_color(X_boundaries_group_index,&validity_colors_as_float_[4*1]); // apply the color of valid LabelingGraph components
 					set_edges_group_color(Y_boundaries_group_index,&validity_colors_as_float_[4*1]); // apply the color of valid LabelingGraph components
 					set_edges_group_color(Z_boundaries_group_index,&validity_colors_as_float_[4*1]); // apply the color of valid LabelingGraph components
-					set_edges_group_visibility(X_boundaries_group_index,true);
-					set_edges_group_visibility(Y_boundaries_group_index,true);
-					set_edges_group_visibility(Z_boundaries_group_index,true);
-					set_edges_group_visibility(invalid_boundaries_group_index,true);
-					set_edges_group_visibility(valid_but_axisless_boundaries_group_index,true);
+					edges_groups_show_only({X_boundaries_group_index, Y_boundaries_group_index, Z_boundaries_group_index, invalid_boundaries_group_index, valid_but_axisless_boundaries_group_index});
 					break;
 				case VIEW_INVALID_CORNERS:
 					show_mesh_ = false;
 					lighting_ = false;
 					show_attributes_ = false;
+					// points in overlay
 					set_points_group_color(valid_corners_group_index,&validity_colors_as_float_[4*1]); // apply the color of valid LabelingGraph components
 					set_points_group_color(invalid_corners_group_index,&validity_colors_as_float_[4*0]); // apply the color of invalid LabelingGraph components
-					set_points_group_visibility(valid_corners_group_index,true);
-					set_points_group_visibility(invalid_corners_group_index,true);
-					set_points_group_visibility(turning_points_group_index,false);
+					points_groups_show_only({valid_corners_group_index, invalid_corners_group_index});
+					// edges in overlay
 					set_edges_group_color(X_boundaries_group_index,&labeling_colors_as_float_[4*0]); // axis X -> color of label 0 = +X
 					set_edges_group_color(Y_boundaries_group_index,&labeling_colors_as_float_[4*2]); // axis Y -> color of label 2 = +Y
 					set_edges_group_color(Z_boundaries_group_index,&labeling_colors_as_float_[4*4]); // axis Z -> color of label 4 = +Z
-					set_edges_group_visibility(X_boundaries_group_index,true);
-					set_edges_group_visibility(Y_boundaries_group_index,true);
-					set_edges_group_visibility(Z_boundaries_group_index,true);
-					set_edges_group_visibility(invalid_boundaries_group_index,false);
-					set_edges_group_visibility(valid_but_axisless_boundaries_group_index,false);
+					edges_groups_show_only({X_boundaries_group_index, Y_boundaries_group_index, Z_boundaries_group_index});
 
 					// use mesh_gfx_.draw_surface_borders() ?
 					

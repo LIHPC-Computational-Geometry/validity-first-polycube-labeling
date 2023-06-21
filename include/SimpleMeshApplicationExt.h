@@ -10,6 +10,7 @@
 #include <geogram/basic/vecg.h>
 
 #include <vector>
+#include <initializer_list>
 
 #include "containers.h"
 
@@ -98,6 +99,28 @@ public:
 
     void set_edges_group_visibility(std::size_t index, bool visible) {
         edges_groups_.at(index).show = visible;
+    }
+
+    void points_groups_show_only(std::initializer_list<std::size_t> indices) {
+        // hide all groups
+        for(PointsGroup& group : points_groups_) {
+            group.show = false;
+        }
+        // show selected groups
+        for(std::size_t group_index : indices) {
+            points_groups_.at(group_index).show = true;
+        }
+    }
+
+    void edges_groups_show_only(std::initializer_list<std::size_t> indices) {
+        // hide all groups
+        for(EdgesGroup& group : edges_groups_) {
+            group.show = false;
+        }
+        // show selected groups
+        for(std::size_t group_index : indices) {
+            edges_groups_.at(group_index).show = true;
+        }
     }
 
     void draw_scene() override {
