@@ -10,6 +10,7 @@
 #include <geogram/basic/vecg.h>
 
 #include <vector>
+#include <array>
 #include <initializer_list>
 
 #include "containers.h"
@@ -48,6 +49,50 @@ public:
         bool show = false;
         EdgesGroup(const float* rgba, bool show) : color(rgba), show(show) {}
         void clear() { edges.clear(); color = nullptr; show = false; }
+    };
+
+    // both float (for ImGui) and char (for OpenGL textures) representations
+    class ColorArray {
+    public:
+        ColorArray(std::initializer_list<std::array<float,4>> init_values) {
+            chars_.resize(init_values.size()*4);
+            floats_.resize(init_values.size()*4);
+            std::size_t color_index = 0;
+            for(auto &color : init_values) {
+                floats_[4*color_index+0] = color[0]; // R
+                floats_[4*color_index+1] = color[1]; // G
+                floats_[4*color_index+2] = color[2]; // B
+                floats_[4*color_index+3] = color[3]; // A
+                update_chars_of_color(color_index);
+                color_index++;
+            }
+        }
+
+        float* as_floats() {
+            return floats_.data();
+        }
+
+        float* color_as_floats(std::size_t color_index) {
+            return (floats_.data()+(4*color_index));
+        }
+
+        unsigned char* as_chars() {
+            return chars_.data();
+        }
+
+        unsigned char* color_as_chars(std::size_t color_index) {
+            return (chars_.data()+(4*color_index));
+        }
+
+        void update_chars_of_color(std::size_t color_index) {
+            chars_[4*color_index+0] = static_cast<unsigned char>(floats_[4*color_index+0]*255.0f); // R
+            chars_[4*color_index+1] = static_cast<unsigned char>(floats_[4*color_index+1]*255.0f); // G
+            chars_[4*color_index+2] = static_cast<unsigned char>(floats_[4*color_index+2]*255.0f); // B
+            chars_[4*color_index+3] = static_cast<unsigned char>(floats_[4*color_index+3]*255.0f); // A
+        }
+    private:
+        std::vector<float> floats_;
+        std::vector<unsigned char> chars_;
     };
 
     SimpleMeshApplicationExt(const std::string &name) : SimpleMeshApplication(name) {}
