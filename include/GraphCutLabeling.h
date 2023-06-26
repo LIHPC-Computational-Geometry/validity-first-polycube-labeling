@@ -68,6 +68,22 @@ public:
      */
     void set_fidelity_based_data_cost(index_t facet_index, int fidelity_coeff);
 
+    /**
+     * \brief Get the current data cost of assigning a given label on a given facet
+     * \param[in] facet_index Which facet
+     * \param[in] label Which label
+     * \return The current data cost value
+     */
+    int get_data_cost(index_t facet_index, index_t label);
+
+    /**
+     * \brief Set the data cost of assigning a given label on a given facet
+     * \param[in] facet_index Which facet
+     * \param[in] label Which label
+     * \param[in] value The new data cost value
+     */
+    void set_data_cost(index_t facet_index, index_t label, int value);
+
     //// Debug //////////////////
 
     void dump_costs();

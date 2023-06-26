@@ -232,6 +232,15 @@ void remove_invalid_charts(GEO::Mesh& mesh, const char* attribute_name, const St
 
         for(index_t facet_index : slg.charts[chart_index].facets) { // for each facet inside this chart
             gcl.set_fidelity_based_data_cost(facet_index,1);
+            // if facet next to a boundary, lower the cost of assigning the neighboring label
+            FOR(le,3) { // for each local edge
+                index_t adjacent_facet = mesh.facets.adjacent(facet_index,le);
+                if(label[adjacent_facet] != label[facet_index]) {
+                    gcl.set_data_cost(facet_index,label[adjacent_facet],
+                        gcl.get_data_cost(facet_index,label[adjacent_facet])/2 // halve the cost
+                    );
+                }
+            }
             gcl.forbid_label_on_facet(facet_index,label[facet_index]); // prevent the label from staying the same
         }
     }

@@ -92,6 +92,14 @@ void GraphCutLabeling::set_fidelity_based_data_cost(index_t facet_index, int fid
     _facet_data_cost__set_fidelity_based(facet_index,data_cost_,normal,fidelity_coeff);
 }
 
+int GraphCutLabeling::get_data_cost(index_t facet_index, index_t label) {
+    return data_cost_[facet_index*6+label];
+}
+
+void GraphCutLabeling::set_data_cost(index_t facet_index, index_t label, int value) {
+    data_cost_[facet_index*6+label] = value;
+}
+
 void GraphCutLabeling::dump_costs() {
 
     // write data costs
@@ -111,6 +119,7 @@ void GraphCutLabeling::dump_costs() {
     ofs_data.flush();
     ofs_data.close();
 
+    // write smooth costs
     auto ofs_smooth = fmt::output_file("smooth.csv");
     ofs_smooth.print("label1,0,1,2,3,4,5\n");
     FOR(label1,6) {
