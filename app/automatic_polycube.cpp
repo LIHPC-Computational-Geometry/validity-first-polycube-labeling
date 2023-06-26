@@ -1,7 +1,9 @@
+#include <geogram_gfx/gui/application.h> // for set_style()
 #include <geogram_gfx/gui/simple_mesh_application.h>
 #include <geogram/basic/file_system.h> // for is_file(), extension() in load()
 #include <geogram/basic/command_line.h> // for get_arg_bool() in load()
 #include <geogram/mesh/mesh_io.h> // for MeshIOFlags, mesh_load() in load()
+#include <geogram/basic/command_line.h> // for CmdLine::get_arg() and CmdLine::set_arg()
 
 #include <fmt/core.h>
 #include <fmt/ostream.h>
@@ -79,9 +81,26 @@ public:
 		current_labeling_visu_mode_ = VIEW_RAW_LABELING;
     }
 
+	void ImGui_initialize() override {
+		Application::ImGui_initialize();
+		set_style("Light");
+		if(GEO::FileSystem::is_file("gui.ini")) {
+			// Layout modification, saved with ImGui::SaveIniSettingsToDisk()
+			// Larger docked object properties panel
+			ImGui::LoadIniSettingsFromDisk("gui.ini");
+		}
+	}
+
     void start(int argc, char** argv) override {
         SimpleMeshApplicationExt::start(argc,argv);
     }
+
+	void geogram_initialize(int argc, char** argv) override {
+		SimpleMeshApplication::geogram_initialize(argc,argv);
+		if(!phone_screen_ && CmdLine::get_arg("gfx:geometry") == "1024x1024") { // if not a phone screen and default value for gfx:geometry 
+			CmdLine::set_arg("gfx:geometry", "1920x1024"); // bigger window
+		}
+	}
 private:
 
     void draw_scene() override {
