@@ -7,4 +7,5 @@
 - **[hex_mesh.h](hex_mesh.h)/[.cpp](../src/hex_mesh.cpp)** : hexahedral meshes related functions (quality metric)
 - **[labeling.h](labeling.h)/[.cpp](../src/labeling.cpp)** : operators on labelings
 - **[LabelingGraph.h](LabelingGraph.h)/[.cpp](../src/LabelingGraph.cpp)** : computation of charts/boundaries/corners from a labeling
+- **[LabelingViewerApp.h](LabelingViewerApp.h)** : GUI app to display labelings on triangle meshes
 - **[SimpleMeshApplicationExt.h](SimpleMeshApplicationExt.h)** : modified version of Geogram's [SimpleMeshApplication](https://github.com/BrunoLevy/geogram/blob/main/src/lib/geogram_gfx/gui/simple_mesh_application.h) class
