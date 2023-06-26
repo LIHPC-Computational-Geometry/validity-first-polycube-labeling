@@ -9,6 +9,8 @@
 #include <geogram_gfx/gui/simple_mesh_application.h>
 #include <geogram/basic/vecg.h>
 
+#include <geogram_gfx/third_party/imgui/imgui.h> // for ImVec4
+
 #include <vector>
 #include <array>
 #include <initializer_list>
@@ -74,6 +76,15 @@ public:
 
         float* color_as_floats(std::size_t color_index) {
             return (floats_.data()+(4*color_index));
+        }
+
+        ImVec4 color_as_ImVec4(std::size_t color_index) {
+            return ImVec4(
+                floats_.data()[4*color_index+0],
+                floats_.data()[4*color_index+1],
+                floats_.data()[4*color_index+2],
+                floats_.data()[4*color_index+3]
+            );
         }
 
         unsigned char* as_chars() {
