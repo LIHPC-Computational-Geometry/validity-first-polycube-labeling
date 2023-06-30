@@ -8,6 +8,8 @@ using namespace GEO;
 
 bool load_labeling(const std::string& filename, Mesh& mesh, const char* attribute_name);
 
+bool save_labeling(const std::string& filename, Mesh& mesh, const char* attribute_name);
+
 index_t nearest_label(const vec3& normal);
 
 // similar to https://github.com/LIHPC-Computational-Geometry/evocube/blob/master/src/flagging_utils.cpp#LL5C17-L5C27 axesMatrix()

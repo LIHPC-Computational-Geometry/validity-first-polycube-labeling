@@ -6,6 +6,7 @@
 #include <geogram/basic/command_line.h> // for get_arg_bool() in load()
 #include <geogram/mesh/mesh_io.h> // for MeshIOFlags, mesh_load() in load()
 #include <geogram/basic/command_line.h> // for CmdLine::get_arg() and CmdLine::set_arg()
+#include <geogram/basic/string.h> // for String::string_ends_with()
 
 #include <fmt/core.h>
 #include <fmt/ostream.h>
@@ -14,7 +15,7 @@
 
 #include "SimpleMeshApplicationExt.h"
 #include "LabelingGraph.h"   // for StaticLabelingGraph
-#include "labeling.h"		 // for load_labeling(), naive_labeling()
+#include "labeling.h"		 // for load_labeling(), naive_labeling(), save_labeling()
 
 #define LABELING_ATTRIBUTE_NAME "label"
 
@@ -78,6 +79,9 @@ public:
 		turning_points_color_[3] = 1.0f;
 
 		nb_turning_points = 0;
+
+		previous_state_ = empty;
+		current_state_ = empty;
 
 		previous_labeling_visu_mode_ = VIEW_RAW_LABELING;
 		current_labeling_visu_mode_ = VIEW_RAW_LABELING;
@@ -394,6 +398,21 @@ protected:
         current_state_ = triangle_mesh;
 
         return true;
+    }
+
+	std::string supported_write_file_extensions() override {
+        return SimpleMeshApplication::supported_write_file_extensions() + ";txt"; // add .txt in supported write file extensions
+    }
+
+	bool save(const std::string& filename) override {
+		if(String::string_ends_with(filename,".txt")) { // bypass inherited save behavior in case of a .txt file -> save the labeling only
+			save_labeling(filename,mesh_,LABELING_ATTRIBUTE_NAME);
+			fmt::println(Logger::out("I/O"),"Labeling saved to {}",filename); Logger::out("I/O").flush();
+			return true;
+		}
+		else {
+			return SimpleMeshApplication::save(filename);
+		}
     }
 
 	void GL_initialize() override {

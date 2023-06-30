@@ -2,6 +2,7 @@
 
 #include <fmt/core.h>
 #include <fmt/ostream.h>
+#include <fmt/os.h>
 
 #include <array>            // for std::array
 #include <initializer_list> // for std::initializer_list
@@ -66,6 +67,17 @@ bool load_labeling(const std::string& filename, Mesh& mesh, const char* attribut
         return false;
     }
 
+    return true;
+}
+
+bool save_labeling(const std::string& filename, Mesh& mesh, const char* attribute_name) {
+    Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // fetch the labeling
+    auto out = fmt::output_file(filename);
+    FOR(f,mesh.facets.nb()) {
+        out.print("{}",label[f]);
+        if(f != mesh.facets.nb()-1)
+            out.print("\n");
+    }
     return true;
 }
 
