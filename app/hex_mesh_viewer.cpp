@@ -8,8 +8,9 @@
 
 #include <string>
 
-#include "hex_mesh.h" // for compute_scaled_jacobian()
-#include "SimpleMeshApplicationExt.h" // for colormaps indices
+#include "hex_mesh.h"                   // for compute_scaled_jacobian()
+#include "SimpleMeshApplicationExt.h"   // for colormaps indices
+#include "about_window.h"               // for draw_about_window()
 
 using namespace GEO;
 
@@ -32,6 +33,10 @@ public:
     }
 
 private:
+
+    void draw_about() override {
+        draw_about_window(name(),Environment::instance()->get_value("version"));
+    }
 
     void draw_scene() override {
         if(drawing_settings_dirty_) {

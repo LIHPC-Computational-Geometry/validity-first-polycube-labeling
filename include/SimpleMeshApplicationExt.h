@@ -16,6 +16,7 @@
 #include <initializer_list>
 
 #include "containers.h"
+#include "about_window.h"   // for draw_about_window()
 
 // Indices of SimpleApplication::colormaps_
 // Same ordering as in ext/geogram/src/lib/geogram_gfx/gui/simple_application.cpp init_colormaps()
@@ -177,6 +178,10 @@ public:
         for(std::size_t group_index : indices) {
             edges_groups_.at(group_index).show = true;
         }
+    }
+
+    void draw_about() override {
+        draw_about_window(name(),Environment::instance()->get_value("version"));
     }
 
     void draw_scene() override {
