@@ -6,10 +6,10 @@
 #include "LabelingViewerApp.h"
 
 #include <fmt/core.h>
-#include <fmt/printf.h>
 
-#include <string.h>
-#include <functional>
+#include <deque>
+
+#include "containers.h" // for VECTOR_CONTAINS()
 
 // values for paint_mode_
 #define PAINT_MODE_DISABLED     0
@@ -149,11 +149,6 @@ private:
         SimpleApplication::mouse_button_callback(button, action, mods, source);
         if((current_paint_mode_ != PAINT_MODE_DISABLED) && (action==EVENT_ACTION_DOWN) && (button == 0)) { // if left click while in paint mode
 
-            if(current_paint_mode_ == PAINT_MODE_BUCKET_FILL) {
-                fmt::println(Logger::err("painting"),"Bucket fill not implemented yet"); Logger::err("painting").flush();
-                return;
-            }
-
             // see https://github.com/BrunoLevy/geogram/discussions/88
             // based on https://github.com/BrunoLevy/GraphiteThree/blob/main/src/lib/OGF/renderer/context/rendering_context.cpp get_picked_point()
 
@@ -197,6 +192,45 @@ private:
             index_t previous_label = label[picked_facet_id];
             label[picked_facet_id] = selected_label_; // change label of picked facet
             fmt::println(Logger::out("painting"),"Label of facet {} changed from {} to {}",picked_facet_id,previous_label,selected_label_); Logger::out("painting").flush();
+
+            if(current_paint_mode_ != PAINT_MODE_BUCKET_FILL) {
+                return; // if pencil mode, stop here
+            }
+
+            if(previous_label == selected_label_) {
+                return; // useless bucket fill
+            }
+
+            // bucket fill mode
+
+            std::deque<index_t> facets_to_paint;
+            index_t current_facet = picked_facet_id;
+            index_t adjacent_facet = index_t(-1);
+            unsigned int count_facets_changed = 1;
+
+            FOR(le,3) {
+                adjacent_facet = mesh_.facets.adjacent(current_facet,le);
+                if((label[adjacent_facet] == previous_label) && !VECTOR_CONTAINS(facets_to_paint,adjacent_facet)) {
+                    facets_to_paint.push_back(adjacent_facet);
+                }
+            }
+
+            while(!facets_to_paint.empty()) {
+                current_facet = facets_to_paint.front();
+                facets_to_paint.pop_front();
+
+                label[current_facet] = selected_label_; // change label of picked facet
+                count_facets_changed++;
+
+                FOR(le,3) {
+                    adjacent_facet = mesh_.facets.adjacent(current_facet,le);
+                    if((label[adjacent_facet] == previous_label) && !VECTOR_CONTAINS(facets_to_paint,adjacent_facet)) {
+                        facets_to_paint.push_back(adjacent_facet);
+                    }
+                }
+            }
+
+            fmt::println(Logger::out("painting"),"Label of {} facets changed with bucket fill tool",count_facets_changed); Logger::out("painting").flush();
         }
     }
 
