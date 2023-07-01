@@ -1,3 +1,6 @@
+#include <set>
+#include <array>
+
 #include "LabelingViewerApp.h"
 
 class AutomaticPolycubeApp : public LabelingViewerApp {
@@ -38,7 +41,90 @@ private:
 				fmt::println(Logger::out("fix_labeling"),"invalid charts removed using gco"); Logger::out("fix_labeling").flush();
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
+
+			if(ImGui::Button("Auto fix")) {
+				if(auto_fix(100)) {
+					fmt::println(Logger::out("fix_labeling"),"auto fix found a valid labeling"); Logger::out("fix_labeling").flush();
+				}
+				// else : auto_fix() already printed a message
+			}
 		}
+	}
+
+	// return true if successfully found a valid labeling
+	bool auto_fix(unsigned int max_nb_loop) {
+		unsigned int nb_loops = 0;
+		unsigned int nb_fixed_features = 0;
+		std::set<std::array<std::size_t,7>> set_of_labeling_features_combinations_encountered;
+		while(!static_labeling_graph.is_valid() && nb_loops <= max_nb_loop) { // until valid labeling OR too much steps
+			nb_loops++;
+
+			// as much as possible, remove isolated (surrounded) charts
+			do {
+				nb_fixed_features = remove_surrounded_charts(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph);
+				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+			} while(nb_fixed_features != 0);
+
+			if(static_labeling_graph.is_valid())
+				return true;
+
+			fix_invalid_boundaries(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph);
+			update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+
+			if(static_labeling_graph.is_valid())
+				return true;
+
+			fix_invalid_corners(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph);
+			update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+
+			if(static_labeling_graph.is_valid())
+				return true;
+
+			set_of_labeling_features_combinations_encountered.clear();
+			set_of_labeling_features_combinations_encountered.insert({
+				static_labeling_graph.nb_charts(),
+				static_labeling_graph.nb_boundaries(),
+				static_labeling_graph.nb_corners(),
+				static_labeling_graph.nb_invalid_charts(),
+				static_labeling_graph.nb_invalid_boundaries(),
+				static_labeling_graph.nb_invalid_corners(),
+				static_labeling_graph.nb_turning_points()
+			});
+
+			while(1) {
+				remove_invalid_charts(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph);
+				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+
+				if(static_labeling_graph.is_valid())
+					return true;
+
+				std::array<std::size_t,7> features_combination = {
+					static_labeling_graph.nb_charts(),
+					static_labeling_graph.nb_boundaries(),
+					static_labeling_graph.nb_corners(),
+					static_labeling_graph.nb_invalid_charts(),
+					static_labeling_graph.nb_invalid_boundaries(),
+					static_labeling_graph.nb_invalid_corners(),
+					static_labeling_graph.nb_turning_points()
+				};
+
+				if(VECTOR_CONTAINS(set_of_labeling_features_combinations_encountered,features_combination)) { // wa can use VECTOR_CONTAINS() on sets because they also have find(), cbegin() and cend()
+					// we backtracked
+					break; // go back to the beginning of the loop, with other fix operators
+				}
+				else {
+					set_of_labeling_features_combinations_encountered.insert(features_combination); // store the current combination of number of features
+				}
+			}
+			
+		}
+
+		if(!static_labeling_graph.is_valid()) {
+			fmt::println(Logger::out("fix_labeling"),"auto fix stopped (max nb loops reached), no valid labeling found"); Logger::out("fix_labeling").flush();
+			return false;
+		}
+		
+		return true;
 	}
 };
 
