@@ -233,6 +233,22 @@ protected:
         SimpleMeshApplicationExt::draw_scene();
     }
 
+	// add a button on the menu bar to export the labeling graph
+	void draw_menu_bar() override {
+		SimpleApplication::draw_menu_bar();
+
+		if(ImGui::BeginMainMenuBar()) {
+			if(ImGui::BeginMenu("Debug")) {
+				if(ImGui::MenuItem("Dump StaticLabelingGraph")) {
+					static_labeling_graph.dump_to_file("StaticLabelingGraph.txt",mesh_);
+					fmt::println(Logger::out("I/O"),"Exported to StaticLabelingGraph.txt"); Logger::out("I/O").flush();
+				}
+				ImGui::EndMenu();
+			}
+			ImGui::EndMainMenuBar();
+		}
+	}
+
     void draw_object_properties() override {
         switch (current_state_) {
 
@@ -428,8 +444,6 @@ protected:
 		nb_turning_points = static_labeling_graph.nb_turning_points();
 
 		fmt::println(Logger::out("I/O"),"There are {} charts, {} corners and {} boundaries in this labeling.",static_labeling_graph.nb_charts(),static_labeling_graph.nb_corners(),static_labeling_graph.nb_boundaries());  Logger::out("I/O").flush();
-
-		// static_labeling_graph.dump_to_file("StaticLabelingGraph.txt");
 
 		clear_scene_overlay();
 

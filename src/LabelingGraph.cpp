@@ -400,14 +400,43 @@ index_t Boundary::chart_at_other_side(index_t origin_chart) const {
     }
 }
 
+void Boundary::print_successive_halfedges(fmt::v9::ostream& out, Mesh& mesh) {
+    // example:
+    //          
+    // 1022 --{124,1054}--> 54684 --{45348,4806}--> (7654) --{23347,1987}--> 8541
+    // 
+    // 1022         = vertex index
+    // --{124,1054}-->  = halfedge (facet index then corner index)
+    // (7654)       = vertex index on which there is a turning point
+    //
+    out.print("\t ");
+    FOR(he_index,halfedges.size()) {
+        // print vertex at the beginning of current halfedge
+        if(VECTOR_CONTAINS(turning_points,he_index)) {
+            // there is a turning point on this vertex
+            out.print("({}) ",mesh.facet_corners.vertex(halfedges[he_index].corner));
+        }
+        else {
+            out.print("{} ",mesh.facet_corners.vertex(halfedges[he_index].corner));
+        }
+        out.print("--{{{},{}}}--> ",halfedges[he_index].facet,halfedges[he_index].corner);
+    }
+    // print last vertex of the boundary
+    CustomMeshHalfedges mesh_halfedges(mesh);
+    out.print("{}\n",mesh.facet_corners.vertex(mesh_halfedges.opposite_corner(*(halfedges.rbegin())))); // get vertex of opposite corner of last halfedge = last vertex
+}
+
 std::ostream& operator<< (std::ostream &out, const Boundary& data) {
     fmt::println(out,"\taxis : {}",data.axis);
     fmt::println(out,"\tis_valid : {}",data.is_valid);
+    fmt::println(out,"\tturning_points = {}",data.turning_points);
     fmt::println(out,"\thalfedges : {}",data.halfedges);
+    
     fmt::println(out,"\tleft_chart : {}",OPTIONAL_TO_STRING(data.left_chart));
     fmt::println(out,"\tright_chart : {}",OPTIONAL_TO_STRING(data.right_chart));
     fmt::println(out,"\tstart_corner : {}",OPTIONAL_TO_STRING(data.start_corner));
     fmt::println(out,"\tend_corner : {}",OPTIONAL_TO_STRING(data.end_corner));
+    
     return out;
 }
 
@@ -563,8 +592,6 @@ void StaticLabelingGraph::fill_from(Mesh& mesh, std::string facet_attribute, boo
         }
     }}
 
-    // TODO compute turning points
-
     // STEP 4 : Find invalid charts
 
     Attribute<bool> facet_on_invalid_chart(mesh.facets.attributes(),"on_invalid_chart");
@@ -652,9 +679,26 @@ std::size_t StaticLabelingGraph::is_allowing_boundaries_between_opposite_labels(
     return allow_boundaries_between_opposite_labels_;
 }
 
-void StaticLabelingGraph::dump_to_file(const char* filename) const {
+void StaticLabelingGraph::dump_to_file(const char* filename, Mesh& mesh) {
     auto out = fmt::output_file(filename);
     out.print("{}",(*this));
+
+    // pretty print boundaries
+    for(std::size_t boundary_index = 0; boundary_index < nb_boundaries(); ++boundary_index) {
+        out.print("boundaries[{}]\n",boundary_index);
+        boundaries[boundary_index].print_successive_halfedges(out,mesh);
+    }
+}
+
+bool StaticLabelingGraph::is_turning_point(const Mesh& mesh, index_t vertex_index) const {
+    for(auto b : non_monotone_boundaries) {
+        for(auto lhe : boundaries[b].turning_points) {
+            if(mesh.facet_corners.vertex(boundaries[b].halfedges[lhe].corner) == vertex_index) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 std::ostream& operator<< (std::ostream &out, const StaticLabelingGraph& data) {
@@ -690,11 +734,53 @@ std::ostream& operator<< (std::ostream &out, const StaticLabelingGraph& data) {
         fmt::println(out,"\t[{}] {}",f,data.facet2chart[f]);
     }
 
+    // write halfedge2boundary
+
+    fmt::println(out,"halfedge2boundary");
+    {
+        for(auto entry : data.halfedge2boundary) {
+            fmt::println(out,"\t[{}] {}",entry.first,entry.second);
+        }
+    }
+
     // write vertex2corner
     
     fmt::println(out,"vertex2corner");
     for(std::size_t v = 0; v < data.nb_vertices(); ++v) {
         fmt::println(out,"\t[{}] {}",v,OPTIONAL_TO_STRING(data.vertex2corner[v]));
     }
+
+    // write invalid_charts
+    
+    fmt::println(out,"invalid_charts");
+    FOR(i,data.invalid_charts.size()) {
+        fmt::println(out,"\t[{}] {}",i,data.invalid_charts[i]);
+    }
+
+    // write invalid_boundaries
+    
+    fmt::println(out,"invalid_boundaries");
+    FOR(i,data.invalid_boundaries.size()) {
+        fmt::println(out,"\t[{}] {}",i,data.invalid_boundaries[i]);
+    }
+
+    // write invalid_corners
+    
+    fmt::println(out,"invalid_corners");
+    FOR(i,data.invalid_corners.size()) {
+        fmt::println(out,"\t[{}] {}",i,data.invalid_corners[i]);
+    }
+
+    // write non_monotone_boundaries
+    
+    fmt::println(out,"non_monotone_boundaries");
+    FOR(i,data.non_monotone_boundaries.size()) {
+        fmt::println(out,"\t[{}] {}",i,data.non_monotone_boundaries[i]);
+    }
+
+    // write allow_boundaries_between_opposite_labels_
+
+    fmt::println(out,"allow_boundaries_between_opposite_labels_ = {}",data.allow_boundaries_between_opposite_labels_);
+
     return out;
 }

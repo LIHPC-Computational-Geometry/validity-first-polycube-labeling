@@ -19,6 +19,7 @@
 #include <fmt/core.h>
 #include <fmt/ostream.h>
 #include <fmt/ranges.h>
+#include <fmt/os.h>
 
 #include <iostream>
 #include <ostream>
@@ -175,6 +176,8 @@ struct Boundary {
     bool find_turning_points(const CustomMeshHalfedges& mesh_halfedges); // return true if the boundary contains turning-points
 
     index_t chart_at_other_side(index_t origin_chart) const;
+
+    void print_successive_halfedges(fmt::v9::ostream& out, Mesh& mesh);
 };
 
 std::ostream& operator<< (std::ostream &out, const Boundary& data);
@@ -199,7 +202,7 @@ struct StaticLabelingGraph {
     std::map<MeshHalfedges::Halfedge,std::pair<index_t,bool>,HalfedgeCompare> halfedge2boundary; // for each halfedge, store 1/ the associated boundary (may be LabelingGraph::UNDEFINED) and 2/ if the boundary is in the same orientation
     std::vector<index_t> vertex2corner;
 
-    //// Quick access to problematic LabelingGraph features //////////////////
+    //// problematic LabelingGraph features //////////////////
 
     vector<index_t> invalid_charts;
     vector<index_t> invalid_boundaries;
@@ -215,6 +218,7 @@ struct StaticLabelingGraph {
     void clear();
 
     //// Validity //////////////////
+
     bool is_valid();
 
     //// Getters for sizes //////////////////
@@ -235,7 +239,11 @@ struct StaticLabelingGraph {
 
     //// Export //////////////////
 
-    void dump_to_file(const char* filename) const;
+    void dump_to_file(const char* filename, Mesh& mesh);
+
+    //// Debug //////////////////
+
+    bool is_turning_point(const Mesh& mesh, index_t vertex_index) const;
 };
 
 std::ostream& operator<< (std::ostream &out, const StaticLabelingGraph& data);
