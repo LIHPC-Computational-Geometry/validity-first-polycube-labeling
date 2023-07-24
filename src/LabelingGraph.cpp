@@ -311,7 +311,8 @@ bool Boundary::find_turning_points(const CustomMeshHalfedges& mesh_halfedges) {
     // based on https://github.com/LIHPC-Computational-Geometry/evocube/blob/master/src/graphcut_labeling.cpp#L142 graphcutTurningPoints()
 
     geo_assert(!halfedges.empty());
-    std::size_t nb_elem = halfedges.size(); // != nb vertices because first vertex cannot be a turning point (?). elem n°0 is vertex 0, which is between halfedge 0 and halfedge 1, and so on
+    std::size_t nb_elem = halfedges.size(); // there are one vertex less than the number of edges
+    // elem n°0 is local vertex 0, which is at the base (origin) of halfedge 0, and so on
 
     // if boundary of 1 edge only -> no turning point
     if(nb_elem == 1) return false;
@@ -380,7 +381,7 @@ bool Boundary::find_turning_points(const CustomMeshHalfedges& mesh_halfedges) {
     // handle loops
     if ( (start_corner == end_corner) &&
          ((*per_vertex_result.begin()) != (*per_vertex_result.rbegin())) ) {
-        turning_points.push_back( (index_t) 0); // ?? Contradictory with comments of nb_elem declaration
+        turning_points.push_back( (index_t) 0); // the first (& last) vertex is a turning point (loop)
     }
 
     return !turning_points.empty(); // true if there are turning-points, else false
