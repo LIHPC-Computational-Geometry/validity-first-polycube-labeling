@@ -311,8 +311,10 @@ protected:
 
 			ImGui::RadioButton("View labeling graph",&current_labeling_visu_mode_,VIEW_LABELING_GRAPH);
 
+			ImGui::Text(fmt::format("{} charts, {} boundaries",static_labeling_graph.nb_charts(),static_labeling_graph.nb_boundaries()).c_str());
+
 			ImGui::BeginDisabled(current_labeling_visu_mode_!=VIEW_LABELING_GRAPH);
-			ImGui::ColorEdit4WithPalette("Corners", corners_color_);
+			ImGui::ColorEdit4WithPalette(fmt::format("Corners ({})",static_labeling_graph.nb_corners()).c_str(), corners_color_);
 			ImGui::ColorEdit4WithPalette(fmt::format("Turning points ({})",nb_turning_points).c_str(), turning_points_color_);
 			ImGui::EndDisabled();
 
@@ -442,8 +444,6 @@ protected:
 		// compute charts, boundaries and corners of the labeling
 		static_labeling_graph.fill_from(mesh_,LABELING_ATTRIBUTE_NAME,allow_boundaries_between_opposite_labels);
 		nb_turning_points = static_labeling_graph.nb_turning_points();
-
-		fmt::println(Logger::out("I/O"),"There are {} charts, {} corners and {} boundaries in this labeling.",static_labeling_graph.nb_charts(),static_labeling_graph.nb_corners(),static_labeling_graph.nb_boundaries());  Logger::out("I/O").flush();
 
 		clear_scene_overlay();
 
