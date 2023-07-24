@@ -13,6 +13,16 @@ public:
 
     CustomMeshHalfedges(Mesh& mesh) : MeshHalfedges(mesh) {}
 
+    // re-expose this method from MeshHalfedges
+    void set_use_facet_region(std::string attribute_name) {
+        MeshHalfedges::set_use_facet_region(attribute_name);
+    }
+
+    // enforce the right function when passing a char array
+    void set_use_facet_region(const char* attribute_name) {
+        set_use_facet_region(std::string(attribute_name));
+    }
+
     bool move_to_next_around_vertex(Halfedge& H, bool ignore_borders = false) const { // 2nd argument added
         geo_debug_assert(halfedge_is_valid(H));
         index_t v = mesh_.facet_corners.vertex(H.corner);
@@ -118,6 +128,13 @@ public:
         // move back to the initial halfedge
         move_to_opposite(H);
         return normal;
+    }
+
+    index_t opposite_corner(Halfedge& H) {
+        move_to_opposite(H);
+        index_t corner_index = H.corner;
+        move_to_opposite(H);
+        return corner_index;
     }
 };
 

@@ -48,6 +48,16 @@ private:
 				}
 				// else : auto_fix() already printed a message
 			}
+
+			ImGui::Separator();
+
+			ImGui::Text("Monotonicity");
+
+			if(ImGui::Button("Move boundaries near turning points")) {
+				unsigned int nb_facets_modified = move_boundaries_near_turning_points(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph);
+				fmt::println(Logger::out("monotonicity"),"label of {} facets modified",nb_facets_modified); Logger::out("monotonicity").flush();
+				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+			}
 		}
 	}
 

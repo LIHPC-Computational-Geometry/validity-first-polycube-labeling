@@ -13,6 +13,7 @@
 #include "LabelingGraph.h"
 #include "containers.h"
 #include "GraphCutLabeling.h"
+#include "CustomMeshHalfedges.h"
 
 bool load_labeling(const std::string& filename, Mesh& mesh, const char* attribute_name) {
 
@@ -258,4 +259,81 @@ void remove_invalid_charts(GEO::Mesh& mesh, const char* attribute_name, const St
     }
 
     gcl.compute_solution(label);
+}
+
+unsigned int move_boundaries_near_turning_points(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg) {
+
+    unsigned int nb_labels_changed = 0;
+
+    if(slg.non_monotone_boundaries.empty()) {
+        fmt::println(Logger::out("fix_labeling"),"Warning : operation canceled because all boundaries are monotone"); Logger::out("fix_labeling").flush();
+        return nb_labels_changed;
+    }
+
+    Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // get labeling attribute
+    CustomMeshHalfedges mesh_halfedges(mesh); // create an halfedges interface for this mesh
+    mesh_halfedges.set_use_facet_region(attribute_name);
+    MeshHalfedges::Halfedge current_halfedge, previous_halfedge;
+
+    // Get turning points, change the label if this doesnt break charts connectivity
+
+    for(auto b : slg.non_monotone_boundaries) {
+        for(auto v : slg.boundaries[b].turning_points) { // v is the vertex at the base of halfedge v
+
+            current_halfedge = slg.boundaries[b].halfedges[v];
+            geo_assert(mesh_halfedges.halfedge_is_border(current_halfedge));
+            geo_assert(MAP_CONTAINS(slg.halfedge2boundary,current_halfedge));
+
+            // get the vertex index
+            index_t current_vertex = mesh.facet_corners.vertex(current_halfedge.corner);
+            geo_assert(slg.is_turning_point(mesh,current_vertex));
+            geo_assert(slg.vertex2corner[current_vertex] == LabelingGraph::UNDEFINED); // a turning point should not be a corner
+            // test if the valence of current_vertex is 2
+            VertexRingWithBoundaries vr;
+            vr.explore(current_halfedge,mesh_halfedges);
+            geo_assert(vr.valence() == 2); // should have only 2 charts
+
+            // Explore clockwise : right side then left side
+            // For each side, sum of angles & aggregate facet indices,
+            // then replace labels of smallest side (angle-wise) with label of other side
+            double left_side_sum_of_angles = 0.0;
+            std::vector<index_t> left_side_facets;
+            double right_side_sum_of_angles = 0.0;
+            std::vector<index_t> right_side_facets;
+
+            previous_halfedge = current_halfedge;
+            mesh_halfedges.move_to_next_around_vertex(previous_halfedge,true); // next counterclockwise
+            // explore the right side (clockwise)
+            do {
+                right_side_facets.push_back(current_halfedge.facet);
+                right_side_sum_of_angles += angle(halfedge_vector(mesh,previous_halfedge),halfedge_vector(mesh,current_halfedge));
+                previous_halfedge = current_halfedge;
+                mesh_halfedges.move_to_prev_around_vertex(current_halfedge,true); // previous counterclockwise
+            } while (!mesh_halfedges.halfedge_is_border(current_halfedge));
+            // explore the right side
+            do {
+                left_side_facets.push_back(current_halfedge.facet);
+                left_side_sum_of_angles += angle(halfedge_vector(mesh,previous_halfedge),halfedge_vector(mesh,current_halfedge));
+                previous_halfedge = current_halfedge;
+                mesh_halfedges.move_to_prev_around_vertex(current_halfedge,true); // previous counterclockwise
+            } while (!mesh_halfedges.halfedge_is_border(current_halfedge));
+            
+            if(left_side_sum_of_angles < right_side_sum_of_angles) {
+                // replace label of left side facet with right side label
+                for(auto f : left_side_facets) {
+                    label[f] = slg.charts[slg.boundaries[b].left_chart].label; // why label of left_chart and not the one of right_chart ?
+                }
+                nb_labels_changed += (unsigned int) left_side_facets.size();
+            }
+            else {
+                // replace label of right side facet with left side label
+                for(auto f : right_side_facets) {
+                    label[f] = slg.charts[slg.boundaries[b].right_chart].label; // why label of right_chart and not the one of left_chart ?
+                }
+                nb_labels_changed += (unsigned int) left_side_facets.size();
+            }
+
+        }
+    }
+    return nb_labels_changed;
 }

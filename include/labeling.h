@@ -38,3 +38,5 @@ unsigned int fix_invalid_boundaries(GEO::Mesh& mesh, const char* attribute_name,
 unsigned int fix_invalid_corners(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg);
 
 void remove_invalid_charts(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg);
+
+unsigned int move_boundaries_near_turning_points(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg);
