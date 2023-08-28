@@ -20,6 +20,7 @@
 
 // Indices of SimpleApplication::colormaps_
 // Same ordering as in ext/geogram/src/lib/geogram_gfx/gui/simple_application.cpp init_colormaps()
+// XPM files are in ext/geogram/src/lib/geogram_gfx/gui/colormaps
 #define COLORMAP_FRENCH			0
 #define COLORMAP_BLACK_WHITE	1
 #define COLORMAP_VIRIDIS		2
