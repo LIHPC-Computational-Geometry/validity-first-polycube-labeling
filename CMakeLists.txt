@@ -47,3 +47,6 @@ target_link_libraries(labeling_viewer geogram geogram_gfx ${GLFW_LIBRARIES} fmt:
 
 add_executable(labeling_painter ${SRCFILES} app/labeling_painter)
 target_link_libraries(labeling_painter geogram geogram_gfx ${GLFW_LIBRARIES} fmt::fmt gco)
+
+add_executable(extract_surface ${SRCFILES} app/extract_surface)
+target_link_libraries(extract_surface geogram geogram_gfx ${GLFW_LIBRARIES} fmt::fmt gco)
