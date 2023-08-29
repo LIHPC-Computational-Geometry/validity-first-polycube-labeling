@@ -53,3 +53,6 @@ target_link_libraries(extract_surface geogram geogram_gfx ${GLFW_LIBRARIES} fmt:
 
 add_executable(volume_labeling ${SRCFILES} app/volume_labeling)
 target_link_libraries(volume_labeling geogram geogram_gfx ${GLFW_LIBRARIES} fmt::fmt gco)
+
+add_executable(naive_labeling ${SRCFILES} app/naive_labeling)
+target_link_libraries(naive_labeling geogram geogram_gfx ${GLFW_LIBRARIES} fmt::fmt gco)
