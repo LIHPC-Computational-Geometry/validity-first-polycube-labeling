@@ -50,3 +50,6 @@ target_link_libraries(labeling_painter geogram geogram_gfx ${GLFW_LIBRARIES} fmt
 
 add_executable(extract_surface ${SRCFILES} app/extract_surface)
 target_link_libraries(extract_surface geogram geogram_gfx ${GLFW_LIBRARIES} fmt::fmt gco)
+
+add_executable(volume_labeling ${SRCFILES} app/volume_labeling)
+target_link_libraries(volume_labeling geogram geogram_gfx ${GLFW_LIBRARIES} fmt::fmt gco)
