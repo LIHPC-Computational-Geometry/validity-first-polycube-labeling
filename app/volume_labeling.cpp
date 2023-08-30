@@ -13,7 +13,7 @@
 
 #include <vector>   // for std::vector
 #include <fstream>  // for std::ifstream
-#include <string>   // for std::stoi
+#include <string>   // for std::stoi(), std::getline()
 
 using namespace GEO;
 
@@ -45,24 +45,26 @@ int main(int argc, const char** argv) {
 	}
     fmt::println(Logger::out("I/O"),"Reading {}...",argv[2]); Logger::out("I/O").flush();
     // read first line of header
-    ifs >> line;
+    std::getline(ifs, line);
     separator_pos = line.find(" ");
     if(separator_pos != std::string::npos) { // if line contains ' '
-        line = line.substr(separator_pos); // remove what is after ' '
+        line = line.substr(0,separator_pos); // remove what is after ' '
     }
     nb_facets = (index_t) std::stoi(line); // integer conversion
+    fmt::println(Logger::out("I/O"),"{} triangles",nb_facets); Logger::out("I/O").flush();
     // read second line of header
-    ifs >> line;
+    std::getline(ifs, line);
     separator_pos = line.find(" ");
     if(separator_pos != std::string::npos) { // if line contains ' '
-        line = line.substr(separator_pos); // remove what is after ' '
+        line = line.substr(0,separator_pos); // remove what is after ' '
     }
     nb_cells = (index_t) std::stoi(line); // integer conversion
+    fmt::println(Logger::out("I/O"),"{} tetrahedra",nb_cells); Logger::out("I/O").flush();
     std::vector<index_t> surface_map(nb_facets);
     line_count = 2;
 	FOR(f, nb_facets) {
 		if (ifs.eof()) break;
-        ifs >> line;
+        std::getline(ifs, line);
 		surface_map[f] = (index_t) std::stoi(line);
         line_count++;
 	}
