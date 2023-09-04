@@ -47,3 +47,4 @@ make automatic_polycube
 This project contains other applications designed for [HexMeshWorkshop](https://github.com/LIHPC-Computational-Geometry/HexMeshWorkshop). The following ones may be of interest here:
 - `labeling_viewer` : like `automatic_polycube` but without labeling operators, for the purpose of visualizing existing labeling files (you can import the mesh & the labeling from the command line, or drag-and-drop them one by one)
 - `labeling_painter` : an interactive app to manually transform a labeling with pencil & bucket fill tools
+- `graphcut_labeling` : labeling generation from Graph-Cut optimization

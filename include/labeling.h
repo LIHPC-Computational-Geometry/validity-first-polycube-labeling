@@ -31,6 +31,8 @@ const vec3 label2vector[6] = {
  */
 void naive_labeling(GEO::Mesh& mesh, const char* attribute_name);
 
+void graphcut_labeling(GEO::Mesh& mesh, const char* attribute_name, int compactness_coeff = 1, int fidelity_coeff = 1);
+
 unsigned int remove_surrounded_charts(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg);
 
 unsigned int fix_invalid_boundaries(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg);

@@ -108,6 +108,13 @@ void naive_labeling(Mesh& mesh, const char* attribute_name) {
     }
 }
 
+// https://github.com/LIHPC-Computational-Geometry/genomesh/blob/main/src/flagging.cpp#L102
+void graphcut_labeling(GEO::Mesh& mesh, const char* attribute_name, int compactness_coeff, int fidelity_coeff) {
+    Attribute<index_t> label(mesh.facets.attributes(), attribute_name);
+    auto gcl = GraphCutLabeling(mesh,compactness_coeff,fidelity_coeff);
+    gcl.compute_solution(label);
+}
+
 unsigned int remove_surrounded_charts(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg) {
     Attribute<index_t> label(mesh.facets.attributes(), attribute_name);
 
