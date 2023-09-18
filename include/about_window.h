@@ -26,7 +26,7 @@ void draw_about_window(std::string name, std::string geogram_version) {
         ImGui::Text("\n");
 
         ImGui::Text("LIHPC - High Performance Computing Laboratory for Calculation and Simulation");
-        ImGui::Text("https://www-hpc.cea.fr/en/LIHPC.html");
+        ImGui::Text("https://www-lihpc.cea.fr/en/");
 
         ImGui::EndMenu();
     }
