@@ -30,7 +30,7 @@ private:
 			vec3 facet_normal(0.0,0.0,0.0);
 #ifdef STDDEV_BASED_CHART_REFINEMENT
 			Attribute<double> per_chart_stddev_validity(mesh_.facets.attributes(),"per_chart_stddev_validity"); // create new facet attribute
-			std::vector<index_t> per_chart_fidelity_values;
+			std::vector<double> per_chart_fidelity_values;
 			double global_max; // will store the max std dev of all facets
 			FOR(c,static_labeling_graph.nb_charts()) { // for each chart
 				double stddev = 0.0;
