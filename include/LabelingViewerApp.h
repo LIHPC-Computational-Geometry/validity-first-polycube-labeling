@@ -56,6 +56,8 @@ public:
 								{0.25f, 0.25f, 1.0f, 1.0f}  // valid charts/boundaries/corners in light blue
 							 }) {
 
+		show_ImGui_demo_window_ = false;
+
 		show_vertices_ = false;
         show_surface_ = true;
         show_mesh_ = true;
@@ -109,6 +111,12 @@ public:
 	}
 
 protected:
+
+	void draw_gui() override {
+		SimpleMeshApplicationExt::draw_gui();
+		if(show_ImGui_demo_window_)
+			ImGui::ShowDemoWindow();
+	}
 
     void draw_scene() override {
         // manage state transitions
@@ -242,6 +250,9 @@ protected:
 				if(ImGui::MenuItem("Dump StaticLabelingGraph")) {
 					static_labeling_graph.dump_to_file("StaticLabelingGraph.txt",mesh_);
 					fmt::println(Logger::out("I/O"),"Exported to StaticLabelingGraph.txt"); Logger::out("I/O").flush();
+				}
+				if (ImGui::MenuItem("Show ImGui demo window", NULL, show_ImGui_demo_window_)) {
+					show_ImGui_demo_window_ = !show_ImGui_demo_window_;
 				}
 				ImGui::EndMenu();
 			}
@@ -514,6 +525,7 @@ protected:
 
 protected:
 
+	bool show_ImGui_demo_window_;
     bool allow_boundaries_between_opposite_labels_;
 	ColorArray labeling_colors_;
 	float corners_color_[4];
