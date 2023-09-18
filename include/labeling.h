@@ -4,6 +4,14 @@
 
 #include "LabelingGraph.h"
 
+#define LABEL2STR(label) ((label==0) ? "+X" : ( \
+                          (label==1) ? "-X" : ( \
+                          (label==2) ? "+Y" : ( \
+                          (label==3) ? "-Y" : ( \
+                          (label==4) ? "+Z" : ( \
+                          (label==5) ? "-Z" :   \
+                          "undef."))))))
+
 using namespace GEO;
 
 bool load_labeling(const std::string& filename, Mesh& mesh, const char* attribute_name);
@@ -32,6 +40,8 @@ const vec3 label2vector[6] = {
 void naive_labeling(GEO::Mesh& mesh, const char* attribute_name);
 
 void graphcut_labeling(GEO::Mesh& mesh, const char* attribute_name, int compactness_coeff = 1, int fidelity_coeff = 1);
+
+void graphcut_labeling(GEO::Mesh& mesh, const char* attribute_name, int compactness_coeff, int fidelity_coeff, const std::array<int,6*6>& smooth_cost);
 
 unsigned int remove_surrounded_charts(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg);
 

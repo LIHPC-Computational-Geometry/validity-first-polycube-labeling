@@ -61,6 +61,16 @@ GraphCutLabeling::GraphCutLabeling(const Mesh& mesh, int compact_coeff, int fide
     _smooth_cost__fill(smooth_cost_);
 }
 
+GraphCutLabeling::GraphCutLabeling(const Mesh& mesh, int compact_coeff, int fidelity_coeff, const std::array<int,6*6>& smooth_cost) : NB_FACETS_(mesh.facets.nb()), mesh_(mesh), gco_( (GCoptimization::SiteID) mesh.facets.nb(),6) {
+    data_cost_.resize(NB_FACETS_*6);
+    FOR(facet_index,NB_FACETS_) {
+        vec3 normal = normalize(Geom::mesh_facet_normal(mesh,facet_index));
+        _facet_neighbors__set_compactness_based(facet_index,gco_,normal,mesh,compact_coeff);
+        _facet_data_cost__set_fidelity_based(facet_index,data_cost_,normal,fidelity_coeff);
+    }
+    smooth_cost_ = smooth_cost; // user-given smoothness cost
+}
+
 GraphCutLabeling::GraphCutLabeling(const Mesh& mesh, int compact_coeff, const Attribute<index_t>& per_facet_locked_label) : NB_FACETS_(mesh.facets.nb()), mesh_(mesh), gco_( (GCoptimization::SiteID) mesh.facets.nb(),6) {
     geo_assert(per_facet_locked_label.size()==NB_FACETS_);
 

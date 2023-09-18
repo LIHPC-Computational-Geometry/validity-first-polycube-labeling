@@ -9,6 +9,10 @@
 #include "LabelingViewerApp.h"
 #include "labeling.h"
 
+#include <array>
+
+#include "GraphCutLabeling.h"
+
 class GraphCutLabelingApp : public LabelingViewerApp {
 public:
 
@@ -18,6 +22,7 @@ public:
 		// [2] Dumery, Protais, Mestrallet, Bourcier, Ledoux, "Evocube: a Genetic Labeling Framework for Polycube-Maps", Computer Graphics Forum, 2022
 		compactness_coeff = 1;
 		fidelity_coeff = 3;
+		_smooth_cost__fill(smooth_cost); // default value filled with dedicated function
 	}
 
 protected:
@@ -30,11 +35,37 @@ protected:
 
 			ImGui::Text("Graph-cut parameters");
 
-			ImGui::InputInt("Compatness", &compactness_coeff);
+			ImGui::InputInt("Compactness", &compactness_coeff);
 			ImGui::InputInt("Fidelity", &fidelity_coeff);
 
+			ImGui::Text("Smooth cost");
+			if (ImGui::BeginTable("Smooth cost table", 7, ImGuiTableFlags_Borders)) { // 7 columns
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::TextUnformatted(" ");
+				for (int column = 0; column < 6; column++) {
+					ImGui::TableSetColumnIndex(column+1);
+					ImGui::TextUnformatted(LABEL2STR(column));
+				}
+				for (int row = 0; row < 6; row++)
+				{
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::TextUnformatted(LABEL2STR(row));
+					for (int column = 0; column < 6; column++)
+					{
+						ImGui::TableSetColumnIndex(column+1);
+						char label[32];
+						sprintf(label, "##smooth:%d,%d", column, row);
+						ImGui::SetNextItemWidth(100.0f);
+						ImGui::InputInt(label,&smooth_cost[column*6+row]);
+					}
+				}
+				ImGui::EndTable();
+			}
+
 			if(ImGui::Button("Compute solution")) {
-				graphcut_labeling(mesh_,LABELING_ATTRIBUTE_NAME,compactness_coeff,fidelity_coeff);
+				graphcut_labeling(mesh_,LABELING_ATTRIBUTE_NAME,compactness_coeff,fidelity_coeff,smooth_cost);
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 		}
@@ -42,6 +73,7 @@ protected:
 
 	int compactness_coeff;
 	int fidelity_coeff;
+	std::array<int,6*6> smooth_cost;
 };
 
 int main(int argc, char** argv) {

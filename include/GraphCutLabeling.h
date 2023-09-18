@@ -38,6 +38,15 @@ public:
     GraphCutLabeling(const Mesh& mesh, int compact_coeff, int fidelity_coeff);
 
     /**
+     * \brief Prepare a labeling computation with a Graph-Cut optimization, with custom smooth cost
+     * \param[in] mesh A surface triangle mesh
+     * \param[in] compact_coeff Compactness coefficient
+     * \param[in] fidelity_coeff Fidelity coefficient
+     * \param[in] smooth_cost Smoothness cost
+     */
+    GraphCutLabeling(const Mesh& mesh, int compact_coeff, int fidelity_coeff, const std::array<int,6*6>& smooth_cost);
+
+    /**
      * \brief Prepare a labeling computation with a Graph-Cut optimization, and enfore all the labels (useless optimization if set_fidelity_based_data_cost() is not used after)
      * \param[in] mesh A surface triangle mesh
      * \param[in] compact_coeff Compactness coefficient
