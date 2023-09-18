@@ -322,7 +322,7 @@ protected:
 
 			ImGui::RadioButton("View labeling graph",&current_labeling_visu_mode_,VIEW_LABELING_GRAPH);
 
-			ImGui::Text(fmt::format("{} charts, {} boundaries",static_labeling_graph.nb_charts(),static_labeling_graph.nb_boundaries()).c_str());
+			ImGui::Text("%ld charts, %ld boundaries",static_labeling_graph.nb_charts(),static_labeling_graph.nb_boundaries());
 
 			ImGui::BeginDisabled(current_labeling_visu_mode_!=VIEW_LABELING_GRAPH);
 			ImGui::ColorEdit4WithPalette(fmt::format("Corners ({})",static_labeling_graph.nb_corners()).c_str(), corners_color_);
