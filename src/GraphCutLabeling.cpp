@@ -39,10 +39,9 @@ inline void _facet_data_cost__lock_label(index_t facet_index, index_t locked_lab
     }
 }
 
-inline void _smooth_cost__fill(std::vector<int>& smooth_cost) {
+inline void _smooth_cost__fill(std::array<int,6*6>& smooth_cost) {
     // cost of assigning two labels to adjacent facets ?
     // TODO re-implement 'prevent_opposite_neighbors' mode
-    geo_assert(smooth_cost.size()==36);
     FOR(label1,6) {
         FOR(label2,6) {
             // same label = very smooth edge, different label = less smooth
@@ -59,8 +58,6 @@ GraphCutLabeling::GraphCutLabeling(const Mesh& mesh, int compact_coeff, int fide
         _facet_neighbors__set_compactness_based(facet_index,gco_,normal,mesh,compact_coeff);
         _facet_data_cost__set_fidelity_based(facet_index,data_cost_,normal,fidelity_coeff);
     }
-
-    smooth_cost_.resize(6*6); // 6 labels x 6 labels
     _smooth_cost__fill(smooth_cost_);
 }
 
@@ -73,8 +70,6 @@ GraphCutLabeling::GraphCutLabeling(const Mesh& mesh, int compact_coeff, const At
         _facet_neighbors__set_compactness_based(facet_index,gco_,normal,mesh,compact_coeff);
         _facet_data_cost__lock_label(facet_index, per_facet_locked_label[facet_index], data_cost_); // difference from the first constructor : data cost is independant of the fidelity coeff, all labels are enforced
     }
-
-    smooth_cost_.resize(6*6); // 6 labels x 6 labels
     _smooth_cost__fill(smooth_cost_);
 }
 
