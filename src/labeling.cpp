@@ -6,8 +6,9 @@
 
 #include <array>            // for std::array
 #include <initializer_list> // for std::initializer_list
-#include <algorithm>        // for std::max_element()
+#include <algorithm>        // for std::max_element(), std::min(), std::max()
 #include <iterator>         // for std::distance()
+#include <tuple>            // for std::tuple
 
 #include "labeling.h"
 #include "LabelingGraph.h"
@@ -122,17 +123,27 @@ void graphcut_labeling(GEO::Mesh& mesh, const char* attribute_name, int compactn
     gcl.compute_solution(label);
 }
 
-void compute_per_facet_fidelity(GEO::Mesh& mesh, const char* labeling_attribute_name, const char* fidelity_attribute_name) {
+std::tuple<double,double,double> compute_per_facet_fidelity(GEO::Mesh& mesh, const char* labeling_attribute_name, const char* fidelity_attribute_name) {
     Attribute<index_t> label(mesh.facets.attributes(), labeling_attribute_name);
     Attribute<double> per_facet_fidelity(mesh.facets.attributes(), fidelity_attribute_name);
     vec3 normal(0.0,0.0,0.0);
-    double dot = 0.0;
+    double dot = 0.0,
+           min = Numeric::max_float64(),
+           max = Numeric::min_float64(),
+           avg = 0.0;
     FOR(f,mesh.facets.nb()) {
         // based on GraphCutLabeling.cpp _facet_data_cost__set_fidelity_based()
         normal = normalize(Geom::mesh_facet_normal(mesh,f));
         dot = (GEO::dot(normal,label2vector[label[f]]) - 1.0)/0.2;
         per_facet_fidelity[f] = 1.0 - std::exp(-(1.0/2.0)*std::pow(dot,2));
+
+        // stats
+        min = std::min(min,per_facet_fidelity[f]);
+        max = std::max(max,per_facet_fidelity[f]);
+        avg += per_facet_fidelity[f];
     }
+    avg /= mesh.facets.nb();
+    return {min,max,avg};
 }
 
 unsigned int remove_surrounded_charts(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg) {

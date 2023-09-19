@@ -12,6 +12,7 @@
 #include <fmt/ostream.h>
 
 #include <string>
+#include <tuple>	// for std::tie()
 
 #include "SimpleMeshApplicationExt.h"
 #include "LabelingGraph.h"   // for StaticLabelingGraph
@@ -540,7 +541,9 @@ protected:
 		set_edges_group_visibility(Y_boundaries_group_index,true);
 		set_edges_group_visibility(Z_boundaries_group_index,true);
 
-		compute_per_facet_fidelity(mesh_,LABELING_ATTRIBUTE_NAME,"fidelity");
+		double fidelity_min, fidelity_max, fidelity_avg;
+		std::tie(fidelity_min,fidelity_max,fidelity_avg) = compute_per_facet_fidelity(mesh_,LABELING_ATTRIBUTE_NAME,"fidelity");
+		fmt::println(Logger::out("fidelity"),"min={:.4f} | max={:.4f} | avg={:.4f}",fidelity_min,fidelity_max,fidelity_avg); Logger::out("fidelity").flush();
 	}
 
 protected:
