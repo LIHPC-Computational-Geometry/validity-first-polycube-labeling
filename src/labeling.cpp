@@ -124,19 +124,23 @@ void graphcut_labeling(GEO::Mesh& mesh, const char* attribute_name, int compactn
 }
 
 std::tuple<double,double,double> compute_per_facet_fidelity(GEO::Mesh& mesh, const char* labeling_attribute_name, const char* fidelity_attribute_name) {
+    // goal of the fidelity metric : measure how far the assigned direction (label) is from the triangle normal
+    //   fidelity=1 (high fidelity) -> label equal to the normal      ex: triangle is oriented towards +X and we assign +X
+    //   fidelity=0 (low fidelity)  -> label opposite to the normal   ex: triangle is oriented towards +X and we assign -X
+    // 1. compute and normalize the normal
+    // 2. compute the vector (ex: 0.0,1.0,0.0) of the label (ex: +Y) with label2vector[] (already normalized)
+    // 3. compute the dot product, which is in [-1:1] : 1=equal, -1=opposite
+    // 4. add 1 and divide by 2 so that the range is [0:1] : 1=equal, 0=opposite
     Attribute<index_t> label(mesh.facets.attributes(), labeling_attribute_name);
     Attribute<double> per_facet_fidelity(mesh.facets.attributes(), fidelity_attribute_name);
     vec3 normal(0.0,0.0,0.0);
-    double dot = 0.0,
-           min = Numeric::max_float64(),
+    double min = Numeric::max_float64(),
            max = Numeric::min_float64(),
            avg = 0.0;
     FOR(f,mesh.facets.nb()) {
         // based on GraphCutLabeling.cpp _facet_data_cost__set_fidelity_based()
         normal = normalize(Geom::mesh_facet_normal(mesh,f));
-        dot = (GEO::dot(normal,label2vector[label[f]]) - 1.0)/0.2;
-        per_facet_fidelity[f] = 1.0 - std::exp(-(1.0/2.0)*std::pow(dot,2));
-
+        per_facet_fidelity[f] = (GEO::dot(normal,label2vector[label[f]]) + 1.0)/2.0;
         // stats
         min = std::min(min,per_facet_fidelity[f]);
         max = std::max(max,per_facet_fidelity[f]);

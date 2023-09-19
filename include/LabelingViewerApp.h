@@ -193,8 +193,8 @@ protected:
 					attribute_ = "facets.fidelity";
 					attribute_subelements_ = MESH_FACETS;
 					attribute_name_ = "fidelity";
-					attribute_min_ = 1.0f;
-					attribute_max_ = 0.0f;
+					attribute_min_ = 0.0f; // the fidelity should not be in [0:0.5] (label too far from the normal), so setting 0.5 as the min of the colormap allows to focus the range of interest [0.5:1], but will display all values in [0:0.5] in black...
+					attribute_max_ = 1.0f;
 					points_groups_show_only({}); // show none
 					edges_groups_show_only({}); // show none
 					break;
