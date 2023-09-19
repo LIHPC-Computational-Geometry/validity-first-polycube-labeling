@@ -82,13 +82,9 @@ public:
 		turning_points_color_[2] = 0.0f;
 		turning_points_color_[3] = 1.0f;
 
-		nb_turning_points = 0;
+		nb_turning_points_ = 0;
 
-		previous_state_ = empty;
-		current_state_ = empty;
-
-		previous_labeling_visu_mode_ = VIEW_RAW_LABELING;
-		current_labeling_visu_mode_ = VIEW_RAW_LABELING;
+		state_transition(empty);
     }
 
 	void ImGui_initialize() override {
@@ -114,147 +110,140 @@ public:
 
 protected:
 
+	virtual void state_transition(State new_state) {
+		switch(new_state) {
+			case empty:
+				break;
+			case triangle_mesh:
+				show_mesh_ = true;
+				lighting_ = true;
+				show_attributes_ = false;
+				break;
+			case labeling:
+				labeling_visu_mode_transition(VIEW_LABELING_GRAPH);
+				break;
+			default:
+				geo_assert_not_reached;
+		}
+		state_ = new_state;
+	}
+
+	virtual void labeling_visu_mode_transition(int new_mode) {
+		switch(new_mode) {
+			case VIEW_TRIANGLE_MESH:
+				show_mesh_ = true;
+				lighting_ = true;
+				show_attributes_ = false;
+				points_groups_show_only({}); // show none
+				edges_groups_show_only({}); // show none
+				break;
+			case VIEW_RAW_LABELING:
+				show_mesh_ = true;
+				lighting_ = false;
+				show_attributes_ = true;
+				current_colormap_texture_ = colormaps_[COLORMAP_LABELING].texture;
+				attribute_ = fmt::format("facets.{}",LABELING_ATTRIBUTE_NAME);
+				attribute_subelements_ = MESH_FACETS;
+				attribute_name_ = LABELING_ATTRIBUTE_NAME;
+				attribute_min_ = -0.5f;
+				attribute_max_ = 5.5f;
+				points_groups_show_only({}); // show none
+				edges_groups_show_only({}); // show none
+				break;
+			case VIEW_LABELING_GRAPH:
+				show_mesh_ = false;
+				lighting_ = false;
+				show_attributes_ = true;
+				current_colormap_texture_ = colormaps_[COLORMAP_LABELING].texture;
+				attribute_ = fmt::format("facets.{}",LABELING_ATTRIBUTE_NAME);
+				attribute_subelements_ = MESH_FACETS;
+				attribute_name_ = LABELING_ATTRIBUTE_NAME;
+				attribute_min_ = -0.5f;
+				attribute_max_ = 5.5f;
+				// points in overlay
+				set_points_group_color(valid_corners_group_index_,corners_color_);
+				set_points_group_color(invalid_corners_group_index_,corners_color_); // no 	distinction between valid and invalid corners in this view
+				points_groups_show_only({valid_corners_group_index_, invalid_corners_group_index_, turning_points_group_index_});
+				// edges in overlay
+				set_edges_group_color(X_boundaries_group_index_,labeling_colors_.color_as_floats(0)); // axis X -> color of label 0 = +X
+				set_edges_group_color(Y_boundaries_group_index_,labeling_colors_.color_as_floats(2)); // axis Y -> color of label 2 = +Y
+				set_edges_group_color(Z_boundaries_group_index_,labeling_colors_.color_as_floats(4)); // axis Z -> color of label 4 = +Z
+				edges_groups_show_only({X_boundaries_group_index_, Y_boundaries_group_index_, Z_boundaries_group_index_});
+				break;
+			case VIEW_FIDELITY:
+				show_mesh_ = false;
+				lighting_ = false;
+				show_attributes_ = true;
+				current_colormap_texture_ = colormaps_[COLORMAP_INFERNO].texture;
+				attribute_ = "facets.fidelity";
+				attribute_subelements_ = MESH_FACETS;
+				attribute_name_ = "fidelity";
+				attribute_min_ = 0.0f; // the fidelity should not be in [0:0.5] (label too far from the normal), so setting 0.5 as the min of the colormap allows to focus the range of interest [0.5:1], but will display all values in [0:0.5] in black...
+				attribute_max_ = 1.0f;
+				points_groups_show_only({}); // show none
+				edges_groups_show_only({}); // show none
+				break;
+			case VIEW_INVALID_CHARTS:
+				show_mesh_ = false;
+				lighting_ = false;
+				show_attributes_ = true;
+				current_colormap_texture_ = colormaps_[COLORMAP_VALIDITY].texture;
+				attribute_ = "facets.on_invalid_chart";
+				attribute_subelements_ = MESH_FACETS;
+				attribute_name_ = "on_invalid_chart";
+				attribute_min_ = 1.5;
+				attribute_max_ = -0.5;
+				// points in overlay
+				points_groups_show_only({}); // show none
+				// edges in overlay
+				set_edges_group_color(X_boundaries_group_index_,labeling_colors_.color_as_floats(0)); // axis X -> color of label 0 = +X
+				set_edges_group_color(Y_boundaries_group_index_,labeling_colors_.color_as_floats(2)); // axis Y -> color of label 2 = +Y
+				set_edges_group_color(Z_boundaries_group_index_,labeling_colors_.color_as_floats(4)); // axis Z -> color of label 4 = +Z
+				edges_groups_show_only({X_boundaries_group_index_, Y_boundaries_group_index_, Z_boundaries_group_index_});
+
+				// use mesh_gfx_.draw_surface_borders() ?
+
+				break;
+			case VIEW_INVALID_BOUNDARIES:
+				show_mesh_ = false;
+				lighting_ = false;
+				show_attributes_ = false;
+				// points in overlay
+				points_groups_show_only({}); // show none
+				// edges in overlay
+				set_edges_group_color(X_boundaries_group_index_,validity_colors_.color_as_floats(1)); // apply the color of valid LabelingGraph components
+				set_edges_group_color(Y_boundaries_group_index_,validity_colors_.color_as_floats(1)); // apply the color of valid LabelingGraph components
+				set_edges_group_color(Z_boundaries_group_index_,validity_colors_.color_as_floats(1)); // apply the color of valid LabelingGraph components
+				edges_groups_show_only({X_boundaries_group_index_, Y_boundaries_group_index_, Z_boundaries_group_index_, invalid_boundaries_group_index_, valid_but_axisless_boundaries_group_index_});
+				break;
+			case VIEW_INVALID_CORNERS:
+				show_mesh_ = false;
+				lighting_ = false;
+				show_attributes_ = false;
+				// points in overlay
+				set_points_group_color(valid_corners_group_index_,validity_colors_.color_as_floats(1)); // apply the color of valid LabelingGraph components
+				set_points_group_color(invalid_corners_group_index_,validity_colors_.color_as_floats(0)); // apply the color of invalid LabelingGraph components
+				points_groups_show_only({valid_corners_group_index_, invalid_corners_group_index_});
+				// edges in overlay
+				set_edges_group_color(X_boundaries_group_index_,labeling_colors_.color_as_floats(0)); // axis X -> color of label 0 = +X
+				set_edges_group_color(Y_boundaries_group_index_,labeling_colors_.color_as_floats(2)); // axis Y -> color of label 2 = +Y
+				set_edges_group_color(Z_boundaries_group_index_,labeling_colors_.color_as_floats(4)); // axis Z -> color of label 4 = +Z
+				edges_groups_show_only({X_boundaries_group_index_, Y_boundaries_group_index_, Z_boundaries_group_index_});
+
+				// use mesh_gfx_.draw_surface_borders() ?
+				
+				break;
+			default:
+				geo_assert_not_reached;
+		}
+		labeling_visu_mode_ = new_mode;
+	}
+
 	void draw_gui() override {
 		SimpleMeshApplicationExt::draw_gui();
 		if(show_ImGui_demo_window_)
 			ImGui::ShowDemoWindow();
 	}
-
-    void draw_scene() override {
-        // manage state transitions
-		if(previous_state_ != current_state_) {
-			switch(current_state_) {
-				case empty:
-					break;
-				case triangle_mesh:
-					show_mesh_ = true;
-					lighting_ = true;
-					show_attributes_ = false;
-					break;
-				case labeling:
-					previous_labeling_visu_mode_ = VIEW_TRIANGLE_MESH;
-					current_labeling_visu_mode_ = VIEW_LABELING_GRAPH;
-					// will trigger a GUI settings update because !=
-					break;
-				default:
-					geo_assert_not_reached;
-			}
-			previous_state_ = current_state_;
-		}
-
-		// manage labeling visu mode transitions (mode editable when current_state_==labeling)
-		if(previous_labeling_visu_mode_ != current_labeling_visu_mode_) {
-			switch(current_labeling_visu_mode_) {
-				case VIEW_TRIANGLE_MESH:
-					show_mesh_ = true;
-					lighting_ = true;
-					show_attributes_ = false;
-					points_groups_show_only({}); // show none
-					edges_groups_show_only({}); // show none
-					break;
-				case VIEW_RAW_LABELING:
-					show_mesh_ = true;
-					lighting_ = false;
-					show_attributes_ = true;
-					current_colormap_texture_ = colormaps_[COLORMAP_LABELING].texture;
-					attribute_ = fmt::format("facets.{}",LABELING_ATTRIBUTE_NAME);
-					attribute_subelements_ = MESH_FACETS;
-					attribute_name_ = LABELING_ATTRIBUTE_NAME;
-					attribute_min_ = -0.5f;
-					attribute_max_ = 5.5f;
-					points_groups_show_only({}); // show none
-					edges_groups_show_only({}); // show none
-					break;
-				case VIEW_LABELING_GRAPH:
-					show_mesh_ = false;
-					lighting_ = false;
-					show_attributes_ = true;
-					current_colormap_texture_ = colormaps_[COLORMAP_LABELING].texture;
-					attribute_ = fmt::format("facets.{}",LABELING_ATTRIBUTE_NAME);
-					attribute_subelements_ = MESH_FACETS;
-					attribute_name_ = LABELING_ATTRIBUTE_NAME;
-					attribute_min_ = -0.5f;
-					attribute_max_ = 5.5f;
-					// points in overlay
-					set_points_group_color(valid_corners_group_index,corners_color_);
-					set_points_group_color(invalid_corners_group_index,corners_color_); // no 	distinction between valid and invalid corners in this view
-					points_groups_show_only({valid_corners_group_index, invalid_corners_group_index, turning_points_group_index});
-					// edges in overlay
-					set_edges_group_color(X_boundaries_group_index,labeling_colors_.color_as_floats(0)); // axis X -> color of label 0 = +X
-					set_edges_group_color(Y_boundaries_group_index,labeling_colors_.color_as_floats(2)); // axis Y -> color of label 2 = +Y
-					set_edges_group_color(Z_boundaries_group_index,labeling_colors_.color_as_floats(4)); // axis Z -> color of label 4 = +Z
-					edges_groups_show_only({X_boundaries_group_index, Y_boundaries_group_index, Z_boundaries_group_index});
-					break;
-				case VIEW_FIDELITY:
-					show_mesh_ = false;
-					lighting_ = false;
-					show_attributes_ = true;
-					current_colormap_texture_ = colormaps_[COLORMAP_INFERNO].texture;
-					attribute_ = "facets.fidelity";
-					attribute_subelements_ = MESH_FACETS;
-					attribute_name_ = "fidelity";
-					attribute_min_ = 0.0f; // the fidelity should not be in [0:0.5] (label too far from the normal), so setting 0.5 as the min of the colormap allows to focus the range of interest [0.5:1], but will display all values in [0:0.5] in black...
-					attribute_max_ = 1.0f;
-					points_groups_show_only({}); // show none
-					edges_groups_show_only({}); // show none
-					break;
-				case VIEW_INVALID_CHARTS:
-					show_mesh_ = false;
-					lighting_ = false;
-					show_attributes_ = true;
-					current_colormap_texture_ = colormaps_[COLORMAP_VALIDITY].texture;
-					attribute_ = "facets.on_invalid_chart";
-					attribute_subelements_ = MESH_FACETS;
-					attribute_name_ = "on_invalid_chart";
-					attribute_min_ = 1.5;
-					attribute_max_ = -0.5;
-					// points in overlay
-					points_groups_show_only({}); // show none
-					// edges in overlay
-					set_edges_group_color(X_boundaries_group_index,labeling_colors_.color_as_floats(0)); // axis X -> color of label 0 = +X
-					set_edges_group_color(Y_boundaries_group_index,labeling_colors_.color_as_floats(2)); // axis Y -> color of label 2 = +Y
-					set_edges_group_color(Z_boundaries_group_index,labeling_colors_.color_as_floats(4)); // axis Z -> color of label 4 = +Z
-					edges_groups_show_only({X_boundaries_group_index, Y_boundaries_group_index, Z_boundaries_group_index});
-
-					// use mesh_gfx_.draw_surface_borders() ?
-
-					break;
-				case VIEW_INVALID_BOUNDARIES:
-					show_mesh_ = false;
-					lighting_ = false;
-					show_attributes_ = false;
-					// points in overlay
-					points_groups_show_only({}); // show none
-					// edges in overlay
-					set_edges_group_color(X_boundaries_group_index,validity_colors_.color_as_floats(1)); // apply the color of valid LabelingGraph components
-					set_edges_group_color(Y_boundaries_group_index,validity_colors_.color_as_floats(1)); // apply the color of valid LabelingGraph components
-					set_edges_group_color(Z_boundaries_group_index,validity_colors_.color_as_floats(1)); // apply the color of valid LabelingGraph components
-					edges_groups_show_only({X_boundaries_group_index, Y_boundaries_group_index, Z_boundaries_group_index, invalid_boundaries_group_index, valid_but_axisless_boundaries_group_index});
-					break;
-				case VIEW_INVALID_CORNERS:
-					show_mesh_ = false;
-					lighting_ = false;
-					show_attributes_ = false;
-					// points in overlay
-					set_points_group_color(valid_corners_group_index,validity_colors_.color_as_floats(1)); // apply the color of valid LabelingGraph components
-					set_points_group_color(invalid_corners_group_index,validity_colors_.color_as_floats(0)); // apply the color of invalid LabelingGraph components
-					points_groups_show_only({valid_corners_group_index, invalid_corners_group_index});
-					// edges in overlay
-					set_edges_group_color(X_boundaries_group_index,labeling_colors_.color_as_floats(0)); // axis X -> color of label 0 = +X
-					set_edges_group_color(Y_boundaries_group_index,labeling_colors_.color_as_floats(2)); // axis Y -> color of label 2 = +Y
-					set_edges_group_color(Z_boundaries_group_index,labeling_colors_.color_as_floats(4)); // axis Z -> color of label 4 = +Z
-					edges_groups_show_only({X_boundaries_group_index, Y_boundaries_group_index, Z_boundaries_group_index});
-
-					// use mesh_gfx_.draw_surface_borders() ?
-					
-					break;
-				default:
-					geo_assert_not_reached;
-			}
-			previous_labeling_visu_mode_ = current_labeling_visu_mode_;
-		}
-        SimpleMeshApplicationExt::draw_scene();
-    }
 
 	// add a button on the menu bar to export the labeling graph
 	void draw_menu_bar() override {
@@ -263,7 +252,7 @@ protected:
 		if(ImGui::BeginMainMenuBar()) {
 			if(ImGui::BeginMenu("Debug")) {
 				if(ImGui::MenuItem("Dump StaticLabelingGraph")) {
-					static_labeling_graph.dump_to_file("StaticLabelingGraph.txt",mesh_);
+					static_labeling_graph_.dump_to_file("StaticLabelingGraph.txt",mesh_);
 					fmt::println(Logger::out("I/O"),"Exported to StaticLabelingGraph.txt"); Logger::out("I/O").flush();
 				}
 				if (ImGui::MenuItem("Show ImGui demo window", NULL, show_ImGui_demo_window_)) {
@@ -276,7 +265,7 @@ protected:
 	}
 
     void draw_object_properties() override {
-        switch (current_state_) {
+        switch (state_) {
 
 		case triangle_mesh:
 
@@ -288,7 +277,7 @@ protected:
 
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 
-				current_state_ = labeling;
+				state_transition(labeling);
 			}
 			
 			break;
@@ -296,7 +285,7 @@ protected:
 
 			ImGui::Checkbox("Allow boundaries between opposite labels",&allow_boundaries_between_opposite_labels_);
 
-			ImGui::BeginDisabled( allow_boundaries_between_opposite_labels_ == static_labeling_graph.is_allowing_boundaries_between_opposite_labels() ); // allow to recompute only if the UI control value changed
+			ImGui::BeginDisabled( allow_boundaries_between_opposite_labels_ == static_labeling_graph_.is_allowing_boundaries_between_opposite_labels() ); // allow to recompute only if the UI control value changed
 			if(ImGui::Button("Recompute labeling graph")) {
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
@@ -304,11 +293,13 @@ protected:
 
 			ImGui::Separator();
 
-			ImGui::RadioButton("View triangle mesh",&current_labeling_visu_mode_,VIEW_TRIANGLE_MESH);
+			if(ImGui::RadioButton("View triangle mesh",&labeling_visu_mode_,VIEW_TRIANGLE_MESH))
+				labeling_visu_mode_transition(VIEW_TRIANGLE_MESH);
 
-			ImGui::RadioButton("View raw labeling",&current_labeling_visu_mode_,VIEW_RAW_LABELING);
+			if(ImGui::RadioButton("View raw labeling",&labeling_visu_mode_,VIEW_RAW_LABELING))
+				labeling_visu_mode_transition(VIEW_RAW_LABELING);
 
-			ImGui::BeginDisabled( (current_labeling_visu_mode_!=VIEW_RAW_LABELING) && (current_labeling_visu_mode_!=VIEW_LABELING_GRAPH) );
+			ImGui::BeginDisabled( (labeling_visu_mode_!=VIEW_RAW_LABELING) && (labeling_visu_mode_!=VIEW_LABELING_GRAPH) );
 			if(ImGui::ColorEdit4WithPalette("Label 0 = +X", labeling_colors_.color_as_floats(0))) {
 				labeling_colors_.update_chars_of_color(0);
 				update_GL_texture(colormaps_[COLORMAP_LABELING].texture,6,1,labeling_colors_.as_chars());
@@ -335,26 +326,31 @@ protected:
 			}
 			ImGui::EndDisabled();
 
-			ImGui::RadioButton("View labeling graph",&current_labeling_visu_mode_,VIEW_LABELING_GRAPH);
+			if(ImGui::RadioButton("View labeling graph",&labeling_visu_mode_,VIEW_LABELING_GRAPH))
+				labeling_visu_mode_transition(VIEW_LABELING_GRAPH);
 
-			ImGui::Text("%ld charts, %ld boundaries",static_labeling_graph.nb_charts(),static_labeling_graph.nb_boundaries());
+			ImGui::Text("%ld charts, %ld boundaries",static_labeling_graph_.nb_charts(),static_labeling_graph_.nb_boundaries());
 
-			ImGui::BeginDisabled(current_labeling_visu_mode_!=VIEW_LABELING_GRAPH);
-			ImGui::ColorEdit4WithPalette(fmt::format("Corners ({})",static_labeling_graph.nb_corners()).c_str(), corners_color_);
-			ImGui::ColorEdit4WithPalette(fmt::format("Turning points ({})",nb_turning_points).c_str(), turning_points_color_);
+			ImGui::BeginDisabled(labeling_visu_mode_!=VIEW_LABELING_GRAPH);
+			ImGui::ColorEdit4WithPalette(fmt::format("Corners ({})",static_labeling_graph_.nb_corners()).c_str(), corners_color_);
+			ImGui::ColorEdit4WithPalette(fmt::format("Turning points ({})",nb_turning_points_).c_str(), turning_points_color_);
 			ImGui::EndDisabled();
 
-			ImGui::RadioButton("View fidelity",&current_labeling_visu_mode_,VIEW_FIDELITY);
+			if(ImGui::RadioButton("View fidelity",&labeling_visu_mode_,VIEW_FIDELITY))
+				labeling_visu_mode_transition(VIEW_FIDELITY);
 
-			ImGui::RadioButton(fmt::format("View invalid charts ({})",static_labeling_graph.nb_invalid_charts()).c_str(),&current_labeling_visu_mode_,VIEW_INVALID_CHARTS);
+			if(ImGui::RadioButton(fmt::format("View invalid charts ({})",static_labeling_graph_.nb_invalid_charts()).c_str(),&labeling_visu_mode_,VIEW_INVALID_CHARTS))
+				labeling_visu_mode_transition(VIEW_INVALID_CHARTS);
 
-			ImGui::RadioButton(fmt::format("View invalid boundaries ({})",static_labeling_graph.nb_invalid_boundaries()).c_str(),&current_labeling_visu_mode_,VIEW_INVALID_BOUNDARIES);
+			if(ImGui::RadioButton(fmt::format("View invalid boundaries ({})",static_labeling_graph_.nb_invalid_boundaries()).c_str(),&labeling_visu_mode_,VIEW_INVALID_BOUNDARIES))
+				labeling_visu_mode_transition(VIEW_INVALID_BOUNDARIES);
 
-			ImGui::RadioButton(fmt::format("View invalid corners ({})",static_labeling_graph.nb_invalid_corners()).c_str(),&current_labeling_visu_mode_,VIEW_INVALID_CORNERS);
+			if(ImGui::RadioButton(fmt::format("View invalid corners ({})",static_labeling_graph_.nb_invalid_corners()).c_str(),&labeling_visu_mode_,VIEW_INVALID_CORNERS))
+				labeling_visu_mode_transition(VIEW_INVALID_CORNERS);
 			
-			ImGui::BeginDisabled( (current_labeling_visu_mode_!=VIEW_INVALID_CHARTS) && 
-								  (current_labeling_visu_mode_!=VIEW_INVALID_BOUNDARIES) && 
-								  (current_labeling_visu_mode_!=VIEW_INVALID_CORNERS) );
+			ImGui::BeginDisabled( (labeling_visu_mode_!=VIEW_INVALID_CHARTS) && 
+								  (labeling_visu_mode_!=VIEW_INVALID_BOUNDARIES) && 
+								  (labeling_visu_mode_!=VIEW_INVALID_CORNERS) );
 			if(ImGui::ColorEdit4WithPalette("Invalid", validity_colors_.color_as_floats(0))) {
 				validity_colors_.update_chars_of_color(0);
 				update_GL_texture(colormaps_[COLORMAP_VALIDITY].texture,2,1,validity_colors_.as_chars());
@@ -365,14 +361,14 @@ protected:
 			}
 			ImGui::EndDisabled();
 
-			if(static_labeling_graph.is_valid()) {
+			if(static_labeling_graph_.is_valid()) {
 				ImGui::TextColored(ImVec4(0.0f,0.5f,0.0f,1.0f),"Valid labeling");
 			}
 			else {
 				ImGui::TextColored(ImVec4(0.8f,0.0f,0.0f,1.0f),"Invalid labeling");
 			}
 
-			if(nb_turning_points==0) {
+			if(nb_turning_points_==0) {
 				ImGui::TextColored(ImVec4(0.0f,0.5f,0.0f,1.0f),"All monotone boundaries");
 			}
 			else {
@@ -397,7 +393,7 @@ protected:
         // added : load a labeling
         if(FileSystem::extension(filename)=="txt") {
 
-			if(current_state_ == empty) {
+			if(state_ == empty) {
 				fmt::println(Logger::err("I/O"),"You need to import a triangle mesh before importing a labeling"); Logger::err("I/O").flush();
 				return false;
 			}
@@ -408,15 +404,12 @@ protected:
 				// If a labeling was already displayed, it should be restored...
 				mesh_.facets.clear(false,true);
 				clear_scene_overlay();
-				current_state_ = triangle_mesh;
+				state_transition(triangle_mesh);
 				return false;
 			}
 
-			mesh_.facets.clear(false,true);
 			update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
-
-			current_state_ = labeling;
-
+			state_transition(labeling);
 			return true;
 		}
 
@@ -424,7 +417,7 @@ protected:
 		mesh_.clear(false,true);
         MeshIOFlags flags;
         if(!mesh_load(filename, mesh_, flags)) {
-            current_state_ = empty; // added
+			state_transition(empty); // added
             return false;
         }
 		mesh_gfx_.set_animate(false);
@@ -443,7 +436,7 @@ protected:
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 		clear_scene_overlay();
-        current_state_ = triangle_mesh;
+		state_transition(triangle_mesh);
 
         return true;
     }
@@ -476,8 +469,8 @@ protected:
 
 	void mouse_button_callback(int button, int action, int mods, int source) override {
 		if((action==EVENT_ACTION_DOWN) && (button == 0) ) { // if left click
-			if( (current_state_ == labeling) && ((current_labeling_visu_mode_ == VIEW_RAW_LABELING) ||
-												 (current_labeling_visu_mode_ == VIEW_FIDELITY)) ) { // if current mode is "view raw labeling" or "view fidelity"
+			if( (state_ == labeling) && ((labeling_visu_mode_ == VIEW_RAW_LABELING) ||
+												 (labeling_visu_mode_ == VIEW_FIDELITY)) ) { // if current mode is "view raw labeling" or "view fidelity"
 				index_t x = index_t(cursor_pos_.x), y = index_t(cursor_pos_.y); // double to integer conversion of current cursor position
 				if(x >= get_width() || y >= get_height()) { // if cursor out of the window
 					return;
@@ -524,57 +517,57 @@ protected:
     void update_static_labeling_graph(bool allow_boundaries_between_opposite_labels) {
 
 		// compute charts, boundaries and corners of the labeling
-		static_labeling_graph.fill_from(mesh_,LABELING_ATTRIBUTE_NAME,allow_boundaries_between_opposite_labels);
-		nb_turning_points = static_labeling_graph.nb_turning_points();
+		static_labeling_graph_.fill_from(mesh_,LABELING_ATTRIBUTE_NAME,allow_boundaries_between_opposite_labels);
+		nb_turning_points_ = static_labeling_graph_.nb_turning_points();
 
 		clear_scene_overlay();
 
-		valid_corners_group_index = new_points_group(corners_color_,true);
-		invalid_corners_group_index = new_points_group(corners_color_,true);
-		turning_points_group_index = new_points_group(turning_points_color_,true);
-		X_boundaries_group_index = new_edges_group(labeling_colors_.color_as_floats(0),false); // axis X -> color of label 0 = +X
-		Y_boundaries_group_index = new_edges_group(labeling_colors_.color_as_floats(2),false); // axis Y -> color of label 2 = +Y
-		Z_boundaries_group_index = new_edges_group(labeling_colors_.color_as_floats(3),false); // axis Z -> color of label 4 = +Z
-		invalid_boundaries_group_index = new_edges_group(validity_colors_.color_as_floats(0),false); // color of invalid LabelingGraph components
-		valid_but_axisless_boundaries_group_index = new_edges_group(validity_colors_.color_as_floats(1),false); // color of valid LabelingGraph components
+		valid_corners_group_index_ = new_points_group(corners_color_,true);
+		invalid_corners_group_index_ = new_points_group(corners_color_,true);
+		turning_points_group_index_ = new_points_group(turning_points_color_,true);
+		X_boundaries_group_index_ = new_edges_group(labeling_colors_.color_as_floats(0),false); // axis X -> color of label 0 = +X
+		Y_boundaries_group_index_ = new_edges_group(labeling_colors_.color_as_floats(2),false); // axis Y -> color of label 2 = +Y
+		Z_boundaries_group_index_ = new_edges_group(labeling_colors_.color_as_floats(3),false); // axis Z -> color of label 4 = +Z
+		invalid_boundaries_group_index_ = new_edges_group(validity_colors_.color_as_floats(0),false); // color of invalid LabelingGraph components
+		valid_but_axisless_boundaries_group_index_ = new_edges_group(validity_colors_.color_as_floats(1),false); // color of valid LabelingGraph components
 
-		for(std::size_t i = 0; i < static_labeling_graph.nb_corners(); ++i) {
+		for(std::size_t i = 0; i < static_labeling_graph_.nb_corners(); ++i) {
 			const double* coordinates = mesh_.vertices.point_ptr(
-				static_labeling_graph.corners[i].vertex
+				static_labeling_graph_.corners[i].vertex
 			);
-			add_point_to_group(static_labeling_graph.corners[i].is_valid ? valid_corners_group_index : invalid_corners_group_index,coordinates[0], coordinates[1], coordinates[2]);
+			add_point_to_group(static_labeling_graph_.corners[i].is_valid ? valid_corners_group_index_ : invalid_corners_group_index_,coordinates[0], coordinates[1], coordinates[2]);
 		}
 
-		for(index_t i : static_labeling_graph.non_monotone_boundaries) {
-			for(index_t j : static_labeling_graph.boundaries[i].turning_points) {
-				vec3 coordinates = mesh_vertex(mesh_, mesh_.facet_corners.vertex(static_labeling_graph.boundaries[i].halfedges[j].corner));
-				add_point_to_group(turning_points_group_index,coordinates.x,coordinates.y,coordinates.z);
+		for(index_t i : static_labeling_graph_.non_monotone_boundaries) {
+			for(index_t j : static_labeling_graph_.boundaries[i].turning_points) {
+				vec3 coordinates = mesh_vertex(mesh_, mesh_.facet_corners.vertex(static_labeling_graph_.boundaries[i].halfedges[j].corner));
+				add_point_to_group(turning_points_group_index_,coordinates.x,coordinates.y,coordinates.z);
 			}
 		}
 
 		std::size_t group_index;
-		for(std::size_t i = 0; i < static_labeling_graph.nb_boundaries(); ++i) {
-			const Boundary& boundary = static_labeling_graph.boundaries[i];
+		for(std::size_t i = 0; i < static_labeling_graph_.nb_boundaries(); ++i) {
+			const Boundary& boundary = static_labeling_graph_.boundaries[i];
 			for(const auto& be : boundary.halfedges) { // for each boundary edge of this boundary
 				const double* coordinates_first_point = halfedge_vertex_from(mesh_,be).data();
 				const double* coordinates_second_point = halfedge_vertex_to(mesh_,be).data();
 				switch(boundary.axis) {
 					case -1: // may or may not be invalid
 						if(boundary.is_valid) {
-							group_index = valid_but_axisless_boundaries_group_index;
+							group_index = valid_but_axisless_boundaries_group_index_;
 						}
 						else {
-							group_index = invalid_boundaries_group_index;
+							group_index = invalid_boundaries_group_index_;
 						}
 						break;
 					case 0: // always valid
-						group_index = X_boundaries_group_index;
+						group_index = X_boundaries_group_index_;
 						break;
 					case 1: // always valid
-						group_index = Y_boundaries_group_index;
+						group_index = Y_boundaries_group_index_;
 						break;
 					case 2: // always valid
-						group_index = Z_boundaries_group_index;
+						group_index = Z_boundaries_group_index_;
 						break;
 					default:
 						geo_assert_not_reached;
@@ -587,11 +580,11 @@ protected:
 			}
 		}
 
-		set_points_group_visibility(valid_corners_group_index,true);
-		set_points_group_visibility(invalid_corners_group_index,true);
-		set_edges_group_visibility(X_boundaries_group_index,true);
-		set_edges_group_visibility(Y_boundaries_group_index,true);
-		set_edges_group_visibility(Z_boundaries_group_index,true);
+		set_points_group_visibility(valid_corners_group_index_,true);
+		set_points_group_visibility(invalid_corners_group_index_,true);
+		set_edges_group_visibility(X_boundaries_group_index_,true);
+		set_edges_group_visibility(Y_boundaries_group_index_,true);
+		set_edges_group_visibility(Z_boundaries_group_index_,true);
 
 		double fidelity_min, fidelity_max, fidelity_avg;
 		std::tie(fidelity_min,fidelity_max,fidelity_avg) = compute_per_facet_fidelity(mesh_,LABELING_ATTRIBUTE_NAME,"fidelity");
@@ -606,19 +599,19 @@ protected:
 	ColorArray labeling_colors_;
 	float corners_color_[4];
 	float turning_points_color_[4];
-	std::size_t nb_turning_points;
+	std::size_t nb_turning_points_;
 	ColorArray validity_colors_;
-	StaticLabelingGraph static_labeling_graph;
-	State previous_state_, current_state_;
-	int previous_labeling_visu_mode_, current_labeling_visu_mode_; // not a enum, to be used in ImGui
-	std::size_t valid_corners_group_index;
-	std::size_t invalid_corners_group_index;
-	std::size_t turning_points_group_index;
-	std::size_t X_boundaries_group_index;
-	std::size_t Y_boundaries_group_index;
-	std::size_t Z_boundaries_group_index;
-	std::size_t invalid_boundaries_group_index;
-	std::size_t valid_but_axisless_boundaries_group_index;
+	StaticLabelingGraph static_labeling_graph_;
+	State state_; // should only be modified by state_transition()
+	int labeling_visu_mode_; // not a enum, to be used in ImGui. should only be modified by labeling_visu_mode_transition() and ImGui::RadioButton
+	std::size_t valid_corners_group_index_;
+	std::size_t invalid_corners_group_index_;
+	std::size_t turning_points_group_index_;
+	std::size_t X_boundaries_group_index_;
+	std::size_t Y_boundaries_group_index_;
+	std::size_t Z_boundaries_group_index_;
+	std::size_t invalid_boundaries_group_index_;
+	std::size_t valid_but_axisless_boundaries_group_index_;
 };
 
 // print specialization of LabelingViewerApp::State for {fmt}

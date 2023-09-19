@@ -31,8 +31,7 @@ class LabelingPainterApp : public LabelingViewerApp {
 public:
 
     LabelingPainterApp() : LabelingViewerApp("labeling_painter") {
-        current_paint_mode_ = PAINT_MODE_DISABLED;
-        previous_paint_mode_ = PAINT_MODE_DISABLED;
+        paint_mode_ = PAINT_MODE_DISABLED;
         selected_label_ = 0;
         picked_facet_id_as_pixel[0] = 0xff;
         picked_facet_id_as_pixel[1] = 0xff;
@@ -44,29 +43,35 @@ public:
 
 private:
 
-    void draw_scene() override {
-        // if user change state/visu mode -> disable paint mode
-        if( (previous_state_ != current_state_) || (previous_labeling_visu_mode_ != current_labeling_visu_mode_) )  {
-            current_paint_mode_ = PAINT_MODE_DISABLED;
-            update_static_labeling_graph(allow_boundaries_between_opposite_labels_); // recompute charts, boundaries and corners from the labeling facet attribute
-        }
-        // if user activate paint mode -> set raw labeling visu mode
-        if( (previous_paint_mode_ != current_paint_mode_) && (current_paint_mode_ != PAINT_MODE_DISABLED) ) {
-            current_labeling_visu_mode_ = VIEW_RAW_LABELING;
-        }
-        LabelingViewerApp::draw_scene();
+    void state_transition(State new_state) override {
+        // if user change state -> disable paint mode
+        paint_mode_ = PAINT_MODE_DISABLED;
+        LabelingViewerApp::state_transition(new_state);
+    }
+
+    void labeling_visu_mode_transition(int new_mode) override {
+        // if user change visu mode -> disable paint mode
+        paint_mode_ = PAINT_MODE_DISABLED;
+        update_static_labeling_graph(allow_boundaries_between_opposite_labels_); // recompute charts, boundaries and corners from the labeling facet attribute
+        LabelingViewerApp::labeling_visu_mode_transition(new_mode);
     }
 
 	// add buttons for labeling operators on the "object properties" panel
     void draw_object_properties() override {
 		LabelingViewerApp::draw_object_properties();
-		if(current_state_ == LabelingViewerApp::State::labeling) {
+		if(state_ == LabelingViewerApp::State::labeling) {
 			ImGui::Separator();
 
             ImGui::Text("Paint mode");
-            ImGui::RadioButton("Disabled",&current_paint_mode_,PAINT_MODE_DISABLED);
-            ImGui::RadioButton("Pencil",&current_paint_mode_,PAINT_MODE_PENCIL);
-            ImGui::RadioButton("Bucket fill",&current_paint_mode_,PAINT_MODE_BUCKET_FILL);
+            ImGui::RadioButton("Disabled",&paint_mode_,PAINT_MODE_DISABLED);
+            if(ImGui::RadioButton("Pencil",&paint_mode_,PAINT_MODE_PENCIL)) {
+                labeling_visu_mode_transition(VIEW_RAW_LABELING);
+                paint_mode_ = PAINT_MODE_PENCIL; // re-enforce paint mode (disabled by labeling_visu_mode_transition())
+            }
+            if(ImGui::RadioButton("Bucket fill",&paint_mode_,PAINT_MODE_BUCKET_FILL)) {
+                labeling_visu_mode_transition(VIEW_RAW_LABELING);
+                paint_mode_ = PAINT_MODE_BUCKET_FILL; // re-enforce paint mode (disabled by labeling_visu_mode_transition())
+            }
 
             ImGui::SetNextItemWidth(ImGui::GetFontSize() * 4);
             if (ImGui::BeginCombo("Label", label_selection_[selected_label_]))
@@ -124,7 +129,7 @@ private:
         } else if( mouse_op_ == MOUSE_TRANSLATE) {
             double dx = mouse_xy_.x - mouse_down_xy_.x;	    	    
             double dy = mouse_xy_.y - mouse_down_xy_.y;
-            if(current_paint_mode_ != PAINT_MODE_DISABLED) { // Added
+            if(paint_mode_ != PAINT_MODE_DISABLED) { // Added
                 if((dx > 0.05) || (dy > 0.05)) { // If significative mouse movement
                     fmt::println(Logger::out("painting"),"Translation disabled in paint mode"); Logger::out("painting").flush();
                 }
@@ -147,7 +152,7 @@ private:
 
     void mouse_button_callback(int button, int action, int mods, int source) override {
         SimpleApplication::mouse_button_callback(button, action, mods, source);
-        if((current_paint_mode_ != PAINT_MODE_DISABLED) && (action==EVENT_ACTION_DOWN) && (button == 0)) { // if left click while in paint mode
+        if((paint_mode_ != PAINT_MODE_DISABLED) && (action==EVENT_ACTION_DOWN) && (button == 0)) { // if left click while in paint mode
 
             // see https://github.com/BrunoLevy/geogram/discussions/88
             // based on https://github.com/BrunoLevy/GraphiteThree/blob/main/src/lib/OGF/renderer/context/rendering_context.cpp get_picked_point()
@@ -193,7 +198,7 @@ private:
             label[picked_facet_id] = selected_label_; // change label of picked facet
             fmt::println(Logger::out("painting"),"Label of facet {} changed from {} to {}",picked_facet_id,previous_label,selected_label_); Logger::out("painting").flush();
 
-            if(current_paint_mode_ != PAINT_MODE_BUCKET_FILL) {
+            if(paint_mode_ != PAINT_MODE_BUCKET_FILL) {
                 return; // if pencil mode, stop here
             }
 
@@ -236,7 +241,7 @@ private:
 
 private:
 
-    int previous_paint_mode_, current_paint_mode_;  // paint mode. see PAINT_MODE_* macros
+    int paint_mode_;                                // see PAINT_MODE_* macros
     index_t selected_label_;                        // label to paint
     Memory::byte picked_facet_id_as_pixel[4];       // intermediate representation of the picked facet id
     index_t picked_facet_id;                        // last picked facet

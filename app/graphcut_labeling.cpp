@@ -1,7 +1,7 @@
 // Rewriting of https://github.com/LIHPC-Computational-Geometry/genomesh/blob/main/apps/graphcut_labeling.cpp
 // using Geogram instead of libigl, and with a GUI.
 
-// TODO if LabelingViewerApp::current_state_ is LabelingViewerApp::State::triangle_mesh,
+// TODO if LabelingViewerApp::state_ is LabelingViewerApp::State::triangle_mesh,
 // compute graph-cut labeling with default paremeters value (instead of manual, naive labeling)
 
 // TODO do not lauch GUI if both parameters are given by CLI
@@ -32,7 +32,7 @@ protected:
 	// add buttons for labeling operators on the "object properties" panel
     void draw_object_properties() override {
 		LabelingViewerApp::draw_object_properties();
-		if(current_state_ == LabelingViewerApp::State::labeling) {
+		if(state_ == LabelingViewerApp::State::labeling) {
 			ImGui::SeparatorText("Global edition");
 
 			ImGui::Text("Graph-cut parameters");
@@ -112,7 +112,7 @@ protected:
 			if( (facet_index == index_t(-1)) || (facet_index >= mesh_.facets.nb()) )
 				selected_chart = index_t(-1);
 			else
-				selected_chart = static_labeling_graph.facet2chart[facet_index];
+				selected_chart = static_labeling_graph_.facet2chart[facet_index];
 		}
 		else {
 			LabelingViewerApp::mouse_button_callback(button,action,mods,source);
