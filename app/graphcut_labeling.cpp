@@ -20,11 +20,11 @@ public:
 		// PolyCut [1, Section 3.1, page 5] and Evocube [2, section 4, p. 7] use a fidelity/compatness ratio of 3 for the first try
 		// [1] Livesu, Vining, Sheffer, Gregson, Scateni, "Polycut: Monotone graph-cuts for polycube base-complex construction", ACM Trans. on Graphics, 2013
 		// [2] Dumery, Protais, Mestrallet, Bourcier, Ledoux, "Evocube: a Genetic Labeling Framework for Polycube-Maps", Computer Graphics Forum, 2022
-		compactness_coeff = 1;
-		fidelity_coeff = 3;
-		_smooth_cost__fill(smooth_cost); // default value filled with dedicated function
-		selected_chart = index_t(-1);
-		selected_chart_mode = false;
+		compactness_coeff_ = 1;
+		fidelity_coeff_ = 3;
+		_smooth_cost__fill(smooth_cost_); // default value filled with dedicated function
+		selected_chart_ = index_t(-1);
+		selected_chart_mode_ = false;
 	}
 
 protected:
@@ -37,8 +37,8 @@ protected:
 
 			ImGui::Text("Graph-cut parameters");
 
-			ImGui::InputInt("Compactness", &compactness_coeff);
-			ImGui::InputInt("Fidelity", &fidelity_coeff);
+			ImGui::InputInt("Compactness", &compactness_coeff_);
+			ImGui::InputInt("Fidelity", &fidelity_coeff_);
 
 			ImGui::Text("Smooth cost");
 			if (ImGui::BeginTable("Smooth cost table", 7, ImGuiTableFlags_Borders)) { // 7 columns
@@ -60,35 +60,35 @@ protected:
 						char label[32];
 						sprintf(label, "##smooth:%d,%d", column, row);
 						ImGui::SetNextItemWidth(100.0f);
-						ImGui::InputInt(label,&smooth_cost[(std::array<int, 36>::size_type) (column*6+row)]);
+						ImGui::InputInt(label,&smooth_cost_[(std::array<int, 36>::size_type) (column*6+row)]);
 					}
 				}
 				ImGui::EndTable();
 			}
 
 			if(ImGui::Button("Compute solution")) {
-				graphcut_labeling(mesh_,LABELING_ATTRIBUTE_NAME,compactness_coeff,fidelity_coeff,smooth_cost);
+				graphcut_labeling(mesh_,LABELING_ATTRIBUTE_NAME,compactness_coeff_,fidelity_coeff_,smooth_cost_);
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 
 			ImGui::SeparatorText("Per-chart edition");
 
 			if(ImGui::Button("Select chart")) {
-				selected_chart_mode = true;
+				selected_chart_mode_ = true;
 			}
 			ImGui::SameLine();
-			ImGui::BeginDisabled(selected_chart_mode || (selected_chart==index_t(-1)));
-			if(selected_chart==index_t(-1))
+			ImGui::BeginDisabled(selected_chart_mode_ || (selected_chart_==index_t(-1)));
+			if(selected_chart_==index_t(-1))
 				ImGui::TextUnformatted("current: none");
 			else
-				ImGui::Text("current: %d",selected_chart);
+				ImGui::Text("current: %d",selected_chart_);
 			ImGui::EndDisabled();
 		}
 	}
 
 	void mouse_button_callback(int button, int action, int mods, int source) override {
-		if(selected_chart_mode) {
-			selected_chart_mode = false;
+		if(selected_chart_mode_) {
+			selected_chart_mode_ = false;
 			index_t x = index_t(cursor_pos_.x), y = index_t(cursor_pos_.y); // double to integer conversion of current cursor position
 			if(x >= get_width() || y >= get_height()) { // if cursor out of the window
 				return;
@@ -110,20 +110,20 @@ protected:
 								 (index_t(picked_mesh_element_as_pixel[2]) << 16) |
 								 (index_t(picked_mesh_element_as_pixel[3]) << 24);
 			if( (facet_index == index_t(-1)) || (facet_index >= mesh_.facets.nb()) )
-				selected_chart = index_t(-1);
+				selected_chart_ = index_t(-1);
 			else
-				selected_chart = static_labeling_graph_.facet2chart[facet_index];
+				selected_chart_ = static_labeling_graph_.facet2chart[facet_index];
 		}
 		else {
 			LabelingViewerApp::mouse_button_callback(button,action,mods,source);
 		}
 	}
 
-	int compactness_coeff;
-	int fidelity_coeff;
-	std::array<int,6*6> smooth_cost;
-	index_t selected_chart;
-	bool selected_chart_mode;
+	int compactness_coeff_;
+	int fidelity_coeff_;
+	std::array<int,6*6> smooth_cost_;
+	index_t selected_chart_;
+	bool selected_chart_mode_;
 };
 
 int main(int argc, char** argv) {

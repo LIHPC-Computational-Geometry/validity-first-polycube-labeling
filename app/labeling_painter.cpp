@@ -33,11 +33,11 @@ public:
     LabelingPainterApp() : LabelingViewerApp("labeling_painter") {
         paint_mode_ = PAINT_MODE_DISABLED;
         selected_label_ = 0;
-        picked_facet_id_as_pixel[0] = 0xff;
-        picked_facet_id_as_pixel[1] = 0xff;
-        picked_facet_id_as_pixel[2] = 0xff;
-        picked_facet_id_as_pixel[3] = 0xff;
-        picked_facet_id = index_t(-1);
+        picked_facet_id_as_pixel_[0] = 0xff;
+        picked_facet_id_as_pixel_[1] = 0xff;
+        picked_facet_id_as_pixel_[2] = 0xff;
+        picked_facet_id_as_pixel_[3] = 0xff;
+        picked_facet_id_ = index_t(-1);
         cursor_pos_ = vec2(0.0,0.0);
     }
 
@@ -172,31 +172,31 @@ private:
             glPixelStorei(GL_PACK_ALIGNMENT, 1);
             glPixelStorei(GL_PACK_ROW_LENGTH, 1);
             glReadPixels(
-                GLint(x),GLint(y),1,1,GL_RGBA,GL_UNSIGNED_BYTE,picked_facet_id_as_pixel
+                GLint(x),GLint(y),1,1,GL_RGBA,GL_UNSIGNED_BYTE,picked_facet_id_as_pixel_
             );
 
             mesh_gfx()->set_picking_mode(MESH_NONE); // go back to color rendering mode
 
             // decode the facet id from the pixel's color
-            picked_facet_id =
-                 index_t(picked_facet_id_as_pixel[0])        |
-                (index_t(picked_facet_id_as_pixel[1]) << 8)  |
-                (index_t(picked_facet_id_as_pixel[2]) << 16) |
-                (index_t(picked_facet_id_as_pixel[3]) << 24);
+            picked_facet_id_ =
+                 index_t(picked_facet_id_as_pixel_[0])        |
+                (index_t(picked_facet_id_as_pixel_[1]) << 8)  |
+                (index_t(picked_facet_id_as_pixel_[2]) << 16) |
+                (index_t(picked_facet_id_as_pixel_[3]) << 24);
 
-            if(picked_facet_id == index_t(-1)) { // if no facet under the cursor
+            if(picked_facet_id_ == index_t(-1)) { // if no facet under the cursor
                 return;
             }
 
-            if(picked_facet_id >= mesh_.facets.nb()) { // if not in the range of facet indices
-                fmt::println(Logger::err("painting"),"picked_facet_id = {} is greater of equal than number of facets = {}",picked_facet_id,mesh_.facets.nb()); Logger::err("painting").flush();
+            if(picked_facet_id_ >= mesh_.facets.nb()) { // if not in the range of facet indices
+                fmt::println(Logger::err("painting"),"picked_facet_id_ = {} is greater of equal than number of facets = {}",picked_facet_id_,mesh_.facets.nb()); Logger::err("painting").flush();
                 return;
             }
 
             Attribute<index_t> label(mesh_.facets.attributes(),LABELING_ATTRIBUTE_NAME); // fetch labeling
-            index_t previous_label = label[picked_facet_id];
-            label[picked_facet_id] = selected_label_; // change label of picked facet
-            fmt::println(Logger::out("painting"),"Label of facet {} changed from {} to {}",picked_facet_id,previous_label,selected_label_); Logger::out("painting").flush();
+            index_t previous_label = label[picked_facet_id_];
+            label[picked_facet_id_] = selected_label_; // change label of picked facet
+            fmt::println(Logger::out("painting"),"Label of facet {} changed from {} to {}",picked_facet_id_,previous_label,selected_label_); Logger::out("painting").flush();
 
             if(paint_mode_ != PAINT_MODE_BUCKET_FILL) {
                 return; // if pencil mode, stop here
@@ -209,7 +209,7 @@ private:
             // bucket fill mode
 
             std::deque<index_t> facets_to_paint;
-            index_t current_facet = picked_facet_id;
+            index_t current_facet = picked_facet_id_;
             index_t adjacent_facet = index_t(-1);
             unsigned int count_facets_changed = 1;
 
@@ -243,8 +243,8 @@ private:
 
     int paint_mode_;                                // see PAINT_MODE_* macros
     index_t selected_label_;                        // label to paint
-    Memory::byte picked_facet_id_as_pixel[4];       // intermediate representation of the picked facet id
-    index_t picked_facet_id;                        // last picked facet
+    Memory::byte picked_facet_id_as_pixel_[4];      // intermediate representation of the picked facet id
+    index_t picked_facet_id_;                       // last picked facet
     vec2 cursor_pos_;                               // cursor position, in pixels from top-left corner
 };
 
