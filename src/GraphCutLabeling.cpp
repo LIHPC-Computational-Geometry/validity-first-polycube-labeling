@@ -39,7 +39,7 @@ inline void _facet_data_cost__lock_label(index_t facet_index, index_t locked_lab
     }
 }
 
-inline void _smooth_cost__fill(std::array<int,6*6>& smooth_cost) {
+void _smooth_cost__fill(std::array<int,6*6>& smooth_cost) {
     // cost of assigning two labels to adjacent facets ?
     // TODO re-implement 'prevent_opposite_neighbors' mode
     FOR(label1,6) {

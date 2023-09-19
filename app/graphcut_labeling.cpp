@@ -58,7 +58,7 @@ protected:
 						char label[32];
 						sprintf(label, "##smooth:%d,%d", column, row);
 						ImGui::SetNextItemWidth(100.0f);
-						ImGui::InputInt(label,&smooth_cost[column*6+row]);
+						ImGui::InputInt(label,&smooth_cost[(std::array<int, 36>::size_type) (column*6+row)]);
 					}
 				}
 				ImGui::EndTable();

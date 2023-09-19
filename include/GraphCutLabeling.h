@@ -21,7 +21,7 @@ using namespace GEO;
 inline void _facet_neighbors__set_compactness_based(index_t facet_index, GCoptimizationGeneralGraph& gco, const vec3& facet_normal, const Mesh& mesh, int compact_coeff);
 inline void _facet_data_cost__set_fidelity_based(index_t facet_index, std::vector<int>& data_cost, const vec3& facet_normal, int fidelity);
 inline void _facet_data_cost__lock_label(index_t facet_index, index_t locked_label, std::vector<int>& data_cost);
-inline void _smooth_cost__fill(std::array<int,6*6>& smooth_cost); // for now, no other arguments
+void _smooth_cost__fill(std::array<int,6*6>& smooth_cost); // for now, no other arguments
 
 class GraphCutLabeling {
 
