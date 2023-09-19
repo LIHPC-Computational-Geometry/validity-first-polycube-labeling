@@ -23,9 +23,10 @@
 #define VIEW_TRIANGLE_MESH		0
 #define VIEW_RAW_LABELING		1
 #define VIEW_LABELING_GRAPH		2
-#define VIEW_INVALID_CHARTS		3
-#define VIEW_INVALID_BOUNDARIES	4
-#define VIEW_INVALID_CORNERS	5
+#define VIEW_FIDELITY			3
+#define VIEW_INVALID_CHARTS		4
+#define VIEW_INVALID_BOUNDARIES	5
+#define VIEW_INVALID_CORNERS	6
 
 // new colormaps
 #define COLORMAP_LABELING       (SIMPLE_APPLICATION_NB_COLORMAPS)
@@ -183,6 +184,19 @@ protected:
 					set_edges_group_color(Z_boundaries_group_index,labeling_colors_.color_as_floats(4)); // axis Z -> color of label 4 = +Z
 					edges_groups_show_only({X_boundaries_group_index, Y_boundaries_group_index, Z_boundaries_group_index});
 					break;
+				case VIEW_FIDELITY:
+					show_mesh_ = false;
+					lighting_ = false;
+					show_attributes_ = true;
+					current_colormap_texture_ = colormaps_[COLORMAP_INFERNO].texture;
+					attribute_ = "facets.fidelity";
+					attribute_subelements_ = MESH_FACETS;
+					attribute_name_ = "fidelity";
+					attribute_min_ = 1.0f;
+					attribute_max_ = 0.0f;
+					points_groups_show_only({}); // show none
+					edges_groups_show_only({}); // show none
+					break;
 				case VIEW_INVALID_CHARTS:
 					show_mesh_ = false;
 					lighting_ = false;
@@ -329,6 +343,8 @@ protected:
 			ImGui::ColorEdit4WithPalette(fmt::format("Turning points ({})",nb_turning_points).c_str(), turning_points_color_);
 			ImGui::EndDisabled();
 
+			ImGui::RadioButton("View fidelity",&current_labeling_visu_mode_,VIEW_FIDELITY);
+
 			ImGui::RadioButton(fmt::format("View invalid charts ({})",static_labeling_graph.nb_invalid_charts()).c_str(),&current_labeling_visu_mode_,VIEW_INVALID_CHARTS);
 
 			ImGui::RadioButton(fmt::format("View invalid boundaries ({})",static_labeling_graph.nb_invalid_boundaries()).c_str(),&current_labeling_visu_mode_,VIEW_INVALID_BOUNDARIES);
@@ -389,11 +405,13 @@ protected:
 				fmt::println("load_labeling() not ok"); fflush(stdout);
 				// Should the labeling be removed ?
 				// If a labeling was already displayed, it should be restored...
+				mesh_.facets.clear(false,true);
 				clear_scene_overlay();
 				current_state_ = triangle_mesh;
 				return false;
 			}
 
+			mesh_.facets.clear(false,true);
 			update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 
 			current_state_ = labeling;
@@ -402,13 +420,13 @@ protected:
 		}
 
         mesh_gfx_.set_mesh(nullptr);
-        mesh_.clear(true,false); // keep_attributes=true is very important. else runtime error when re-importing files
+		mesh_.clear(false,true);
         MeshIOFlags flags;
         if(!mesh_load(filename, mesh_, flags)) {
             current_state_ = empty; // added
             return false;
         }
-		mesh_gfx_.set_animate(false);            
+		mesh_gfx_.set_animate(false);
         mesh_.vertices.set_dimension(3);
         double xyzmin[3];
         double xyzmax[3];
@@ -521,6 +539,8 @@ protected:
 		set_edges_group_visibility(X_boundaries_group_index,true);
 		set_edges_group_visibility(Y_boundaries_group_index,true);
 		set_edges_group_visibility(Z_boundaries_group_index,true);
+
+		compute_per_facet_fidelity(mesh_,LABELING_ATTRIBUTE_NAME,"fidelity");
 	}
 
 protected:

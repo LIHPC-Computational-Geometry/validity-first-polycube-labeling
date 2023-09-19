@@ -122,6 +122,19 @@ void graphcut_labeling(GEO::Mesh& mesh, const char* attribute_name, int compactn
     gcl.compute_solution(label);
 }
 
+void compute_per_facet_fidelity(GEO::Mesh& mesh, const char* labeling_attribute_name, const char* fidelity_attribute_name) {
+    Attribute<index_t> label(mesh.facets.attributes(), labeling_attribute_name);
+    Attribute<double> per_facet_fidelity(mesh.facets.attributes(), fidelity_attribute_name);
+    vec3 normal(0.0,0.0,0.0);
+    double dot = 0.0;
+    FOR(f,mesh.facets.nb()) {
+        // based on GraphCutLabeling.cpp _facet_data_cost__set_fidelity_based()
+        normal = normalize(Geom::mesh_facet_normal(mesh,f));
+        dot = (GEO::dot(normal,label2vector[label[f]]) - 1.0)/0.2;
+        per_facet_fidelity[f] = 1.0 - std::exp(-(1.0/2.0)*std::pow(dot,2));
+    }
+}
+
 unsigned int remove_surrounded_charts(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg) {
     Attribute<index_t> label(mesh.facets.attributes(), attribute_name);
 
