@@ -23,6 +23,8 @@ public:
 		compactness_coeff = 1;
 		fidelity_coeff = 3;
 		_smooth_cost__fill(smooth_cost); // default value filled with dedicated function
+		selected_chart = index_t(-1);
+		selected_chart_mode = false;
 	}
 
 protected:
@@ -31,7 +33,7 @@ protected:
     void draw_object_properties() override {
 		LabelingViewerApp::draw_object_properties();
 		if(current_state_ == LabelingViewerApp::State::labeling) {
-			ImGui::Separator();
+			ImGui::SeparatorText("Global edition");
 
 			ImGui::Text("Graph-cut parameters");
 
@@ -68,12 +70,60 @@ protected:
 				graphcut_labeling(mesh_,LABELING_ATTRIBUTE_NAME,compactness_coeff,fidelity_coeff,smooth_cost);
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
+
+			ImGui::SeparatorText("Per-chart edition");
+
+			if(ImGui::Button("Select chart")) {
+				selected_chart_mode = true;
+			}
+			ImGui::SameLine();
+			ImGui::BeginDisabled(selected_chart_mode || (selected_chart==index_t(-1)));
+			if(selected_chart==index_t(-1))
+				ImGui::TextUnformatted("current: none");
+			else
+				ImGui::Text("current: %d",selected_chart);
+			ImGui::EndDisabled();
+		}
+	}
+
+	void mouse_button_callback(int button, int action, int mods, int source) override {
+		if(selected_chart_mode) {
+			selected_chart_mode = false;
+			index_t x = index_t(cursor_pos_.x), y = index_t(cursor_pos_.y); // double to integer conversion of current cursor position
+			if(x >= get_width() || y >= get_height()) { // if cursor out of the window
+				return;
+			}
+			y = get_height()-1-y; // change Y axis orientation. glReadPixels() wants pixel coordinates from bottom-left corner
+			mesh_gfx()->set_picking_mode(MESH_FACETS); // instead of rendering colors, mesh_gfx will render facet indices
+			draw_scene(); // rendering
+			// read the index of the picked element using glReadPixels()
+			Memory::byte picked_mesh_element_as_pixel[4];
+			glPixelStorei(GL_PACK_ALIGNMENT, 1);
+			glPixelStorei(GL_PACK_ROW_LENGTH, 1);
+			glReadPixels(
+				GLint(x),GLint(y),1,1,GL_RGBA,GL_UNSIGNED_BYTE,picked_mesh_element_as_pixel
+			);
+			mesh_gfx()->set_picking_mode(MESH_NONE); // go back to color rendering mode
+			// decode facet index from pixel color
+			index_t facet_index = index_t(picked_mesh_element_as_pixel[0])        |
+								 (index_t(picked_mesh_element_as_pixel[1]) << 8)  |
+								 (index_t(picked_mesh_element_as_pixel[2]) << 16) |
+								 (index_t(picked_mesh_element_as_pixel[3]) << 24);
+			if( (facet_index == index_t(-1)) || (facet_index >= mesh_.facets.nb()) )
+				selected_chart = index_t(-1);
+			else
+				selected_chart = static_labeling_graph.facet2chart[facet_index];
+		}
+		else {
+			LabelingViewerApp::mouse_button_callback(button,action,mods,source);
 		}
 	}
 
 	int compactness_coeff;
 	int fidelity_coeff;
 	std::array<int,6*6> smooth_cost;
+	index_t selected_chart;
+	bool selected_chart_mode;
 };
 
 int main(int argc, char** argv) {
