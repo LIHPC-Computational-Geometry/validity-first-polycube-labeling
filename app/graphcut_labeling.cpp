@@ -1,9 +1,6 @@
 // Rewriting of https://github.com/LIHPC-Computational-Geometry/genomesh/blob/main/apps/graphcut_labeling.cpp
 // using Geogram instead of libigl, and with a GUI.
 
-// TODO if LabelingViewerApp::state_ is LabelingViewerApp::State::triangle_mesh,
-// compute graph-cut labeling with default paremeters value (instead of manual, naive labeling)
-
 // TODO do not lauch GUI if both parameters are given by CLI
 
 #include "LabelingViewerApp.h"
@@ -28,6 +25,16 @@ public:
 	}
 
 protected:
+
+	void state_transition(State new_state) override {
+		if(new_state == triangle_mesh) {
+			// if state "triangle mesh but no labeling", auto-compute labeling with graph cut optimisation & default parameters
+			graphcut_labeling(mesh_,LABELING_ATTRIBUTE_NAME,compactness_coeff_,fidelity_coeff_,smooth_cost_);
+			update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+			new_state = labeling;
+		}
+		LabelingViewerApp::state_transition(new_state);
+	}
 
 	// add buttons for labeling operators on the "object properties" panel
     void draw_object_properties() override {
