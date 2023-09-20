@@ -7,7 +7,7 @@
 #include "labeling.h"
 
 #include <array>
-#include <algorithm> // for std::max_element()
+#include <algorithm> // for std::max_element(), std::min_element()
 
 #include "GraphCutLabeling.h"
 
@@ -71,13 +71,17 @@ protected:
 				ImGui::TextUnformatted(" ");
 				for (int column = 0; column < 6; column++) {
 					ImGui::TableSetColumnIndex(column+1);
+					ImGui::PushStyleColor(ImGuiCol_Text, labeling_colors_.color_as_ImVec4( (std::size_t) column)); // change the text color according to the current label
 					ImGui::TextUnformatted(LABEL2STR(column));
+					ImGui::PopStyleColor();
 				}
 				for (int row = 0; row < 6; row++)
 				{
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(0);
+					ImGui::PushStyleColor(ImGuiCol_Text, labeling_colors_.color_as_ImVec4( (std::size_t) row)); // change the text color according to the current label
 					ImGui::TextUnformatted(LABEL2STR(row));
+					ImGui::PopStyleColor();
 					for (int column = 0; column < 6; column++)
 					{
 						ImGui::TableSetColumnIndex(column+1);
@@ -114,12 +118,24 @@ protected:
 			else
 				ImGui::Text("current: %d",selected_chart_);
 			ImGui::TextUnformatted("Average data costs");
+			ImGui::PushStyleColor(ImGuiCol_Text, labeling_colors_.color_as_ImVec4( (std::size_t) 0)); // change the text color
 			ImGui::SliderFloat("+X",&new_data_cost_[0],0.0f,new_data_cost_upper_bound_);
+			ImGui::PopStyleColor();
+			ImGui::PushStyleColor(ImGuiCol_Text, labeling_colors_.color_as_ImVec4( (std::size_t) 1)); // change the text color
 			ImGui::SliderFloat("-X",&new_data_cost_[1],0.0f,new_data_cost_upper_bound_);
+			ImGui::PopStyleColor();
+			ImGui::PushStyleColor(ImGuiCol_Text, labeling_colors_.color_as_ImVec4( (std::size_t) 2)); // change the text color
 			ImGui::SliderFloat("+Y",&new_data_cost_[2],0.0f,new_data_cost_upper_bound_);
+			ImGui::PopStyleColor();
+			ImGui::PushStyleColor(ImGuiCol_Text, labeling_colors_.color_as_ImVec4( (std::size_t) 3)); // change the text color
 			ImGui::SliderFloat("-Y",&new_data_cost_[3],0.0f,new_data_cost_upper_bound_);
+			ImGui::PopStyleColor();
+			ImGui::PushStyleColor(ImGuiCol_Text, labeling_colors_.color_as_ImVec4( (std::size_t) 4)); // change the text color
 			ImGui::SliderFloat("+Z",&new_data_cost_[4],0.0f,new_data_cost_upper_bound_);
+			ImGui::PopStyleColor();
+			ImGui::PushStyleColor(ImGuiCol_Text, labeling_colors_.color_as_ImVec4( (std::size_t) 5)); // change the text color
 			ImGui::SliderFloat("-Z",&new_data_cost_[5],0.0f,new_data_cost_upper_bound_);
+			ImGui::PopStyleColor();
 			ImGui::EndDisabled();
 		}
 	}
@@ -153,6 +169,7 @@ protected:
 				selected_chart_ = static_labeling_graph_.facet2chart[facet_index];
 				geo_assert(selected_chart_ < per_chart_avg_data_cost_.size()); // assert per_chart_avg_data_cost_ is up to date
 				new_data_cost_ = per_chart_avg_data_cost_[selected_chart_];
+				geo_assert(*std::min_element(new_data_cost_.begin(),new_data_cost_.end()) >= 0.0f);
 				new_data_cost_upper_bound_ = 2.0f * *std::max_element(new_data_cost_.begin(),new_data_cost_.end());
 			}
 		}
