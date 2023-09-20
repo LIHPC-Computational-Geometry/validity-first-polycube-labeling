@@ -112,14 +112,10 @@ void naive_labeling(Mesh& mesh, const char* attribute_name) {
 // https://github.com/LIHPC-Computational-Geometry/genomesh/blob/main/src/flagging.cpp#L102
 void graphcut_labeling(GEO::Mesh& mesh, const char* attribute_name, int compactness_coeff, int fidelity_coeff) {
     Attribute<index_t> label(mesh.facets.attributes(), attribute_name);
-    auto gcl = GraphCutLabeling(mesh,compactness_coeff,fidelity_coeff);
-    gcl.compute_solution(label);
-}
-
-// with custom smooth cost
-void graphcut_labeling(GEO::Mesh& mesh, const char* attribute_name, int compactness_coeff, int fidelity_coeff, const std::array<int,6*6>& smooth_cost) {
-    Attribute<index_t> label(mesh.facets.attributes(), attribute_name);
-    auto gcl = GraphCutLabeling(mesh,compactness_coeff,fidelity_coeff,smooth_cost);
+    auto gcl = GraphCutLabeling(mesh);
+    gcl.data_cost__set__fidelity_based(fidelity_coeff);
+    gcl.smooth_cost__set__default();
+    gcl.neighbors__set__compactness_based(compactness_coeff);
     gcl.compute_solution(label);
 }
 
@@ -281,22 +277,24 @@ void remove_invalid_charts(GEO::Mesh& mesh, const char* attribute_name, const St
     // Fill invalid charts using a Graph-Cut optimization,
     // preventing existing label from being re-applied
 
-    GraphCutLabeling gcl(mesh,1,label); // start by locking all the labels, so valid charts will not be modified
+    // compactness = 1
+    GraphCutLabeling gcl(mesh);
+    gcl.data_cost__set__locked_labels(label); // start by locking all the labels, so valid charts will not be modified
+    gcl.smooth_cost__set__default();
+    gcl.neighbors__set__compactness_based(1);
 
     for(index_t chart_index : slg.invalid_charts) { // for each invalid chart
 
         for(index_t facet_index : slg.charts[chart_index].facets) { // for each facet inside this chart
-            gcl.set_fidelity_based_data_cost(facet_index,1);
+            gcl.data_cost__change_to__fidelity_based(facet_index,1);
             // if facet next to a boundary, lower the cost of assigning the neighboring label
             FOR(le,3) { // for each local edge
                 index_t adjacent_facet = mesh.facets.adjacent(facet_index,le);
                 if(label[adjacent_facet] != label[facet_index]) {
-                    gcl.set_data_cost(facet_index,label[adjacent_facet],
-                        gcl.get_data_cost(facet_index,label[adjacent_facet])/2 // halve the cost
-                    );
+                    gcl.data_cost__change_to__scaled(facet_index,label[adjacent_facet],0.5f); // halve the cost
                 }
             }
-            gcl.forbid_label_on_facet(facet_index,label[facet_index]); // prevent the label from staying the same
+            gcl.data_cost__change_to__forbidden_label(facet_index,label[facet_index]); // prevent the label from staying the same
         }
     }
 

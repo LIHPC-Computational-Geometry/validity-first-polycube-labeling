@@ -154,6 +154,7 @@ protected:
 				show_mesh_ = false;
 				lighting_ = false;
 				show_attributes_ = true;
+				geo_assert(COLORMAP_LABELING < colormaps_.size());
 				current_colormap_texture_ = colormaps_[COLORMAP_LABELING].texture;
 				attribute_ = fmt::format("facets.{}",LABELING_ATTRIBUTE_NAME);
 				attribute_subelements_ = MESH_FACETS;

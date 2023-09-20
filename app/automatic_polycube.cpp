@@ -95,8 +95,9 @@ private:
     void draw_object_properties() override {
 		LabelingViewerApp::draw_object_properties();
 		if(state_ == LabelingViewerApp::State::labeling) {
-			if(ImGui::RadioButton("View charts to refine",&labeling_visu_mode_,VIEW_CHARTS_TO_REFINE))
+			if(ImGui::RadioButton("View charts to refine",&labeling_visu_mode_,VIEW_CHARTS_TO_REFINE)) {
 				labeling_visu_mode_transition(VIEW_CHARTS_TO_REFINE);
+			}
 
 			ImGui::Separator();
 
