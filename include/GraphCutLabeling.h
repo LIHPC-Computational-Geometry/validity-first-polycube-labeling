@@ -14,8 +14,6 @@
 #include <array>
 #include <map>
 
-#define HIGH_COST 10e4
-
 using namespace GEO;
 
 typedef vecng<6, float> vec6f; // useful to store per label weights
@@ -24,6 +22,8 @@ typedef vecng<6, int> vec6i; // useful to store per label weights
 class GraphCutLabeling {
 
 public:
+
+    static const int HIGH_COST = 10e4;
 
     //// Initialization //////////////////
 
