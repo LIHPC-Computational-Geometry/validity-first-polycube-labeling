@@ -217,6 +217,38 @@ public:
         }
     }
 
+    void cursor_pos_callback( double x, double y, int source ) override {
+		cursor_pos_ = GEO::vec2(x,y); // store locally the current cursor position
+		SimpleMeshApplication::cursor_pos_callback(x,y,source);
+	}
+
+    index_t pick(MeshElementsFlags what) {
+
+        // see https://github.com/BrunoLevy/geogram/discussions/88
+        // see https://github.com/BrunoLevy/geogram/pull/102
+        // based on https://github.com/BrunoLevy/GraphiteThree/blob/main/src/lib/OGF/renderer/context/rendering_context.cpp get_picked_point()
+
+        index_t x = index_t(cursor_pos_.x), y = index_t(cursor_pos_.y); // double to integer conversion of current cursor position
+        if(x >= get_width() || y >= get_height()) { // if cursor out of the window
+            return index_t(-1);
+        }
+        y = get_height()-1-y; // change Y axis orientation. glReadPixels() wants pixel coordinates from bottom-left corner
+        mesh_gfx()->set_picking_mode(what); // instead of rendering colors, mesh_gfx will render indices
+        draw_scene(); // rendering
+        // read the index of the picked element using glReadPixels()
+        glPixelStorei(GL_PACK_ALIGNMENT, 1);
+        glPixelStorei(GL_PACK_ROW_LENGTH, 1);
+        glReadPixels(
+            GLint(x),GLint(y),1,1,GL_RGBA,GL_UNSIGNED_BYTE,buffer
+        );
+        mesh_gfx()->set_picking_mode(MESH_NONE); // go back to color rendering mode
+        // decode index from pixel color
+        return index_t(buffer[0])        |
+              (index_t(buffer[1]) << 8)  |
+              (index_t(buffer[2]) << 16) |
+              (index_t(buffer[3]) << 24);
+    }
+
     void init_rgba_colormap(const std::string& name, int width, int height, unsigned char * data) {
         // like SimpleApplication::init_colormap() but without XPM data, just an u8 array of RGBA values
         colormaps_.push_back(ColormapInfo());
@@ -254,7 +286,11 @@ public:
         glBindTexture(GL_TEXTURE_2D, 0);
     }
 
+protected:
+    vec2 cursor_pos_; // cursor position, in pixels from top-left corner
+
 private:
     vector<PointsGroup> points_groups_;
     vector<EdgesGroup> edges_groups_;
+    Memory::byte buffer[4]; // a 4-bytes buffer to read pixels
 };

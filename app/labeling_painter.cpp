@@ -38,7 +38,6 @@ public:
         picked_facet_id_as_pixel_[2] = 0xff;
         picked_facet_id_as_pixel_[3] = 0xff;
         picked_facet_id_ = index_t(-1);
-        cursor_pos_ = vec2(0.0,0.0);
     }
 
 private:
@@ -157,32 +156,7 @@ private:
             // see https://github.com/BrunoLevy/geogram/discussions/88
             // based on https://github.com/BrunoLevy/GraphiteThree/blob/main/src/lib/OGF/renderer/context/rendering_context.cpp get_picked_point()
 
-            index_t x = index_t(cursor_pos_.x), y = index_t(cursor_pos_.y); // double to integer conversion of current cursor position
-            if(x >= get_width() || y >= get_height()) { // if cursor out of the window
-                return;
-            }
-            
-            y = get_height()-1-y;// change Y axis orientation
-
-            mesh_gfx()->set_picking_mode(MESH_FACETS); // instead of rendering colors, mesh_gfx will render facet indices
-
-            draw_scene(); // rendering
-
-            // read the id of the picked facet using glReadPixels()
-            glPixelStorei(GL_PACK_ALIGNMENT, 1);
-            glPixelStorei(GL_PACK_ROW_LENGTH, 1);
-            glReadPixels(
-                GLint(x),GLint(y),1,1,GL_RGBA,GL_UNSIGNED_BYTE,picked_facet_id_as_pixel_
-            );
-
-            mesh_gfx()->set_picking_mode(MESH_NONE); // go back to color rendering mode
-
-            // decode the facet id from the pixel's color
-            picked_facet_id_ =
-                 index_t(picked_facet_id_as_pixel_[0])        |
-                (index_t(picked_facet_id_as_pixel_[1]) << 8)  |
-                (index_t(picked_facet_id_as_pixel_[2]) << 16) |
-                (index_t(picked_facet_id_as_pixel_[3]) << 24);
+            picked_facet_id_ = pick(MESH_FACETS);
 
             if(picked_facet_id_ == index_t(-1)) { // if no facet under the cursor
                 return;
@@ -245,7 +219,6 @@ private:
     index_t selected_label_;                        // label to paint
     Memory::byte picked_facet_id_as_pixel_[4];      // intermediate representation of the picked facet id
     index_t picked_facet_id_;                       // last picked facet
-    vec2 cursor_pos_;                               // cursor position, in pixels from top-left corner
 };
 
 int main(int argc, char** argv) {

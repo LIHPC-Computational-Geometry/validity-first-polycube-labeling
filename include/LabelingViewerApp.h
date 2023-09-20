@@ -463,35 +463,11 @@ protected:
 		init_rgba_colormap("validity",2,1,validity_colors_.as_chars());
     }
 
-	void cursor_pos_callback( double x, double y, int source ) override {
-		cursor_pos_ = GEO::vec2(x,y);
-		SimpleMeshApplicationExt::cursor_pos_callback(x,y,source);
-	}
-
 	void mouse_button_callback(int button, int action, int mods, int source) override {
 		if((action==EVENT_ACTION_DOWN) && (button == 0) ) { // if left click
 			if( (state_ == labeling) && ((labeling_visu_mode_ == VIEW_RAW_LABELING) ||
 												 (labeling_visu_mode_ == VIEW_FIDELITY)) ) { // if current mode is "view raw labeling" or "view fidelity"
-				index_t x = index_t(cursor_pos_.x), y = index_t(cursor_pos_.y); // double to integer conversion of current cursor position
-				if(x >= get_width() || y >= get_height()) { // if cursor out of the window
-					return;
-				}
-				y = get_height()-1-y; // change Y axis orientation. glReadPixels() wants pixel coordinates from bottom-left corner
-				mesh_gfx()->set_picking_mode(MESH_FACETS); // instead of rendering colors, mesh_gfx will render facet indices
-				draw_scene(); // rendering
-				// read the index of the picked element using glReadPixels()
-				Memory::byte picked_mesh_element_as_pixel[4];
-				glPixelStorei(GL_PACK_ALIGNMENT, 1);
-				glPixelStorei(GL_PACK_ROW_LENGTH, 1);
-				glReadPixels(
-					GLint(x),GLint(y),1,1,GL_RGBA,GL_UNSIGNED_BYTE,picked_mesh_element_as_pixel
-				);
-				mesh_gfx()->set_picking_mode(MESH_NONE); // go back to color rendering mode
-				// decode facet index from pixel color
-				index_t facet_index = index_t(picked_mesh_element_as_pixel[0])        |
-									 (index_t(picked_mesh_element_as_pixel[1]) << 8)  |
-									 (index_t(picked_mesh_element_as_pixel[2]) << 16) |
-									 (index_t(picked_mesh_element_as_pixel[3]) << 24);
+				index_t facet_index = pick(MESH_FACETS);
 				if ( (facet_index != index_t(-1)) && (facet_index < mesh_.facets.nb()) ) {
 					Attribute<index_t> label(mesh_.facets.attributes(), LABELING_ATTRIBUTE_NAME);
 					Attribute<double> per_facet_fidelity(mesh_.facets.attributes(), "fidelity");
@@ -594,7 +570,6 @@ protected:
 
 protected:
 
-	vec2 cursor_pos_;
 	bool show_ImGui_demo_window_;
     bool allow_boundaries_between_opposite_labels_;
 	ColorArray labeling_colors_;
