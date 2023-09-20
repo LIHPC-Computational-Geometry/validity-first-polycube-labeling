@@ -6,6 +6,7 @@
 #include <geogram/basic/numeric.h>      // for GEO::index_t
 #include <geogram/basic/attributes.h>   // for GEO::Attribute
 #include <geogram/mesh/mesh.h>          // for GEO::Mesh
+#include <geogram/basic/vecg.h>         // for GEO::vecng
 
 #include <GCoptimization.h>
 
@@ -16,6 +17,9 @@
 #define HIGH_COST 10e4
 
 using namespace GEO;
+
+typedef vecng<6, float> vec6f; // useful to store per label weights
+typedef vecng<6, int> vec6i; // useful to store per label weights
 
 class GraphCutLabeling {
 
@@ -44,6 +48,8 @@ public:
 
     void data_cost__change_to__scaled(index_t facet_index, index_t label, float factor);
 
+    void data_cost__change_to__per_label_weights(index_t facet_index, const vec6i& per_label_weights);
+
     //// Smooth cost definition //////////////////
 
     void smooth_cost__set__default();
@@ -57,6 +63,8 @@ public:
     void neighbors__set__compactness_based(int compactness);
 
     //// Getters & debug //////////////////
+
+    vec6i data_cost__get__for_facet(index_t facet_index) const;
 
     int data_cost__get__for_facet_and_label(index_t facet_index, index_t label) const;
 

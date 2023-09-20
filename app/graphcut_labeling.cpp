@@ -29,7 +29,7 @@ public:
 		}
 		selected_chart_ = index_t(-1);
 		selected_chart_mode_ = false;
-		new_data_cost_.fill(0.0f);
+		// new_data_cost_ auto-initialized to 0
 		new_data_cost_upper_bound_ = 1000.0f;
 	}
 
@@ -169,8 +169,8 @@ protected:
 				selected_chart_ = static_labeling_graph_.facet2chart[facet_index];
 				geo_assert(selected_chart_ < per_chart_avg_data_cost_.size()); // assert per_chart_avg_data_cost_ is up to date
 				new_data_cost_ = per_chart_avg_data_cost_[selected_chart_];
-				geo_assert(*std::min_element(new_data_cost_.begin(),new_data_cost_.end()) >= 0.0f);
-				new_data_cost_upper_bound_ = 2.0f * *std::max_element(new_data_cost_.begin(),new_data_cost_.end());
+				geo_assert(min(new_data_cost_) >= 0.0f);
+				new_data_cost_upper_bound_ = 2.0f * max(new_data_cost_);
 			}
 		}
 		else {
@@ -188,23 +188,12 @@ protected:
 	}
 
 	void update_per_chart_avg_data_cost(const GraphCutLabeling& gcl) {
-		per_chart_avg_data_cost_.resize(static_labeling_graph_.nb_charts());
+		per_chart_avg_data_cost_.resize(static_labeling_graph_.nb_charts()); // each vec6f is initialized to 0 in constructor
 		FOR(chart_index,static_labeling_graph_.nb_charts()) { // for each chart
-			per_chart_avg_data_cost_[chart_index].fill(0.0f);
 			for(index_t f : static_labeling_graph_.charts[chart_index].facets) { // for each facet of the current chart
-				per_chart_avg_data_cost_[chart_index][0] += (float) gcl.data_cost__get__for_facet_and_label(f,0);
-				per_chart_avg_data_cost_[chart_index][1] += (float) gcl.data_cost__get__for_facet_and_label(f,1);
-				per_chart_avg_data_cost_[chart_index][2] += (float) gcl.data_cost__get__for_facet_and_label(f,2);
-				per_chart_avg_data_cost_[chart_index][3] += (float) gcl.data_cost__get__for_facet_and_label(f,3);
-				per_chart_avg_data_cost_[chart_index][4] += (float) gcl.data_cost__get__for_facet_and_label(f,4);
-				per_chart_avg_data_cost_[chart_index][5] += (float) gcl.data_cost__get__for_facet_and_label(f,5);
+				per_chart_avg_data_cost_[chart_index] += (vec6f) gcl.data_cost__get__for_facet(f); // add per-label data cost of current facet
 			}
-			per_chart_avg_data_cost_[chart_index][0] /= (float) mesh_.facets.nb();
-			per_chart_avg_data_cost_[chart_index][1] /= (float) mesh_.facets.nb();
-			per_chart_avg_data_cost_[chart_index][2] /= (float) mesh_.facets.nb();
-			per_chart_avg_data_cost_[chart_index][3] /= (float) mesh_.facets.nb();
-			per_chart_avg_data_cost_[chart_index][4] /= (float) mesh_.facets.nb();
-			per_chart_avg_data_cost_[chart_index][5] /= (float) mesh_.facets.nb();
+			per_chart_avg_data_cost_[chart_index] /= (float) mesh_.facets.nb(); // divide by the number of facets to get the average
 		}
 	}
 
@@ -213,8 +202,8 @@ protected:
 	std::array<int,6*6> smooth_cost_;
 	index_t selected_chart_;
 	bool selected_chart_mode_;
-	std::vector<std::array<float,6>> per_chart_avg_data_cost_;
-	std::array<float,6> new_data_cost_; // per label
+	std::vector<vec6f> per_chart_avg_data_cost_;
+	vec6f new_data_cost_; // per label
 	float new_data_cost_upper_bound_; // max value of GUI sliders
 };
 

@@ -94,6 +94,14 @@ void GraphCutLabeling::data_cost__change_to__scaled(index_t facet_index, index_t
     data_cost_[facet_index*6+label] = (int) (((float) data_cost_[facet_index*6+label]) * factor);
 }
 
+void GraphCutLabeling::data_cost__change_to__per_label_weights(index_t facet_index, const vec6i& per_label_weights) {
+    if(!data_cost_set_) {
+        fmt::println(Logger::err("graph-cut"),"the data cost cannot be change because it has not being set yet"); Logger::err("graph-cut").flush();
+        geo_assert_not_reached;
+    }
+    memcpy(data_cost_.data()+(facet_index*6),per_label_weights.data(),sizeof(int)*6); // memcpy <3
+}
+
 void GraphCutLabeling::smooth_cost__set__default() {
     if(smooth_cost_set_) {
         fmt::println(Logger::err("graph-cut"),"smooth cost already set, and can only be set once"); Logger::err("graph-cut").flush();
@@ -149,6 +157,16 @@ void GraphCutLabeling::neighbors__set__compactness_based(int compactness) {
         }
     }
     neighbors_set_ = true;
+}
+
+vec6i GraphCutLabeling::data_cost__get__for_facet(index_t facet_index) const {
+    if(!data_cost_set_) {
+        fmt::println(Logger::err("graph-cut"),"getter of data cost called before setter"); Logger::err("graph-cut").flush();
+        geo_assert_not_reached;
+    }
+    vec6i result;
+    memcpy(result.data(),data_cost_.data()+(facet_index*6),sizeof(int)*6); // what? you don't like memcpy?
+    return result;
 }
 
 int GraphCutLabeling::data_cost__get__for_facet_and_label(index_t facet_index, index_t label) const {

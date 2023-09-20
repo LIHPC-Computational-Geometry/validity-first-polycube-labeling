@@ -2,11 +2,13 @@
 
 #include <geogram/basic/numeric.h> // for index_t
 #include <geogram/basic/attributes.h> // for Attribute
+#include <geogram/basic/vecg.h> // for vecng<>
 
-#include <algorithm>    // for std::find(), std::min_element()
+#include <algorithm>    // for std::find(), std::min_element(), std::max()
 #include <map>          // for std::map::find()
 #include <iterator>     // for std::iterator_traits, std::distance()
 #include <numeric>      // for std::accumulate()
+#include <limits>       // for std::numeric_limits<>
 
 #define VECTOR_CONTAINS(container,value) (std::find(container.cbegin(),container.cend(),value) != container.cend())
 #define MAP_CONTAINS(container,value) (container.find(value) != container.end())
@@ -41,4 +43,24 @@ R std_dev(It b, It e)
     R const mean = std::accumulate(b, e, R{}) / N;
     R variance   = std::accumulate(b, e, R{}, [mean](R a, E v)-> R { return a + (v-mean)*(v-mean); });
     return std::sqrt(variance / N);
+}
+
+// find the min element in a Geogram vector (vecng)
+template <index_t DIM, class T>
+T min(const vecng<DIM, T>& vector) {
+    T min = std::numeric_limits<T>::min();
+    FOR(d,DIM) {
+        min = std::min(min,vector[d]);
+    }
+    return min;
+}
+
+// find the max element in a Geogram vector (vecng)
+template <index_t DIM, class T>
+T max(const vecng<DIM, T>& vector) {
+    T max = std::numeric_limits<T>::min();
+    FOR(d,DIM) {
+        max = std::max(max,vector[d]);
+    }
+    return max;
 }
