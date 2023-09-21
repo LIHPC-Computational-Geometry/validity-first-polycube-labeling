@@ -59,3 +59,6 @@ target_link_libraries(naive_labeling geogram geogram_gfx ${GLFW_LIBRARIES} fmt::
 
 add_executable(graphcut_labeling ${SRCFILES} app/graphcut_labeling)
 target_link_libraries(graphcut_labeling geogram geogram_gfx ${GLFW_LIBRARIES} fmt::fmt gco)
+
+add_executable(ovm_io ${SRCFILES} app/ovm_io)
+target_link_libraries(ovm_io geogram geogram_gfx ${GLFW_LIBRARIES} fmt::fmt gco)
