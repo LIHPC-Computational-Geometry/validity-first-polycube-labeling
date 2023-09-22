@@ -59,20 +59,39 @@ private:
     void draw_object_properties() override {
 		LabelingViewerApp::draw_object_properties();
 		if(state_ == LabelingViewerApp::State::labeling) {
-			ImGui::Separator();
-
-            ImGui::Text("Paint mode");
-            ImGui::RadioButton("Disabled",&paint_mode_,PAINT_MODE_DISABLED);
-            if(ImGui::RadioButton("Pencil",&paint_mode_,PAINT_MODE_PENCIL)) {
-                labeling_visu_mode_transition(VIEW_RAW_LABELING);
-                paint_mode_ = PAINT_MODE_PENCIL; // re-enforce paint mode (disabled by labeling_visu_mode_transition())
+			ImGui::SeparatorText("Paint mode");
+            switch (paint_mode_) {
+                case PAINT_MODE_DISABLED:
+                    ImGui::TextUnformatted(fmt::format("Current : {} disabled (camera pan)",icon_UTF8("hand-pointer")).c_str());
+                    break;
+                case PAINT_MODE_PENCIL:
+                    ImGui::TextUnformatted(fmt::format("Current : {} pencil",icon_UTF8("pencil-alt")).c_str());
+                    break;
+                case PAINT_MODE_BUCKET_FILL:
+                    ImGui::TextUnformatted(fmt::format("Current : {} bucket fill",icon_UTF8("fill-drip")).c_str());
+                    break;
+                default:
+                    geo_assert_not_reached;
             }
-            if(ImGui::RadioButton("Bucket fill",&paint_mode_,PAINT_MODE_BUCKET_FILL)) {
-                labeling_visu_mode_transition(VIEW_RAW_LABELING);
-                paint_mode_ = PAINT_MODE_BUCKET_FILL; // re-enforce paint mode (disabled by labeling_visu_mode_transition())
+            if(ImGui::Button(icon_UTF8("hand-pointer"))) {
+                paint_mode_ = PAINT_MODE_DISABLED;
             }
-
+            ImGui::SameLine();
+            if(ImGui::Button(icon_UTF8("pencil-alt"))) {
+                if(labeling_visu_mode_ != VIEW_RAW_LABELING) {
+                    labeling_visu_mode_transition(VIEW_RAW_LABELING); // avoid this function if the labeling visu mode is already "raw labeling", because there is the re-computation of the labeling graph inside
+                }
+                paint_mode_ = PAINT_MODE_PENCIL;
+            }
+            ImGui::SameLine();
+            if(ImGui::Button(icon_UTF8("fill-drip"))) {
+                if(labeling_visu_mode_ != VIEW_RAW_LABELING) {
+                    labeling_visu_mode_transition(VIEW_RAW_LABELING); // avoid this function if the labeling visu mode is already "raw labeling", because there is the re-computation of the labeling graph inside
+                }
+                paint_mode_ = PAINT_MODE_BUCKET_FILL;
+            }
             ImGui::SetNextItemWidth(ImGui::GetFontSize() * 4);
+            ImGui::PushStyleColor(ImGuiCol_Text, labeling_colors_.color_as_ImVec4( (std::size_t) selected_label_)); // change the text color
             if (ImGui::BeginCombo("Label", label_selection_[selected_label_]))
             {
                 // based on ext/geogram/src/lib/geogram_gfx/third_party/imgui/imgui_demo.cpp "combo 1" code snippet
@@ -89,6 +108,7 @@ private:
                 }
                 ImGui::EndCombo();
             }
+            ImGui::PopStyleColor();
 		}
 	}
 
