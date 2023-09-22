@@ -15,6 +15,7 @@
 #define PAINT_MODE_DISABLED     0
 #define PAINT_MODE_PENCIL       1
 #define PAINT_MODE_BUCKET_FILL  2
+#define PAINT_MODE_PIPETTE      3
 
 using namespace GEO;
 
@@ -70,6 +71,9 @@ private:
                 case PAINT_MODE_BUCKET_FILL:
                     ImGui::TextUnformatted(fmt::format("Current : {} bucket fill",icon_UTF8("fill-drip")).c_str());
                     break;
+                case PAINT_MODE_PIPETTE:
+                    ImGui::TextUnformatted(fmt::format("Current : {} pipette",icon_UTF8("eye-dropper")).c_str());
+                    break;
                 default:
                     geo_assert_not_reached;
             }
@@ -89,6 +93,13 @@ private:
                     labeling_visu_mode_transition(VIEW_RAW_LABELING); // avoid this function if the labeling visu mode is already "raw labeling", because there is the re-computation of the labeling graph inside
                 }
                 paint_mode_ = PAINT_MODE_BUCKET_FILL;
+            }
+            ImGui::SameLine();
+            if(ImGui::Button(icon_UTF8("eye-dropper"))) {
+                if(labeling_visu_mode_ != VIEW_RAW_LABELING) {
+                    labeling_visu_mode_transition(VIEW_RAW_LABELING); // avoid this function if the labeling visu mode is already "raw labeling", because there is the re-computation of the labeling graph inside
+                }
+                paint_mode_ = PAINT_MODE_PIPETTE;
             }
             ImGui::SetNextItemWidth(ImGui::GetFontSize() * 4);
             ImGui::PushStyleColor(ImGuiCol_Text, labeling_colors_.color_as_ImVec4( (std::size_t) selected_label_)); // change the text color
@@ -188,6 +199,12 @@ private:
             }
 
             Attribute<index_t> label(mesh_.facets.attributes(),LABELING_ATTRIBUTE_NAME); // fetch labeling
+
+            if(paint_mode_ == PAINT_MODE_PIPETTE) {
+                selected_label_ = label[picked_facet_id_];
+                return;
+            }
+
             index_t previous_label = label[picked_facet_id_];
             label[picked_facet_id_] = selected_label_; // change label of picked facet
             fmt::println(Logger::out("painting"),"Label of facet {} changed from {} to {}",picked_facet_id_,previous_label,selected_label_); Logger::out("painting").flush();
