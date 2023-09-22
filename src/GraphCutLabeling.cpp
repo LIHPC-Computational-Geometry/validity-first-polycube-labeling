@@ -6,7 +6,7 @@
 
 #include <GCoptimization.h>
 
-#include <exception>
+#include <algorithm> // for std::max()
 
 #include "labeling.h" // for label2vector
 
@@ -92,6 +92,14 @@ void GraphCutLabeling::data_cost__change_to__scaled(index_t facet_index, index_t
         geo_assert_not_reached;
     }
     data_cost_[facet_index*6+label] = (int) (((float) data_cost_[facet_index*6+label]) * factor);
+}
+
+void GraphCutLabeling::data_cost__change_to__shifted(index_t facet_index, index_t label, float delta) {
+    if(!data_cost_set_) {
+        fmt::println(Logger::err("graph-cut"),"the data cost cannot be change because it has not being set yet"); Logger::err("graph-cut").flush();
+        geo_assert_not_reached;
+    }
+    data_cost_[facet_index*6+label] = (int) std::max(0.0f,(((float) data_cost_[facet_index*6+label]) + delta)); // forbid negative cost, min set to 0
 }
 
 void GraphCutLabeling::data_cost__change_to__per_label_weights(index_t facet_index, const vec6i& per_label_weights) {

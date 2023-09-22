@@ -7,7 +7,8 @@
 #include "labeling.h"
 
 #include <array>
-#include <algorithm> // for std::max_element(), std::min_element()
+#include <algorithm>	// for std::max_element(), std::min_element()
+#include <cmath>		// for std::round()
 
 #include "GraphCutLabeling.h"
 
@@ -103,6 +104,8 @@ protected:
 				gcl.compute_solution(label);
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 				update_per_chart_avg_data_cost(gcl);
+				selected_chart_ = index_t(-1); // avoid slider values to be obsolete (chart n°selected_chart_ may not be the same, or be out-of-range)
+				new_data_cost_ = vec6f(); // zero values
 			}
 
 			ImGui::SeparatorText("Per-chart edition");
@@ -136,6 +139,31 @@ protected:
 			ImGui::PushStyleColor(ImGuiCol_Text, labeling_colors_.color_as_ImVec4( (std::size_t) 5)); // change the text color
 			ImGui::SliderFloat("-Z",&new_data_cost_[5],0.0f,new_data_cost_upper_bound_);
 			ImGui::PopStyleColor();
+			if(ImGui::Button("Apply")) {
+				std::array<float,6> per_label_shift = {
+					new_data_cost_[0] - per_chart_avg_data_cost_[selected_chart_][0],
+					new_data_cost_[1] - per_chart_avg_data_cost_[selected_chart_][1],
+					new_data_cost_[2] - per_chart_avg_data_cost_[selected_chart_][2],
+					new_data_cost_[3] - per_chart_avg_data_cost_[selected_chart_][3],
+					new_data_cost_[4] - per_chart_avg_data_cost_[selected_chart_][4],
+					new_data_cost_[5] - per_chart_avg_data_cost_[selected_chart_][5]
+				};
+				auto gcl = GraphCutLabeling(mesh_); // TODO give normals, to not compute them each time
+				gcl.data_cost__set__fidelity_based(fidelity_coeff_);
+				gcl.smooth_cost__set__custom(smooth_cost_);
+				gcl.neighbors__set__compactness_based(compactness_coeff_);
+				for(index_t f : static_labeling_graph_.charts[selected_chart_].facets) { // for each facet of the current chart
+					FOR(l,6) {
+						gcl.data_cost__change_to__shifted(f,l,per_label_shift[l]);
+					}
+				}
+				Attribute<index_t> label(mesh_.facets.attributes(), LABELING_ATTRIBUTE_NAME);
+				gcl.compute_solution(label);
+				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+				update_per_chart_avg_data_cost(gcl);
+				selected_chart_ = index_t(-1); // there is no way of finding the "new" chart, because it may have disappeared, moved, merged...
+				new_data_cost_ = vec6f(); // zero values
+			}
 			ImGui::EndDisabled();
 		}
 	}
@@ -151,7 +179,6 @@ protected:
 				geo_assert(selected_chart_ < per_chart_avg_data_cost_.size()); // assert per_chart_avg_data_cost_ is up to date
 				new_data_cost_ = per_chart_avg_data_cost_[selected_chart_];
 				geo_assert(min(new_data_cost_) >= 0.0f);
-				new_data_cost_upper_bound_ = 2.0f * max(new_data_cost_);
 			}
 		}
 		else {
@@ -170,12 +197,15 @@ protected:
 
 	void update_per_chart_avg_data_cost(const GraphCutLabeling& gcl) {
 		per_chart_avg_data_cost_.resize(static_labeling_graph_.nb_charts()); // each vec6f is initialized to 0 in constructor
+		float global_max = 0.0f; // max of all data costs, for all facets and all labels
 		FOR(chart_index,static_labeling_graph_.nb_charts()) { // for each chart
 			for(index_t f : static_labeling_graph_.charts[chart_index].facets) { // for each facet of the current chart
+				global_max = std::max(global_max,(float) max(gcl.data_cost__get__for_facet(f)));
 				per_chart_avg_data_cost_[chart_index] += (vec6f) gcl.data_cost__get__for_facet(f); // add per-label data cost of current facet
 			}
 			per_chart_avg_data_cost_[chart_index] /= (float) mesh_.facets.nb(); // divide by the number of facets to get the average
 		}
+		new_data_cost_upper_bound_ = global_max*1.1f;
 	}
 
 	int compactness_coeff_;

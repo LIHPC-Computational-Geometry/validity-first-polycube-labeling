@@ -48,6 +48,8 @@ public:
 
     void data_cost__change_to__scaled(index_t facet_index, index_t label, float factor);
 
+    void data_cost__change_to__shifted(index_t facet_index, index_t label, float delta);
+
     void data_cost__change_to__per_label_weights(index_t facet_index, const vec6i& per_label_weights);
 
     //// Smooth cost definition //////////////////
