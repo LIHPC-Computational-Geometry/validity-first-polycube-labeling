@@ -33,8 +33,7 @@ private:
 				per_chart_fidelity_values.resize(static_labeling_graph_.charts[c].facets.size());
 				index_t count_facets = 0;
 				for(auto f : static_labeling_graph_.charts[c].facets) { // for each facet in this chart
-					facet_normal = normalize(Geom::mesh_facet_normal(mesh_,f));
-					per_chart_fidelity_values[count_facets] = (GEO::dot(facet_normal,label2vector[labeling[f]]) - 1.0)/0.2; // compute fidelity
+					per_chart_fidelity_values[count_facets] = (GEO::dot(normals_[f],label2vector[labeling[f]]) - 1.0)/0.2; // compute fidelity
 					count_facets++;
 				}
 				stddev = std_dev(per_chart_fidelity_values.begin(),per_chart_fidelity_values.end());
@@ -55,8 +54,7 @@ private:
 			FOR(c,static_labeling_graph_.nb_charts()) { // for each chart
 				min_fidelity = 0.0; // will store the min fidelity of all facets
 				for(auto f : static_labeling_graph_.charts[c].facets) { // for each facet in this chart
-					facet_normal = normalize(Geom::mesh_facet_normal(mesh_,f));
-					fidelity = (GEO::dot(facet_normal,label2vector[labeling[f]]) - 1.0)/0.2;
+					fidelity = (GEO::dot(normals_[f],label2vector[labeling[f]]) - 1.0)/0.2;
 					min_fidelity = std::min(fidelity,min_fidelity);
 				}
 				// write this value for all facets on the current chart
@@ -116,13 +114,13 @@ private:
 			}
 
 			if(ImGui::Button("Fix invalid corners")) {
-				unsigned int nb_chart_modified = fix_invalid_corners(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_);
+				unsigned int nb_chart_modified = fix_invalid_corners(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_);
 				fmt::println(Logger::out("fix_labeling"),"{} chart(s) added to fix invalid corners",nb_chart_modified); Logger::out("fix_labeling").flush();
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 
 			if(ImGui::Button("Remove invalid charts")) {
-				remove_invalid_charts(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_);
+				remove_invalid_charts(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_);
 				fmt::println(Logger::out("fix_labeling"),"invalid charts removed using gco"); Logger::out("fix_labeling").flush();
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
@@ -176,7 +174,7 @@ private:
 			if(static_labeling_graph_.is_valid())
 				return true;
 
-			fix_invalid_corners(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_);
+			fix_invalid_corners(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_);
 			update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 
 			if(static_labeling_graph_.is_valid())
@@ -194,7 +192,7 @@ private:
 			});
 
 			while(1) {
-				remove_invalid_charts(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_);
+				remove_invalid_charts(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_);
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 
 				if(static_labeling_graph_.is_valid())

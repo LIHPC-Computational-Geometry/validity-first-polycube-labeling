@@ -30,9 +30,8 @@ public:
     /**
      * \brief Prepare a labeling computation with a Graph-Cut optimization
      * \param[in] mesh A surface triangle mesh
-     * TODO pre-computed normals as optional argument
      */
-    GraphCutLabeling(const Mesh& mesh);
+    GraphCutLabeling(const Mesh& mesh, const std::vector<vec3>& normals);
 
     //// Data cost definition //////////////////
 
@@ -87,7 +86,7 @@ private:
     std::vector<int> data_cost_; // #facet*6, cost of assigning a facet to a label
     std::array<int,6*6> smooth_cost_; // label adjacency cost
     GCoptimizationGeneralGraph gco_; // underlying optimizer
-    std::vector<vec3> normals_; // facet normals, computed in the constructor
+    const std::vector<vec3>& normals_; // facet normals
     bool data_cost_set_; // if the data cost is already set or not, required for compute_solution()
     bool smooth_cost_set_; // if the smooth cost is already set or not, required for compute_solution()
     bool neighbors_set_; // if the neighbors are already set or not, required for compute_solution()

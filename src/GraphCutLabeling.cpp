@@ -1,6 +1,5 @@
 #include <geogram/mesh/mesh.h> // for GEO::Mesh
 #include <geogram/basic/geometry.h>     // for GEO::vec3
-#include <geogram/mesh/mesh_geometry.h> // for Geom::mesh_facet_normal()
 
 #include <fmt/os.h> // for fmt::output_file
 
@@ -8,16 +7,14 @@
 
 #include <algorithm> // for std::max()
 
-#include "labeling.h" // for label2vector
+#include "labeling.h"   // for label2vector
 
 #include "GraphCutLabeling.h"
 
-GraphCutLabeling::GraphCutLabeling(const Mesh& mesh) : mesh_(mesh), gco_( (GCoptimization::SiteID) mesh.facets.nb(),6) {
+GraphCutLabeling::GraphCutLabeling(const Mesh& mesh, const std::vector<vec3>& normals) : mesh_(mesh), gco_( (GCoptimization::SiteID) mesh.facets.nb(),6), normals_(normals) {
+    // resize of the data cost
     data_cost_.resize(mesh_.facets.nb()*6);
-    normals_.resize(mesh_.facets.nb());
-    FOR(f,mesh_.facets.nb()) {
-        normals_[f] = normalize(Geom::mesh_facet_normal(mesh,f));
-    }
+    // init the 3 steps to "not set"
     data_cost_set_ = false;
     smooth_cost_set_ = false;
     neighbors_set_ = false;

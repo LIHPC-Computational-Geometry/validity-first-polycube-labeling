@@ -97,7 +97,7 @@ index_t nearest_label(const vec3& normal) {
     return (index_t) std::distance(weights.begin(),std::max_element(weights.begin(),weights.end()));
 }
 
-void naive_labeling(Mesh& mesh, const char* attribute_name) {
+void naive_labeling(Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name) {
 
     // use GEO::Geom::triangle_normal_axis() instead ?
 
@@ -110,16 +110,16 @@ void naive_labeling(Mesh& mesh, const char* attribute_name) {
 }
 
 // https://github.com/LIHPC-Computational-Geometry/genomesh/blob/main/src/flagging.cpp#L102
-void graphcut_labeling(GEO::Mesh& mesh, const char* attribute_name, int compactness_coeff, int fidelity_coeff) {
+void graphcut_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, int compactness_coeff, int fidelity_coeff) {
     Attribute<index_t> label(mesh.facets.attributes(), attribute_name);
-    auto gcl = GraphCutLabeling(mesh);
+    auto gcl = GraphCutLabeling(mesh,normals);
     gcl.data_cost__set__fidelity_based(fidelity_coeff);
     gcl.smooth_cost__set__default();
     gcl.neighbors__set__compactness_based(compactness_coeff);
     gcl.compute_solution(label);
 }
 
-std::tuple<double,double,double> compute_per_facet_fidelity(GEO::Mesh& mesh, const char* labeling_attribute_name, const char* fidelity_attribute_name) {
+std::tuple<double,double,double> compute_per_facet_fidelity(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* labeling_attribute_name, const char* fidelity_attribute_name) {
     // goal of the fidelity metric : measure how far the assigned direction (label) is from the triangle normal
     //   fidelity=1 (high fidelity) -> label equal to the normal      ex: triangle is oriented towards +X and we assign +X
     //   fidelity=0 (low fidelity)  -> label opposite to the normal   ex: triangle is oriented towards +X and we assign -X
@@ -129,14 +129,11 @@ std::tuple<double,double,double> compute_per_facet_fidelity(GEO::Mesh& mesh, con
     // 4. add 1 and divide by 2 so that the range is [0:1] : 1=equal, 0=opposite
     Attribute<index_t> label(mesh.facets.attributes(), labeling_attribute_name);
     Attribute<double> per_facet_fidelity(mesh.facets.attributes(), fidelity_attribute_name);
-    vec3 normal(0.0,0.0,0.0);
     double min = Numeric::max_float64(),
            max = Numeric::min_float64(),
            avg = 0.0;
     FOR(f,mesh.facets.nb()) {
-        // based on GraphCutLabeling.cpp _facet_data_cost__set_fidelity_based()
-        normal = normalize(Geom::mesh_facet_normal(mesh,f));
-        per_facet_fidelity[f] = (GEO::dot(normal,label2vector[label[f]]) + 1.0)/2.0;
+        per_facet_fidelity[f] = (GEO::dot(normals[f],label2vector[label[f]]) + 1.0)/2.0;
         // stats
         min = std::min(min,per_facet_fidelity[f]);
         max = std::max(max,per_facet_fidelity[f]);
@@ -228,7 +225,7 @@ unsigned int fix_invalid_boundaries(GEO::Mesh& mesh, const char* attribute_name,
     return new_charts_count; // should be == to slg.invalid_boundaries.size()
 }
 
-unsigned int fix_invalid_corners(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg) {
+unsigned int fix_invalid_corners(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, const StaticLabelingGraph& slg) {
     Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // get labeling attribute
     CustomMeshHalfedges mesh_half_edges_(mesh); // create an halfedges interface for this mesh
 
@@ -244,7 +241,7 @@ unsigned int fix_invalid_corners(GEO::Mesh& mesh, const char* attribute_name, co
         vertex_normal = {0,0,0};
         for(auto& vr : slg.corners[corner_index].vertex_rings_with_boundaries) { // for each vertex ring
             for(auto& be : vr.boundary_edges) { // for each boundary edge
-                vertex_normal += Geom::mesh_facet_normal(mesh,be.facet); // compute normal of associated facet, update vertex_normal
+                vertex_normal += normals[be.facet]; // compute normal of associated facet, update vertex_normal
             }
         }
 
@@ -265,7 +262,7 @@ unsigned int fix_invalid_corners(GEO::Mesh& mesh, const char* attribute_name, co
 }
 
 // from https://github.com/LIHPC-Computational-Geometry/evocube/blob/master/src/labeling_ops.cpp removeChartMutation()
-void remove_invalid_charts(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg) {
+void remove_invalid_charts(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, const StaticLabelingGraph& slg) {
 
     if(slg.invalid_charts.empty()) {
         fmt::println(Logger::out("fix_labeling"),"Warning : operation canceled because there are no invalid charts"); Logger::out("fix_labeling").flush();
@@ -278,7 +275,7 @@ void remove_invalid_charts(GEO::Mesh& mesh, const char* attribute_name, const St
     // preventing existing label from being re-applied
 
     // compactness = 1
-    GraphCutLabeling gcl(mesh);
+    GraphCutLabeling gcl(mesh,normals);
     gcl.data_cost__set__locked_labels(label); // start by locking all the labels, so valid charts will not be modified
     gcl.smooth_cost__set__default();
     gcl.neighbors__set__compactness_based(1);

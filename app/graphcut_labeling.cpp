@@ -45,7 +45,7 @@ protected:
 			}
 			// Same code as in labeling.cpp graphcut_labeling(), copied here because we need the GraphCutLabeling object for update_per_chart_avg_data_cost()
 			Attribute<index_t> label(mesh_.facets.attributes(), LABELING_ATTRIBUTE_NAME);
-			auto gcl = GraphCutLabeling(mesh_);
+			auto gcl = GraphCutLabeling(mesh_,normals_);
 			gcl.data_cost__set__fidelity_based(fidelity_coeff_);
 			gcl.smooth_cost__set__default();
 			gcl.neighbors__set__compactness_based(compactness_coeff_);
@@ -106,7 +106,7 @@ protected:
 			}
 
 			if(ImGui::Button("Compute solution")) {
-				auto gcl = GraphCutLabeling(mesh_); // TODO give normals, to not compute them each time
+				auto gcl = GraphCutLabeling(mesh_,normals_);
 				gcl.data_cost__set__fidelity_based(fidelity_coeff_);
 				gcl.smooth_cost__set__custom(smooth_cost_);
 				gcl.neighbors__set__compactness_based(compactness_coeff_);
@@ -158,7 +158,7 @@ protected:
 					new_data_cost_[4] - per_chart_avg_data_cost_[selected_chart_][4],
 					new_data_cost_[5] - per_chart_avg_data_cost_[selected_chart_][5]
 				};
-				auto gcl = GraphCutLabeling(mesh_); // TODO give normals, to not compute them each time
+				auto gcl = GraphCutLabeling(mesh_,normals_);
 				gcl.data_cost__set__fidelity_based(fidelity_coeff_);
 				gcl.smooth_cost__set__custom(smooth_cost_);
 				gcl.neighbors__set__compactness_based(compactness_coeff_);

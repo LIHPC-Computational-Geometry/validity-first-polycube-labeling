@@ -37,21 +37,19 @@ const vec3 label2vector[6] = {
  * \param[in,out] mesh A surface triangle mesh
  * \param[in] attribute_name The name of the facet attribute in which the labeling will be stored
  */
-void naive_labeling(GEO::Mesh& mesh, const char* attribute_name);
+void naive_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name);
 
-void graphcut_labeling(GEO::Mesh& mesh, const char* attribute_name, int compactness_coeff = 1, int fidelity_coeff = 1);
-
-void graphcut_labeling(GEO::Mesh& mesh, const char* attribute_name, int compactness_coeff, int fidelity_coeff, const std::array<int,6*6>& smooth_cost);
+void graphcut_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, int compactness_coeff = 1, int fidelity_coeff = 1);
 
 // returns {min,max,avg}
-std::tuple<double,double,double> compute_per_facet_fidelity(GEO::Mesh& mesh, const char* labeling_attribute_name, const char* fidelity_attribute_name);
+std::tuple<double,double,double> compute_per_facet_fidelity(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* labeling_attribute_name, const char* fidelity_attribute_name);
 
 unsigned int remove_surrounded_charts(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg);
 
 unsigned int fix_invalid_boundaries(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg);
 
-unsigned int fix_invalid_corners(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg);
+unsigned int fix_invalid_corners(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, const StaticLabelingGraph& slg);
 
-void remove_invalid_charts(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg);
+void remove_invalid_charts(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, const StaticLabelingGraph& slg);
 
 unsigned int move_boundaries_near_turning_points(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg);

@@ -274,7 +274,7 @@ protected:
 
 			if(ImGui::Button("Compute naive labeling")) {
 
-				naive_labeling(mesh_,LABELING_ATTRIBUTE_NAME);
+				naive_labeling(mesh_,normals_,LABELING_ATTRIBUTE_NAME);
 
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 
@@ -436,6 +436,12 @@ protected:
 
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+		// compute facet normals
+		normals_.resize(mesh_.facets.nb());
+        FOR(f,mesh_.facets.nb()) {
+            normals_[f] = normalize(Geom::mesh_facet_normal(mesh_,f));
+        }
+
 		clear_scene_overlay();
 		state_transition(triangle_mesh);
 
@@ -471,13 +477,12 @@ protected:
 				if ( (facet_index != index_t(-1)) && (facet_index < mesh_.facets.nb()) ) {
 					Attribute<index_t> label(mesh_.facets.attributes(), LABELING_ATTRIBUTE_NAME);
 					Attribute<double> per_facet_fidelity(mesh_.facets.attributes(), "fidelity");
-					vec3 normal = normalize(Geom::mesh_facet_normal(mesh_,facet_index)),
-						label_direction = label2vector[label[facet_index]];
+					vec3 label_direction = label2vector[label[facet_index]];
 					fmt::println(Logger::out("fidelity"),"facet #{} : normal=({:.4f},{:.4f},{:.4f}), label={}=({:.4f},{:.4f},{:.4f}) -> fidelity={:.4f}",
 						facet_index,
-						normal.x,
-						normal.y,
-						normal.z,
+						normals_[facet_index].x,
+						normals_[facet_index].y,
+						normals_[facet_index].z,
 						LABEL2STR(label[facet_index]),
 						label_direction.x,
 						label_direction.y,
@@ -564,7 +569,7 @@ protected:
 		set_edges_group_visibility(Z_boundaries_group_index_,true);
 
 		double fidelity_min, fidelity_max, fidelity_avg;
-		std::tie(fidelity_min,fidelity_max,fidelity_avg) = compute_per_facet_fidelity(mesh_,LABELING_ATTRIBUTE_NAME,"fidelity");
+		std::tie(fidelity_min,fidelity_max,fidelity_avg) = compute_per_facet_fidelity(mesh_,normals_,LABELING_ATTRIBUTE_NAME,"fidelity");
 		fmt::println(Logger::out("fidelity"),"min={:.4f} | max={:.4f} | avg={:.4f}",fidelity_min,fidelity_max,fidelity_avg); Logger::out("fidelity").flush();
 	}
 
@@ -588,6 +593,7 @@ protected:
 	std::size_t Z_boundaries_group_index_;
 	std::size_t invalid_boundaries_group_index_;
 	std::size_t valid_but_axisless_boundaries_group_index_;
+	std::vector<vec3> normals_; // facet normals
 };
 
 // print specialization of LabelingViewerApp::State for {fmt}
