@@ -102,10 +102,8 @@ void naive_labeling(Mesh& mesh, const std::vector<vec3>& normals, const char* at
     // use GEO::Geom::triangle_normal_axis() instead ?
 
     Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // create a facet attribute in this mesh
-    GEO::vec3 normal;
     for(index_t f: mesh.facets) { // for each facet
-        normal = Geom::mesh_facet_normal(mesh,f);
-        label[f] = nearest_label(normal);
+        label[f] = nearest_label(normals[f]);
     }
 }
 

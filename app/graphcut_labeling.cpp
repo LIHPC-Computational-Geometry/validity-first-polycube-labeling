@@ -43,10 +43,13 @@ protected:
 				fmt::println(Logger::err("I/O"),"A mesh has been loaded but GL is still not initialized -> cannot auto-compute the labeling from graph-cut optimization (colormaps not defined). Will retry later."); Logger::err("I/O").flush();
 				return;
 			}
+			data_cost_.resize(mesh_.facets.nb()*6);
+			GraphCutLabeling::fill_data_cost__fidelity_based(mesh_,normals_,data_cost_,fidelity_coeff_);
+			// -> cost to fill
 			// Same code as in labeling.cpp graphcut_labeling(), copied here because we need the GraphCutLabeling object for update_per_chart_avg_data_cost()
 			Attribute<index_t> label(mesh_.facets.attributes(), LABELING_ATTRIBUTE_NAME);
 			auto gcl = GraphCutLabeling(mesh_,normals_);
-			gcl.data_cost__set__fidelity_based(fidelity_coeff_);
+			gcl.data_cost__set__all_at_once(data_cost_);
 			gcl.smooth_cost__set__default();
 			gcl.neighbors__set__compactness_based(compactness_coeff_);
 			gcl.compute_solution(label);
@@ -159,14 +162,14 @@ protected:
 					new_data_cost_[5] - per_chart_avg_data_cost_[selected_chart_][5]
 				};
 				auto gcl = GraphCutLabeling(mesh_,normals_);
-				gcl.data_cost__set__fidelity_based(fidelity_coeff_);
 				gcl.smooth_cost__set__custom(smooth_cost_);
 				gcl.neighbors__set__compactness_based(compactness_coeff_);
 				for(index_t f : static_labeling_graph_.charts[selected_chart_].facets) { // for each facet of the current chart
 					FOR(l,6) {
-						gcl.data_cost__change_to__shifted(f,l,per_label_shift[l]);
+						GraphCutLabeling::shift_data_cost(data_cost_,f,l,per_label_shift[l]); // modify the local data cost vector
 					}
 				}
+				gcl.data_cost__set__all_at_once(data_cost_); // use the local data cost vector in the optimization
 				Attribute<index_t> label(mesh_.facets.attributes(), LABELING_ATTRIBUTE_NAME);
 				gcl.compute_solution(label);
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
@@ -208,10 +211,12 @@ protected:
 	void update_per_chart_avg_data_cost(const GraphCutLabeling& gcl) {
 		per_chart_avg_data_cost_.resize(static_labeling_graph_.nb_charts()); // each vec6f is initialized to 0 in constructor
 		float global_max = 0.0f; // max of all data costs, for all facets and all labels
+		vec6i per_facet_data_cost;
 		FOR(chart_index,static_labeling_graph_.nb_charts()) { // for each chart
 			for(index_t f : static_labeling_graph_.charts[chart_index].facets) { // for each facet of the current chart
-				global_max = std::max(global_max,(float) max(gcl.data_cost__get__for_facet(f)));
-				per_chart_avg_data_cost_[chart_index] += (vec6f) gcl.data_cost__get__for_facet(f); // add per-label data cost of current facet
+				per_facet_data_cost = GraphCutLabeling::per_facet_data_cost_as_vector(data_cost_,f);
+				global_max = std::max(global_max,(float) max(per_facet_data_cost));
+				per_chart_avg_data_cost_[chart_index] += (vec6f) per_facet_data_cost; // add per-label data cost of current facet
 			}
 			per_chart_avg_data_cost_[chart_index] /= (float) mesh_.facets.nb(); // divide by the number of facets to get the average
 		}
@@ -220,6 +225,7 @@ protected:
 
 	int compactness_coeff_;
 	int fidelity_coeff_;
+	std::vector<int> data_cost_;
 	std::array<int,6*6> smooth_cost_;
 	index_t selected_chart_;
 	bool selected_chart_mode_;

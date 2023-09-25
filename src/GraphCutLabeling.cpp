@@ -25,14 +25,7 @@ void GraphCutLabeling::data_cost__set__fidelity_based(int fidelity) {
         fmt::println(Logger::err("graph-cut"),"data cost already set, and can only be set once"); Logger::err("graph-cut").flush();
         geo_assert_not_reached;
     }
-    // cost of assigning a facet to a label, weight based on fidelity coeff & dot product between normal & label direction
-    FOR(f,mesh_.facets.nb()) {
-        FOR(label,6) {
-            double dot = (GEO::dot(normals_[f],label2vector[label]) - 1.0)/0.2;
-            double cost = 1.0 - std::exp(-(1.0/2.0)*std::pow(dot,2));
-            data_cost_[f*6+label] = (int) (fidelity*100*cost);
-        }
-    }
+    fill_data_cost__fidelity_based(mesh_,normals_,data_cost_,fidelity);
     data_cost_set_ = true;
 }
 
@@ -47,6 +40,16 @@ void GraphCutLabeling::data_cost__set__locked_labels(const Attribute<index_t>& p
             data_cost_[facet_index*6+label] = (label==per_facet_label[facet_index]) ? 0 : HIGH_COST;
         }
     }
+    data_cost_set_ = true;
+}
+
+void GraphCutLabeling::data_cost__set__all_at_once(const std::vector<int>& data_cost) {
+    if(data_cost_set_) {
+        fmt::println(Logger::err("graph-cut"),"data cost already set, and can only be set once"); Logger::err("graph-cut").flush();
+        geo_assert_not_reached;
+    }
+    geo_assert(data_cost.size()==data_cost_.size());
+    data_cost_ = data_cost;
     data_cost_set_ = true;
 }
 
@@ -96,7 +99,7 @@ void GraphCutLabeling::data_cost__change_to__shifted(index_t facet_index, index_
         fmt::println(Logger::err("graph-cut"),"the data cost cannot be change because it has not being set yet"); Logger::err("graph-cut").flush();
         geo_assert_not_reached;
     }
-    data_cost_[facet_index*6+label] = (int) std::max(0.0f,(((float) data_cost_[facet_index*6+label]) + delta)); // forbid negative cost, min set to 0
+    shift_data_cost(data_cost_,facet_index,label,delta);
 }
 
 void GraphCutLabeling::data_cost__change_to__per_label_weights(index_t facet_index, const vec6i& per_label_weights) {
@@ -169,9 +172,7 @@ vec6i GraphCutLabeling::data_cost__get__for_facet(index_t facet_index) const {
         fmt::println(Logger::err("graph-cut"),"getter of data cost called before setter"); Logger::err("graph-cut").flush();
         geo_assert_not_reached;
     }
-    vec6i result;
-    memcpy(result.data(),data_cost_.data()+(facet_index*6),sizeof(int)*6); // what? you don't like memcpy?
-    return result;
+    return per_facet_data_cost_as_vector(data_cost_,facet_index);
 }
 
 int GraphCutLabeling::data_cost__get__for_facet_and_label(index_t facet_index, index_t label) const {
@@ -249,4 +250,25 @@ void GraphCutLabeling::compute_solution(Attribute<index_t>& output_labeling, int
     catch (GCException e) {
 		e.Report();
 	}
+}
+
+void GraphCutLabeling::fill_data_cost__fidelity_based(const Mesh& mesh, const std::vector<vec3>& normals, std::vector<int>& data_cost, int fidelity) {
+    // cost of assigning a facet to a label, weight based on fidelity coeff & dot product between normal & label direction
+    FOR(f,mesh.facets.nb()) {
+        FOR(label,6) {
+            double dot = (GEO::dot(normals[f],label2vector[label]) - 1.0)/0.2;
+            double cost = 1.0 - std::exp(-(1.0/2.0)*std::pow(dot,2));
+            data_cost[f*6+label] = (int) (fidelity*100*cost);
+        }
+    }
+}
+
+void GraphCutLabeling::shift_data_cost(std::vector<int>& data_cost, index_t facet_index, index_t label, float delta) {
+    data_cost[facet_index*6+label] = (int) std::max(0.0f,(((float) data_cost[facet_index*6+label]) + delta)); // forbid negative cost, min set to 0
+}
+
+vec6i GraphCutLabeling::per_facet_data_cost_as_vector(const std::vector<int>& data_cost, index_t facet_index) {
+    vec6i result;
+    memcpy(result.data(),data_cost.data()+(facet_index*6),sizeof(int)*6); // what? you don't like memcpy?
+    return result;
 }

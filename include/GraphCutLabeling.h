@@ -39,6 +39,8 @@ public:
 
     void data_cost__set__locked_labels(const Attribute<index_t>& per_facet_label);
 
+    void data_cost__set__all_at_once(const std::vector<int>& data_cost);
+
     void data_cost__change_to__fidelity_based(index_t facet_index, int fidelity);
     
     void data_cost__change_to__locked_label(index_t facet_index, index_t locked_label);
@@ -79,6 +81,14 @@ public:
      * \param[in] max_nb_iterations Maximum number of iteration for the GCoptimization::expansion() function
      */
     void compute_solution(Attribute<index_t>& output_labeling, int max_nb_iterations = 2);
+
+    //// Static functions (for class methods & for data cost managed externally) //////////////////
+
+    static void fill_data_cost__fidelity_based(const Mesh& mesh, const std::vector<vec3>& normals, std::vector<int>& data_cost, int fidelity);
+
+    static void shift_data_cost(std::vector<int>& data_cost, index_t facet_index, index_t label, float delta);
+
+    static vec6i per_facet_data_cost_as_vector(const std::vector<int>& data_cost, index_t facet_index);
 
 private:
 
