@@ -496,7 +496,7 @@ protected:
 		SimpleMeshApplication::mouse_button_callback(button,action,mods,source);
 	}
 
-    void update_static_labeling_graph(bool allow_boundaries_between_opposite_labels) {
+    virtual void update_static_labeling_graph(bool allow_boundaries_between_opposite_labels) {
 
 		// compute charts, boundaries and corners of the labeling
 		static_labeling_graph_.fill_from(mesh_,LABELING_ATTRIBUTE_NAME,allow_boundaries_between_opposite_labels);

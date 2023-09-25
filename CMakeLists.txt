@@ -1,6 +1,6 @@
 # based on https://github.com/BrunoLevy/GraphiteThree/blob/main/CMakeLists.txt
 
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.11)
 
 project(automatic_polycube)
 
@@ -13,6 +13,8 @@ include(${CMAKE_SOURCE_DIR}/cmake/automatic_polycube.cmake)
 
 file(GLOB SRCFILES src/*.cpp )
 include_directories(include)
+
+set_source_files_properties(app/graphcut_labeling.cpp PROPERTIES COMPILE_OPTIONS "-Wdouble-promotion")
 
 #################
 # DEPENDENCIES
@@ -31,6 +33,7 @@ include_directories(ext/fmt/include) # why needed ?
 # GraphCutOptimization
 add_subdirectory(ext/GraphCutOptimization)
 include_directories(ext/GraphCutOptimization/src) # why needed ?
+set_source_files_properties(ext/GraphCutOptimization/src/GCoptimization.h PROPERTIES COMPILE_OPTIONS "-Wnon-virtual-dtor;-Wunused-parameter")
 
 #################
 # EXECUTABLES
