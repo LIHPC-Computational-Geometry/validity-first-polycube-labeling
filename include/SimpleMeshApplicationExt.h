@@ -1,6 +1,7 @@
 // Adding functionalities to SimpleMeshApplication:
 // - overlay of points and edges, stored in groups (all elements in a group have the same color)
 // - modification of an OpenGL texture (to update a colormap from GUI)
+// - pick() method, to retreive the index of the element under the cursor
 
 #pragma once
 

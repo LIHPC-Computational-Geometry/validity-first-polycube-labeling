@@ -39,6 +39,10 @@ protected:
 	void state_transition(State new_state) override {
 		if(new_state == triangle_mesh) {
 			// if state "triangle mesh but no labeling", auto-compute labeling with graph cut optimisation & default parameters
+			if(SimpleApplication::colormaps_.empty()) {
+				fmt::println(Logger::err("I/O"),"A mesh has been loaded but GL is still not initialized -> cannot auto-compute the labeling from graph-cut optimization (colormaps not defined). Will retry later."); Logger::err("I/O").flush();
+				return;
+			}
 			// Same code as in labeling.cpp graphcut_labeling(), copied here because we need the GraphCutLabeling object for update_per_chart_avg_data_cost()
 			Attribute<index_t> label(mesh_.facets.attributes(), LABELING_ATTRIBUTE_NAME);
 			auto gcl = GraphCutLabeling(mesh_);
@@ -49,9 +53,15 @@ protected:
 			update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			update_per_chart_avg_data_cost(gcl);
 			new_state = labeling;
-			geo_assert(!SimpleApplication::colormaps_.empty()); // should I wait for GL to be initialized? see LabelingViewerApp::GL_initialize()
 		}
 		LabelingViewerApp::state_transition(new_state);
+	}
+
+	void GL_initialize() override {
+		LabelingViewerApp::GL_initialize();
+		if(mesh_.vertices.nb()) { // if a mesh has been loaded
+			state_transition(triangle_mesh);
+		}
 	}
 
 	// add buttons for labeling operators on the "object properties" panel
