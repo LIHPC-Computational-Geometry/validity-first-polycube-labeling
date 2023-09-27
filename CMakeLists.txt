@@ -65,3 +65,6 @@ target_link_libraries(graphcut_labeling geogram geogram_gfx ${GLFW_LIBRARIES} fm
 
 add_executable(ovm_io ${SRCFILES} app/ovm_io)
 target_link_libraries(ovm_io geogram geogram_gfx ${GLFW_LIBRARIES} fmt::fmt gco)
+
+add_executable(areas_to_tilt ${SRCFILES} app/areas_to_tilt)
+target_link_libraries(areas_to_tilt geogram geogram_gfx ${GLFW_LIBRARIES} fmt::fmt gco)
