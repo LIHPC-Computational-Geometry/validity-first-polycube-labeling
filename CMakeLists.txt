@@ -36,6 +36,12 @@ include_directories(ext/GraphCutOptimization/src) # why needed ?
 set_source_files_properties(ext/GraphCutOptimization/src/GCoptimization.h PROPERTIES COMPILE_OPTIONS "-Wnon-virtual-dtor;-Wunused-parameter")
 
 #################
+# VARIABLES
+#################
+
+add_compile_definitions(WINDOW_SIZE="3840x2160")
+
+#################
 # EXECUTABLES
 #################
 

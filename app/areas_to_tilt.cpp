@@ -25,13 +25,6 @@ public:
 
 private:
 
-    void geogram_initialize(int argc, char** argv) override {
-		SimpleMeshApplication::geogram_initialize(argc,argv);
-		if(!phone_screen_ && CmdLine::get_arg("gfx:geometry") == "1024x1024") { // if not a phone screen and default value for gfx:geometry 
-			CmdLine::set_arg("gfx:geometry", "1920x1024"); // bigger window
-		}
-	}
-
     void draw_about() override {
         draw_about_window(name(),Environment::instance()->get_value("version"));
     }

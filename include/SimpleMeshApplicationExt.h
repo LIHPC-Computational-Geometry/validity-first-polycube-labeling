@@ -115,9 +115,21 @@ public:
         clear_scene_overlay();
     }
 
-    void start(int argc, char** argv) override {
-        SimpleMeshApplication::start(argc,argv);
-    }
+    // Change window size
+    // by order of priority:
+    // - command line argument "gfx:geometry"
+    // - preprocessor macro WINDOW_SIZE defined in CMakeLists.txt
+    // - default value "1024x1024", hard-coded in ext/geogram/src/lib/geogram/basic/command_line_args.cpp import_arg_group_gfx()
+#ifdef WINDOW_SIZE
+    void geogram_initialize(int argc, char** argv) override {
+		SimpleMeshApplication::geogram_initialize(argc,argv);
+		if(!phone_screen_ && CmdLine::get_arg("gfx:geometry") == "1024x1024") { // if not a phone screen and default value for gfx:geometry 
+
+            CmdLine::set_arg("gfx:geometry", WINDOW_SIZE); // bigger window
+
+		}
+	}
+#endif
 
     void clear_scene_overlay() {
         points_groups_.clear();
