@@ -1,7 +1,5 @@
-#include <geogram_gfx/gui/simple_mesh_application.h>
-#include <geogram/basic/file_system.h> // for is_file(), extension() in load()
-#include <geogram/basic/command_line.h> // for get_arg_bool() in load()
-#include <geogram/mesh/mesh_io.h> // for MeshIOFlags, mesh_load() in load()
+#include <geogram/basic/command_line.h>
+#include <geogram/basic/logger.h>
 
 #include <fmt/core.h>
 #include <fmt/ostream.h>
@@ -14,10 +12,10 @@
 
 using namespace GEO;
 
-class HexMeshViewerApp : private SimpleMeshApplication {
+class HexMeshViewerApp : public SimpleMeshApplicationExt {
 public:
 
-    HexMeshViewerApp() : SimpleMeshApplication("hex_mesh_viewer") {
+    HexMeshViewerApp() : SimpleMeshApplicationExt("hex_mesh_viewer") {
         // change default values
         show_surface_ = false;
         show_volume_ = true;
@@ -28,15 +26,7 @@ public:
         drawing_settings_dirty_ = true;
     }
 
-    void start(int argc, char** argv) override {
-        SimpleMeshApplication::start(argc,argv);
-    }
-
 private:
-
-    void draw_about() override {
-        draw_about_window(name(),Environment::instance()->get_value("version"));
-    }
 
     void draw_scene() override {
         if(drawing_settings_dirty_) {
@@ -57,10 +47,14 @@ private:
             }
             drawing_settings_dirty_ = false;
         }
-        SimpleMeshApplication::draw_scene();
+        SimpleMeshApplicationExt::draw_scene();
     }
 
     void draw_object_properties() override {
+        ImGui::Checkbox("##MeshOnOff", &show_mesh_);
+        ImGui::SameLine();
+        ImGui::ColorEdit3WithPalette("Mesh", mesh_color_.data());
+        ImGui::SliderFloat("Mesh size", &mesh_width_, 0.1f, 2.0f, "%.1f");
         if(ImGui::Checkbox("Cell color by SJ",&show_SJ_)) {
             drawing_settings_dirty_ = true;
         }
@@ -68,40 +62,20 @@ private:
 
     bool load(const std::string& filename) override {
 
-        //// based on SimpleMeshApplication::load() ////////////////////////////////////////////////////////////////
-
-        if(!FileSystem::is_file(filename)) {
-            Logger::out("I/O") << "is not a file" << std::endl;
-        }
-        mesh_gfx_.set_mesh(nullptr);
-        mesh_.clear(true,false); // keep_attributes=true is very important. else runtime error when re-importing files
-        if(GEO::CmdLine::get_arg_bool("single_precision")) {
-            mesh_.vertices.set_single_precision();
-        }
-        MeshIOFlags flags;
-        if(!mesh_load(filename, mesh_, flags)) {
-            show_SJ_ = false;               // added
-            drawing_settings_dirty_ = true; // added
+        if(!SimpleMeshApplicationExt::load(filename)) { // if load failed
+            show_SJ_ = false;
+            drawing_settings_dirty_ = true;
             return false;
         }
-        mesh_gfx_.set_animate(false);            
-        mesh_.vertices.set_dimension(3);
-        double xyzmin[3];
-        double xyzmax[3];
-        get_bbox(mesh_, xyzmin, xyzmax, false);
-        set_region_of_interest(
-            xyzmin[0], xyzmin[1], xyzmin[2],
-            xyzmax[0], xyzmax[1], xyzmax[2]
-        );
-        mesh_.vertices.set_double_precision(); // added
-        mesh_gfx_.set_mesh(&mesh_);
-	    current_file_ = filename;
 
-        ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        geo_assert(mesh_.cells.nb()!=0); // assert is a volume mesh
 
+        mesh_.vertices.set_double_precision();
+        
         double minSJ = compute_scaled_jacobian(mesh_);
 		fmt::println(Logger::out("I/O"),"minSJ of this hex mesh is {}",minSJ); Logger::out("I/O").flush();
-		show_SJ_ = true;
+		
+        show_SJ_ = true;
         drawing_settings_dirty_ = true;
 
         return true;
