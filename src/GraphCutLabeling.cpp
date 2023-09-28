@@ -5,7 +5,9 @@
 
 #include <GCoptimization.h>
 
-#include <algorithm> // for std::max()
+#include <utility>      // for std::pair
+#include <map>          // for std::map
+#include <algorithm>    // for std::max()
 
 #include "labeling.h"   // for label2vector
 
@@ -154,15 +156,25 @@ void GraphCutLabeling::neighbors__set__compactness_based(int compactness) {
         fmt::println(Logger::err("graph-cut"),"neighbors already set, and can only be set once"); Logger::err("graph-cut").flush();
         geo_assert_not_reached;
     }
-    FOR(facet_index,mesh_.facets.nb()) {
-        // define facet adjacency on the graph, weight based on compactness coeff & dot product of the normals
-        FOR(le,3) { // for each local edge of the current facet
-            index_t neighbor_index = mesh_.facets.adjacent(facet_index,le);
-            double dot = (GEO::dot(normals_[facet_index],normals_[neighbor_index])-1)/0.25;
-            double cost = std::exp(-(1./2.)*std::pow(dot,2));
-            gco_.setNeighbors( (GCoptimization::SiteID) facet_index, (GCoptimization::SiteID) neighbor_index, (int) (compactness*100*cost));
-            // can only be set once, see GCoptimizationGeneralGraph::setNeighbors()
-        }
+    std::map<std::pair<index_t,index_t>,int> neighbors_costs;
+    fill_neighbors_cost__compactness_based(mesh_,normals_,compactness,neighbors_costs);
+    neighbors__set__all_at_once(neighbors_costs);
+    neighbors_set_ = true;
+}
+
+void GraphCutLabeling::neighbors__set__all_at_once(const std::map<std::pair<index_t,index_t>,int>& neighbors_costs) {
+    if(neighbors_set_) {
+        fmt::println(Logger::err("graph-cut"),"neighbors already set, and can only be set once"); Logger::err("graph-cut").flush();
+        geo_assert_not_reached;
+    }
+    for(auto kv : neighbors_costs) {
+        // kv is a key-value pair
+        // - kv.first is a pair of 2 facets, type: std::pair<index_t,index_t>
+        //            kv.first.first is the first facet
+        //            kv.first.second is the second facet
+        // - kv.second is the cost between the 2 facets
+        gco_.setNeighbors( (GCoptimization::SiteID) kv.first.first, (GCoptimization::SiteID) kv.first.second, kv.second);
+        // can only be set once, see GCoptimizationGeneralGraph::setNeighbors()
     }
     neighbors_set_ = true;
 }
@@ -271,4 +283,17 @@ vec6i GraphCutLabeling::per_facet_data_cost_as_vector(const std::vector<int>& da
     vec6i result;
     memcpy(result.data(),data_cost.data()+(facet_index*6),sizeof(int)*6); // what? you don't like memcpy?
     return result;
+}
+
+void GraphCutLabeling::fill_neighbors_cost__compactness_based(const Mesh& mesh, const std::vector<vec3>& normals, int compactness, std::map<std::pair<index_t,index_t>,int>& neighbors_costs) {
+    neighbors_costs.clear();
+    FOR(facet_index,mesh.facets.nb()) {
+        // define facet adjacency on the graph, weight based on compactness coeff & dot product of the normals
+        FOR(le,3) { // for each local edge of the current facet
+            index_t neighbor_index = mesh.facets.adjacent(facet_index,le);
+            double dot = (GEO::dot(normals[facet_index],normals[neighbor_index])-1)/0.25;
+            double cost = std::exp(-(1./2.)*std::pow(dot,2));
+            neighbors_costs[std::make_pair(facet_index,neighbor_index)] = (int) (compactness*100*cost);
+        }
+    }
 }

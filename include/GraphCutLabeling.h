@@ -13,6 +13,7 @@
 #include <vector>
 #include <array>
 #include <map>
+#include <utility>      // for std::pair
 
 using namespace GEO;
 
@@ -65,6 +66,8 @@ public:
 
     void neighbors__set__compactness_based(int compactness);
 
+    void neighbors__set__all_at_once(const std::map<std::pair<index_t,index_t>,int>& neighbors_costs);
+
     //// Getters & debug //////////////////
 
     vec6i data_cost__get__for_facet(index_t facet_index) const;
@@ -89,6 +92,8 @@ public:
     static void shift_data_cost(std::vector<int>& data_cost, index_t facet_index, index_t label, float delta);
 
     static vec6i per_facet_data_cost_as_vector(const std::vector<int>& data_cost, index_t facet_index);
+
+    static void fill_neighbors_cost__compactness_based(const Mesh& mesh, const std::vector<vec3>& normals, int compactness, std::map<std::pair<index_t,index_t>,int>& neighbors_costs);
 
 private:
 
