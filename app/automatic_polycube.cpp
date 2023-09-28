@@ -1,4 +1,5 @@
 #include <geogram/basic/attributes.h>
+#include <geogram/basic/command_line.h>	// for declare_arg(), parse(), get_arg_bool()
 
 #include <set>
 #include <array>
@@ -246,7 +247,25 @@ private:
 };
 
 int main(int argc, char** argv) {
-    AutomaticPolycubeApp app;
-	app.start(argc,argv);
+
+	std::vector<std::string> filenames;
+	GEO::initialize();
+	CmdLine::declare_arg("gui", true, "Show the graphical user interface");
+	if(!CmdLine::parse(
+		argc,
+		argv,
+		filenames,
+		"surface_mesh"
+		))
+	{
+		return 1;
+	}
+	
+	if(CmdLine::get_arg_bool("gui")) {
+		AutomaticPolycubeApp app;
+	    app.start(argc,argv);   
+	}
+	// else : naive labeling, auto fix validity then auto fix monotonicity
+	
     return 0;
 }
