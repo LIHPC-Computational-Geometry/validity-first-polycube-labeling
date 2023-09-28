@@ -676,7 +676,7 @@ std::size_t StaticLabelingGraph::nb_turning_points() const {
     return count;
 }
 
-std::size_t StaticLabelingGraph::is_allowing_boundaries_between_opposite_labels() const {
+bool StaticLabelingGraph::is_allowing_boundaries_between_opposite_labels() const {
     return allow_boundaries_between_opposite_labels_;
 }
 

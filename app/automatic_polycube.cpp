@@ -1,5 +1,6 @@
 #include <geogram/basic/attributes.h>
 #include <geogram/basic/command_line.h>	// for declare_arg(), parse(), get_arg_bool()
+#include <geogram/mesh/mesh_io.h>		// for mesh_load()
 
 #include <set>
 #include <array>
@@ -18,7 +19,7 @@ public:
 
     AutomaticPolycubeApp() : LabelingViewerApp("automatic_polycube") {}
 
-private:
+protected:
 
 	void labeling_visu_mode_transition(int new_mode) override {
 		// handle new option "View charts to refine"
@@ -126,13 +127,6 @@ private:
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 
-			if(ImGui::Button("Auto fix validity")) {
-				if(auto_fix_validity(100)) {
-					fmt::println(Logger::out("fix_labeling"),"auto fix validity found a valid labeling"); Logger::out("fix_labeling").flush();
-				}
-				// else : auto_fix_validity() already printed a message
-			}
-
 			ImGui::Separator();
 
 			ImGui::Text("Monotonicity");
@@ -142,71 +136,70 @@ private:
 				fmt::println(Logger::out("monotonicity"),"label of {} facets modified",nb_facets_modified); Logger::out("monotonicity").flush();
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
-
-			if(ImGui::Button("Auto fix monotonicity")) {
-				if(auto_fix_monotonicity(500)) {
-					fmt::println(Logger::out("fix_labeling"),"auto fix monotonicity found a labeling with all-monotone boundaries"); Logger::out("fix_labeling").flush();
-				}
-				// else : auto_fix_monotonicity() already printed a message
-			}
 		}
 	}
 
+public:
+
 	// return true if successfully found a valid labeling
-	bool auto_fix_validity(unsigned int max_nb_loop) {
+	static bool auto_fix_validity(Mesh& mesh, std::vector<vec3>& normals, StaticLabelingGraph& slg, unsigned int max_nb_loop) {
 		unsigned int nb_loops = 0;
 		unsigned int nb_fixed_features = 0;
 		std::set<std::array<std::size_t,7>> set_of_labeling_features_combinations_encountered;
-		while(!static_labeling_graph_.is_valid() && nb_loops <= max_nb_loop) { // until valid labeling OR too much steps
+		while(!slg.is_valid() && nb_loops <= max_nb_loop) { // until valid labeling OR too much steps
 			nb_loops++;
 
 			// as much as possible, remove isolated (surrounded) charts
 			do {
-				nb_fixed_features = remove_surrounded_charts(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_);
-				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+				nb_fixed_features = remove_surrounded_charts(mesh,LABELING_ATTRIBUTE_NAME,slg);
+				// update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+				slg.fill_from(mesh,LABELING_ATTRIBUTE_NAME,slg.is_allowing_boundaries_between_opposite_labels());
 			} while(nb_fixed_features != 0);
 
-			if(static_labeling_graph_.is_valid())
+			if(slg.is_valid())
 				return true;
 
-			fix_invalid_boundaries(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_);
-			update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+			fix_invalid_boundaries(mesh,LABELING_ATTRIBUTE_NAME,slg);
+			// update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+			slg.fill_from(mesh,LABELING_ATTRIBUTE_NAME,slg.is_allowing_boundaries_between_opposite_labels());
 
-			if(static_labeling_graph_.is_valid())
+			if(slg.is_valid())
 				return true;
 
-			fix_invalid_corners(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_);
-			update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+			fix_invalid_corners(mesh,normals,LABELING_ATTRIBUTE_NAME,slg);
+			// update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+			slg.fill_from(mesh,LABELING_ATTRIBUTE_NAME,slg.is_allowing_boundaries_between_opposite_labels());
 
-			if(static_labeling_graph_.is_valid())
+			if(slg.is_valid())
 				return true;
 
 			set_of_labeling_features_combinations_encountered.clear();
 			set_of_labeling_features_combinations_encountered.insert({
-				static_labeling_graph_.nb_charts(),
-				static_labeling_graph_.nb_boundaries(),
-				static_labeling_graph_.nb_corners(),
-				static_labeling_graph_.nb_invalid_charts(),
-				static_labeling_graph_.nb_invalid_boundaries(),
-				static_labeling_graph_.nb_invalid_corners(),
-				static_labeling_graph_.nb_turning_points()
+				slg.nb_charts(),
+				slg.nb_boundaries(),
+				slg.nb_corners(),
+				slg.nb_invalid_charts(),
+				slg.nb_invalid_boundaries(),
+				slg.nb_invalid_corners(),
+				slg.nb_turning_points()
 			});
 
 			while(1) {
-				remove_invalid_charts(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_);
-				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+				remove_invalid_charts(mesh,normals,LABELING_ATTRIBUTE_NAME,slg);
+				// update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+				slg.fill_from(mesh,LABELING_ATTRIBUTE_NAME,slg.is_allowing_boundaries_between_opposite_labels());
 
-				if(static_labeling_graph_.is_valid())
+				if(slg.is_valid())
 					return true;
 
 				std::array<std::size_t,7> features_combination = {
-					static_labeling_graph_.nb_charts(),
-					static_labeling_graph_.nb_boundaries(),
-					static_labeling_graph_.nb_corners(),
-					static_labeling_graph_.nb_invalid_charts(),
-					static_labeling_graph_.nb_invalid_boundaries(),
-					static_labeling_graph_.nb_invalid_corners(),
-					static_labeling_graph_.nb_turning_points()
+					slg.nb_charts(),
+					slg.nb_boundaries(),
+					slg.nb_corners(),
+					slg.nb_invalid_charts(),
+					slg.nb_invalid_boundaries(),
+					slg.nb_invalid_corners(),
+					slg.nb_turning_points()
 				};
 
 				if(VECTOR_CONTAINS(set_of_labeling_features_combinations_encountered,features_combination)) { // wa can use VECTOR_CONTAINS() on sets because they also have find(), cbegin() and cend()
@@ -220,7 +213,7 @@ private:
 			
 		}
 
-		if(!static_labeling_graph_.is_valid()) {
+		if(!slg.is_valid()) {
 			fmt::println(Logger::out("fix_labeling"),"auto fix validity stopped (max nb loops reached), no valid labeling found"); Logger::out("fix_labeling").flush();
 			return false;
 		}
@@ -228,16 +221,18 @@ private:
 		return true;
 	}
 
-	bool auto_fix_monotonicity(unsigned int max_nb_steps) {
+	static bool auto_fix_monotonicity(Mesh& mesh, StaticLabelingGraph& slg, unsigned int max_nb_steps) {
 		unsigned int nb_steps = 0;
-		while(!static_labeling_graph_.non_monotone_boundaries.empty() && nb_steps <= max_nb_steps) {
-			move_boundaries_near_turning_points(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_);
-			update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
-			remove_surrounded_charts(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_);
-			update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+		while(!slg.non_monotone_boundaries.empty() && nb_steps <= max_nb_steps) {
+			move_boundaries_near_turning_points(mesh,LABELING_ATTRIBUTE_NAME,slg);
+			// update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+			slg.fill_from(mesh,LABELING_ATTRIBUTE_NAME,slg.is_allowing_boundaries_between_opposite_labels());
+			remove_surrounded_charts(mesh,LABELING_ATTRIBUTE_NAME,slg);
+			// update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+			slg.fill_from(mesh,LABELING_ATTRIBUTE_NAME,slg.is_allowing_boundaries_between_opposite_labels());
 		}
 
-		if(!static_labeling_graph_.non_monotone_boundaries.empty()) {
+		if(!slg.non_monotone_boundaries.empty()) {
 			fmt::println(Logger::out("fix_labeling"),"auto fix monotonicity stopped (max nb steps reached), it remains non-monotone boundaries"); Logger::out("fix_labeling").flush();
 			return false;
 		}
@@ -255,17 +250,56 @@ int main(int argc, char** argv) {
 		argc,
 		argv,
 		filenames,
-		"surface_mesh"
+		"input_surface_mesh <output_labeling>"
 		))
 	{
 		return 1;
 	}
 	
-	if(CmdLine::get_arg_bool("gui")) {
+	if(CmdLine::get_arg_bool("gui")) { // if GUI mode
 		AutomaticPolycubeApp app;
-	    app.start(argc,argv);   
+	    app.start(argc,argv); 
+		return 0;
 	}
-	// else : naive labeling, auto fix validity then auto fix monotonicity
+
+	// batch mode : no GUI, save output labeling at given path
+
+	if(filenames.size() < 2) { // missing filenames[1], that is <output_labeling> argument
+		filenames.push_back("labeling.txt"); // default output filename
+	}
+
+	bool allow_boundaries_between_opposite_labels = false;
+	Mesh M;
+	if(!mesh_load(filenames[0],M)) {
+		fmt::println(Logger::err("I/O"),"Unable to load mesh from {}",filenames[0]);
+		return 1;
+	}
+
+	if(M.facets.nb() == 0) {
+		fmt::println(Logger::err("I/O"),"Input mesh {} has no facets",filenames[0]);
+		return 1;
+	}
+
+	if(M.cells.nb() != 0) {
+		fmt::println(Logger::err("I/O"),"Input mesh {} is a volume mesh (#cells is not zero)",filenames[0]);
+		return 1;
+	}
+
+	// compute facet normals
+	std::vector<vec3> normals(M.facets.nb());
+	FOR(f,M.facets.nb()) {
+		normals[f] = normalize(Geom::mesh_facet_normal(M,f));
+	}
+
+	naive_labeling(M,normals,LABELING_ATTRIBUTE_NAME);
+
+	StaticLabelingGraph slg;
+	slg.fill_from(M,LABELING_ATTRIBUTE_NAME,allow_boundaries_between_opposite_labels);
+	if(AutomaticPolycubeApp::auto_fix_validity(M,normals,slg,100)) {
+		// auto-fix the monotonicity only if the validity was fixed
+		AutomaticPolycubeApp::auto_fix_monotonicity(M,slg,500);
+	}
+	save_labeling(filenames[1],M,LABELING_ATTRIBUTE_NAME);
 	
     return 0;
 }

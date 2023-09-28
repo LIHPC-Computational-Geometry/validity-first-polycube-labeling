@@ -235,7 +235,7 @@ struct StaticLabelingGraph {
 
     //// Getters for parameter(s) //////////////////
 
-    std::size_t is_allowing_boundaries_between_opposite_labels() const;
+    bool is_allowing_boundaries_between_opposite_labels() const;
 
     //// Export //////////////////
 
