@@ -4,6 +4,8 @@ cmake_minimum_required(VERSION 3.11)
 
 project(automatic_polycube)
 
+set (CMAKE_CXX_STANDARD 20)
+
 set(
   GEOGRAM_SOURCE_DIR "${CMAKE_SOURCE_DIR}/ext/geogram/"
   CACHE PATH "full path to the Geogram (or Vorpaline) installation"
