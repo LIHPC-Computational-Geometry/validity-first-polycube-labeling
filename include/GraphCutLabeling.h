@@ -20,6 +20,25 @@ using namespace GEO;
 typedef vecng<6, float> vec6f; // useful to store per label weights
 typedef vecng<6, int> vec6i; // useful to store per label weights
 
+// GCoptimization has 2 methods for neighbors weigths : setNeighbors() and setAllNeighbors()
+// -> setNeighbors() will require redundancy: weights in GCoptimization given by value, weights in GraphCutLabeling, maybe also in GraphCutLabelingApp
+// -> setAllNeighbors() read weights by address
+// The class NeighborsCosts is meant to hide the complexity of the GCoptimization interface (set_neighbors() is like GCoptimization::setNeighbors()),
+// while allowing to pass neighbors weights by address -> carefully respect the types
+class NeighborsCosts {
+
+public:
+    NeighborsCosts(index_t nb_sites);
+    ~NeighborsCosts();
+
+    void set_neighbors(index_t facet1, index_t facet2, int cost);
+
+    index_t nb_sites_;
+    GCoptimization::SiteID* per_facet_neighbors_;
+    GCoptimization::SiteID** per_facet_neighbor_indices_;
+    GCoptimization::EnergyTermType** per_facet_neighbor_weight_;
+};
+
 class GraphCutLabeling {
 
 public:
@@ -66,7 +85,7 @@ public:
 
     void neighbors__set__compactness_based(int compactness);
 
-    void neighbors__set__all_at_once(const std::map<std::pair<index_t,index_t>,int>& neighbors_costs);
+    void neighbors__set__all_at_once(const NeighborsCosts& neighbors_costs);
 
     //// Getters & debug //////////////////
 
@@ -93,13 +112,14 @@ public:
 
     static vec6i per_facet_data_cost_as_vector(const std::vector<int>& data_cost, index_t facet_index);
 
-    static void fill_neighbors_cost__compactness_based(const Mesh& mesh, const std::vector<vec3>& normals, int compactness, std::map<std::pair<index_t,index_t>,int>& neighbors_costs);
+    static void fill_neighbors_cost__compactness_based(const Mesh& mesh, const std::vector<vec3>& normals, int compactness, NeighborsCosts& neighbors_costs);
 
 private:
 
     const Mesh& mesh_; // needed for the facet number (everywhere) and facet adjacency (neighborhood weights)
     std::vector<int> data_cost_; // #facet*6, cost of assigning a facet to a label
     std::array<int,6*6> smooth_cost_; // label adjacency cost
+    NeighborsCosts neighbors_costs_;
     GCoptimizationGeneralGraph gco_; // underlying optimizer
     const std::vector<vec3>& normals_; // facet normals
     bool data_cost_set_; // if the data cost is already set or not, required for compute_solution()

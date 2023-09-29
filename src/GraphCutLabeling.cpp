@@ -13,13 +13,54 @@
 
 #include "GraphCutLabeling.h"
 
-GraphCutLabeling::GraphCutLabeling(const Mesh& mesh, const std::vector<vec3>& normals) : mesh_(mesh), gco_( (GCoptimization::SiteID) mesh.facets.nb(),6), normals_(normals) {
-    // resize of the data cost
-    data_cost_.resize(mesh_.facets.nb()*6);
-    // init the 3 steps to "not set"
-    data_cost_set_ = false;
-    smooth_cost_set_ = false;
-    neighbors_set_ = false;
+NeighborsCosts::NeighborsCosts(index_t nb_sites) {
+    nb_sites_ = nb_sites;
+    per_facet_neighbors_ = new GCoptimization::SiteID[nb_sites];
+    per_facet_neighbor_indices_ = new GCoptimization::SiteID*[nb_sites];
+    per_facet_neighbor_weight_ = new GCoptimization::EnergyTermType*[nb_sites];
+    FOR(f,nb_sites) {
+        per_facet_neighbors_[f] = (GCoptimization::SiteID) 0;
+        per_facet_neighbor_indices_[f] = new GCoptimization::SiteID[6]; // a facet has at most 3 neighbors -> 6 directionnal weights
+        per_facet_neighbor_weight_[f] = new GCoptimization::EnergyTermType[6]; // a facet has at most 3 neighbors -> 6 directionnal weights
+    }
+}
+
+NeighborsCosts::~NeighborsCosts() {
+    FOR(f,nb_sites_) {
+        delete per_facet_neighbor_indices_[f];
+        delete per_facet_neighbor_weight_[f];
+    }
+    delete per_facet_neighbor_indices_;
+    delete per_facet_neighbor_weight_;
+    delete per_facet_neighbors_;
+}
+
+void NeighborsCosts::set_neighbors(index_t facet1, index_t facet2, int cost) {
+    // TODO check if a weight was already set for the 2 -> overwrite instead of expand the arrays
+    geo_assert(facet1 < nb_sites_);
+    geo_assert(facet2 < nb_sites_);
+    geo_assert(cost >= 0);
+    GCoptimization::SiteID facet1_neighbor_index = per_facet_neighbors_[facet1];
+    GCoptimization::SiteID facet2_neighbor_index = per_facet_neighbors_[facet2];
+    geo_assert(facet1_neighbor_index <= 6); // else array overflow
+    geo_assert(facet2_neighbor_index <= 6); // else array overflow
+    per_facet_neighbor_indices_[facet1][facet1_neighbor_index] = (GCoptimization::SiteID) facet2;
+    per_facet_neighbor_indices_[facet2][facet2_neighbor_index] = (GCoptimization::SiteID) facet1;
+    per_facet_neighbor_weight_[facet1][facet1_neighbor_index] = cost;
+    per_facet_neighbor_weight_[facet2][facet2_neighbor_index] = cost;
+    per_facet_neighbors_[facet1]++;
+    per_facet_neighbors_[facet2]++;
+}
+
+GraphCutLabeling::GraphCutLabeling(const Mesh& mesh, const std::vector<vec3>& normals)
+      : mesh_(mesh),
+        data_cost_(mesh.facets.nb()*6,0),
+        neighbors_costs_(mesh.facets.nb()),
+        gco_( (GCoptimization::SiteID) mesh.facets.nb(),6),
+        normals_(normals),
+        data_cost_set_(false),
+        smooth_cost_set_(false),
+        neighbors_set_(false) {
 }
 
 void GraphCutLabeling::data_cost__set__fidelity_based(int fidelity) {
@@ -156,26 +197,16 @@ void GraphCutLabeling::neighbors__set__compactness_based(int compactness) {
         fmt::println(Logger::err("graph-cut"),"neighbors already set, and can only be set once"); Logger::err("graph-cut").flush();
         geo_assert_not_reached;
     }
-    std::map<std::pair<index_t,index_t>,int> neighbors_costs;
-    fill_neighbors_cost__compactness_based(mesh_,normals_,compactness,neighbors_costs);
-    neighbors__set__all_at_once(neighbors_costs);
+    fill_neighbors_cost__compactness_based(mesh_,normals_,compactness,neighbors_costs_);
     neighbors_set_ = true;
 }
 
-void GraphCutLabeling::neighbors__set__all_at_once(const std::map<std::pair<index_t,index_t>,int>& neighbors_costs) {
+void GraphCutLabeling::neighbors__set__all_at_once(const NeighborsCosts& neighbors_costs) {
     if(neighbors_set_) {
         fmt::println(Logger::err("graph-cut"),"neighbors already set, and can only be set once"); Logger::err("graph-cut").flush();
         geo_assert_not_reached;
     }
-    for(auto kv : neighbors_costs) {
-        // kv is a key-value pair
-        // - kv.first is a pair of 2 facets, type: std::pair<index_t,index_t>
-        //            kv.first.first is the first facet
-        //            kv.first.second is the second facet
-        // - kv.second is the cost between the 2 facets
-        gco_.setNeighbors( (GCoptimization::SiteID) kv.first.first, (GCoptimization::SiteID) kv.first.second, kv.second);
-        // can only be set once, see GCoptimizationGeneralGraph::setNeighbors()
-    }
+    neighbors_costs_ = neighbors_costs;
     neighbors_set_ = true;
 }
 
@@ -252,6 +283,11 @@ void GraphCutLabeling::compute_solution(Attribute<index_t>& output_labeling, int
     try {
         gco_.setDataCost(data_cost_.data());
         gco_.setSmoothCost(smooth_cost_.data());
+        gco_.setAllNeighbors(
+            neighbors_costs_.per_facet_neighbors_,
+            neighbors_costs_.per_facet_neighbor_indices_,
+            neighbors_costs_.per_facet_neighbor_weight_
+        );
         gco_.expansion(max_nb_iterations);// run expansion
         // gco.swap(num_iterations) instead ?
 
@@ -285,15 +321,14 @@ vec6i GraphCutLabeling::per_facet_data_cost_as_vector(const std::vector<int>& da
     return result;
 }
 
-void GraphCutLabeling::fill_neighbors_cost__compactness_based(const Mesh& mesh, const std::vector<vec3>& normals, int compactness, std::map<std::pair<index_t,index_t>,int>& neighbors_costs) {
-    neighbors_costs.clear();
+void GraphCutLabeling::fill_neighbors_cost__compactness_based(const Mesh& mesh, const std::vector<vec3>& normals, int compactness, NeighborsCosts& neighbors_costs) {
     FOR(facet_index,mesh.facets.nb()) {
         // define facet adjacency on the graph, weight based on compactness coeff & dot product of the normals
         FOR(le,3) { // for each local edge of the current facet
             index_t neighbor_index = mesh.facets.adjacent(facet_index,le);
             double dot = (GEO::dot(normals[facet_index],normals[neighbor_index])-1)/0.25;
             double cost = std::exp(-(1./2.)*std::pow(dot,2));
-            neighbors_costs[std::make_pair(facet_index,neighbor_index)] = (int) (compactness*100*cost);
+            neighbors_costs.set_neighbors(facet_index,neighbor_index,(int) (compactness*100*cost));
         }
     }
 }
