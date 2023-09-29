@@ -28,9 +28,10 @@ typedef vecng<6, int> vec6i; // useful to store per label weights
 class NeighborsCosts {
 
 public:
-    NeighborsCosts(index_t nb_sites);
+    NeighborsCosts();
     ~NeighborsCosts();
 
+    void set_nb_sites(index_t nb_sites);
     void set_neighbors(index_t facet1, index_t facet2, int cost);
 
     index_t nb_sites_;

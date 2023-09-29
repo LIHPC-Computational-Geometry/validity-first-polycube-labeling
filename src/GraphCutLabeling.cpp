@@ -13,7 +13,27 @@
 
 #include "GraphCutLabeling.h"
 
-NeighborsCosts::NeighborsCosts(index_t nb_sites) {
+NeighborsCosts::NeighborsCosts() :
+    nb_sites_(0),
+    per_facet_neighbors_(nullptr),
+    per_facet_neighbor_indices_(nullptr),
+    per_facet_neighbor_weight_(nullptr) {}
+
+NeighborsCosts::~NeighborsCosts() {
+    if(nb_sites_ == 0) {
+        return; // nothing to dealloc
+    }
+    FOR(f,nb_sites_) {
+        delete per_facet_neighbor_indices_[f];
+        delete per_facet_neighbor_weight_[f];
+    }
+    delete per_facet_neighbor_indices_;
+    delete per_facet_neighbor_weight_;
+    delete per_facet_neighbors_;
+}
+
+void NeighborsCosts::set_nb_sites(index_t nb_sites) {
+    geo_assert(nb_sites_ == 0); // dont allow re-sizing, the memory allocation must be done once
     nb_sites_ = nb_sites;
     per_facet_neighbors_ = new GCoptimization::SiteID[nb_sites];
     per_facet_neighbor_indices_ = new GCoptimization::SiteID*[nb_sites];
@@ -25,17 +45,8 @@ NeighborsCosts::NeighborsCosts(index_t nb_sites) {
     }
 }
 
-NeighborsCosts::~NeighborsCosts() {
-    FOR(f,nb_sites_) {
-        delete per_facet_neighbor_indices_[f];
-        delete per_facet_neighbor_weight_[f];
-    }
-    delete per_facet_neighbor_indices_;
-    delete per_facet_neighbor_weight_;
-    delete per_facet_neighbors_;
-}
-
 void NeighborsCosts::set_neighbors(index_t facet1, index_t facet2, int cost) {
+    geo_assert(nb_sites_ != 0); // set_nb_sites() must heve been called before
     // TODO check if a weight was already set for the 2 -> overwrite instead of expand the arrays
     geo_assert(facet1 < nb_sites_);
     geo_assert(facet2 < nb_sites_);
@@ -55,7 +66,7 @@ void NeighborsCosts::set_neighbors(index_t facet1, index_t facet2, int cost) {
 GraphCutLabeling::GraphCutLabeling(const Mesh& mesh, const std::vector<vec3>& normals)
       : mesh_(mesh),
         data_cost_(mesh.facets.nb()*6,0),
-        neighbors_costs_(mesh.facets.nb()),
+        neighbors_costs_(),
         gco_( (GCoptimization::SiteID) mesh.facets.nb(),6),
         normals_(normals),
         data_cost_set_(false),
@@ -322,6 +333,7 @@ vec6i GraphCutLabeling::per_facet_data_cost_as_vector(const std::vector<int>& da
 }
 
 void GraphCutLabeling::fill_neighbors_cost__compactness_based(const Mesh& mesh, const std::vector<vec3>& normals, int compactness, NeighborsCosts& neighbors_costs) {
+    neighbors_costs.set_nb_sites(mesh.facets.nb());
     FOR(facet_index,mesh.facets.nb()) {
         // define facet adjacency on the graph, weight based on compactness coeff & dot product of the normals
         FOR(le,3) { // for each local edge of the current facet
