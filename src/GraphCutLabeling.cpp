@@ -5,6 +5,8 @@
 
 #include <GCoptimization.h>
 
+#include <nlohmann/json.hpp>
+
 #include <utility>      // for std::pair
 #include <map>          // for std::map
 #include <algorithm>    // for std::max()
@@ -14,10 +16,10 @@
 #include "GraphCutLabeling.h"
 
 NeighborsCosts::NeighborsCosts() :
-    nb_sites_(0),
     per_facet_neighbors_(nullptr),
     per_facet_neighbor_indices_(nullptr),
-    per_facet_neighbor_weight_(nullptr) {}
+    per_facet_neighbor_weight_(nullptr),
+    nb_sites_(0) {}
 
 NeighborsCosts::~NeighborsCosts() {
     if(nb_sites_ == 0) {
@@ -30,6 +32,10 @@ NeighborsCosts::~NeighborsCosts() {
     delete per_facet_neighbor_indices_;
     delete per_facet_neighbor_weight_;
     delete per_facet_neighbors_;
+}
+
+index_t NeighborsCosts::nb_sites() const {
+    return nb_sites_;
 }
 
 void NeighborsCosts::set_nb_sites(index_t nb_sites) {
@@ -268,10 +274,103 @@ void GraphCutLabeling::dump_costs() const {
             smooth_cost_[label1+3*6],
             smooth_cost_[label1+4*6],
             smooth_cost_[label1+5*6]
-            );
+        );
     }
     ofs_smooth.flush();
     ofs_smooth.close();
+
+    // write neighbors and their weights
+    auto ofs_neighbors_1 = fmt::output_file("per_facet_neighbors.csv");
+    ofs_neighbors_1.print("facet,#neighbors\n");
+    FOR(f,neighbors_costs_.nb_sites()) {
+        // f and the number of neighbors of f
+        ofs_neighbors_1.print("{},{}\n",
+            f,
+            neighbors_costs_.per_facet_neighbors_[f]
+        );
+    }
+    ofs_neighbors_1.flush();
+    ofs_neighbors_1.close();
+
+    auto ofs_neighbors_2 = fmt::output_file("per_facet_neighbor_indices.csv");
+    ofs_neighbors_2.print("facet,neighbors0,neighbors1,neighbors2,neighbors3,neighbors4,neighbors5\n");
+    FOR(f,neighbors_costs_.nb_sites()) {
+        ofs_neighbors_2.print("{},",f);
+        // f and the SiteID (facet index) of neighbors of f
+        FOR(n,neighbors_costs_.per_facet_neighbors_[f]) {
+            ofs_neighbors_2.print("{}",neighbors_costs_.per_facet_neighbor_indices_[f][n]);
+            if(n!=5) {
+                ofs_neighbors_2.print(",");
+            }
+        }
+        // fill the remaining of the columns
+        for(index_t n = neighbors_costs_.per_facet_neighbors_[f]; n < 6; ++n) {
+            ofs_neighbors_2.print(" "); // out of bound -> space
+            if(n!=5) {
+                ofs_neighbors_2.print(",");
+            }
+        }
+        ofs_neighbors_2.print("\n");
+    }
+    ofs_neighbors_2.flush();
+    ofs_neighbors_2.close();
+
+    auto ofs_neighbors_3 = fmt::output_file("per_facet_neighbor_weights.csv");
+    ofs_neighbors_3.print("facet,neighbors0,neighbors1,neighbors2,neighbors3,neighbors4,neighbors5\n");
+    FOR(f,neighbors_costs_.nb_sites()) {
+        ofs_neighbors_3.print("{},",f);
+        // f and the weight associated to each neighbor of f
+        FOR(n,neighbors_costs_.per_facet_neighbors_[f]) {
+            ofs_neighbors_3.print("{}",neighbors_costs_.per_facet_neighbor_weight_[f][n]);
+            if(n!=5) {
+                ofs_neighbors_3.print(",");
+            }
+        }
+        // fill the remaining of the columns
+        for(index_t n = neighbors_costs_.per_facet_neighbors_[f]; n < 6; ++n) {
+            ofs_neighbors_3.print(" "); // out of bound -> space
+            if(n!=5) {
+                ofs_neighbors_3.print(",");
+            }
+        }
+        ofs_neighbors_3.print("\n");
+    }
+    ofs_neighbors_3.flush();
+    ofs_neighbors_3.close();
+    
+    // also write neighbors as JSON
+    nlohmann::json debug_json;
+    std::string key, subkey;
+    GCoptimizationGeneralGraph::SiteID nb_neighbors = 0;
+    FOR(f,neighbors_costs_.nb_sites()) {
+        key = fmt::format("{}",f);
+        nb_neighbors = neighbors_costs_.per_facet_neighbors_[f];
+        FOR(n,nb_neighbors) {
+            subkey = fmt::format("{}",neighbors_costs_.per_facet_neighbor_indices_[f][n]);
+            if(debug_json[key].contains(subkey)) { // if this neighbor was already encountered
+                if(debug_json[key][subkey] != neighbors_costs_.per_facet_neighbor_weight_[f][n]) {
+                    // hmmm the weight is not consistent -> add another entry by changing the key
+                    fmt::println(
+                        Logger::err("graph-cut"),
+                        "In GraphCutLabeling::dump_costs(), inconsistent neighbor weight : {} and {} for neighbor n°{} of site {}",
+                        debug_json[key][subkey],
+                        neighbors_costs_.per_facet_neighbor_weight_[f][n],
+                        n,
+                        f
+                    );
+                    subkey += "_";
+                }
+                else {
+                    // no need to re-write the same value in debug_json
+                    break;
+                }
+            }
+            debug_json[key][subkey] = neighbors_costs_.per_facet_neighbor_weight_[f][n];
+        }
+    }
+    std::ofstream ofs_json("neighbors.json");
+    ofs_json << std::setw(4) << debug_json << std::endl;
+    ofs_json.close();
 }
 
 void GraphCutLabeling::compute_solution(Attribute<index_t>& output_labeling, int max_nb_iterations) {

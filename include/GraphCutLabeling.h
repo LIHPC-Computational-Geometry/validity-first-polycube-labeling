@@ -20,10 +20,10 @@ using namespace GEO;
 typedef vecng<6, float> vec6f; // useful to store per label weights
 typedef vecng<6, int> vec6i; // useful to store per label weights
 
-// GCoptimization has 2 methods for neighbors weigths : setNeighbors() and setAllNeighbors()
-// -> setNeighbors() will require redundancy: weights in GCoptimization given by value, weights in GraphCutLabeling, maybe also in GraphCutLabelingApp
+// GCoptimizationGeneralGraph has 2 methods for neighbors weigths : setNeighbors() and setAllNeighbors()
+// -> setNeighbors() will require redundancy: weights in GCoptimizationGeneralGraph given by value, weights in GraphCutLabeling, maybe also in GraphCutLabelingApp
 // -> setAllNeighbors() read weights by address
-// The class NeighborsCosts is meant to hide the complexity of the GCoptimization interface (set_neighbors() is like GCoptimization::setNeighbors()),
+// The class NeighborsCosts is meant to hide the complexity of the GCoptimizationGeneralGraph interface (set_neighbors() is like GCoptimization::setNeighbors()),
 // while allowing to pass neighbors weights by address -> carefully respect the types
 class NeighborsCosts {
 
@@ -31,13 +31,18 @@ public:
     NeighborsCosts();
     ~NeighborsCosts();
 
+    index_t nb_sites() const;
     void set_nb_sites(index_t nb_sites);
     void set_neighbors(index_t facet1, index_t facet2, int cost);
 
+    // see GCoptimizationGeneralGraph::setAllNeighbors() for the following 3 arrays
+    // public because we need the pointers in compute_solution()
+    GCoptimization::SiteID* per_facet_neighbors_; // for each site, gives the number of neighbors
+    GCoptimization::SiteID** per_facet_neighbor_indices_; // for each site neighbors, gives the SiteID of the neighbor
+    GCoptimization::EnergyTermType** per_facet_neighbor_weight_; // for each site neighbors, gives the weight between the site and the neighbor
+
+private:
     index_t nb_sites_;
-    GCoptimization::SiteID* per_facet_neighbors_;
-    GCoptimization::SiteID** per_facet_neighbor_indices_;
-    GCoptimization::EnergyTermType** per_facet_neighbor_weight_;
 };
 
 class GraphCutLabeling {
