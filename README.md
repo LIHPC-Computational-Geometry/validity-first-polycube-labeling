@@ -8,6 +8,7 @@ Automatic polycube generation for hex-meshing. WIP
 - [CMake](https://cmake.org/) > 3.11
 - [geogram](https://github.com/BrunoLevy/geogram) : mesh data structure, I/O and GUI (included as submodule)
 - [fmt](https://github.com/fmtlib/fmt) : modern string formatting (included as submodule)
+- [nlohmann/json](https://github.com/nlohmann/json) : JSON for modern C++ (included as submodule)
 - [DisjointSet](https://www.nayuki.io/page/disjoint-set-data-structure) : disjoint-set/union-find data structure, implementation by [Nayuki](https://www.nayuki.io/) (in the source code)
 - [gco-v3.0](https://vision.cs.uwaterloo.ca/code/) :  multi-label energies optimization, implementation by Olga Veksler and Andrew Delong, for research purposes only (in the source code)
 
