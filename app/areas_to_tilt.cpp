@@ -12,7 +12,7 @@
 #include <array>
 #include <map>
 #include <utility> // for std::pair<>
-#include <algorithm>
+#include <algorithm> // for std::random_shuffle()
 
 #include "SimpleMeshApplicationExt.h"   // for colormaps indices
 #include "about_window.h"               // for draw_about_window()
@@ -122,6 +122,13 @@ protected:
 
         Attribute<index_t> area_index(mesh_.facets.attributes(),"area_index");
         nb_areas = ds.getSetsMap(area_index.data());
+
+        std::vector<index_t> color_randomizer(nb_areas);
+        FOR(a,nb_areas)
+            color_randomizer[a] = a;
+        std::random_shuffle(color_randomizer.begin(),color_randomizer.end());
+        FOR(f,mesh_.facets.nb())
+            area_index[f] = color_randomizer[area_index[f]];
 
         fmt::println(Logger::out("areas to tilt"),"facets grouped into {} area(s)",nb_areas); Logger::out("areas to tilt").flush();
     }
