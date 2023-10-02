@@ -17,7 +17,10 @@
 class AutomaticPolycubeApp : public LabelingViewerApp {
 public:
 
-    AutomaticPolycubeApp() : LabelingViewerApp("automatic_polycube") {}
+    AutomaticPolycubeApp() : LabelingViewerApp("automatic_polycube"),
+							 selected_chart_(index_t(-1)),
+							 selected_chart_mode_(false)
+							 {}
 
 protected:
 
@@ -99,9 +102,7 @@ protected:
 				labeling_visu_mode_transition(VIEW_CHARTS_TO_REFINE);
 			}
 
-			ImGui::Separator();
-
-			ImGui::Text("Fix labeling");
+			ImGui::SeparatorText("Fix labeling");
 
 			if(ImGui::Button("Remove surrounded charts")) {
 				unsigned int nb_chart_modified = remove_surrounded_charts(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_);
@@ -127,15 +128,44 @@ protected:
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 
-			ImGui::Separator();
-
-			ImGui::Text("Monotonicity");
+			ImGui::SeparatorText("Monotonicity");
 
 			if(ImGui::Button("Move boundaries near turning points")) {
 				unsigned int nb_facets_modified = move_boundaries_near_turning_points(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_);
 				fmt::println(Logger::out("monotonicity"),"label of {} facets modified",nb_facets_modified); Logger::out("monotonicity").flush();
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
+
+			ImGui::SeparatorText("Refinement");
+
+			if(ImGui::Button(selected_chart_mode_ ? "Pick a chart" : "Select chart")) {
+				selected_chart_mode_ = true;
+				selected_chart_= index_t(-1);
+			}
+			ImGui::SameLine();
+			ImGui::BeginDisabled(selected_chart_mode_ || (selected_chart_==index_t(-1)));
+			if(selected_chart_==index_t(-1))
+				ImGui::TextUnformatted("current: none");
+			else
+				ImGui::Text("current: %d",selected_chart_);
+			ImGui::EndDisabled();
+		}
+	}
+
+	void mouse_button_callback(int button, int action, int mods, int source) override {
+		if(selected_chart_mode_) {
+			selected_chart_mode_ = false;
+			index_t facet_index = pick(MESH_FACETS);
+			if( (facet_index == index_t(-1)) || (facet_index >= mesh_.facets.nb()) ) {
+				selected_chart_ = index_t(-1);
+			}
+			else {
+				// get the chart index of the picked facet
+				selected_chart_ = static_labeling_graph_.facet2chart[facet_index];
+			}
+		}
+		else {
+			LabelingViewerApp::mouse_button_callback(button,action,mods,source);
 		}
 	}
 
@@ -239,6 +269,11 @@ public:
 
 		return true;
 	}
+
+protected:
+
+	index_t selected_chart_;
+	bool selected_chart_mode_;
 };
 
 int main(int argc, char** argv) {
