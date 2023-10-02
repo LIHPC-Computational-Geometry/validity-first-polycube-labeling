@@ -31,18 +31,18 @@ public:
     NeighborsCosts();
     ~NeighborsCosts();
 
-    index_t nb_sites() const;
-    void set_nb_sites(index_t nb_sites);
-    void set_neighbors(index_t facet1, index_t facet2, int cost);
+    GCoptimization::SiteID nb_sites() const;
+    void set_nb_sites(GCoptimization::SiteID nb_sites);
+    void set_neighbors(GCoptimization::SiteID site1, GCoptimization::SiteID site2, GCoptimization::EnergyTermType cost);
 
     // see GCoptimizationGeneralGraph::setAllNeighbors() for the following 3 arrays
     // public because we need the pointers in compute_solution()
-    GCoptimization::SiteID* per_facet_neighbors_; // for each site, gives the number of neighbors
-    GCoptimization::SiteID** per_facet_neighbor_indices_; // for each site neighbors, gives the SiteID of the neighbor
-    GCoptimization::EnergyTermType** per_facet_neighbor_weight_; // for each site neighbors, gives the weight between the site and the neighbor
+    GCoptimization::SiteID* per_site_neighbors_; // for each site, gives the number of neighbors
+    GCoptimization::SiteID** per_site_neighbor_indices_; // for each site neighbors, gives the SiteID of the neighbor
+    GCoptimization::EnergyTermType** per_site_neighbor_weight_; // for each site neighbors, gives the weight between the site and the neighbor
 
 private:
-    index_t nb_sites_;
+    GCoptimization::SiteID nb_sites_;
 };
 
 class GraphCutLabeling {
@@ -58,6 +58,12 @@ public:
      * \param[in] mesh A surface triangle mesh
      */
     GraphCutLabeling(const Mesh& mesh, const std::vector<vec3>& normals);
+
+    GraphCutLabeling(const Mesh& mesh, const std::vector<vec3>& normals, GCoptimization::SiteID nb_sites); // if graph-cut on a subset of the surface
+
+    //// Sites definition //////////////////
+
+    void add_site(index_t facet);
 
     //// Data cost definition //////////////////
 
@@ -99,6 +105,8 @@ public:
 
     int data_cost__get__for_facet_and_label(index_t facet_index, index_t label) const;
 
+    inline bool sites_set() const;
+
     void dump_costs() const;
 
     //// Optimization //////////////////
@@ -123,6 +131,9 @@ public:
 private:
 
     const Mesh& mesh_; // needed for the facet number (everywhere) and facet adjacency (neighborhood weights)
+    GCoptimization::SiteID nb_sites_;
+    GCoptimization::SiteID count_sites_;
+    std::map<index_t,GCoptimization::SiteID> facet2siteID_; // map between facet index and site ID, used if nb sites != nb facets
     std::vector<int> data_cost_; // #facet*6, cost of assigning a facet to a label
     std::array<int,6*6> smooth_cost_; // label adjacency cost
     NeighborsCosts neighbors_costs_;

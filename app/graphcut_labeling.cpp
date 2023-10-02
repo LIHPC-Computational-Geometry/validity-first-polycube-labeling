@@ -60,7 +60,7 @@ protected:
 			}
 			data_cost_.resize(mesh_.facets.nb()*6);
 			GraphCutLabeling::fill_data_cost__fidelity_based(mesh_,normals_,data_cost_,fidelity_coeff_);
-			graphcut_labeling(mesh_,normals_,LABELING_ATTRIBUTE_NAME); // compute graph-cut with default parameters
+			graphcut_labeling(mesh_,normals_,LABELING_ATTRIBUTE_NAME,compactness_coeff_,fidelity_coeff_); // compute graph-cut with init value of parameters
 			update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			new_state = labeling;
 		}
