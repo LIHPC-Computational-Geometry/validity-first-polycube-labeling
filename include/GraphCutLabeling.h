@@ -74,16 +74,18 @@ public:
     void data_cost__set__all_at_once(const std::vector<int>& data_cost);
 
     void data_cost__change_to__fidelity_based(index_t facet_index, int fidelity);
-    
+
     void data_cost__change_to__locked_label(index_t facet_index, index_t locked_label);
+    
+    void data_cost__change_to__locked_label(GCoptimization::SiteID siteID, index_t locked_label);
 
-    void data_cost__change_to__forbidden_label(index_t facet_index, index_t forbidden_label);
+    void data_cost__change_to__forbidden_label(GCoptimization::SiteID siteID, index_t forbidden_label);
 
-    void data_cost__change_to__scaled(index_t facet_index, index_t label, float factor);
+    void data_cost__change_to__scaled(GCoptimization::SiteID siteID, index_t label, float factor);
 
-    void data_cost__change_to__shifted(index_t facet_index, index_t label, float delta);
+    void data_cost__change_to__shifted(GCoptimization::SiteID siteID, index_t label, float delta);
 
-    void data_cost__change_to__per_label_weights(index_t facet_index, const vec6i& per_label_weights);
+    void data_cost__change_to__per_label_weights(GCoptimization::SiteID siteID, const vec6i& per_label_weights);
 
     //// Smooth cost definition //////////////////
 
@@ -101,9 +103,9 @@ public:
 
     //// Getters & debug //////////////////
 
-    vec6i data_cost__get__for_facet(index_t facet_index) const;
+    vec6i data_cost__get__for_site(GCoptimization::SiteID siteID) const;
 
-    int data_cost__get__for_facet_and_label(index_t facet_index, index_t label) const;
+    int data_cost__get__for_site_and_label(GCoptimization::SiteID siteID, index_t label) const;
 
     inline bool sites_set() const;
 
@@ -122,11 +124,15 @@ public:
 
     static void fill_data_cost__fidelity_based(const Mesh& mesh, const std::vector<vec3>& normals, std::vector<int>& data_cost, int fidelity);
 
-    static void shift_data_cost(std::vector<int>& data_cost, index_t facet_index, index_t label, float delta);
+    static void fill_data_cost__fidelity_based(const Mesh& mesh, const std::vector<vec3>& normals, std::vector<int>& data_cost, int fidelity, const std::map<index_t,GCoptimization::SiteID>& facet2siteID);
 
-    static vec6i per_facet_data_cost_as_vector(const std::vector<int>& data_cost, index_t facet_index);
+    static void shift_data_cost(std::vector<int>& data_cost, GCoptimization::SiteID site, index_t label, float delta);
+
+    static vec6i per_site_data_cost_as_vector(const std::vector<int>& data_cost, GCoptimization::SiteID site);
 
     static void fill_neighbors_cost__compactness_based(const Mesh& mesh, const std::vector<vec3>& normals, int compactness, NeighborsCosts& neighbors_costs);
+
+    static void fill_neighbors_cost__compactness_based(const Mesh& mesh, const std::vector<vec3>& normals, int compactness, NeighborsCosts& neighbors_costs, const std::map<index_t,GCoptimization::SiteID>& facet2siteID);
 
 private:
 

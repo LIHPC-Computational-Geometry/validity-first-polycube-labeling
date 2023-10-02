@@ -372,3 +372,42 @@ unsigned int move_boundaries_near_turning_points(GEO::Mesh& mesh, const char* at
     }
     return nb_labels_changed;
 }
+
+void straighten_boundary(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, const StaticLabelingGraph& slg, index_t boundary_index) {
+    Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // get labeling attribute
+    index_t left_chart_index = slg.boundaries[boundary_index].left_chart;
+    index_t right_chart_index = slg.boundaries[boundary_index].right_chart;
+    const Chart& left_chart = slg.charts[left_chart_index];
+    const Chart& right_chart = slg.charts[right_chart_index];
+    auto gcl = GraphCutLabeling(mesh,normals,left_chart.facets.size()+right_chart.facets.size()); // graph-cut only on the two charts
+    for(index_t f : left_chart.facets)
+        gcl.add_site(f);
+    for(index_t f : right_chart.facets)
+        gcl.add_site(f);
+    gcl.data_cost__set__fidelity_based(1);
+    // lock label of triangles on the 2 charts boundaries intersection
+    index_t chart_of_adjacent_facet = index_t(-1);
+    for(index_t f : left_chart.facets) {
+        FOR(le,3) {
+            chart_of_adjacent_facet = slg.facet2chart[mesh.facets.adjacent(f,le)];
+            if( (chart_of_adjacent_facet != left_chart_index) && 
+                (chart_of_adjacent_facet != right_chart_index) ) {
+                // the facet f is next to a chart different from the 2 next to the boundary
+                gcl.data_cost__change_to__locked_label(f,label[f]);
+            }
+        }
+    }
+    for(index_t f : right_chart.facets) {
+        FOR(le,3) {
+            chart_of_adjacent_facet = slg.facet2chart[mesh.facets.adjacent(f,le)];
+            if( (chart_of_adjacent_facet != left_chart_index) && 
+                (chart_of_adjacent_facet != right_chart_index) ) {
+                // the facet f is next to a chart different from the 2 next to the boundary
+                gcl.data_cost__change_to__locked_label(f,label[f]);
+            }
+        }
+    }
+    gcl.smooth_cost__set__default();
+    gcl.neighbors__set__compactness_based(3);
+    gcl.compute_solution(label);
+}
