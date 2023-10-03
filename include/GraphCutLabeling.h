@@ -130,8 +130,6 @@ public:
 
     static vec6i per_site_data_cost_as_vector(const std::vector<int>& data_cost, GCoptimization::SiteID site);
 
-    static void fill_neighbors_cost__compactness_based(const Mesh& mesh, const std::vector<vec3>& normals, int compactness, NeighborsCosts& neighbors_costs);
-
     static void fill_neighbors_cost__compactness_based(const Mesh& mesh, const std::vector<vec3>& normals, int compactness, NeighborsCosts& neighbors_costs, const std::map<index_t,GCoptimization::SiteID>& facet2siteID);
 
 private:

@@ -488,6 +488,18 @@ void GraphCutLabeling::compute_solution(Attribute<index_t>& output_labeling, int
 	}
 }
 
+void GraphCutLabeling::fill_data_cost__fidelity_based(const Mesh& mesh, const std::vector<vec3>& normals, std::vector<int>& data_cost, int fidelity) {
+    // TODO avoid redundancy with the other fill_data_cost__fidelity_based()
+    geo_assert(data_cost.size()==mesh.facets.nb()*6);
+    FOR(f,mesh.facets.nb()) {
+        FOR(label,6) {
+            double dot = (GEO::dot(normals[f],label2vector[label]) - 1.0)/0.2;
+            double cost = 1.0 - std::exp(-(1.0/2.0)*std::pow(dot,2));
+            data_cost[f*6+label] = (int) (fidelity*100*cost);
+        }
+    }
+}
+
 void GraphCutLabeling::fill_data_cost__fidelity_based(const Mesh& mesh, const std::vector<vec3>& normals, std::vector<int>& data_cost, int fidelity, const std::map<index_t,GCoptimization::SiteID>& facet2siteID) {
     // cost of assigning a facet to a label, weight based on fidelity coeff & dot product between normal & label direction
     geo_assert(data_cost.size()==facet2siteID.size()*6);

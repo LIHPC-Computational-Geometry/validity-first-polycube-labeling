@@ -225,7 +225,7 @@ protected:
 				// compute data cost stats for the current chart
 				vec6i current_facet_data_cost;
 				for(index_t f : static_labeling_graph_.charts[selected_chart_].facets) { // for each facet of the selected chart
-					current_facet_data_cost = GraphCutLabeling::per_facet_data_cost_as_vector(data_cost_,f);
+					current_facet_data_cost = GraphCutLabeling::per_site_data_cost_as_vector(data_cost_,(GCoptimization::SiteID) f);
 					selected_chart_data_cost_stats_.avg += (vec6f) current_facet_data_cost; // add per-label data cost of current facet
 					FOR(label,6) {
 						selected_chart_data_cost_stats_.min[label] = std::min(selected_chart_data_cost_stats_.min[label], (float) current_facet_data_cost[label]);
@@ -256,7 +256,7 @@ protected:
 		float global_max = 0.0f; // max of all data costs, for all facets and all labels
 		FOR(chart_index,static_labeling_graph_.nb_charts()) { // for each chart
 			for(index_t f : static_labeling_graph_.charts[chart_index].facets) { // for each facet of the current chart
-				global_max = std::max(global_max,(float) max(GraphCutLabeling::per_facet_data_cost_as_vector(data_cost_,f)));
+				global_max = std::max(global_max,(float) max(GraphCutLabeling::per_site_data_cost_as_vector(data_cost_,(GCoptimization::SiteID) f)));
 			}
 		}
 		new_data_cost_upper_bound_ = global_max*1.1f;
