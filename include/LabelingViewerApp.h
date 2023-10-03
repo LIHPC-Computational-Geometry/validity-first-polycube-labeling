@@ -118,6 +118,11 @@ protected:
 	}
 
 	virtual void labeling_visu_mode_transition(int new_mode) {
+		if(colormaps_.empty()) {
+			// GL is not initialized yet
+			// the state transition will be triggered later, in GL_initialize()
+			return;
+		}
 		switch(new_mode) {
 			case VIEW_TRIANGLE_MESH:
 				show_mesh_ = true;
@@ -456,6 +461,9 @@ protected:
         SimpleMeshApplicationExt::GL_initialize();
 		init_rgba_colormap("labeling",6,1,labeling_colors_.as_chars());
 		init_rgba_colormap("validity",2,1,validity_colors_.as_chars());
+		if((mesh_.vertices.nb()!=0) && mesh_.facets.attributes().is_defined(LABELING_ATTRIBUTE_NAME)) {
+			state_transition(labeling);
+		}
     }
 
 	void mouse_button_callback(int button, int action, int mods, int source) override {
