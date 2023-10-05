@@ -36,16 +36,8 @@
 
 using namespace GEO;
 
-namespace LabelingGraph {
-    // For some associations, we need an "undefined" value
-    // If we use -1, we need to convert index_t to signed_index_t, loosing half of the range
-    // So instead, we use the maximal value for an index_t as "undefined"
-    // Note that std::numeric_limits<index_t>::max() should be replaced by GEO::max_index_t(), but the latter loses constexpr !
-    constexpr index_t UNDEFINED = std::numeric_limits<index_t>::max();
-}
-
 // to print an index_t that can be undefined
-#define OPTIONAL_TO_STRING(value) ((value == LabelingGraph::UNDEFINED) ? "undefined" : std::to_string(value).c_str())
+#define OPTIONAL_TO_STRING(value) ((value == index_t(-1)) ? "undefined" : std::to_string(value).c_str())
 
 // A set of adjacent triangles having the same label
 // based on https://github.com/LIHPC-Computational-Geometry/genomesh/blob/main/include/flagging.h#L61
@@ -53,7 +45,7 @@ struct Chart {
 
     //// Properties //////////////////
 
-    index_t label = LabelingGraph::UNDEFINED;
+    index_t label = index_t(-1);
     // validity is not stored because it's inexpensive to compute (boundaries.size() >= 4), and not needed for the visualization (facet attribute instead)
 
     //// Underlying geometry //////////////////
@@ -113,7 +105,7 @@ struct Corner {
 
     //// Underlying geometry //////////////////
 
-    index_t vertex = LabelingGraph::UNDEFINED;
+    index_t vertex = index_t(-1);
 
     //// Adjacency //////////////////
 
@@ -150,10 +142,10 @@ struct Boundary {
 
     //// Adjacency //////////////////
 
-    index_t left_chart = LabelingGraph::UNDEFINED;
-    index_t right_chart = LabelingGraph::UNDEFINED;
-    index_t start_corner = LabelingGraph::UNDEFINED;
-    index_t end_corner = LabelingGraph::UNDEFINED;
+    index_t left_chart = index_t(-1);
+    index_t right_chart = index_t(-1);
+    index_t start_corner = index_t(-1);
+    index_t end_corner = index_t(-1);
 
     //// Methods //////////////////
 
@@ -199,7 +191,7 @@ struct StaticLabelingGraph {
     //// Mapping from geometry to LabelingGraph features //////////////////
 
     std::vector<index_t> facet2chart;
-    std::map<MeshHalfedges::Halfedge,std::pair<index_t,bool>,HalfedgeCompare> halfedge2boundary; // for each halfedge, store 1/ the associated boundary (may be LabelingGraph::UNDEFINED) and 2/ if the boundary is in the same orientation
+    std::map<MeshHalfedges::Halfedge,std::pair<index_t,bool>,HalfedgeCompare> halfedge2boundary; // for each halfedge, store 1/ the associated boundary (may be index_t(-1)) and 2/ if the boundary is in the same orientation
     std::vector<index_t> vertex2corner;
 
     //// problematic LabelingGraph features //////////////////

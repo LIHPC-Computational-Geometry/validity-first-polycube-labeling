@@ -192,7 +192,7 @@ unsigned int fix_invalid_boundaries(GEO::Mesh& mesh, const char* attribute_name,
 
         // Change the labels around the start/end corner, but only in place of the 2 charts next to the boundary
         for(auto current_corner : std::initializer_list<index_t>({current_boundary.start_corner,current_boundary.end_corner})) {
-            geo_assert(current_corner != LabelingGraph::UNDEFINED);
+            geo_assert(current_corner != index_t(-1));
             for(auto& vr : slg.corners[current_corner].vertex_rings_with_boundaries) { // for each vertex ring
                 for(auto& be : vr.boundary_edges) { // for each boundary edge
                     if(
@@ -322,7 +322,7 @@ unsigned int move_boundaries_near_turning_points(GEO::Mesh& mesh, const char* at
             // get the vertex index
             index_t current_vertex = mesh.facet_corners.vertex(current_halfedge.corner);
             geo_assert(slg.is_turning_point(mesh,current_vertex));
-            geo_assert(slg.vertex2corner[current_vertex] == LabelingGraph::UNDEFINED); // a turning point should not be a corner
+            geo_assert(slg.vertex2corner[current_vertex] == index_t(-1)); // a turning point should not be a corner
             // test if the valence of current_vertex is 2
             VertexRingWithBoundaries vr;
             vr.explore(current_halfedge,mesh_halfedges);
