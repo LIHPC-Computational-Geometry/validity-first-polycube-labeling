@@ -5,6 +5,7 @@ cmake_minimum_required(VERSION 3.11)
 project(automatic_polycube)
 
 set (CMAKE_CXX_STANDARD 20)
+set (CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(
   GEOGRAM_SOURCE_DIR "${CMAKE_SOURCE_DIR}/ext/geogram/"
@@ -39,6 +40,12 @@ set_source_files_properties(ext/GraphCutOptimization/src/GCoptimization.h PROPER
 
 # nlohmann/json
 add_subdirectory(ext/json)
+
+# optional test subdirectory (using googletest)
+option(AUTOMATIC_POLYCUBE_BUILD_TESTS "Build automatic_polycube tests" OFF)
+if(AUTOMATIC_POLYCUBE_BUILD_TESTS)
+  add_subdirectory(tests)
+endif()
 
 #################
 # VARIABLES
@@ -79,3 +86,6 @@ target_link_libraries(ovm_io geogram geogram_gfx ${GLFW_LIBRARIES} fmt::fmt gco 
 
 add_executable(areas_to_tilt ${SRCFILES} app/areas_to_tilt)
 target_link_libraries(areas_to_tilt geogram geogram_gfx ${GLFW_LIBRARIES} fmt::fmt gco nlohmann_json)
+
+add_executable(mesh_stats ${SRCFILES} app/mesh_stats)
+target_link_libraries(mesh_stats geogram geogram_gfx ${GLFW_LIBRARIES} fmt::fmt gco nlohmann_json)
