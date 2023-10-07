@@ -34,15 +34,17 @@ Then:
 
 ```bash
 # from automatic_polycube/
-./configure.sh
-cd build/Linux64-gcc-dynamic-Release/
+mkdir build_Release
+cd build_Release
+# add -DAUTOMATIC_POLYCUBE_BUILD_TESTS=ON to the next line for the tests
+cmake .. -DCMAKE_BUILD_TYPE=Release
 make automatic_polycube
 ```
 
 ## Run `automatic_polycube` app
 
 ```bash
-# from build/Linux64-gcc-dynamic-Release
+# from automatic_polycube/build_Release
 ./bin/automatic_polycube ../../data/B0/surface.obj
 ```
 
