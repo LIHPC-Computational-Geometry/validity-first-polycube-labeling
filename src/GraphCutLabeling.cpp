@@ -46,9 +46,19 @@ void NeighborsCosts::set_nb_sites(GCoptimization::SiteID nb_sites) {
     per_site_neighbor_weight_ = new GCoptimization::EnergyTermType*[nb_sites];
     FOR(s,nb_sites) {
         per_site_neighbors_[s] = (GCoptimization::SiteID) 0;
-        per_site_neighbor_indices_[s] = new GCoptimization::SiteID[6]; // a facet has at most 3 neighbors -> 6 directionnal weights
-        per_site_neighbor_weight_[s] = new GCoptimization::EnergyTermType[6]; // a facet has at most 3 neighbors -> 6 directionnal weights
+        per_site_neighbor_indices_[s] = new GCoptimization::SiteID[3]; // a facet has at most 3 neighbors
+        per_site_neighbor_weight_[s] = new GCoptimization::EnergyTermType[3]; // a facet has at most 3 neighbors
     }
+}
+
+bool NeighborsCosts::are_neighbors(GCoptimization::SiteID site1, GCoptimization::SiteID site2, GCoptimization::SiteID& site1_neighbor_index) {
+    FOR(current_site1_neighbor_index,per_site_neighbors_[site1]) {
+        if(per_site_neighbor_indices_[site1][current_site1_neighbor_index] == site2) {
+            site1_neighbor_index = current_site1_neighbor_index; // = on which neighbor index of site1 is site2
+            return true;
+        }
+    }
+    return false;
 }
 
 void NeighborsCosts::set_neighbors(GCoptimization::SiteID site1, GCoptimization::SiteID site2, GCoptimization::EnergyTermType cost) {
@@ -57,16 +67,42 @@ void NeighborsCosts::set_neighbors(GCoptimization::SiteID site1, GCoptimization:
     geo_assert(site1 < nb_sites_);
     geo_assert(site2 < nb_sites_);
     geo_assert(cost >= 0);
-    GCoptimization::SiteID site1_neighbor_index = per_site_neighbors_[site1];
-    GCoptimization::SiteID site2_neighbor_index = per_site_neighbors_[site2];
-    geo_assert(site1_neighbor_index <= 6); // else array overflow
-    geo_assert(site2_neighbor_index <= 6); // else array overflow
-    per_site_neighbor_indices_[site1][site1_neighbor_index] = site2;
-    per_site_neighbor_indices_[site2][site2_neighbor_index] = site1;
-    per_site_neighbor_weight_[site1][site1_neighbor_index] = cost;
-    per_site_neighbor_weight_[site2][site2_neighbor_index] = cost;
-    per_site_neighbors_[site1]++;
-    per_site_neighbors_[site2]++;
+    GCoptimization::SiteID site1_neighbor_index = GCoptimization::SiteID(-1);
+    GCoptimization::SiteID site2_neighbor_index = GCoptimization::SiteID(-1);
+    if(are_neighbors(site1,site2,site1_neighbor_index)) {
+        geo_assert(are_neighbors(site2,site1,site2_neighbor_index)); // if site1 is a neighbor of site2, site2 must be a neighbor of site1
+        geo_assert(per_site_neighbor_weight_[site1][site1_neighbor_index] == per_site_neighbor_weight_[site2][site2_neighbor_index]); // assert the cost is consistent
+        // overwrite the cost
+        per_site_neighbor_weight_[site1][site1_neighbor_index] = cost;
+        per_site_neighbor_weight_[site2][site2_neighbor_index] = cost;
+    }
+    else {
+        // site1 and site2 are not yet neighbors
+        site1_neighbor_index = per_site_neighbors_[site1];
+        site2_neighbor_index = per_site_neighbors_[site2];
+        geo_assert(site1_neighbor_index < 3); // else array overflow
+        geo_assert(site2_neighbor_index < 3); // else array overflow
+        per_site_neighbor_indices_[site1][site1_neighbor_index] = site2;
+        per_site_neighbor_indices_[site2][site2_neighbor_index] = site1;
+        per_site_neighbor_weight_[site1][site1_neighbor_index] = cost;
+        per_site_neighbor_weight_[site2][site2_neighbor_index] = cost;
+        per_site_neighbors_[site1]++;
+        per_site_neighbors_[site2]++;
+    }    
+}
+
+GCoptimization::EnergyTermType NeighborsCosts::get_neighbors_cost(GCoptimization::SiteID site1, GCoptimization::SiteID site2) {
+    geo_assert(site1 < nb_sites_);
+    geo_assert(site2 < nb_sites_);
+    GCoptimization::SiteID site1_neighbor_index = GCoptimization::SiteID(-1);
+    GCoptimization::SiteID site2_neighbor_index = GCoptimization::SiteID(-1);
+    if(are_neighbors(site1,site2,site1_neighbor_index)) {
+        geo_assert(are_neighbors(site2,site1,site2_neighbor_index)); // if site1 is a neighbor of site2, site2 must be a neighbor of site1
+        geo_assert(per_site_neighbor_weight_[site1][site1_neighbor_index] == per_site_neighbor_weight_[site2][site2_neighbor_index]); // assert the cost is consistent
+        return per_site_neighbor_weight_[site1][site1_neighbor_index]; // return the neighbor cost
+    }
+    // else: site1 and site2 are not neighbors, no cost to return
+    geo_assert_not_reached; 
 }
 
 // graph-cut on the whole surface -> nb_sites = mesh.facets.nb()
@@ -296,6 +332,15 @@ void GraphCutLabeling::neighbors__set__all_at_once(const NeighborsCosts& neighbo
     }
     neighbors_costs_ = neighbors_costs;
     neighbors_set_ = true;
+}
+
+void GraphCutLabeling::neighbors__change_to__scaled(index_t facet1, index_t facet2, float factor) {
+    if(!neighbors_set_) {
+        fmt::println(Logger::err("graph-cut"),"the neighbors cost cannot be change because it has not being set yet"); Logger::err("graph-cut").flush();
+        geo_assert_not_reached;
+    }
+    float previous_cost = (float) neighbors_costs_.get_neighbors_cost(facet2siteID_[facet1],facet2siteID_[facet2]);
+    neighbors_costs_.set_neighbors(facet2siteID_[facet1],facet2siteID_[facet2], (GCoptimization::EnergyTermType) previous_cost*factor);
 }
 
 vec6i GraphCutLabeling::data_cost__get__for_site(GCoptimization::SiteID siteID) const {

@@ -33,7 +33,9 @@ public:
 
     GCoptimization::SiteID nb_sites() const;
     void set_nb_sites(GCoptimization::SiteID nb_sites);
-    void set_neighbors(GCoptimization::SiteID site1, GCoptimization::SiteID site2, GCoptimization::EnergyTermType cost);
+    bool are_neighbors(GCoptimization::SiteID site1, GCoptimization::SiteID site2, GCoptimization::SiteID& site1_local_index); // check if site2 is among the neighbors of site1. Do not check for reciprocity
+    void set_neighbors(GCoptimization::SiteID site1, GCoptimization::SiteID site2, GCoptimization::EnergyTermType cost); // ensure reciprocity
+    GCoptimization::EnergyTermType get_neighbors_cost(GCoptimization::SiteID site1, GCoptimization::SiteID site2); // ensure reciprocity
 
     // see GCoptimizationGeneralGraph::setAllNeighbors() for the following 3 arrays
     // public because we need the pointers in compute_solution()
@@ -102,6 +104,8 @@ public:
     void neighbors__set__compactness_based(int compactness);
 
     void neighbors__set__all_at_once(const NeighborsCosts& neighbors_costs);
+
+    void neighbors__change_to__scaled(index_t facet1, index_t facet2, float factor);
 
     //// Getters & debug //////////////////
 
