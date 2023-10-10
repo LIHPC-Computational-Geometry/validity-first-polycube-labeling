@@ -107,6 +107,8 @@ public:
 
     void neighbors__change_to__scaled(index_t facet1, index_t facet2, float factor);
 
+    void neighbors__change_to__shifted(index_t facet1, index_t facet2, float delta);
+
     //// Getters & debug //////////////////
 
     vec6i data_cost__get__for_site(GCoptimization::SiteID siteID) const;

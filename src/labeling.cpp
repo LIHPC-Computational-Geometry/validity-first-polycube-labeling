@@ -11,7 +11,8 @@
 #include <iterator>         // for std::distance()
 #include <tuple>            // for std::tuple
 #include <queue>            // for std::queue
-#include <cmath>            // for std::pow()
+#include <cmath>            // for std::pow(), std::abs()
+#include <set>              // for std::set
 
 #include "labeling.h"
 #include "LabelingGraph.h"
@@ -549,11 +550,53 @@ void straighten_boundary(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
         else {
             // penalize modification proportionally to the distance to the boundary (only close facets should be modifiable)
             // kv.second is the distance
-            // -> multiply the cost of re-assigning by (0.9)^distance
-            gcl.data_cost__change_to__scaled(kv.first,label[kv.first],std::pow(0.9,kv.second));
+            // -> multiply the cost of re-assigning by (0.8)^distance
+            gcl.data_cost__change_to__scaled(kv.first,label[kv.first],std::pow(0.8,kv.second));
         }
     }
     gcl.smooth_cost__set__default();
     gcl.neighbors__set__compactness_based(1);
+    if(current_boundary.axis != -1) {
+        // penalize boundary tracing through halfedges poorly aligned with the boundary axis (X, Y or Z)
+        // parse all undirected edge inside the 2 charts surface and tweak the cost
+        #ifndef NDEBUG
+            Mesh per_edge_dot_product;
+            per_edge_dot_product.copy(mesh,false);
+            // keep only vertices, clear other components
+            per_edge_dot_product.edges.clear();
+            per_edge_dot_product.facets.clear();
+            per_edge_dot_product.cells.clear();
+            Attribute<double> dot_product_attribute(per_edge_dot_product.edges.attributes(),"dot_product");
+        #endif
+        index_t vertex1 = index_t(-1);
+        index_t vertex2 = index_t(-1);
+        vec3 edge_vector;
+        double dot_product = 0.0; // dot product of the edge vector & boundary axis
+        std::set<std::set<index_t>> already_processed; // use a set and not a pair so that the facets are sorted -> unordered pairs
+        for(const auto& kv : distance_to_boundary) {
+            FOR(le,3) { // for each local edge of the current facet
+                adjacent_facet = mesh.facets.adjacent(kv.first,le);
+                if(already_processed.contains({kv.first,adjacent_facet})) {
+                    continue; // we already processed this edge (indices flipped)
+                }
+                if(distance_to_boundary.contains(adjacent_facet)) { // the edge at le is between 2 facets of the 2 charts union
+                    // the vertices at the end point of the local edge le are le and (le+1)%3
+                    // https://github.com/BrunoLevy/geogram/wiki/Mesh#triangulated-and-polygonal-meshes
+                    vertex1 = mesh.facet_corners.vertex(mesh.facets.corner(kv.first,le));
+                    vertex2 = mesh.facet_corners.vertex(mesh.facets.corner(kv.first,(le+1)%3));
+                    edge_vector = normalize(mesh.vertices.point(vertex2)-mesh.vertices.point(vertex1));
+                    dot_product = std::abs(dot(edge_vector,label2vector[current_boundary.axis*2])); // =1 -> //, =0 -> ⟂
+                    gcl.neighbors__change_to__shifted(kv.first,adjacent_facet,(1-dot_product)*500); // add a penalty the more ⟂ the edge is (// -> 0, ⟂ -> 300)
+                    already_processed.insert({kv.first, adjacent_facet});
+                    #ifndef NDEBUG
+                        dot_product_attribute[per_edge_dot_product.edges.create_edge(vertex1,vertex2)] = dot_product;
+                    #endif
+                }
+            }
+        }
+        #ifndef NDEBUG
+            mesh_save(per_edge_dot_product,"dot_products.geogram");
+        #endif
+    }
     gcl.compute_solution(label);
 }

@@ -343,6 +343,15 @@ void GraphCutLabeling::neighbors__change_to__scaled(index_t facet1, index_t face
     neighbors_costs_.set_neighbors(facet2siteID_[facet1],facet2siteID_[facet2], (GCoptimization::EnergyTermType) previous_cost*factor);
 }
 
+void GraphCutLabeling::neighbors__change_to__shifted(index_t facet1, index_t facet2, float delta) {
+    if(!neighbors_set_) {
+        fmt::println(Logger::err("graph-cut"),"the neighbors cost cannot be change because it has not being set yet"); Logger::err("graph-cut").flush();
+        geo_assert_not_reached;
+    }
+    float previous_cost = (float) neighbors_costs_.get_neighbors_cost(facet2siteID_[facet1],facet2siteID_[facet2]);
+    neighbors_costs_.set_neighbors(facet2siteID_[facet1],facet2siteID_[facet2], (GCoptimization::EnergyTermType) std::max(0.0f,previous_cost+delta)); // forbid negative cost, min set to 0
+}
+
 vec6i GraphCutLabeling::data_cost__get__for_site(GCoptimization::SiteID siteID) const {
     if(!data_cost_set_) {
         fmt::println(Logger::err("graph-cut"),"getter of data cost called before setter"); Logger::err("graph-cut").flush();
