@@ -136,6 +136,13 @@ protected:
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 
+			if(ImGui::Button("Straighten boundaries")) {
+				FOR(b,static_labeling_graph_.boundaries.size()) {
+					straighten_boundary(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,b);
+					update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+				}
+			}
+
 			ImGui::SeparatorText("Refinement");
 
 			if(ImGui::Button(selected_chart_mode_ ? "Pick a chart" : "Select chart")) {
@@ -149,14 +156,6 @@ protected:
 			else
 				ImGui::Text("current: %d",selected_chart_);
 			ImGui::EndDisabled();
-
-			if(ImGui::Button("Straighten boundaries")) {
-				FOR(b,static_labeling_graph_.boundaries.size()) {
-					straighten_boundary(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,b);
-					update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
-					// break; // only one pass for now
-				}
-			}
 		}
 	}
 

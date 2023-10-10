@@ -190,6 +190,10 @@ void GraphCutLabeling::data_cost__change_to__forbidden_label(GCoptimization::Sit
     data_cost_[siteID*6+forbidden_label] = HIGH_COST; // do not edit weights of other labels
 }
 
+void GraphCutLabeling::data_cost__change_to__scaled(index_t facet_index, index_t label, float factor) {
+    data_cost__change_to__scaled(facet2siteID_[facet_index],label,factor);
+}
+
 void GraphCutLabeling::data_cost__change_to__scaled(GCoptimization::SiteID siteID, index_t label, float factor) {
     if(!data_cost_set_) {
         fmt::println(Logger::err("graph-cut"),"the data cost cannot be change because it has not being set yet"); Logger::err("graph-cut").flush();

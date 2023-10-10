@@ -1,4 +1,5 @@
 #include <geogram/basic/attributes.h>   // for GEO::Attribute
+#include <geogram/mesh/mesh_io.h>
 
 #include <fmt/core.h>
 #include <fmt/ostream.h>
@@ -9,6 +10,8 @@
 #include <algorithm>        // for std::max_element(), std::min(), std::max()
 #include <iterator>         // for std::distance()
 #include <tuple>            // for std::tuple
+#include <queue>            // for std::queue
+#include <cmath>            // for std::pow()
 
 #include "labeling.h"
 #include "LabelingGraph.h"
@@ -375,39 +378,182 @@ unsigned int move_boundaries_near_turning_points(GEO::Mesh& mesh, const char* at
 
 void straighten_boundary(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, const StaticLabelingGraph& slg, index_t boundary_index) {
     Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // get labeling attribute
-    index_t left_chart_index = slg.boundaries[boundary_index].left_chart;
-    index_t right_chart_index = slg.boundaries[boundary_index].right_chart;
+    const Boundary& current_boundary = slg.boundaries[boundary_index];
+    index_t left_chart_index = current_boundary.left_chart;
+    index_t right_chart_index = current_boundary.right_chart;
     const Chart& left_chart = slg.charts[left_chart_index];
     const Chart& right_chart = slg.charts[right_chart_index];
-    auto gcl = GraphCutLabeling(mesh,normals,left_chart.facets.size()+right_chart.facets.size()); // graph-cut only on the two charts
-    for(index_t f : left_chart.facets)
-        gcl.add_site(f);
-    for(index_t f : right_chart.facets)
-        gcl.add_site(f);
-    gcl.data_cost__set__fidelity_based(1);
-    // lock label of triangles on the 2 charts boundaries intersection
     index_t chart_of_adjacent_facet = index_t(-1);
-    for(index_t f : left_chart.facets) {
-        FOR(le,3) {
-            chart_of_adjacent_facet = slg.facet2chart[mesh.facets.adjacent(f,le)];
+    CustomMeshHalfedges mesh_he(mesh);
+
+    #ifndef NDEBUG
+        fmt::println("Working on boundary {} -> charts {} and {}",boundary_index,left_chart_index,right_chart_index);
+    #endif
+
+    if(current_boundary.halfedges.size()<=4) {
+        // small boundary -> skip
+        #ifndef NDEBUG
+            fmt::println("Skipped (4 or less edges)");
+        #endif
+        return;
+    }
+
+    #ifndef NDEBUG
+        // Export the boundaries in a .geogram file. Keep all vertices and add an edge for each boundary halfedges
+        Mesh boundaries_mesh;
+        boundaries_mesh.copy(mesh,false);
+        // keep only vertices, clear other components
+        boundaries_mesh.edges.clear();
+        boundaries_mesh.facets.clear();
+        boundaries_mesh.cells.clear();
+        for(const auto& b : slg.boundaries) { // for each boundary of the labeling graph
+            index_t edge_index = boundaries_mesh.edges.create_edges(b.halfedges.size()); // create as many edges as they are halfedges in the current boundary
+            for(const auto& he : b.halfedges) { // for each halfedge of the current boundary
+                CustomMeshHalfedges::Halfedge halfedge = he; //create a mutable copy
+                boundaries_mesh.edges.set_vertex(edge_index,0,mesh.facet_corners.vertex(halfedge.corner)); // get the vertex at the base of 'halfedge', set as 1st vertex
+                mesh_he.move_to_opposite(halfedge); // switch to the opposite halfedge
+                boundaries_mesh.edges.set_vertex(edge_index,1,mesh.facet_corners.vertex(halfedge.corner)); // get the vertex at the base of 'halfedge', set as 2nd vertex
+                edge_index++;
+            }
+        }
+        mesh_save(boundaries_mesh,"boundaries.geogram");
+
+        // Export the facets of the 2 charts in a .geogram file. Keep all vertices and add only the facets of the 2 charts next to the boundary
+        Mesh facets_of_the_2_charts;
+        facets_of_the_2_charts.copy(mesh,false);
+        // keep only vertices, clear other components
+        facets_of_the_2_charts.edges.clear();
+        facets_of_the_2_charts.facets.clear();
+        facets_of_the_2_charts.cells.clear();
+        index_t facet_index_on_new_mesh = facets_of_the_2_charts.facets.create_triangles(left_chart.facets.size()+right_chart.facets.size()); // create the triangles
+        Attribute<bool> on_wich_side(facets_of_the_2_charts.facets.attributes(),"on_wich_side"); // 0=left, 1=right
+        // Because we do not export all the facets, facet indices are different : 'facet_index_on_new_mesh' vs 'f' for the original mesh
+        for(auto f : left_chart.facets) {
+            facets_of_the_2_charts.facets.set_vertex(facet_index_on_new_mesh,0,mesh.facet_corners.vertex(mesh.facets.corner(f,0)));
+            facets_of_the_2_charts.facets.set_vertex(facet_index_on_new_mesh,1,mesh.facet_corners.vertex(mesh.facets.corner(f,1)));
+            facets_of_the_2_charts.facets.set_vertex(facet_index_on_new_mesh,2,mesh.facet_corners.vertex(mesh.facets.corner(f,2)));
+            on_wich_side[facet_index_on_new_mesh] = false;
+            facet_index_on_new_mesh++;
+        }
+        for(auto f : right_chart.facets) {
+            facets_of_the_2_charts.facets.set_vertex(facet_index_on_new_mesh,0,mesh.facet_corners.vertex(mesh.facets.corner(f,0)));
+            facets_of_the_2_charts.facets.set_vertex(facet_index_on_new_mesh,1,mesh.facet_corners.vertex(mesh.facets.corner(f,1)));
+            facets_of_the_2_charts.facets.set_vertex(facet_index_on_new_mesh,2,mesh.facet_corners.vertex(mesh.facets.corner(f,2)));
+            on_wich_side[facet_index_on_new_mesh] = true;
+            facet_index_on_new_mesh++;
+        }
+        mesh_save(facets_of_the_2_charts,"2_charts.geogram");
+    #endif
+
+    // https://stackoverflow.com/a/72437022
+    // Compute the distance to the boundary for all facets in the left and right charts
+    std::map<index_t,unsigned int> distance_to_boundary; // map a facet index to a distance. only defined for facet inside the 2 charts
+    std::queue<index_t> facets_to_explore; // facets we have to visit to update the distance in their neighborhood. FIFO data structure
+    index_t adjacent_facet = index_t(-1);
+    // Go through the boundary and set distance of adjacent triangle to 0
+    auto boundary_halfedge = current_boundary.halfedges.cbegin(); // get an iterator pointing at the first halfedge
+    boundary_halfedge++; // go to the second halfedge (the vertex at the base of the first one has facets of other charts next to it)
+    CustomMeshHalfedges::Halfedge current_halfedge;
+    for(; boundary_halfedge != current_boundary.halfedges.cend(); ++boundary_halfedge) { // walk along the boundary, from (boundary) halfedge to (boundary) halfedge
+        current_halfedge = (*boundary_halfedge); // copy the boundary halfedge into a mutable variable
+        do { // for each facet around the vertex at the base of the current boundary halfedge
+            distance_to_boundary[current_halfedge.facet] = 0; // set distance to 0 (the current facet touch the boundary by an edge or a vertex)
+            facets_to_explore.emplace(current_halfedge.facet);
+            mesh_he.move_to_next_around_vertex(current_halfedge,true);
+        } while (current_halfedge != *boundary_halfedge); // go around the vertex, until we are back on the initial boundary edge
+    }
+
+    #ifndef NDEBUG
+        fmt::println("boundary expored, distance of adjacent facet set to 0");
+    #endif
+
+    index_t current_facet = index_t(-1);
+    unsigned int current_distance = 0; // will store the distance currently computed for the current facet
+    while(!facets_to_explore.empty()) { // while there still are facets to explore
+        current_facet = facets_to_explore.front(); // pick the facet at the front of the FIFO
+        facets_to_explore.pop(); // remove it from the FIFO
+        current_distance = distance_to_boundary[current_facet];
+        FOR(le,3) { // for each local edge of the current facet
+            adjacent_facet = mesh.facets.adjacent(current_facet,le); // get the facet index of the neighbor at the other side of the current local edge
+            chart_of_adjacent_facet = slg.facet2chart[adjacent_facet]; // get its chart
             if( (chart_of_adjacent_facet != left_chart_index) && 
                 (chart_of_adjacent_facet != right_chart_index) ) {
-                // the facet f is next to a chart different from the 2 next to the boundary
-                gcl.data_cost__change_to__locked_label(f,label[f]);
+                    continue; // -> do not explore the adjacent facet, it is not inside the 2 charts
+                }
+            if(!distance_to_boundary.contains(adjacent_facet)) { // if the adjacent facet is not yet linked to a distance
+                distance_to_boundary[adjacent_facet] = current_distance + 1; // set an initial distance of one more than the current facet distance
+                facets_to_explore.emplace(adjacent_facet);
+                continue;
+            }
+            if (current_distance + 1 < distance_to_boundary[adjacent_facet]) { // if the distance of the neighbor was too much (passing by the current facet is closer)
+                distance_to_boundary[adjacent_facet] = current_distance + 1; // update the distance
+                facets_to_explore.emplace(adjacent_facet);
             }
         }
     }
-    for(index_t f : right_chart.facets) {
-        FOR(le,3) {
-            chart_of_adjacent_facet = slg.facet2chart[mesh.facets.adjacent(f,le)];
-            if( (chart_of_adjacent_facet != left_chart_index) && 
-                (chart_of_adjacent_facet != right_chart_index) ) {
-                // the facet f is next to a chart different from the 2 next to the boundary
-                gcl.data_cost__change_to__locked_label(f,label[f]);
+
+    #ifndef NDEBUG
+        fmt::println("distance_to_boundary has {} elements",distance_to_boundary.size());
+        fmt::println("combined, the 2 charts have {} facets",left_chart.facets.size()+right_chart.facets.size());
+    #endif
+
+    geo_assert(distance_to_boundary.size() == left_chart.facets.size()+right_chart.facets.size());
+
+    #ifndef NDEBUG
+        // Export the per-facet distance in a .geogram file
+        Mesh per_facet_dist;
+        per_facet_dist.copy(mesh,false);
+        // keep vertices and facets
+        per_facet_dist.edges.clear();
+        per_facet_dist.cells.clear();
+        Attribute<float> dist(per_facet_dist.facets.attributes(),"dist");
+        dist.fill(-1.0f); // set distance of -1 on the whole surface
+        for(auto& kv : distance_to_boundary) { // for each facet in the 2 charts
+            dist[kv.first] = (float) kv.second; // overwrite with the computed distance
+        }
+        mesh_save(per_facet_dist,"per_facet_dist.geogram");
+
+        // Export the contour (facets in the perimeter of the union of the 2 charts)
+        Mesh contour;
+        contour.copy(mesh,false);
+        // keep vertices and facets
+        contour.edges.clear();
+        contour.cells.clear();
+        Attribute<bool> on_contour(contour.facets.attributes(),"on_contour");
+        dist.fill(false); // init value: not on contour
+        for(const auto& kv : distance_to_boundary) { // for each facet in the 2 charts
+            if ( !distance_to_boundary.contains(mesh.facets.adjacent(kv.first,0)) || 
+                 !distance_to_boundary.contains(mesh.facets.adjacent(kv.first,1)) || 
+                 !distance_to_boundary.contains(mesh.facets.adjacent(kv.first,2)) ) { // if one of the neighbors is not inside the 2 charts
+                on_contour[kv.first] = true; // on the contour
             }
+        }
+        mesh_save(contour,"contour.geogram");
+    #endif
+
+    auto gcl = GraphCutLabeling(mesh,normals,distance_to_boundary.size()); // graph-cut only on the two charts
+    for(const auto& kv : distance_to_boundary) {
+        gcl.add_site(kv.first);
+    }
+    gcl.data_cost__set__fidelity_based(1);
+    // tweak data cost based on fidelity
+    // the further the triangle is from the boundary, the lower is the cost of assigning it to its current label
+    // also : if the facet is on the contour of the 2 charts, lock the label (prevent modification). Will lock the 2 corners
+    for(const auto& kv : distance_to_boundary) {
+        if ( !distance_to_boundary.contains(mesh.facets.adjacent(kv.first,0)) || 
+             !distance_to_boundary.contains(mesh.facets.adjacent(kv.first,1)) || 
+             !distance_to_boundary.contains(mesh.facets.adjacent(kv.first,2)) ) {
+            // this facet is on the contour of the 2 charts -> lock its label
+            gcl.data_cost__change_to__locked_label(kv.first,label[kv.first]);
+        }
+        else {
+            // penalize modification proportionally to the distance to the boundary (only close facets should be modifiable)
+            // kv.second is the distance
+            // -> multiply the cost of re-assigning by (0.9)^distance
+            gcl.data_cost__change_to__scaled(kv.first,label[kv.first],std::pow(0.9,kv.second));
         }
     }
     gcl.smooth_cost__set__default();
-    gcl.neighbors__set__compactness_based(3);
+    gcl.neighbors__set__compactness_based(1);
     gcl.compute_solution(label);
 }

@@ -81,6 +81,8 @@ public:
 
     void data_cost__change_to__forbidden_label(GCoptimization::SiteID siteID, index_t forbidden_label);
 
+    void data_cost__change_to__scaled(index_t facet_index, index_t label, float factor);
+
     void data_cost__change_to__scaled(GCoptimization::SiteID siteID, index_t label, float factor);
 
     void data_cost__change_to__shifted(GCoptimization::SiteID siteID, index_t label, float delta);
