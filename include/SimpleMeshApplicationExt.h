@@ -43,9 +43,10 @@ public:
     struct PointsGroup {
         std::vector<vec3> points;
         const float* color = nullptr; // storing a pointer allows for direct color modification from the GUI
+        const float* size = nullptr;
         bool show = false;
-        PointsGroup(const float* rgba, bool show) : color(rgba), show(show) {}
-        void clear() { points.clear(); color = nullptr; show = false; }
+        PointsGroup(const float* rgba, const float* size, bool show) : color(rgba), size(size), show(show) {}
+        void clear() { points.clear(); color = nullptr; size = nullptr; show = false; }
     };
 
     struct EdgesGroup {
@@ -136,8 +137,8 @@ public:
         edges_groups_.clear();
     }
 
-    std::size_t new_points_group(const float* rgba, bool show) {
-        points_groups_.push_back(PointsGroup(rgba,show));
+    std::size_t new_points_group(const float* rgba, const float* size, bool show) {
+        points_groups_.push_back(PointsGroup(rgba,size,show));
         return index_of_last(points_groups_);
     }
 
@@ -206,7 +207,7 @@ public:
             if(group.show) {
                 geo_assert(group.color != nullptr);
                 glupSetColor4fv(GLUP_FRONT_COLOR, group.color); // use the color of this group of points
-                glupSetPointSize(10.0f);
+                glupSetPointSize(*group.size);
                 for(std::size_t i = 0; i<group.points.size(); ++i) { // for each point in this group
                     glupBegin(GLUP_POINTS);
                     glupPrivateVertex3dv(group.points[i].data()); // give a pointer to the coordinates to GLUP

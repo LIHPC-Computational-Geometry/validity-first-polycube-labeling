@@ -75,12 +75,14 @@ public:
 		corners_color_[1] = 0.0f;
 		corners_color_[2] = 0.0f;
 		corners_color_[3] = 1.0f;
+		corners_size_ = 10.0f;
 
 		// turning points in yellow by default
 		turning_points_color_[0] = 1.0f;
 		turning_points_color_[1] = 1.0f;
 		turning_points_color_[2] = 0.0f;
 		turning_points_color_[3] = 1.0f;
+		turning_points_size_ = 10.0f;
 
 		nb_turning_points_ = 0;
 
@@ -328,7 +330,9 @@ protected:
 
 			ImGui::BeginDisabled(labeling_visu_mode_!=VIEW_LABELING_GRAPH);
 			ImGui::ColorEdit4WithPalette(fmt::format("Corners ({})",static_labeling_graph_.nb_corners()).c_str(), corners_color_);
+			ImGui::SliderFloat("Corners size", &corners_size_, 0.0f, 50.0f, "%.1f");
 			ImGui::ColorEdit4WithPalette(fmt::format("Turning points ({})",nb_turning_points_).c_str(), turning_points_color_);
+			ImGui::SliderFloat("Turning points size", &turning_points_size_, 0.0f, 50.0f, "%.1f");
 			ImGui::EndDisabled();
 
 			if(ImGui::RadioButton("View fidelity",&labeling_visu_mode_,VIEW_FIDELITY))
@@ -501,9 +505,9 @@ protected:
 
 		clear_scene_overlay();
 
-		valid_corners_group_index_ = new_points_group(corners_color_,true);
-		invalid_corners_group_index_ = new_points_group(corners_color_,true);
-		turning_points_group_index_ = new_points_group(turning_points_color_,true);
+		valid_corners_group_index_ = new_points_group(corners_color_,&corners_size_,true);
+		invalid_corners_group_index_ = new_points_group(corners_color_,&corners_size_,true);
+		turning_points_group_index_ = new_points_group(turning_points_color_,&turning_points_size_,true);
 		X_boundaries_group_index_ = new_edges_group(labeling_colors_.color_as_floats(0),false); // axis X -> color of label 0 = +X
 		Y_boundaries_group_index_ = new_edges_group(labeling_colors_.color_as_floats(2),false); // axis Y -> color of label 2 = +Y
 		Z_boundaries_group_index_ = new_edges_group(labeling_colors_.color_as_floats(3),false); // axis Z -> color of label 4 = +Z
@@ -584,7 +588,9 @@ protected:
 	int labeling_visu_mode_; // not a enum, to be used in ImGui. should only be modified by labeling_visu_mode_transition() and ImGui::RadioButton
 	std::size_t valid_corners_group_index_;
 	std::size_t invalid_corners_group_index_;
+	float corners_size_;
 	std::size_t turning_points_group_index_;
+	float turning_points_size_;
 	std::size_t X_boundaries_group_index_;
 	std::size_t Y_boundaries_group_index_;
 	std::size_t Z_boundaries_group_index_;
