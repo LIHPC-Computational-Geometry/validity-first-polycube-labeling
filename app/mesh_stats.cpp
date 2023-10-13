@@ -1,10 +1,11 @@
-#include <geogram/mesh/mesh.h>          // for Mesh, cell types
-#include <geogram/mesh/mesh_io.h>       // for mesh_load()
-#include <geogram/mesh/mesh_geometry.h> // for mesh_facet_area(), mesh_cell_volume()
-#include <geogram/basic/file_system.h>  // for FileSystem::is_file()
+#include <geogram/mesh/mesh.h>              // for Mesh, cell types
+#include <geogram/mesh/mesh_io.h>           // for mesh_load()
+#include <geogram/mesh/mesh_geometry.h>     // for mesh_facet_area(), mesh_cell_volume()
+#include <geogram/basic/file_system.h>      // for FileSystem::is_file()
 #include <geogram/basic/command_line.h>
 #include <geogram/basic/logger.h>
-#include <geogram/basic/vecg.h>         // for length()
+#include <geogram/basic/vecg.h>             // for length()
+#include <geogram/points/principal_axes.h>  // for PrincipalAxes3d
 
 #include <fmt/core.h>
 #include <fmt/ostream.h>
@@ -57,18 +58,22 @@ int main(int argc, const char** argv) {
     // Vertices
     ////////////////////////////////
     
-    BasicStats dim_x_stats,
-               dim_y_stats,
-               dim_z_stats;
     output_JSON["vertices"]["nb"] = input_mesh.vertices.nb();
     if(input_mesh.vertices.nb()!=0) {
+        BasicStats dim_x_stats,
+                   dim_y_stats,
+                   dim_z_stats;
+        PrincipalAxes3d principal_axes;
+        principal_axes.begin();
         vec3 coordinates;
         FOR(v,input_mesh.vertices.nb()) {
             coordinates = input_mesh.vertices.point(v);
             dim_x_stats.insert(coordinates.x);
             dim_y_stats.insert(coordinates.y);
             dim_z_stats.insert(coordinates.z);
+            principal_axes.add_point(coordinates);
         }
+        principal_axes.end();
         // x axis
         output_JSON["vertices"]["x"]["min"] = dim_x_stats.min();
         output_JSON["vertices"]["x"]["max"] = dim_x_stats.max();
@@ -84,6 +89,21 @@ int main(int argc, const char** argv) {
         output_JSON["vertices"]["z"]["max"] = dim_z_stats.max();
         output_JSON["vertices"]["z"]["avg"] = dim_z_stats.avg();
         output_JSON["vertices"]["z"]["sd"]  = dim_z_stats.sd();
+        // principal axes, as a list (3 items) of objects (2 keys for each)
+        output_JSON["vertices"]["principal_axes"] = {
+            { nlohmann::json::object({
+                {"axis", {principal_axes.axis(0)[0], principal_axes.axis(0)[1], principal_axes.axis(0)[2]} },
+                {"eigenvalue", principal_axes.eigen_value(0) }})
+            },
+            { nlohmann::json::object({
+                {"axis", {principal_axes.axis(1)[0], principal_axes.axis(1)[1], principal_axes.axis(1)[2]} },
+                {"eigenvalue", principal_axes.eigen_value(1) }})
+            },
+            { nlohmann::json::object({
+                {"axis", {principal_axes.axis(2)[0], principal_axes.axis(2)[1], principal_axes.axis(2)[2]} },
+                {"eigenvalue", principal_axes.eigen_value(2) }})
+            }
+        };
     }
 
     ////////////////////////////////
