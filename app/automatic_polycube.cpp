@@ -143,6 +143,13 @@ protected:
 				}
 			}
 
+			if(ImGui::Button("Merge corners and turning points")) {
+				FOR(b,static_labeling_graph_.non_monotone_boundaries.size()) {
+					pull_closest_corner(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,b);
+					update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+				}
+			}
+
 			ImGui::SeparatorText("Refinement");
 
 			if(ImGui::Button(selected_chart_mode_ ? "Pick a chart" : "Select chart")) {

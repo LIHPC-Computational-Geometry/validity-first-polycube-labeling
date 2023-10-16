@@ -600,3 +600,25 @@ void straighten_boundary(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
     }
     gcl.compute_solution(label);
 }
+
+void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, const StaticLabelingGraph& slg, index_t non_monotone_boundary_index) {
+    const Boundary& boundary = slg.boundaries[slg.non_monotone_boundaries[non_monotone_boundary_index]];
+    if(boundary.turning_points.size() != 1) {
+        fmt::println(Logger::out("monotonicity"),"Ignoring boundary {} which has {} turning-points instead of 1 for pull_closest_corner()",slg.non_monotone_boundaries[non_monotone_boundary_index],boundary.turning_points.size()); Logger::out("monotonicity").flush();
+        return;
+    }
+    index_t halfedge_turning_point = boundary.turning_points[0];
+    // the turning-point is at the base of the halfedge 'halfedge_turning_point'
+    // compute 2 distances :
+    // - from start corner to turning point (= first halfedge to halfedge_turning_point-1 included)
+    // - from turning point to end corner (= halfedge_turning_point to last halfedge included)
+    double distance_to_start_corner = 0.0;
+    double distance_to_end_corner = 0.0;
+    FOR(i,halfedge_turning_point-1) {
+        distance_to_start_corner += length(Geom::halfedge_vector(mesh,boundary.halfedges[i]));
+    }
+    FOR(i,halfedge_turning_point-1) {
+        distance_to_end_corner += length(Geom::halfedge_vector(mesh,boundary.halfedges[i]));
+    }
+    index_t target_corner = distance_to_start_corner < distance_to_end_corner ? boundary.start_corner : boundary.end_corner;
+}
