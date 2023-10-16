@@ -1,8 +1,9 @@
 #include <geogram/mesh/mesh.h>              // for Mesh, cell types
-#include <geogram/mesh/mesh_io.h>           // for mesh_load()
+#include <geogram/mesh/mesh_io.h>           // for mesh_load(), mesh_save()
 #include <geogram/mesh/mesh_geometry.h>     // for mesh_facet_area(), mesh_cell_volume()
 #include <geogram/basic/file_system.h>      // for FileSystem::is_file()
 #include <geogram/basic/command_line.h>
+#include <geogram/basic/command_line_args.h>
 #include <geogram/basic/logger.h>
 #include <geogram/basic/vecg.h>             // for length()
 #include <geogram/points/principal_axes.h>  // for PrincipalAxes3d
@@ -26,29 +27,46 @@
                                         ((cell_type) == MESH_CONNECTOR) ? "connectors"  : (\
                                         "invalid cell type" ))))))
 
+#define VERTEX_ORIGIN       0
+#define VERTEX_TIP_1ST_AXIS 1
+#define VERTEX_TIP_2ND_AXIS 2
+#define VERTEX_TIP_3RD_AXIS 3
+
 using namespace GEO;
 
-int main(int argc, const char** argv) {
-
-    if (argc<1) {
-        fmt::println("Missing arguments");
-        fmt::println("./volume_labeling input_mesh");
-        return 1;
-    }
+int main(int argc, char** argv) {
+    
+    // inside of the GEO::initialize() function, modified to have the logger in the "minimal" mode
+    Environment* env = Environment::instance();
+    env->set_value("version", "inaccessible"); // some code after expects the "version" environment variable to exist
+    env->set_value("release_date", "inaccessible"); // idem
+    env->set_value("SVN revision", "inaccessible"); // idem
     FileSystem::initialize();
     Logger::initialize();
     Logger::instance()->set_minimal(true);
     CmdLine::initialize();
-    mesh_io_initialize();
+    CmdLine::import_arg_group("sys"); // declares sys:compression_level, needed by mesh_save() for .geogram files
 
-    if(!FileSystem::is_file(argv[1])) {
-        fmt::println(Logger::err("I/O"),"{} does not exist",argv[1]); Logger::err("I/O").flush();
+    std::vector<std::string> filenames;
+    if(!CmdLine::parse(
+		argc,
+		argv,
+		filenames,
+		"input_mesh [principal_axes.obj]"
+		))
+	{
+		return 1;
+	}
+
+    if(!FileSystem::is_file(filenames[0])) {
+        fmt::println(Logger::err("I/O"),"{} does not exist",filenames[0]); Logger::err("I/O").flush();
         return 1;
     }
 
+    mesh_io_initialize();
     Mesh input_mesh;
-    if(!mesh_load(argv[1],input_mesh)) {
-        fmt::println(Logger::err("I/O"),"Unable to load the mesh from {}",argv[1]); Logger::err("I/O").flush();
+    if(!mesh_load(filenames[0],input_mesh)) {
+        fmt::println(Logger::err("I/O"),"Unable to load the mesh from {}",filenames[0]); Logger::err("I/O").flush();
         return 1;
     }
 
@@ -104,6 +122,25 @@ int main(int argc, const char** argv) {
                 {"eigenvalue", principal_axes.eigen_value(2) }})
             }
         };
+        if(filenames.size() > 1) { // if another filename was given
+            Mesh principal_axes_mesh;
+            index_t index_of_first_vertex = principal_axes_mesh.vertices.create_vertices(4); // {center, first axis tip, second axis tip, third axis tip}
+            principal_axes_mesh.vertices.point(VERTEX_ORIGIN) = principal_axes.center();
+            principal_axes_mesh.vertices.point(VERTEX_TIP_1ST_AXIS) = principal_axes.center() + principal_axes.axis(0)*principal_axes.eigen_value(0);
+            principal_axes_mesh.vertices.point(VERTEX_TIP_2ND_AXIS) = principal_axes.center() + principal_axes.axis(1)*principal_axes.eigen_value(1);
+            principal_axes_mesh.vertices.point(VERTEX_TIP_3RD_AXIS) = principal_axes.center() + principal_axes.axis(2)*principal_axes.eigen_value(2);
+            index_t index_of_first_edge = principal_axes_mesh.edges.create_edges(3);
+            // edge n°0 : 1st principal axis
+            principal_axes_mesh.edges.set_vertex(0,0,VERTEX_ORIGIN);
+            principal_axes_mesh.edges.set_vertex(0,1,VERTEX_TIP_1ST_AXIS);
+            // edge n°1 : 2nd principal axis
+            principal_axes_mesh.edges.set_vertex(1,0,VERTEX_ORIGIN);
+            principal_axes_mesh.edges.set_vertex(1,1,VERTEX_TIP_2ND_AXIS);
+            // edge n°2 : 3rd principal axis
+            principal_axes_mesh.edges.set_vertex(2,0,VERTEX_ORIGIN);
+            principal_axes_mesh.edges.set_vertex(2,1,VERTEX_TIP_3RD_AXIS); 
+            mesh_save(principal_axes_mesh,filenames[1]);
+        }
     }
 
     ////////////////////////////////
