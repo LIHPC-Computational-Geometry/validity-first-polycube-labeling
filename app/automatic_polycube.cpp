@@ -291,6 +291,9 @@ public:
 
 				if(VECTOR_CONTAINS(set_of_labeling_features_combinations_encountered,features_combination)) { // wa can use VECTOR_CONTAINS() on sets because they also have find(), cbegin() and cend()
 					// we backtracked
+					// There is probably small charts that we can remove to help the fixing routine
+					remove_charts_around_invalid_boundaries(mesh,normals,LABELING_ATTRIBUTE_NAME,slg);
+					slg.fill_from(mesh,LABELING_ATTRIBUTE_NAME,slg.is_allowing_boundaries_between_opposite_labels());
 					break; // go back to the beginning of the loop, with other fix operators
 				}
 				else {

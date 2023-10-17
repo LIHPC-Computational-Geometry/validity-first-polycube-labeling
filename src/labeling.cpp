@@ -294,6 +294,48 @@ void remove_invalid_charts(GEO::Mesh& mesh, const std::vector<vec3>& normals, co
     gcl.compute_solution(label);
 }
 
+void remove_charts_around_invalid_boundaries(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, const StaticLabelingGraph& slg) {
+    
+    if(slg.invalid_boundaries.empty()) {
+        fmt::println(Logger::out("fix_labeling"),"Warning : operation canceled because there are no invalid boundaries"); Logger::out("fix_labeling").flush();
+        return;
+    }
+
+    Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // get labeling attribute
+
+    // In involved charts, preventing existing label from being re-applied
+    // Lock labels in other charts
+
+    std::set<index_t> charts_to_remove;
+    for(index_t b : slg.invalid_boundaries) {
+        charts_to_remove.insert(slg.boundaries[b].left_chart);
+        charts_to_remove.insert(slg.boundaries[b].right_chart);
+    }
+
+    GraphCutLabeling gcl(mesh,normals);
+    gcl.data_cost__set__locked_labels(label); // start by locking all the labels, so other charts will not be modified
+    gcl.smooth_cost__set__default();
+    gcl.neighbors__set__compactness_based(1);
+
+    for(index_t chart_index : charts_to_remove) { // for each chart to remove
+
+        for(index_t facet_index : slg.charts[chart_index].facets) { // for each facet inside this chart
+            gcl.data_cost__change_to__fidelity_based(facet_index,1);
+            // if facet next to a boundary, lower the cost of assigning the neighboring label
+            FOR(le,3) { // for each local edge
+                index_t adjacent_facet = mesh.facets.adjacent(facet_index,le);
+                if(label[adjacent_facet] != label[facet_index]) {
+                    gcl.data_cost__change_to__scaled(facet_index,label[adjacent_facet],0.5f); // halve the cost
+                }
+            }
+            gcl.data_cost__change_to__forbidden_label(facet_index,label[facet_index]); // prevent the label from staying the same
+        }
+    }
+
+    gcl.compute_solution(label);
+
+}
+
 unsigned int move_boundaries_near_turning_points(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg) {
 
     unsigned int nb_labels_changed = 0;
