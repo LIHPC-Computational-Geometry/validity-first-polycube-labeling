@@ -128,6 +128,11 @@ protected:
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 
+			if(ImGui::Button("Auto fix validity")) {
+				auto_fix_validity(mesh_,normals_,static_labeling_graph_,100);
+				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+			}
+
 			ImGui::SeparatorText("Monotonicity");
 
 			if(ImGui::Button("Move boundaries near turning points")) {
@@ -148,6 +153,11 @@ protected:
 					pull_closest_corner(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,b);
 					update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 				}
+			}
+
+			if(ImGui::Button("Auto fix monotonicity")) {
+				auto_fix_monotonicity(mesh_,static_labeling_graph_,500);
+				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 
 			ImGui::SeparatorText("Refinement");
