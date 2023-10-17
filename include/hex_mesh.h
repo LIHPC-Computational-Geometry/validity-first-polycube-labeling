@@ -3,6 +3,8 @@
 #include <geogram/basic/numeric.h> // for GEO::index_t
 #include <geogram/mesh/mesh.h>     // for GEO::Mesh
 
+#include "basic_stats.h"
+
 // Ordering of hexahedron corners
 //
 //   UltiMaille convention
@@ -48,5 +50,4 @@ constexpr GEO::index_t HEX_CORNER_SPLITTING[8][4] = {
 
 // compute the Scaled Jacobian of each cell
 // in a cell attribute 'SJ' of M
-// Returns the min Scaled Jacobian of M
-double compute_scaled_jacobian(GEO::Mesh& M);
+void compute_scaled_jacobian(GEO::Mesh& M, BasicStats& stats);

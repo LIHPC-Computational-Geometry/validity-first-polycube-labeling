@@ -9,6 +9,7 @@
 #include "hex_mesh.h"                   // for compute_scaled_jacobian()
 #include "SimpleMeshApplicationExt.h"   // for colormaps indices
 #include "about_window.h"               // for draw_about_window()
+#include "basic_stats.h"                // for BasicStats
 
 using namespace GEO;
 
@@ -72,8 +73,8 @@ private:
 
         mesh_.vertices.set_double_precision();
         
-        double minSJ = compute_scaled_jacobian(mesh_);
-		fmt::println(Logger::out("I/O"),"minSJ of this hex mesh is {}",minSJ); Logger::out("I/O").flush();
+        compute_scaled_jacobian(mesh_,SJ_stats_);
+		fmt::println(Logger::out("I/O"),"minSJ of this hex mesh is {}",SJ_stats_.min()); Logger::out("I/O").flush();
 		
         show_SJ_ = true;
         drawing_settings_dirty_ = true;
@@ -85,6 +86,7 @@ private:
 
     bool show_SJ_;
     bool drawing_settings_dirty_;
+    BasicStats SJ_stats_;
 };
 
 int main(int argc, char** argv) {

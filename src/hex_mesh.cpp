@@ -11,11 +11,12 @@
 #include <ostream>      // for std::endl
 
 #include "hex_mesh.h"
+#include "basic_stats.h" // for BasicStats
 
-double compute_scaled_jacobian(GEO::Mesh& M) {
+void compute_scaled_jacobian(GEO::Mesh& M, BasicStats& stats) {
     M.vertices.set_double_precision(); // in order to use M.vertices.point()
     GEO::Attribute<double> SJ(M.cells.attributes(), "SJ");
-    double minSJ = 1.0;
+    stats.reset();
     for (GEO::index_t hex_index : M.cells) { // for each hexahedron in mesh M
         
         if (M.cells.type(hex_index) != GEO::MESH_HEX) { // check if the cell is not an hexahedron
@@ -40,7 +41,6 @@ double compute_scaled_jacobian(GEO::Mesh& M) {
             scaled_jacobian = std::min(scaled_jacobian, dot(n3,cross(n1, n2)));
         }
         SJ[hex_index] = scaled_jacobian; // store value in mesh attribute
-        minSJ = std::min(minSJ, scaled_jacobian); // update min Scaled Jacobian
+        stats.insert(scaled_jacobian); // take into account this value for the stats
     }
-    return minSJ;
 }
