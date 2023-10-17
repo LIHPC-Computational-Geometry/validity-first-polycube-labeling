@@ -353,9 +353,9 @@ unsigned int move_boundaries_near_turning_points(GEO::Mesh& mesh, const char* at
     // Get turning points, change the label if this doesnt break charts connectivity
 
     for(auto b : slg.non_monotone_boundaries) {
-        for(auto v : slg.boundaries[b].turning_points) { // v is the vertex at the base of halfedge v
+        for(auto tp : slg.boundaries[b].turning_points) { // v is the vertex at the base of halfedge v
 
-            current_halfedge = slg.boundaries[b].halfedges[v];
+            current_halfedge = slg.boundaries[b].halfedges[tp.outgoing_local_halfedge_index()];
             geo_assert(mesh_halfedges.halfedge_is_border(current_halfedge));
             geo_assert(MAP_CONTAINS(slg.halfedge2boundary,current_halfedge));
 
@@ -375,6 +375,8 @@ unsigned int move_boundaries_near_turning_points(GEO::Mesh& mesh, const char* at
             std::vector<index_t> left_side_facets;
             double right_side_sum_of_angles = 0.0;
             std::vector<index_t> right_side_facets;
+
+            // TODO use direction store in TurningPoint objects
 
             previous_halfedge = current_halfedge;
             mesh_halfedges.move_to_next_around_vertex(previous_halfedge,true); // next counterclockwise
@@ -643,7 +645,7 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
         fmt::println(Logger::out("monotonicity"),"Ignoring boundary {} which has {} turning-points instead of 1 for pull_closest_corner()",slg.non_monotone_boundaries[non_monotone_boundary_index],boundary.turning_points.size()); Logger::out("monotonicity").flush();
         return;
     }
-    index_t halfedge_turning_point = boundary.turning_points[0];
+    index_t halfedge_turning_point = boundary.turning_points[0].outgoing_local_halfedge_index();
     // the turning-point is at the base of the halfedge 'halfedge_turning_point'
     // compute 2 distances :
     // - from start corner to turning point (= first halfedge to halfedge_turning_point-1 included)

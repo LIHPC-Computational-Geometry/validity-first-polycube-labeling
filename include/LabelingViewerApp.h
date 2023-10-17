@@ -534,8 +534,8 @@ protected:
 		}
 
 		for(index_t i : static_labeling_graph_.non_monotone_boundaries) {
-			for(index_t j : static_labeling_graph_.boundaries[i].turning_points) {
-				vec3 coordinates = mesh_vertex(mesh_, mesh_.facet_corners.vertex(static_labeling_graph_.boundaries[i].halfedges[j].corner));
+			FOR(j,static_labeling_graph_.boundaries[i].turning_points.size()) {
+				vec3 coordinates = mesh_vertex(mesh_,static_labeling_graph_.boundaries[i].turning_point_vertex(j,mesh_));
 				add_point_to_group(turning_points_group_index_,coordinates.x,coordinates.y,coordinates.z);
 			}
 		}

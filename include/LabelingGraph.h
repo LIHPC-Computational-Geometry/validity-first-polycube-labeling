@@ -126,6 +126,27 @@ std::ostream& operator<< (std::ostream &out, const Corner& data);
 // https://fmt.dev/latest/api.html#std-ostream-support
 template <> struct fmt::formatter<Corner> : ostream_formatter {};
 
+class TurningPoint {
+
+public:
+    
+    TurningPoint(index_t outgoing_local_halfedge_index, const Boundary& boundary, const CustomMeshHalfedges& mesh_he); // important : mesh_he must use facet region (on the labeling)
+    index_t outgoing_local_halfedge_index() const { return outgoing_local_halfedge_index_; }
+    bool towards_left() const  { return direction_==0; }
+    bool towards_right() const { return direction_==1; }
+
+protected:
+
+    index_t outgoing_local_halfedge_index_; // index in Boundary::halfedges
+    bool direction_; // 0 = left, 1 = right
+};
+
+std::ostream& operator<< (std::ostream &out, const TurningPoint& data);
+
+// Use the operator<< overloading with {fmt}
+// https://fmt.dev/latest/api.html#std-ostream-support
+template <> struct fmt::formatter<TurningPoint> : ostream_formatter {};
+
 // A boundary is a list of halfedges between 2 charts
 struct Boundary {
 
@@ -133,7 +154,7 @@ struct Boundary {
 
     int axis = -1; // in {0 = X, 1 = Y, 2 = Z, -1 = boundary between opposite labels }
     bool is_valid = false;
-    std::vector<index_t> turning_points;
+    std::vector<TurningPoint> turning_points;
 
     //// Underlying geometry //////////////////
 
@@ -170,6 +191,10 @@ struct Boundary {
     index_t chart_at_other_side(index_t origin_chart) const;
 
     void print_successive_halfedges(fmt::v9::ostream& out, Mesh& mesh);
+
+    index_t turning_point_vertex(index_t turning_point_index, const Mesh& mesh) const;
+
+    bool halfedge_has_turning_point_at_base(index_t local_halfedge_index) const;
 };
 
 std::ostream& operator<< (std::ostream &out, const Boundary& data);

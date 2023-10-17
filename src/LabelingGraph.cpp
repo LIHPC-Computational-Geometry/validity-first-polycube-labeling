@@ -165,6 +165,34 @@ std::ostream& operator<< (std::ostream &out, const Corner& data) {
     return out;
 }
 
+TurningPoint::TurningPoint(index_t outgoing_local_halfedge_index, const Boundary& boundary, const CustomMeshHalfedges& mesh_he) {
+    outgoing_local_halfedge_index_ = outgoing_local_halfedge_index;
+    // Explore clockwise : right side then left side
+    // For each side, sum of angles to know towards with side the turning point is
+    double left_side_sum_of_angles = 0.0;
+    double right_side_sum_of_angles = 0.0;
+    MeshHalfedges::Halfedge current_halfedge = boundary.halfedges[outgoing_local_halfedge_index], previous_halfedge = current_halfedge;
+    mesh_he.move_to_next_around_vertex(previous_halfedge,true); // next counterclockwise
+    // explore the right side (clockwise)
+    do {
+        right_side_sum_of_angles += angle(halfedge_vector(mesh_he.mesh(),previous_halfedge),halfedge_vector(mesh_he.mesh(),current_halfedge));
+        previous_halfedge = current_halfedge;
+        mesh_he.move_to_prev_around_vertex(current_halfedge,true); // previous counterclockwise
+    } while (!mesh_he.halfedge_is_border(current_halfedge));
+    // explore the right side
+    do {
+        left_side_sum_of_angles += angle(halfedge_vector(mesh_he.mesh(),previous_halfedge),halfedge_vector(mesh_he.mesh(),current_halfedge));
+        previous_halfedge = current_halfedge;
+        mesh_he.move_to_prev_around_vertex(current_halfedge,true); // previous counterclockwise
+    } while (!mesh_he.halfedge_is_border(current_halfedge));
+    direction_ = (left_side_sum_of_angles > right_side_sum_of_angles); // 0 = towards left, 1 = towards right
+}
+
+std::ostream& operator<< (std::ostream &out, const TurningPoint& data) {
+    fmt::println(out,"\t\toutgoing_local_halfedge_index : {}, direction : {}",data.outgoing_local_halfedge_index(),data.towards_left() ? "left" : "right");
+    return out;
+}
+
 bool Boundary::empty() const {
     return (
         axis == -1 &&
@@ -374,14 +402,14 @@ bool Boundary::find_turning_points(const CustomMeshHalfedges& mesh_halfedges) {
     // parse result for turning-points
     for (unsigned int i=1; i<per_vertex_result.size(); i++){
         if (per_vertex_result[i] != per_vertex_result[i-1]){
-            turning_points.push_back( (index_t) i);
+            turning_points.push_back(TurningPoint((index_t) i, *this, mesh_halfedges));
         }
     }
 
     // handle loops
     if ( (start_corner == end_corner) &&
          ((*per_vertex_result.begin()) != (*per_vertex_result.rbegin())) ) {
-        turning_points.push_back( (index_t) 0); // the first (& last) vertex is a turning point (loop)
+        turning_points.push_back(TurningPoint((index_t) 0, *this, mesh_halfedges)); // the first (& last) vertex is a turning point (loop)
     }
 
     return !turning_points.empty(); // true if there are turning-points, else false
@@ -413,7 +441,8 @@ void Boundary::print_successive_halfedges(fmt::v9::ostream& out, Mesh& mesh) {
     out.print("\t ");
     FOR(he_index,halfedges.size()) {
         // print vertex at the beginning of current halfedge
-        if(VECTOR_CONTAINS(turning_points,he_index)) {
+        index_t vertex_index = mesh.facet_corners.vertex(halfedges[he_index].corner);
+        if(halfedge_has_turning_point_at_base(he_index)) {
             // there is a turning point on this vertex
             out.print("({}) ",mesh.facet_corners.vertex(halfedges[he_index].corner));
         }
@@ -427,12 +456,27 @@ void Boundary::print_successive_halfedges(fmt::v9::ostream& out, Mesh& mesh) {
     out.print("{}\n",mesh.facet_corners.vertex(mesh_halfedges.opposite_corner(*(halfedges.rbegin())))); // get vertex of opposite corner of last halfedge = last vertex
 }
 
+index_t Boundary::turning_point_vertex(index_t turning_point_index, const Mesh& mesh) const {
+    return mesh.facet_corners.vertex(halfedges[turning_points[turning_point_index].outgoing_local_halfedge_index()].corner);
+}
+
+bool Boundary::halfedge_has_turning_point_at_base(index_t local_halfedge_index) const {
+    for(auto& tp : turning_points) {
+        if(tp.outgoing_local_halfedge_index() == local_halfedge_index) {
+            return true;
+        }
+    }
+    return false;
+}
+
 std::ostream& operator<< (std::ostream &out, const Boundary& data) {
     fmt::println(out,"\taxis : {}",data.axis);
     fmt::println(out,"\tis_valid : {}",data.is_valid);
-    fmt::println(out,"\tturning_points = {}",data.turning_points);
+    fmt::println(out,"\tturning_points : ");
+    for(const auto tp : data.turning_points) {
+        fmt::print(out,"{}",tp);
+    }
     fmt::println(out,"\thalfedges : {}",data.halfedges);
-    
     fmt::println(out,"\tleft_chart : {}",OPTIONAL_TO_STRING(data.left_chart));
     fmt::println(out,"\tright_chart : {}",OPTIONAL_TO_STRING(data.right_chart));
     fmt::println(out,"\tstart_corner : {}",OPTIONAL_TO_STRING(data.start_corner));
@@ -693,8 +737,8 @@ void StaticLabelingGraph::dump_to_file(const char* filename, Mesh& mesh) {
 
 bool StaticLabelingGraph::is_turning_point(const Mesh& mesh, index_t vertex_index) const {
     for(auto b : non_monotone_boundaries) {
-        for(auto lhe : boundaries[b].turning_points) {
-            if(mesh.facet_corners.vertex(boundaries[b].halfedges[lhe].corner) == vertex_index) {
+        FOR(tp,boundaries[b].turning_points.size()) {
+            if(boundaries[b].turning_point_vertex(tp,mesh) == vertex_index) {
                 return true;
             }
         }
