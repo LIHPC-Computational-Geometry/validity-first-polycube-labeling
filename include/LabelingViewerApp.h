@@ -18,6 +18,8 @@
 #include "LabelingGraph.h"   // for StaticLabelingGraph
 #include "labeling.h"		 // for load_labeling(), naive_labeling(), save_labeling()
 
+#define RED_WHITE_BLUE_LABELING_COLORS // better for (most) color-deficient users
+
 #define LABELING_ATTRIBUTE_NAME "label"
 
 // values for *_labeling_visu_mode_
@@ -48,8 +50,13 @@ public:
 						     labeling_colors_({
 								{1.0f, 0.0f, 0.0f, 1.0f}, // label 0 -> red
 								{0.6f, 0.0f, 0.0f, 1.0f}, // label 1 -> darker red
+							#ifdef RED_WHITE_BLUE_LABELING_COLORS
+								{1.0f, 1.0f, 1.0f, 1.0f}, // label 2 -> white
+								{0.6f, 0.6f, 0.6f, 1.0f}, // label 3 -> grey
+							#else
 								{0.0f, 1.0f, 0.0f, 1.0f}, // label 2 -> green
 								{0.0f, 0.6f, 0.0f, 1.0f}, // label 3 -> darker green
+							#endif
 								{0.0f, 0.0f, 1.0f, 1.0f}, // label 4 -> blue
 								{0.0f, 0.0f, 0.6f, 1.0f}  // label 5 -> darker blue
 						   	 }),
