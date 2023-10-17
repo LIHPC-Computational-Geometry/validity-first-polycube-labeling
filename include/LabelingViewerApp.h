@@ -17,6 +17,7 @@
 #include "SimpleMeshApplicationExt.h"
 #include "LabelingGraph.h"   // for StaticLabelingGraph
 #include "labeling.h"		 // for load_labeling(), naive_labeling(), save_labeling()
+#include "basic_stats.h"	 // for BasicStats
 
 #define RED_WHITE_BLUE_LABELING_COLORS // better for (most) color-deficient users
 
@@ -580,9 +581,9 @@ protected:
 		set_edges_group_visibility(Y_boundaries_group_index_,true);
 		set_edges_group_visibility(Z_boundaries_group_index_,true);
 
-		double fidelity_min, fidelity_max, fidelity_avg;
-		std::tie(fidelity_min,fidelity_max,fidelity_avg) = compute_per_facet_fidelity(mesh_,normals_,LABELING_ATTRIBUTE_NAME,"fidelity");
-		fidelity_text_label_ = fmt::format("min={:.4f} | max={:.4f} | avg={:.4f}",fidelity_min,fidelity_max,fidelity_avg);
+		BasicStats stats;
+		compute_per_facet_fidelity(mesh_,normals_,LABELING_ATTRIBUTE_NAME,"fidelity",stats);
+		fidelity_text_label_ = fmt::format("min={:.4f} | max={:.4f} | avg={:.4f}",stats.min(),stats.max(),stats.avg());
 	}
 
 protected:

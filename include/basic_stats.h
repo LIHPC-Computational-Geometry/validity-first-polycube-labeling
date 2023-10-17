@@ -1,3 +1,5 @@
+#pragma once
+
 #include <geogram/basic/assert.h> // for geo_assert_not_reached
 
 #include <algorithm>    // for std::min() and std::max()

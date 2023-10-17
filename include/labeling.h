@@ -3,6 +3,7 @@
 #include <geogram/mesh/mesh.h> // for GEO::Mesh
 
 #include "LabelingGraph.h"
+#include "basic_stats.h"
 
 #define LABEL2STR(label) ((label==0) ? "+X" : ( \
                           (label==1) ? "-X" : ( \
@@ -41,8 +42,7 @@ void naive_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, const cha
 
 void graphcut_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, int compactness_coeff = 1, int fidelity_coeff = 1);
 
-// returns {min,max,avg}
-std::tuple<double,double,double> compute_per_facet_fidelity(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* labeling_attribute_name, const char* fidelity_attribute_name);
+void compute_per_facet_fidelity(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* labeling_attribute_name, const char* fidelity_attribute_name, BasicStats& stats);
 
 unsigned int remove_surrounded_charts(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg);
 

@@ -19,6 +19,7 @@
 #include "containers.h"
 #include "GraphCutLabeling.h"
 #include "CustomMeshHalfedges.h"
+#include "basic_stats.h"
 
 bool load_labeling(const std::string& filename, Mesh& mesh, const char* attribute_name) {
 
@@ -121,7 +122,7 @@ void graphcut_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, const 
     gcl.compute_solution(label);
 }
 
-std::tuple<double,double,double> compute_per_facet_fidelity(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* labeling_attribute_name, const char* fidelity_attribute_name) {
+void compute_per_facet_fidelity(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* labeling_attribute_name, const char* fidelity_attribute_name, BasicStats& stats) {
     // goal of the fidelity metric : measure how far the assigned direction (label) is from the triangle normal
     //   fidelity=1 (high fidelity) -> label equal to the normal      ex: triangle is oriented towards +X and we assign +X
     //   fidelity=0 (low fidelity)  -> label opposite to the normal   ex: triangle is oriented towards +X and we assign -X
@@ -131,18 +132,11 @@ std::tuple<double,double,double> compute_per_facet_fidelity(GEO::Mesh& mesh, con
     // 4. add 1 and divide by 2 so that the range is [0:1] : 1=equal, 0=opposite
     Attribute<index_t> label(mesh.facets.attributes(), labeling_attribute_name);
     Attribute<double> per_facet_fidelity(mesh.facets.attributes(), fidelity_attribute_name);
-    double min = Numeric::max_float64(),
-           max = Numeric::min_float64(),
-           avg = 0.0;
+    stats.reset();
     FOR(f,mesh.facets.nb()) {
         per_facet_fidelity[f] = (GEO::dot(normals[f],label2vector[label[f]]) + 1.0)/2.0;
-        // stats
-        min = std::min(min,per_facet_fidelity[f]);
-        max = std::max(max,per_facet_fidelity[f]);
-        avg += per_facet_fidelity[f];
+        stats.insert(per_facet_fidelity[f]);
     }
-    avg /= mesh.facets.nb();
-    return {min,max,avg};
 }
 
 unsigned int remove_surrounded_charts(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg) {
@@ -621,4 +615,10 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
         distance_to_end_corner += length(Geom::halfedge_vector(mesh,boundary.halfedges[i]));
     }
     index_t target_corner = distance_to_start_corner < distance_to_end_corner ? boundary.start_corner : boundary.end_corner;
+    if(slg.corners[target_corner].valence() != 3) {
+        // ignore this corner, valence is too high
+        fmt::println(Logger::out("monotonicity"),"Ignoring corner {} which has a valence of {} instead of 3 for pull_closest_corner()",target_corner,slg.corners[target_corner].valence()); Logger::out("monotonicity").flush();
+        return;
+    }
+    
 }
