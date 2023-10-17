@@ -19,6 +19,7 @@
 
 #include "labeling.h"
 #include "basic_stats.h"
+#include "hex_mesh.h"
 
 #define CELL_TYPE_KEY_STR(cell_type)  ( ((cell_type) == MESH_TET)       ? "tetrahedra"  : (\
                                         ((cell_type) == MESH_HEX)       ? "hexahedra"   : (\
@@ -52,7 +53,7 @@ int main(int argc, char** argv) {
 		argc,
 		argv,
 		filenames,
-		"input_mesh [principal_axes.obj]"
+		"input_mesh <principal_axes.obj>" // second filename is facultative
 		))
 	{
 		return 1;
@@ -124,12 +125,12 @@ int main(int argc, char** argv) {
         };
         if(filenames.size() > 1) { // if another filename was given
             Mesh principal_axes_mesh;
-            index_t index_of_first_vertex = principal_axes_mesh.vertices.create_vertices(4); // {center, first axis tip, second axis tip, third axis tip}
+            principal_axes_mesh.vertices.create_vertices(4); // {center, first axis tip, second axis tip, third axis tip}
             principal_axes_mesh.vertices.point(VERTEX_ORIGIN) = principal_axes.center();
             principal_axes_mesh.vertices.point(VERTEX_TIP_1ST_AXIS) = principal_axes.center() + principal_axes.axis(0)*principal_axes.eigen_value(0);
             principal_axes_mesh.vertices.point(VERTEX_TIP_2ND_AXIS) = principal_axes.center() + principal_axes.axis(1)*principal_axes.eigen_value(1);
             principal_axes_mesh.vertices.point(VERTEX_TIP_3RD_AXIS) = principal_axes.center() + principal_axes.axis(2)*principal_axes.eigen_value(2);
-            index_t index_of_first_edge = principal_axes_mesh.edges.create_edges(3);
+            principal_axes_mesh.edges.create_edges(3);
             // edge n°0 : 1st principal axis
             principal_axes_mesh.edges.set_vertex(0,0,VERTEX_ORIGIN);
             principal_axes_mesh.edges.set_vertex(0,1,VERTEX_TIP_1ST_AXIS);
@@ -201,6 +202,14 @@ int main(int argc, char** argv) {
             if(per_type_count[cell_type]!=0) {
                 output_JSON["cells"]["by_type"][CELL_TYPE_KEY_STR(cell_type)] = per_type_count[cell_type];
             }
+        }
+        if(per_type_count[MESH_HEX]!=0) {
+            BasicStats scaled_jacobian_stats;
+            compute_scaled_jacobian(input_mesh,scaled_jacobian_stats);
+            output_JSON["cells"]["quality"]["hex_SJ"]["min"] = scaled_jacobian_stats.min();
+            output_JSON["cells"]["quality"]["hex_SJ"]["max"] = scaled_jacobian_stats.max();
+            output_JSON["cells"]["quality"]["hex_SJ"]["avg"] = scaled_jacobian_stats.avg();
+            output_JSON["cells"]["quality"]["hex_SJ"]["sd"]  = scaled_jacobian_stats.sd();
         }
     }
 
