@@ -93,6 +93,8 @@ public:
 
 		nb_turning_points_ = 0;
 
+		fidelity_text_label_ = "";
+
 		state_transition(empty);
     }
 
@@ -344,6 +346,8 @@ protected:
 
 			if(ImGui::RadioButton("View fidelity",&labeling_visu_mode_,VIEW_FIDELITY))
 				labeling_visu_mode_transition(VIEW_FIDELITY);
+			
+			ImGui::TextUnformatted(fidelity_text_label_.c_str());
 
 			if(ImGui::RadioButton(fmt::format("View invalid charts ({})",static_labeling_graph_.nb_invalid_charts()).c_str(),&labeling_visu_mode_,VIEW_INVALID_CHARTS))
 				labeling_visu_mode_transition(VIEW_INVALID_CHARTS);
@@ -578,7 +582,7 @@ protected:
 
 		double fidelity_min, fidelity_max, fidelity_avg;
 		std::tie(fidelity_min,fidelity_max,fidelity_avg) = compute_per_facet_fidelity(mesh_,normals_,LABELING_ATTRIBUTE_NAME,"fidelity");
-		fmt::println(Logger::out("fidelity"),"min={:.4f} | max={:.4f} | avg={:.4f}",fidelity_min,fidelity_max,fidelity_avg); Logger::out("fidelity").flush();
+		fidelity_text_label_ = fmt::format("min={:.4f} | max={:.4f} | avg={:.4f}",fidelity_min,fidelity_max,fidelity_avg);
 	}
 
 protected:
@@ -604,6 +608,7 @@ protected:
 	std::size_t invalid_boundaries_group_index_;
 	std::size_t valid_but_axisless_boundaries_group_index_;
 	std::vector<vec3> normals_; // facet normals
+	std::string fidelity_text_label_;
 };
 
 // print specialization of LabelingViewerApp::State for {fmt}
