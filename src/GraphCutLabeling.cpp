@@ -592,7 +592,11 @@ void GraphCutLabeling::fill_neighbors_cost__compactness_based(const Mesh& mesh, 
             }
             GCoptimization::SiteID neighbor_site = facet2siteID.at(neighbor_index);
             geo_assert(neighbor_site != GCoptimization::SiteID(-1));
+            // the normals are in [-1.0:1.0]^3
+            // the dot product of the normals is in [-1:1]
+            // applying (x-1)/0.25 makes it in [-4:0]
             double dot = (GEO::dot(normals[kv.first],normals[neighbor_index])-1)/0.25;
+            // apply a Gaussian function of mean 0
             double cost = std::exp(-(1./2.)*std::pow(dot,2));
             neighbors_costs.set_neighbors(current_site, neighbor_site, (GCoptimization::EnergyTermType) (compactness*100*cost));
         }
