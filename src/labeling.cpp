@@ -616,24 +616,220 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
         fmt::println(Logger::out("monotonicity"),"Ignoring boundary {} which has {} turning-points instead of 1 for pull_closest_corner()",slg.non_monotone_boundaries[non_monotone_boundary_index],boundary.turning_points.size()); Logger::out("monotonicity").flush();
         return;
     }
-    index_t halfedge_turning_point = boundary.turning_points[0].outgoing_local_halfedge_index();
-    // the turning-point is at the base of the halfedge 'halfedge_turning_point'
+    Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // get labeling attribute
+    const TurningPoint& tp = boundary.turning_points[0];
+    index_t halfedge_index_turning_point = tp.outgoing_local_halfedge_index();
+    #ifndef NDEBUG
+        Mesh current_tp;
+        current_tp.vertices.create_vertices(1);
+        current_tp.vertices.point(0) = mesh.vertices.point(boundary.turning_point_vertex(0,mesh));
+        mesh_save(current_tp,"current_tp.geogram");
+    #endif
+    index_t closest_corner = index_t(-1);
+    index_t new_label = index_t(-1); // label to assign between the boundary to remove, and its "parallel" passing by the turning point
+    CustomMeshHalfedges mesh_he(mesh);
+    mesh_he.set_use_facet_region(attribute_name);
+    MeshHalfedges::Halfedge current_halfedge; // first, will store outgoing halfedge of the closest_corner
+    // the turning-point is at the base of the halfedge 'halfedge_index_turning_point'
     // compute 2 distances :
-    // - from start corner to turning point (= first halfedge to halfedge_turning_point-1 included)
-    // - from turning point to end corner (= halfedge_turning_point to last halfedge included)
+    // - from start corner to turning point (= first halfedge to halfedge_index_turning_point-1 included)
+    // - from turning point to end corner (= halfedge_index_turning_point to last halfedge included)
     double distance_to_start_corner = 0.0;
     double distance_to_end_corner = 0.0;
-    FOR(i,halfedge_turning_point-1) {
+    FOR(i,halfedge_index_turning_point-1) {
         distance_to_start_corner += length(Geom::halfedge_vector(mesh,boundary.halfedges[i]));
     }
-    FOR(i,halfedge_turning_point-1) {
+    FOR(i,halfedge_index_turning_point-1) {
         distance_to_end_corner += length(Geom::halfedge_vector(mesh,boundary.halfedges[i]));
     }
-    index_t target_corner = distance_to_start_corner < distance_to_end_corner ? boundary.start_corner : boundary.end_corner;
-    if(slg.corners[target_corner].valence() != 3) {
-        // ignore this corner, valence is too high
-        fmt::println(Logger::out("monotonicity"),"Ignoring corner {} which has a valence of {} instead of 3 for pull_closest_corner()",target_corner,slg.corners[target_corner].valence()); Logger::out("monotonicity").flush();
-        return;
+    // TODO check association between closest corner, turning point direction and direction around vertex (clockwise/counterclockwise)
+    if(distance_to_start_corner < distance_to_end_corner) {
+        closest_corner = boundary.start_corner;
+        current_halfedge = boundary.halfedges[0];
+        if(tp.towards_left()) {
+            do {
+                mesh_he.move_to_prev_around_vertex(current_halfedge,true); // next clockwise
+            }
+            while(!mesh_he.halfedge_is_border(current_halfedge));
+            // do while could be replace by move_to_prev_around_vertex(current_halfedge,false); ?
+        }
+        else {
+            do {
+                mesh_he.move_to_next_around_vertex(current_halfedge,true); // next counterclockwise
+            }
+            while(!mesh_he.halfedge_is_border(current_halfedge));
+            // do while could be replace by move_to_next_around_vertex(current_halfedge,false); ?
+        }
     }
-    
+    else {
+        closest_corner = boundary.end_corner;
+        current_halfedge = *boundary.halfedges.rbegin();
+        mesh_he.move_to_opposite(current_halfedge);
+        if(tp.towards_right()) {
+            do {
+                mesh_he.move_to_prev_around_vertex(current_halfedge,true); // next clockwise
+            }
+            while(!mesh_he.halfedge_is_border(current_halfedge));
+            // do while could be replace by move_to_prev_around_vertex(current_halfedge,false); ?
+        }
+        else {
+            do {
+                mesh_he.move_to_next_around_vertex(current_halfedge,true); // next counterclockwise
+            }
+            while(!mesh_he.halfedge_is_border(current_halfedge));
+            // do while could be replace by move_to_next_around_vertex(current_halfedge,false); ?
+        }
+    }
+    #ifndef NDEBUG
+        Mesh closest_corner_file;
+        closest_corner_file.vertices.create_vertices(1);
+        closest_corner_file.vertices.point(0) = mesh.vertices.point(slg.corners[closest_corner].vertex);
+        mesh_save(closest_corner_file,"closest_corner.geogram");
+    #endif
+    const Boundary& boundary_to_move = slg.boundaries[slg.halfedge2boundary.at(current_halfedge).first];
+    #ifndef NDEBUG
+        Mesh boundary_to_move_file;
+        boundary_to_move_file.copy(mesh,false,MESH_VERTICES);
+        boundary_to_move_file.edges.create_edges(boundary_to_move.halfedges.size());
+        FOR(he_index,boundary_to_move.halfedges.size()) {
+            MeshHalfedges::Halfedge tmp_he = boundary_to_move.halfedges[he_index];
+            boundary_to_move_file.edges.set_vertex(he_index,0,mesh.facet_corners.vertex(tmp_he.corner));
+            mesh_he.move_to_opposite(tmp_he);
+            boundary_to_move_file.edges.set_vertex(he_index,1,mesh.facet_corners.vertex(tmp_he.corner));
+        }
+        mesh_save(boundary_to_move_file,"boundary_to_move_file.geogram");
+    #endif
+    // TODO check new_label computation
+    if(tp.towards_right()) {
+        new_label = slg.charts[boundary_to_move.right_chart].label;
+    }
+    else {
+        new_label = slg.charts[boundary_to_move.left_chart].label;
+    }
+    // prepare a graph-cut optimization on both sides (2 charts)
+    // TODO distance-based : the further a facet is, the bigger is the cost of changing its label. (too restrictive for this operator?)
+    // TODO restrict possible labels to the ones of the 2 charts
+    #ifndef NDEBUG
+        Mesh graphcut_surface;
+        graphcut_surface.copy(mesh,false,MESH_VERTICES);
+    #endif
+    auto gcl = GraphCutLabeling(mesh,normals,
+        slg.charts[boundary_to_move.left_chart].facets.size() + slg.charts[boundary_to_move.right_chart].facets.size()
+    ); // graph-cut only on the two charts
+    for(index_t f : slg.charts[boundary_to_move.left_chart].facets) {
+        gcl.add_site(f);
+        #ifndef NDEBUG
+            graphcut_surface.facets.create_triangle(
+                mesh.facet_corners.vertex(mesh.facets.corner(f,0)),
+                mesh.facet_corners.vertex(mesh.facets.corner(f,1)),
+                mesh.facet_corners.vertex(mesh.facets.corner(f,2))
+            );
+        #endif
+    }
+    for(index_t f : slg.charts[boundary_to_move.right_chart].facets) {
+        gcl.add_site(f);
+        #ifndef NDEBUG
+            graphcut_surface.facets.create_triangle(
+                mesh.facet_corners.vertex(mesh.facets.corner(f,0)),
+                mesh.facet_corners.vertex(mesh.facets.corner(f,1)),
+                mesh.facet_corners.vertex(mesh.facets.corner(f,2))
+            );
+        #endif
+    }
+    #ifndef NDEBUG
+        mesh_save(graphcut_surface,"2_charts.geogram");
+    #endif
+    gcl.data_cost__set__fidelity_based(1);
+    // Lock labels between the turning point and the corner, to ensure the corner moves where the turning point is
+    // Note that MeshHalfedges::Halfedge::facet is the facet at the LEFT of the halfedge
+    #ifndef NDEBUG
+        Mesh facets_with_locked_label;
+        facets_with_locked_label.copy(mesh,false,MESH_VERTICES);
+    #endif
+    if(closest_corner == boundary.start_corner) {
+        // go across the boundary in the opposite way
+        for(signed_index_t halfedge_index = halfedge_index_turning_point-1; halfedge_index>= 0; halfedge_index--) {
+            current_halfedge = boundary.halfedges[halfedge_index];
+            if(tp.towards_right()) {
+                mesh_he.move_to_opposite(current_halfedge);
+            }
+            gcl.data_cost__change_to__locked_label(current_halfedge.facet,new_label);
+            #ifndef NDEBUG
+                facets_with_locked_label.facets.create_triangle(
+                    mesh.facet_corners.vertex(mesh.facets.corner(current_halfedge.facet,0)),
+                    mesh.facet_corners.vertex(mesh.facets.corner(current_halfedge.facet,1)),
+                    mesh.facet_corners.vertex(mesh.facets.corner(current_halfedge.facet,2))
+                );
+            #endif
+        }
+    }
+    else {
+        // go across the boundary in the same direction as the halfedges
+        for(index_t halfedge_index = halfedge_index_turning_point; halfedge_index < boundary.halfedges.size(); halfedge_index++) {
+            current_halfedge = boundary.halfedges[halfedge_index];
+            if(tp.towards_right()) {
+                mesh_he.move_to_opposite(current_halfedge);
+            }
+            gcl.data_cost__change_to__locked_label(current_halfedge.facet,new_label);
+            #ifndef NDEBUG
+                facets_with_locked_label.facets.create_triangle(
+                    mesh.facet_corners.vertex(mesh.facets.corner(current_halfedge.facet,0)),
+                    mesh.facet_corners.vertex(mesh.facets.corner(current_halfedge.facet,1)),
+                    mesh.facet_corners.vertex(mesh.facets.corner(current_halfedge.facet,2))
+                );
+            #endif
+        }
+    }
+    #ifndef NDEBUG
+        mesh_save(facets_with_locked_label,"facets_with_locked_label.geogram");
+    #endif
+    gcl.smooth_cost__set__default();
+    gcl.neighbors__set__compactness_based(5); // increase compactness/fidelity ratio. fidelity is less important for this operator
+    index_t adjacent_facet = index_t(-1);
+    if(boundary_to_move.axis != -1) {
+        // penalize boundary tracing through halfedges poorly aligned with the boundary axis (X, Y or Z)
+        // parse all undirected edge inside the 2 charts surface and tweak the cost
+        #ifndef NDEBUG
+            Mesh per_edge_dot_product;
+            per_edge_dot_product.copy(mesh,false);
+            // keep only vertices, clear other components
+            per_edge_dot_product.edges.clear();
+            per_edge_dot_product.facets.clear();
+            per_edge_dot_product.cells.clear();
+            Attribute<double> dot_product_attribute(per_edge_dot_product.edges.attributes(),"dot_product");
+        #endif
+        index_t vertex1 = index_t(-1);
+        index_t vertex2 = index_t(-1);
+        vec3 edge_vector;
+        double dot_product = 0.0; // dot product of the edge vector & boundary axis
+        std::set<std::set<index_t>> already_processed; // use a set and not a pair so that the facets are sorted -> unordered pairs
+        std::set<index_t> union_of_2_charts;
+        union_of_2_charts.insert(slg.charts[boundary_to_move.left_chart].facets.begin(),slg.charts[boundary_to_move.left_chart].facets.end());
+        union_of_2_charts.insert(slg.charts[boundary_to_move.right_chart].facets.begin(),slg.charts[boundary_to_move.right_chart].facets.end());
+        for(index_t f : union_of_2_charts) {
+            FOR(le,3) { // for each local edge of the current facet
+                adjacent_facet = mesh.facets.adjacent(f,le);
+                if(already_processed.contains({f,adjacent_facet})) {
+                    continue; // we already processed this edge (indices flipped)
+                }
+                if(union_of_2_charts.contains(adjacent_facet)) { // the edge at le is between 2 facets of the 2 charts union
+                    // the vertices at the end point of the local edge le are le and (le+1)%3
+                    // https://github.com/BrunoLevy/geogram/wiki/Mesh#triangulated-and-polygonal-meshes
+                    vertex1 = mesh.facet_corners.vertex(mesh.facets.corner(f,le));
+                    vertex2 = mesh.facet_corners.vertex(mesh.facets.corner(f,(le+1)%3));
+                    edge_vector = normalize(mesh.vertices.point(vertex2)-mesh.vertices.point(vertex1));
+                    dot_product = std::abs(dot(edge_vector,label2vector[boundary_to_move.axis*2])); // =1 -> //, =0 -> ⟂
+                    gcl.neighbors__change_to__shifted(f,adjacent_facet,(1-dot_product)*500); // add a penalty the more ⟂ the edge is (// -> 0, ⟂ -> 300)
+                    already_processed.insert({f, adjacent_facet});
+                    #ifndef NDEBUG
+                        dot_product_attribute[per_edge_dot_product.edges.create_edge(vertex1,vertex2)] = dot_product;
+                    #endif
+                }
+            }
+        }
+        #ifndef NDEBUG
+            mesh_save(per_edge_dot_product,"dot_products.geogram");
+        #endif
+    }
+    gcl.compute_solution(label);
 }
