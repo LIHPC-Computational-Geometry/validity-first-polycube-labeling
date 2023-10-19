@@ -410,24 +410,7 @@ void straighten_boundary(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
     }
 
     #ifndef NDEBUG
-        // Export the boundaries in a .geogram file. Keep all vertices and add an edge for each boundary halfedges
-        Mesh boundaries_mesh;
-        boundaries_mesh.copy(mesh,false);
-        // keep only vertices, clear other components
-        boundaries_mesh.edges.clear();
-        boundaries_mesh.facets.clear();
-        boundaries_mesh.cells.clear();
-        for(const auto& b : slg.boundaries) { // for each boundary of the labeling graph
-            index_t edge_index = boundaries_mesh.edges.create_edges(b.halfedges.size()); // create as many edges as they are halfedges in the current boundary
-            for(const auto& he : b.halfedges) { // for each halfedge of the current boundary
-                CustomMeshHalfedges::Halfedge halfedge = he; //create a mutable copy
-                boundaries_mesh.edges.set_vertex(edge_index,0,mesh.facet_corners.vertex(halfedge.corner)); // get the vertex at the base of 'halfedge', set as 1st vertex
-                mesh_he.move_to_opposite(halfedge); // switch to the opposite halfedge
-                boundaries_mesh.edges.set_vertex(edge_index,1,mesh.facet_corners.vertex(halfedge.corner)); // get the vertex at the base of 'halfedge', set as 2nd vertex
-                edge_index++;
-            }
-        }
-        mesh_save(boundaries_mesh,"boundaries.geogram");
+        dump_all_boundaries("boundaries",mesh,mesh_he,slg.boundaries);
 
         // Export the facets of the 2 charts in a .geogram file. Keep all vertices and add only the facets of the 2 charts next to the boundary
         Mesh facets_of_the_2_charts;
