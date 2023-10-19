@@ -20,6 +20,7 @@
 #include "GraphCutLabeling.h"
 #include "CustomMeshHalfedges.h"
 #include "basic_stats.h"
+#include "dump_mesh.h"
 
 bool load_labeling(const std::string& filename, Mesh& mesh, const char* attribute_name) {
 
@@ -620,10 +621,7 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
     const TurningPoint& tp = boundary.turning_points[0];
     index_t halfedge_index_turning_point = tp.outgoing_local_halfedge_index();
     #ifndef NDEBUG
-        Mesh current_tp;
-        current_tp.vertices.create_vertices(1);
-        current_tp.vertices.point(0) = mesh.vertices.point(boundary.turning_point_vertex(0,mesh));
-        mesh_save(current_tp,"current_tp.geogram");
+        dump_vertex("current_tp",mesh,boundary.turning_point_vertex(0,mesh));
     #endif
     index_t closest_corner = index_t(-1);
     index_t new_label = index_t(-1); // label to assign between the boundary to remove, and its "parallel" passing by the turning point
@@ -681,10 +679,7 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
         }
     }
     #ifndef NDEBUG
-        Mesh closest_corner_file;
-        closest_corner_file.vertices.create_vertices(1);
-        closest_corner_file.vertices.point(0) = mesh.vertices.point(slg.corners[closest_corner].vertex);
-        mesh_save(closest_corner_file,"closest_corner.geogram");
+        dump_vertex("closest_corner",mesh,slg.corners[closest_corner].vertex);
     #endif
     const Boundary& boundary_to_move = slg.boundaries[slg.halfedge2boundary.at(current_halfedge).first];
     #ifndef NDEBUG
