@@ -412,31 +412,14 @@ void straighten_boundary(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
     #ifndef NDEBUG
         dump_all_boundaries("boundaries",mesh,mesh_he,slg.boundaries);
 
-        // Export the facets of the 2 charts in a .geogram file. Keep all vertices and add only the facets of the 2 charts next to the boundary
-        Mesh facets_of_the_2_charts;
-        facets_of_the_2_charts.copy(mesh,false);
-        // keep only vertices, clear other components
-        facets_of_the_2_charts.edges.clear();
-        facets_of_the_2_charts.facets.clear();
-        facets_of_the_2_charts.cells.clear();
-        index_t facet_index_on_new_mesh = facets_of_the_2_charts.facets.create_triangles(left_chart.facets.size()+right_chart.facets.size()); // create the triangles
-        Attribute<bool> on_wich_side(facets_of_the_2_charts.facets.attributes(),"on_wich_side"); // 0=left, 1=right
-        // Because we do not export all the facets, facet indices are different : 'facet_index_on_new_mesh' vs 'f' for the original mesh
+        std::map<index_t,bool> facets_of_the_2_charts;
         for(auto f : left_chart.facets) {
-            facets_of_the_2_charts.facets.set_vertex(facet_index_on_new_mesh,0,mesh.facet_corners.vertex(mesh.facets.corner(f,0)));
-            facets_of_the_2_charts.facets.set_vertex(facet_index_on_new_mesh,1,mesh.facet_corners.vertex(mesh.facets.corner(f,1)));
-            facets_of_the_2_charts.facets.set_vertex(facet_index_on_new_mesh,2,mesh.facet_corners.vertex(mesh.facets.corner(f,2)));
-            on_wich_side[facet_index_on_new_mesh] = false;
-            facet_index_on_new_mesh++;
+            facets_of_the_2_charts[f] = 0; // insert this facet, associated to 0=left
         }
         for(auto f : right_chart.facets) {
-            facets_of_the_2_charts.facets.set_vertex(facet_index_on_new_mesh,0,mesh.facet_corners.vertex(mesh.facets.corner(f,0)));
-            facets_of_the_2_charts.facets.set_vertex(facet_index_on_new_mesh,1,mesh.facet_corners.vertex(mesh.facets.corner(f,1)));
-            facets_of_the_2_charts.facets.set_vertex(facet_index_on_new_mesh,2,mesh.facet_corners.vertex(mesh.facets.corner(f,2)));
-            on_wich_side[facet_index_on_new_mesh] = true;
-            facet_index_on_new_mesh++;
+            facets_of_the_2_charts[f] = 1; // insert this facet, associated to 1=right
         }
-        mesh_save(facets_of_the_2_charts,"2_charts.geogram");
+        dump_facets("2_charts","on_wich_side",mesh,facets_of_the_2_charts);
     #endif
 
     // https://stackoverflow.com/a/72437022
@@ -687,42 +670,21 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
     // prepare a graph-cut optimization on both sides (2 charts)
     // TODO distance-based : the further a facet is, the bigger is the cost of changing its label. (too restrictive for this operator?)
     // TODO restrict possible labels to the ones of the 2 charts
+    std::set<index_t> union_of_2_charts;
+    union_of_2_charts.insert(slg.charts[boundary_to_move.left_chart].facets.begin(),slg.charts[boundary_to_move.left_chart].facets.end());
+        union_of_2_charts.insert(slg.charts[boundary_to_move.right_chart].facets.begin(),slg.charts[boundary_to_move.right_chart].facets.end());
     #ifndef NDEBUG
-        Mesh graphcut_surface;
-        graphcut_surface.copy(mesh,false,MESH_VERTICES);
+        dump_facets("2_charts",mesh,union_of_2_charts);
     #endif
-    auto gcl = GraphCutLabeling(mesh,normals,
-        slg.charts[boundary_to_move.left_chart].facets.size() + slg.charts[boundary_to_move.right_chart].facets.size()
-    ); // graph-cut only on the two charts
-    for(index_t f : slg.charts[boundary_to_move.left_chart].facets) {
+    auto gcl = GraphCutLabeling(mesh,normals,union_of_2_charts.size()); // graph-cut only on the two charts
+    for(index_t f : union_of_2_charts) {
         gcl.add_site(f);
-        #ifndef NDEBUG
-            graphcut_surface.facets.create_triangle(
-                mesh.facet_corners.vertex(mesh.facets.corner(f,0)),
-                mesh.facet_corners.vertex(mesh.facets.corner(f,1)),
-                mesh.facet_corners.vertex(mesh.facets.corner(f,2))
-            );
-        #endif
     }
-    for(index_t f : slg.charts[boundary_to_move.right_chart].facets) {
-        gcl.add_site(f);
-        #ifndef NDEBUG
-            graphcut_surface.facets.create_triangle(
-                mesh.facet_corners.vertex(mesh.facets.corner(f,0)),
-                mesh.facet_corners.vertex(mesh.facets.corner(f,1)),
-                mesh.facet_corners.vertex(mesh.facets.corner(f,2))
-            );
-        #endif
-    }
-    #ifndef NDEBUG
-        mesh_save(graphcut_surface,"2_charts.geogram");
-    #endif
     gcl.data_cost__set__fidelity_based(1);
     // Lock labels between the turning point and the corner, to ensure the corner moves where the turning point is
     // Note that MeshHalfedges::Halfedge::facet is the facet at the LEFT of the halfedge
     #ifndef NDEBUG
-        Mesh facets_with_locked_label;
-        facets_with_locked_label.copy(mesh,false,MESH_VERTICES);
+        std::set<index_t> facets_with_locked_label;
     #endif
     if(closest_corner == boundary.start_corner) {
         // go across the boundary in the opposite way
@@ -733,11 +695,7 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
             }
             gcl.data_cost__change_to__locked_label(current_halfedge.facet,new_label);
             #ifndef NDEBUG
-                facets_with_locked_label.facets.create_triangle(
-                    mesh.facet_corners.vertex(mesh.facets.corner(current_halfedge.facet,0)),
-                    mesh.facet_corners.vertex(mesh.facets.corner(current_halfedge.facet,1)),
-                    mesh.facet_corners.vertex(mesh.facets.corner(current_halfedge.facet,2))
-                );
+                facets_with_locked_label.insert(current_halfedge.facet);
             #endif
         }
     }
@@ -750,16 +708,12 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
             }
             gcl.data_cost__change_to__locked_label(current_halfedge.facet,new_label);
             #ifndef NDEBUG
-                facets_with_locked_label.facets.create_triangle(
-                    mesh.facet_corners.vertex(mesh.facets.corner(current_halfedge.facet,0)),
-                    mesh.facet_corners.vertex(mesh.facets.corner(current_halfedge.facet,1)),
-                    mesh.facet_corners.vertex(mesh.facets.corner(current_halfedge.facet,2))
-                );
+                facets_with_locked_label.insert(current_halfedge.facet);
             #endif
         }
     }
     #ifndef NDEBUG
-        mesh_save(facets_with_locked_label,"facets_with_locked_label.geogram");
+        dump_facets("facets_with_locked_label",mesh,facets_with_locked_label);
     #endif
     gcl.smooth_cost__set__default();
     gcl.neighbors__set__compactness_based(5); // increase compactness/fidelity ratio. fidelity is less important for this operator
@@ -781,9 +735,6 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
         vec3 edge_vector;
         double dot_product = 0.0; // dot product of the edge vector & boundary axis
         std::set<std::set<index_t>> already_processed; // use a set and not a pair so that the facets are sorted -> unordered pairs
-        std::set<index_t> union_of_2_charts;
-        union_of_2_charts.insert(slg.charts[boundary_to_move.left_chart].facets.begin(),slg.charts[boundary_to_move.left_chart].facets.end());
-        union_of_2_charts.insert(slg.charts[boundary_to_move.right_chart].facets.begin(),slg.charts[boundary_to_move.right_chart].facets.end());
         for(index_t f : union_of_2_charts) {
             FOR(le,3) { // for each local edge of the current facet
                 adjacent_facet = mesh.facets.adjacent(f,le);
