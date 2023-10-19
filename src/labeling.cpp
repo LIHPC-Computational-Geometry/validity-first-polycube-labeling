@@ -536,13 +536,7 @@ void straighten_boundary(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
         // penalize boundary tracing through halfedges poorly aligned with the boundary axis (X, Y or Z)
         // parse all undirected edge inside the 2 charts surface and tweak the cost
         #ifndef NDEBUG
-            Mesh per_edge_dot_product;
-            per_edge_dot_product.copy(mesh,false);
-            // keep only vertices, clear other components
-            per_edge_dot_product.edges.clear();
-            per_edge_dot_product.facets.clear();
-            per_edge_dot_product.cells.clear();
-            Attribute<double> dot_product_attribute(per_edge_dot_product.edges.attributes(),"dot_product");
+            std::map<std::pair<index_t,index_t>,double> per_edge_dot_product;
         #endif
         index_t vertex1 = index_t(-1);
         index_t vertex2 = index_t(-1);
@@ -565,13 +559,13 @@ void straighten_boundary(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
                     gcl.neighbors__change_to__shifted(kv.first,adjacent_facet,(1-dot_product)*500); // add a penalty the more ⟂ the edge is (// -> 0, ⟂ -> 300)
                     already_processed.insert({kv.first, adjacent_facet});
                     #ifndef NDEBUG
-                        dot_product_attribute[per_edge_dot_product.edges.create_edge(vertex1,vertex2)] = dot_product;
+                        per_edge_dot_product[std::make_pair(vertex1,vertex2)] = dot_product;
                     #endif
                 }
             }
         }
         #ifndef NDEBUG
-            mesh_save(per_edge_dot_product,"dot_products.geogram");
+            dump_edges("dot_products","dot_product",mesh,mesh_he,per_edge_dot_product);
         #endif
     }
     gcl.compute_solution(label);
@@ -722,13 +716,7 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
         // penalize boundary tracing through halfedges poorly aligned with the boundary axis (X, Y or Z)
         // parse all undirected edge inside the 2 charts surface and tweak the cost
         #ifndef NDEBUG
-            Mesh per_edge_dot_product;
-            per_edge_dot_product.copy(mesh,false);
-            // keep only vertices, clear other components
-            per_edge_dot_product.edges.clear();
-            per_edge_dot_product.facets.clear();
-            per_edge_dot_product.cells.clear();
-            Attribute<double> dot_product_attribute(per_edge_dot_product.edges.attributes(),"dot_product");
+            std::map<std::pair<index_t,index_t>,double> per_edge_dot_product;
         #endif
         index_t vertex1 = index_t(-1);
         index_t vertex2 = index_t(-1);
@@ -751,13 +739,13 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
                     gcl.neighbors__change_to__shifted(f,adjacent_facet,(1-dot_product)*500); // add a penalty the more ⟂ the edge is (// -> 0, ⟂ -> 300)
                     already_processed.insert({f, adjacent_facet});
                     #ifndef NDEBUG
-                        dot_product_attribute[per_edge_dot_product.edges.create_edge(vertex1,vertex2)] = dot_product;
+                        per_edge_dot_product[std::make_pair(vertex1,vertex2)] = dot_product;
                     #endif
                 }
             }
         }
         #ifndef NDEBUG
-            mesh_save(per_edge_dot_product,"dot_products.geogram");
+            dump_edges("dot_products","dot_product",mesh,mesh_he,per_edge_dot_product);
         #endif
     }
     gcl.compute_solution(label);

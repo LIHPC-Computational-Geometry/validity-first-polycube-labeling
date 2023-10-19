@@ -16,6 +16,19 @@ bool dump_vertex(std::string filename, const Mesh& mesh, index_t vertex_index) {
     return mesh_save(out,filename + ".geogram");
 }
 
+bool dump_edges(std::string filename, const Mesh& mesh, const CustomMeshHalfedges& mesh_he, const std::set<std::pair<index_t,index_t>>& edges) {
+    Mesh out;
+    out.copy(mesh,false,MESH_VERTICES); // keep only vertices
+    index_t edge_index = out.edges.create_edges( (index_t) edges.size());
+    for(const auto& e : edges) {
+        out.edges.set_vertex(edge_index,0,e.first);
+        out.edges.set_vertex(edge_index,1,e.second);
+        edge_index++;
+    }
+    out.vertices.remove_isolated();
+    mesh_save(out,filename + ".geogram");
+}
+
 bool dump_facets(std::string filename, const Mesh& mesh, std::set<index_t> facet_indices) {
     Mesh out;
     out.copy(mesh,false,MESH_VERTICES); // keep only vertices
