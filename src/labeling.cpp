@@ -422,11 +422,13 @@ void straighten_boundary(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
         dump_facets("2_charts","on_wich_side",mesh,facets_of_the_2_charts);
     #endif
 
-    // https://stackoverflow.com/a/72437022
-    // Compute the distance to the boundary for all facets in the left and right charts
     std::map<index_t,unsigned int> distance_to_boundary; // map a facet index to a distance. only defined for facet inside the 2 charts
-    std::queue<index_t> facets_to_explore; // facets we have to visit to update the distance in their neighborhood. FIFO data structure
-    index_t adjacent_facet = index_t(-1);
+    for(auto f : left_chart.facets) {
+        distance_to_boundary[f] = (unsigned int) -1;
+    }
+    for(auto f : right_chart.facets) {
+        distance_to_boundary[f] = (unsigned int) -1;
+    }
     // Go through the boundary and set distance of adjacent triangle to 0
     auto boundary_halfedge = current_boundary.halfedges.cbegin(); // get an iterator pointing at the first halfedge
     boundary_halfedge++; // go to the second halfedge (the vertex at the base of the first one has facets of other charts next to it)
@@ -435,44 +437,10 @@ void straighten_boundary(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
         current_halfedge = (*boundary_halfedge); // copy the boundary halfedge into a mutable variable
         do { // for each facet around the vertex at the base of the current boundary halfedge
             distance_to_boundary[current_halfedge.facet] = 0; // set distance to 0 (the current facet touch the boundary by an edge or a vertex)
-            facets_to_explore.emplace(current_halfedge.facet);
             mesh_he.move_to_next_around_vertex(current_halfedge,true);
         } while (current_halfedge != *boundary_halfedge); // go around the vertex, until we are back on the initial boundary edge
     }
-
-    #ifndef NDEBUG
-        fmt::println("boundary expored, distance of adjacent facet set to 0");
-    #endif
-
-    index_t current_facet = index_t(-1);
-    unsigned int current_distance = 0; // will store the distance currently computed for the current facet
-    while(!facets_to_explore.empty()) { // while there still are facets to explore
-        current_facet = facets_to_explore.front(); // pick the facet at the front of the FIFO
-        facets_to_explore.pop(); // remove it from the FIFO
-        current_distance = distance_to_boundary[current_facet];
-        FOR(le,3) { // for each local edge of the current facet
-            adjacent_facet = mesh.facets.adjacent(current_facet,le); // get the facet index of the neighbor at the other side of the current local edge
-            chart_of_adjacent_facet = slg.facet2chart[adjacent_facet]; // get its chart
-            if( (chart_of_adjacent_facet != left_chart_index) && 
-                (chart_of_adjacent_facet != right_chart_index) ) {
-                    continue; // -> do not explore the adjacent facet, it is not inside the 2 charts
-                }
-            if(!distance_to_boundary.contains(adjacent_facet)) { // if the adjacent facet is not yet linked to a distance
-                distance_to_boundary[adjacent_facet] = current_distance + 1; // set an initial distance of one more than the current facet distance
-                facets_to_explore.emplace(adjacent_facet);
-                continue;
-            }
-            if (current_distance + 1 < distance_to_boundary[adjacent_facet]) { // if the distance of the neighbor was too much (passing by the current facet is closer)
-                distance_to_boundary[adjacent_facet] = current_distance + 1; // update the distance
-                facets_to_explore.emplace(adjacent_facet);
-            }
-        }
-    }
-
-    #ifndef NDEBUG
-        fmt::println("distance_to_boundary has {} elements",distance_to_boundary.size());
-        fmt::println("combined, the 2 charts have {} facets",left_chart.facets.size()+right_chart.facets.size());
-    #endif
+    per_facet_distance(mesh,distance_to_boundary);
 
     geo_assert(distance_to_boundary.size() == left_chart.facets.size()+right_chart.facets.size());
 
@@ -522,6 +490,7 @@ void straighten_boundary(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
         #endif
         index_t vertex1 = index_t(-1);
         index_t vertex2 = index_t(-1);
+        index_t adjacent_facet = index_t(-1);
         vec3 edge_vector;
         double dot_product = 0.0; // dot product of the edge vector & boundary axis
         std::set<std::set<index_t>> already_processed; // use a set and not a pair so that the facets are sorted -> unordered pairs

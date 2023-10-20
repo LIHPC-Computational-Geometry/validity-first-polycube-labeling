@@ -52,3 +52,7 @@ struct VecngCompare {
         return false; // case a == b
     }
 };
+
+// map keys = surface to explore with all the facet indices
+// map values = 0 if distance of 0, unsigned int(-1) if to be computed in accordance
+void per_facet_distance(const Mesh& mesh, std::map<index_t,unsigned int>& distance);
