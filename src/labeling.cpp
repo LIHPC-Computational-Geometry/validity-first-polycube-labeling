@@ -477,35 +477,17 @@ void straighten_boundary(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
     geo_assert(distance_to_boundary.size() == left_chart.facets.size()+right_chart.facets.size());
 
     #ifndef NDEBUG
-        // Export the per-facet distance in a .geogram file
-        Mesh per_facet_dist;
-        per_facet_dist.copy(mesh,false);
-        // keep vertices and facets
-        per_facet_dist.edges.clear();
-        per_facet_dist.cells.clear();
-        Attribute<float> dist(per_facet_dist.facets.attributes(),"dist");
-        dist.fill(-1.0f); // set distance of -1 on the whole surface
-        for(auto& kv : distance_to_boundary) { // for each facet in the 2 charts
-            dist[kv.first] = (float) kv.second; // overwrite with the computed distance
-        }
-        mesh_save(per_facet_dist,"per_facet_dist.geogram");
-
+        dump_facets("per_facet_dist","dist",mesh,distance_to_boundary);
         // Export the contour (facets in the perimeter of the union of the 2 charts)
-        Mesh contour;
-        contour.copy(mesh,false);
-        // keep vertices and facets
-        contour.edges.clear();
-        contour.cells.clear();
-        Attribute<bool> on_contour(contour.facets.attributes(),"on_contour");
-        dist.fill(false); // init value: not on contour
+        std::set<index_t> contour;
         for(const auto& kv : distance_to_boundary) { // for each facet in the 2 charts
             if ( !distance_to_boundary.contains(mesh.facets.adjacent(kv.first,0)) || 
                  !distance_to_boundary.contains(mesh.facets.adjacent(kv.first,1)) || 
                  !distance_to_boundary.contains(mesh.facets.adjacent(kv.first,2)) ) { // if one of the neighbors is not inside the 2 charts
-                on_contour[kv.first] = true; // on the contour
+                contour.insert(kv.first);
             }
         }
-        mesh_save(contour,"contour.geogram");
+        dump_facets("contour",mesh,contour);
     #endif
 
     auto gcl = GraphCutLabeling(mesh,normals,distance_to_boundary.size()); // graph-cut only on the two charts
