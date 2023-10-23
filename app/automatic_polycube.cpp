@@ -4,7 +4,7 @@
 
 #include <set>
 #include <array>
-#include <algorithm>			// for std::min(), std::max()
+#include <algorithm>			// for std::min(), std::max(), std::min_element()
 
 #include "containers.h"			// for std_dev()
 #include "LabelingViewerApp.h"
@@ -162,6 +162,8 @@ protected:
 
 			ImGui::SeparatorText("Refinement");
 
+			ImGui::TextUnformatted("Other prefered label");
+			ImGui::SameLine();
 			if(ImGui::Button(selected_chart_mode_ ? "Pick a chart" : "Select chart")) {
 				selected_chart_mode_ = true;
 				selected_chart_= index_t(-1);
@@ -173,6 +175,11 @@ protected:
 			else
 				ImGui::Text("current: %d",selected_chart_);
 			ImGui::EndDisabled();
+
+			if(ImGui::Button("Trace contour")) {
+				trace_contour(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_);
+				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+			}
 		}
 	}
 
@@ -333,7 +340,7 @@ public:
 protected:
 
 	index_t selected_chart_;
-	bool selected_chart_mode_;
+	unsigned char selected_chart_mode_;
 };
 
 int main(int argc, char** argv) {

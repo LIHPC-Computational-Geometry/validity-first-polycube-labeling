@@ -701,3 +701,19 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
     }
     gcl.compute_solution(label);
 }
+
+void trace_contour(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, const StaticLabelingGraph& slg) {
+    Attribute<index_t> label(mesh.facets.attributes(), attribute_name);
+    Attribute<double> per_facet_fidelity(mesh.facets.attributes(), "fidelity");
+    // there are no iterators for GEO::Attribute, so I can't use std::min_element()...
+    double min_fidelity = 1.0;
+    index_t facet_of_min_fidelity = index_t(-1);
+    FOR(f,mesh.facets.nb()) {
+        if(per_facet_fidelity[f] < min_fidelity) {
+            min_fidelity = per_facet_fidelity[f];
+            facet_of_min_fidelity = f;
+        }
+    }
+    index_t chart_to_refine = slg.facet2chart[facet_of_min_fidelity];
+    label[facet_of_min_fidelity] = nearest_label(normals[facet_of_min_fidelity]);
+}
