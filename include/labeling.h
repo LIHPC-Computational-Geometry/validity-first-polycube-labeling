@@ -21,6 +21,8 @@ bool save_labeling(const std::string& filename, Mesh& mesh, const char* attribut
 
 index_t nearest_label(const vec3& normal);
 
+bool is_better_label(const vec3& facet_normal, index_t current_label, index_t new_label);
+
 // similar to https://github.com/LIHPC-Computational-Geometry/evocube/blob/master/src/flagging_utils.cpp#LL5C17-L5C27 axesMatrix()
 const vec3 label2vector[6] = {
     { 1.0, 0.0, 0.0}, // +X

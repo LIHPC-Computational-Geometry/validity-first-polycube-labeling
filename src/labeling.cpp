@@ -103,6 +103,10 @@ index_t nearest_label(const vec3& normal) {
     return (index_t) std::distance(weights.begin(),std::max_element(weights.begin(),weights.end()));
 }
 
+bool is_better_label(const vec3& facet_normal, index_t current_label, index_t new_label) {
+    return dot(facet_normal,label2vector[new_label]) > dot(facet_normal,label2vector[current_label]);
+}
+
 void naive_labeling(Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name) {
 
     // use GEO::Geom::triangle_normal_axis() instead ?
@@ -714,6 +718,28 @@ void trace_contour(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char
             facet_of_min_fidelity = f;
         }
     }
-    index_t chart_to_refine = slg.facet2chart[facet_of_min_fidelity];
-    label[facet_of_min_fidelity] = nearest_label(normals[facet_of_min_fidelity]);
+    const Chart& chart_to_refine = slg.charts[slg.facet2chart[facet_of_min_fidelity]];
+    index_t prefered_label = nearest_label(normals[facet_of_min_fidelity]);
+    label[facet_of_min_fidelity] = prefered_label;
+    // propagate prefered label to adjacent triangles, if they also prefer this label over the current one
+    index_t current_facet = facet_of_min_fidelity,
+            adjacent_facet = index_t(-1);
+    std::set<index_t> facets_to_explore; // set of facet indices, only contains facets that prefers the new label (test before insertion)
+    FOR(le,3) {
+        adjacent_facet = mesh.facets.adjacent(current_facet,le);
+        if(chart_to_refine.facets.contains(adjacent_facet) && is_better_label(normals[adjacent_facet],label[adjacent_facet],prefered_label)) {
+            facets_to_explore.insert(adjacent_facet);
+        }
+    }
+    while(!facets_to_explore.empty()) {
+        current_facet = *facets_to_explore.begin();
+        facets_to_explore.erase(current_facet);
+        label[current_facet] = prefered_label;
+        FOR(le,3) {
+            adjacent_facet = mesh.facets.adjacent(current_facet,le);
+            if(chart_to_refine.facets.contains(adjacent_facet) && is_better_label(normals[adjacent_facet],label[adjacent_facet],prefered_label)) {
+                facets_to_explore.insert(adjacent_facet);
+            }
+        }
+    }
 }
