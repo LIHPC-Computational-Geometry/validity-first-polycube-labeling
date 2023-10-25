@@ -3,7 +3,7 @@
 - **[about_window.h](about_window.h)** : content of the "About" window, shared between applications
 - **[containers.h](containers.h)/[.cpp](../src/containers.cpp)** : additional functions & macros for std containers (contains, min, concatenation...)
 - **[CustomMeshHalfedges.h](CustomMeshHalfedges.h)** : modified version of Geogram's [MeshHalfedges](https://github.com/BrunoLevy/geogram/blob/main/src/lib/geogram/mesh/mesh_halfedges.h) class
-- **[geometry.h](geometry.h)** : geometry-related functions (labels & axes, comparison operator for geometric objects)
+- **[geometry.h](geometry.h)/[.cpp](../src/geometry.cpp)** : geometry-related functions (labels & axes, comparison operator for geometric objects, distance)
 - **[GraphCutLabeling.h](GraphCutLabeling.h)/[.cpp](../src/GraphCutLabeling.cpp)** : constrained labeling generation with a Graph-Cut Optimization
 - **[hex_mesh.h](hex_mesh.h)/[.cpp](../src/hex_mesh.cpp)** : hexahedral meshes related functions (quality metric)
 - **[labeling.h](labeling.h)/[.cpp](../src/labeling.cpp)** : operators on labelings
