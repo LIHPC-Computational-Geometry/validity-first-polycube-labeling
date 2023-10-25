@@ -731,22 +731,26 @@ void trace_contour(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char
     // propagate prefered label to adjacent triangles, if they also prefer this label over the current one
     index_t current_facet = facet_of_min_fidelity,
             adjacent_facet = index_t(-1);
-    std::set<index_t> facets_to_explore; // set of facet indices, only contains facets that prefers the new label (test before insertion)
-    FOR(le,3) {
-        adjacent_facet = mesh.facets.adjacent(current_facet,le);
-        if(chart_to_refine.facets.contains(adjacent_facet) && is_better_label(normals[adjacent_facet],label[adjacent_facet],prefered_label)) {
-            facets_to_explore.insert(adjacent_facet);
-        }
-    }
+    std::set<index_t> created_chart_facets;
+    std::queue<index_t> facets_to_explore; // FIDO of facet indices, only contains facets that prefers the new label (test before insertion)
+    facets_to_explore.push(current_facet);
     while(!facets_to_explore.empty()) {
-        current_facet = *facets_to_explore.begin();
-        facets_to_explore.erase(current_facet);
+        current_facet = facets_to_explore.front();
+        facets_to_explore.pop();
+        if(created_chart_facets.contains(current_facet)) {
+            continue; // skip this facet, already explored since insertion in FIFO
+        }
         label[current_facet] = prefered_label;
+        created_chart_facets.insert(current_facet);
         FOR(le,3) {
             adjacent_facet = mesh.facets.adjacent(current_facet,le);
-            if(chart_to_refine.facets.contains(adjacent_facet) && is_better_label(normals[adjacent_facet],label[adjacent_facet],prefered_label)) {
-                facets_to_explore.insert(adjacent_facet);
+            if(chart_to_refine.facets.contains(adjacent_facet) && is_better_label(normals[adjacent_facet],label[adjacent_facet],prefered_label) && !created_chart_facets.contains(adjacent_facet)) {
+                facets_to_explore.push(adjacent_facet);
             }
         }
     }
+    // TODO fill holes inside the created chart
+    #ifndef NDEBUG
+        fmt::println(Logger::out("refinement"),"created chart has {} facets",created_chart_facets.size()); Logger::out("refinement").flush();
+    #endif
 }
