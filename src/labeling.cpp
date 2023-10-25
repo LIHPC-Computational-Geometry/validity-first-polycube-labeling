@@ -107,6 +107,12 @@ bool is_better_label(const vec3& facet_normal, index_t current_label, index_t ne
     return dot(facet_normal,label2vector[new_label]) > dot(facet_normal,label2vector[current_label]);
 }
 
+bool are_orthogonal_labels(index_t label1, index_t label2) {
+    geo_assert(label1 < 6);
+    geo_assert(label2 < 6);
+    return (label1 % 2) != (label2 % 2); // orthogonal if they don't have the same axis
+}
+
 void naive_labeling(Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name) {
 
     // use GEO::Geom::triangle_normal_axis() instead ?
@@ -720,6 +726,7 @@ void trace_contour(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char
     }
     const Chart& chart_to_refine = slg.charts[slg.facet2chart[facet_of_min_fidelity]];
     index_t prefered_label = nearest_label(normals[facet_of_min_fidelity]);
+    geo_assert(are_orthogonal_labels(chart_to_refine.label,prefered_label));
     label[facet_of_min_fidelity] = prefered_label;
     // propagate prefered label to adjacent triangles, if they also prefer this label over the current one
     index_t current_facet = facet_of_min_fidelity,

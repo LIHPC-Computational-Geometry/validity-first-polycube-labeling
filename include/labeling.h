@@ -33,6 +33,8 @@ const vec3 label2vector[6] = {
     { 0.0, 0.0,-1.0}  // -Z
 };
 
+bool are_orthogonal_labels(index_t label1, index_t label2);
+
 /**
  * \brief Compute the naive labeling of a given mesh
  * \details Compute the per-facet nearest-to-normal signed direction +/-{X,Y,Z} of a surface mesh

@@ -1,5 +1,6 @@
 #include <geogram/mesh/mesh_io.h>
-#include <geogram/basic/command_line_args.h> // for CmdLine::import_arg_group()
+#include <geogram/basic/command_line_args.h>	// for CmdLine::import_arg_group()
+#include <geogram/basic/command_line.h>			// for CmdLine::parse()
 
 #include "LabelingViewerApp.h"
 #include "labeling.h"
