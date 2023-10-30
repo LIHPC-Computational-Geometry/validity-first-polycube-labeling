@@ -1,3 +1,22 @@
+// Extended halfedges interface of Geogram
+// 
+// MeshHalfedges/CustomMeshHalfedges is the interface itself
+// MeshHalfedges::Halfedges is an oriented edge, which stores a facet index, and a facet corner index
+//        o
+//       / \
+//      /   \
+//     /     \
+//    / facet \
+//   /         \
+//  /\corner    \
+// o ==========> o
+//    halfedge
+//
+// if your going around a vertex:
+// - move_to_next_around_vertex() moves counterclockwise
+// - move_to_prev_around_vertex() moves clockwise
+// so counterclockwise, the facet is ahead of the halfedge
+// and clockwise, the halfedge is ahead of the facet
 #pragma once
 
 #include <geogram/mesh/mesh_halfedges.h>

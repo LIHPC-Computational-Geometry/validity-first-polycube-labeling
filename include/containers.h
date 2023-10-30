@@ -64,3 +64,9 @@ T max(const vecng<DIM, T>& vector) {
     }
     return max;
 }
+
+// creation of a set of one element
+// thank you Walter https://stackoverflow.com/a/37564479
+template <typename T>
+inline std::set<T> make_set(const T& x)
+{ return {x}; }

@@ -17,7 +17,7 @@ using namespace GEO;
 
 bool dump_vertex(std::string filename, const Mesh& mesh, index_t vertex_index);
 
-bool dump_edges(std::string filename, const Mesh& mesh, const CustomMeshHalfedges& mesh_he, const std::set<std::pair<index_t,index_t>>& edges);
+bool dump_edges(std::string filename, const Mesh& mesh, const std::set<std::pair<index_t,index_t>>& edges);
 
 //idem but also write an edge attribute
 template <typename T>

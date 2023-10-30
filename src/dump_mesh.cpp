@@ -16,7 +16,7 @@ bool dump_vertex(std::string filename, const Mesh& mesh, index_t vertex_index) {
     return mesh_save(out,filename + ".geogram");
 }
 
-bool dump_edges(std::string filename, const Mesh& mesh, const CustomMeshHalfedges& mesh_he, const std::set<std::pair<index_t,index_t>>& edges) {
+bool dump_edges(std::string filename, const Mesh& mesh, const std::set<std::pair<index_t,index_t>>& edges) {
     Mesh out;
     out.copy(mesh,false,MESH_VERTICES); // keep only vertices
     index_t edge_index = out.edges.create_edges( (index_t) edges.size());

@@ -752,5 +752,34 @@ void trace_contour(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char
     // TODO fill holes inside the created chart
     #ifndef NDEBUG
         fmt::println(Logger::out("refinement"),"created chart has {} facets",created_chart_facets.size()); Logger::out("refinement").flush();
+        dump_facets("created_chart",mesh,created_chart_facets);
     #endif
+    // find a facet on the boundary
+    // then go around
+    CustomMeshHalfedges mesh_he(mesh);
+    MeshHalfedges::Halfedge boundary_halfedge;
+    for(auto f : created_chart_facets) {
+        FOR(le,3) {
+            adjacent_facet = mesh.facets.adjacent(f,le);
+            if(!created_chart_facets.contains(adjacent_facet)) {
+                // we found a boundary of the created chart
+                boundary_halfedge.facet = f;
+                boundary_halfedge.corner = mesh.facets.corner(f,le); // same local edge/vertex index in this case
+                break;
+            }
+        }
+        if(mesh_he.halfedge_is_valid(boundary_halfedge)) {
+            break; //escalate loop break
+        }
+    }
+    geo_assert(mesh_he.halfedge_is_valid(boundary_halfedge)); // assert a boundary edge was found
+    #ifndef NDEBUG
+        std::pair<index_t,index_t> pair_of_vertices;
+        pair_of_vertices.first = mesh.facet_corners.vertex(boundary_halfedge.corner);
+        mesh_he.move_to_opposite(boundary_halfedge);
+        pair_of_vertices.second = mesh.facet_corners.vertex(boundary_halfedge.corner);
+        mesh_he.move_to_opposite(boundary_halfedge);
+        dump_edges("boundary_halfedge",mesh,make_set(pair_of_vertices));
+    #endif
+    // TODO make sure there is no inner boundary left
 }
