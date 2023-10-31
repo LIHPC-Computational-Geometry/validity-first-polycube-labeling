@@ -749,7 +749,6 @@ void trace_contour(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char
             }
         }
     }
-    // TODO fill holes inside the created chart
     #ifndef NDEBUG
         fmt::println(Logger::out("refinement"),"created chart has {} facets",created_chart_facets.size()); Logger::out("refinement").flush();
         dump_facets("created_chart",mesh,created_chart_facets);
@@ -757,5 +756,11 @@ void trace_contour(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char
     slg.fill_from(mesh,attribute_name,slg.is_allowing_boundaries_between_opposite_labels());
     index_t created_chart_index = slg.facet2chart[facet_of_min_fidelity];
     geo_assert(slg.charts[created_chart_index].facets == created_chart_facets);
+    // fill holes inside the created chart
+    unsigned int nb_removed_charts = 0;
+    do {
+        nb_removed_charts = remove_surrounded_charts(mesh,attribute_name,slg);
+        slg.fill_from(mesh,attribute_name,slg.is_allowing_boundaries_between_opposite_labels());
+    } while(nb_removed_charts!=0);
     // TODO make sure there is no inner boundary left
 }
