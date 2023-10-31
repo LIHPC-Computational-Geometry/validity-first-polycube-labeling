@@ -712,7 +712,7 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
     gcl.compute_solution(label);
 }
 
-void trace_contour(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, const StaticLabelingGraph& slg) {
+void trace_contour(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, StaticLabelingGraph& slg) {
     Attribute<index_t> label(mesh.facets.attributes(), attribute_name);
     Attribute<double> per_facet_fidelity(mesh.facets.attributes(), "fidelity");
     // there are no iterators for GEO::Attribute, so I can't use std::min_element()...
@@ -754,46 +754,8 @@ void trace_contour(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char
         fmt::println(Logger::out("refinement"),"created chart has {} facets",created_chart_facets.size()); Logger::out("refinement").flush();
         dump_facets("created_chart",mesh,created_chart_facets);
     #endif
-    // find a facet on the boundary
-    // then go around
-    CustomMeshHalfedges mesh_he(mesh);
-    MeshHalfedges::Halfedge boundary_halfedge;
-    for(auto f : created_chart_facets) {
-        FOR(le,3) {
-            adjacent_facet = mesh.facets.adjacent(f,le);
-            if(!created_chart_facets.contains(adjacent_facet)) {
-                // we found a boundary of the created chart
-                boundary_halfedge.facet = f;
-                boundary_halfedge.corner = mesh.facets.corner(f,le); // same local edge/vertex index in this case
-                break;
-            }
-        }
-        if(mesh_he.halfedge_is_valid(boundary_halfedge)) {
-            break; //escalate loop break
-        }
-    }
-    geo_assert(mesh_he.halfedge_is_valid(boundary_halfedge)); // assert a boundary edge was found
-    #ifndef NDEBUG
-        std::set<std::pair<index_t,index_t>> boundary_vertices;
-    #endif
-    // explore the boundary counterclockwise
-    MeshHalfedges::Halfedge current_halfedge = boundary_halfedge;
-    do {
-        #ifndef NDEBUG
-        boundary_vertices.insert(std::make_pair(
-            mesh.facet_corners.vertex(current_halfedge.corner),
-            mesh.facet_corners.vertex(mesh.facets.next_corner_around_facet(current_halfedge.facet, current_halfedge.corner))
-        ));
-        #endif
-        mesh_he.move_to_opposite(current_halfedge);
-        do {
-            mesh_he.move_to_prev_around_vertex(current_halfedge); // counterclockwise
-        }
-        while (!created_chart_facets.contains(current_halfedge.facet));
-    } while (current_halfedge != boundary_halfedge);
-    #ifndef NDEBUG
-        dump_edges("created_chart_boundary",mesh,boundary_vertices);
-    #endif
+    slg.fill_from(mesh,attribute_name,slg.is_allowing_boundaries_between_opposite_labels());
+    index_t created_chart_index = slg.facet2chart[facet_of_min_fidelity];
+    geo_assert(slg.charts[created_chart_index].facets == created_chart_facets);
     // TODO make sure there is no inner boundary left
-
 }
