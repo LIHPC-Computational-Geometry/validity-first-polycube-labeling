@@ -762,5 +762,34 @@ void trace_contour(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char
         nb_removed_charts = remove_surrounded_charts(mesh,attribute_name,slg);
         slg.fill_from(mesh,attribute_name,slg.is_allowing_boundaries_between_opposite_labels());
     } while(nb_removed_charts!=0);
-    // TODO make sure there is no inner boundary left
+    created_chart_index = slg.facet2chart[facet_of_min_fidelity]; // created_chart_index may have changed -> update it
+    index_t total_nb_halfedges = 0,
+            he_counter = 0;
+    for(index_t b : slg.charts[created_chart_index].boundaries) {
+        total_nb_halfedges += slg.boundaries[b].halfedges.size();
+    }
+    CustomMeshHalfedges mesh_he(mesh);
+    std::vector<std::pair<MeshHalfedges::Halfedge,index_t>> all_boundary_halfedges(total_nb_halfedges); // associate a direction in {0,1,2}={X,Y,Z}
+    std::array<double,3> per_axis_dot_product; // in order to find the max dot product -> axis the most aligned with the current halfedge
+    for(index_t b : slg.charts[created_chart_index].boundaries) {
+        for(const auto& he : slg.boundaries[b].halfedges) { // for each halfedge of the current boundary
+            FOR(axis,3) { // X, Y and Z
+                per_axis_dot_product[axis] = dot(halfedge_vector(mesh,he),label2vector[axis*2]); // axis vectors are even indices of label2vector
+            }
+            all_boundary_halfedges[he_counter] = std::make_pair(he,VECTOR_MAX_INDEX(per_axis_dot_product));
+            he_counter++;
+        }
+    }
+    #ifndef NDEBUG
+        // dump all_boundary_halfedges with closest axis as attribute
+        std::map<std::pair<GEO::index_t, GEO::index_t>, index_t> edges_and_attributes;
+        index_t vertex_1 = index_t(-1),
+                vertex_2 = index_t(-1);
+        for(const auto& kv : all_boundary_halfedges) {
+            vertex_1 = mesh.facet_corners.vertex(kv.first.corner);
+            vertex_2 = mesh.facet_corners.vertex(mesh.facets.next_corner_around_facet(kv.first.facet,kv.first.corner));
+            edges_and_attributes[std::make_pair(vertex_1,vertex_2)] = kv.second;
+        }
+        dump_edges("all_boundary_edges","axis",mesh,mesh_he,edges_and_attributes);
+    #endif
 }

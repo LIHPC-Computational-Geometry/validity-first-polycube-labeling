@@ -14,6 +14,9 @@
 #define MAP_CONTAINS(container,value) (container.find(value) != container.end())
 
 #define VECTOR_MIN(container) (std::min_element(container.begin(),container.end())) // do not work on mesh attributes because they don't have iterators...
+#define VECTOR_MAX(container) (std::max_element(container.begin(),container.end())) // do not work on mesh attributes because they don't have iterators...
+#define VECTOR_MIN_INDEX(container) (std::distance(container.begin(), VECTOR_MIN(container))) // get index of the min value
+#define VECTOR_MAX_INDEX(container) (std::distance(container.begin(), VECTOR_MAX(container))) // get index of the max value
 
 using namespace GEO;
 
