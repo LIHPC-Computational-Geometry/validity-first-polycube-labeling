@@ -792,4 +792,16 @@ void trace_contour(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char
         }
         dump_edges("all_boundary_edges","axis",mesh,mesh_he,edges_and_attributes);
     #endif
+    // count number of same-axis groups (by counting transitions between different axes)
+    index_t nb_same_axis_groups = 0; // 0 transition encountered for now
+    FOR(he_index,all_boundary_halfedges.size()-2) {
+        if(all_boundary_halfedges[he_index].second != all_boundary_halfedges[he_index+1].second) {
+            nb_same_axis_groups++;
+        }
+    }
+    if (all_boundary_halfedges[0].second != all_boundary_halfedges[all_boundary_halfedges.size()-1].second) {
+        // first and last edges (which are adjacent) have a different closest axis
+        nb_same_axis_groups++;
+    }
+    fmt::println(Logger::out("refinement"),"boundary of the created chart contains {} group(s) of closest axis",nb_same_axis_groups); Logger::out("refinement").flush();
 }
