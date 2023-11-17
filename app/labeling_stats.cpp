@@ -4,6 +4,7 @@
 #include <geogram/basic/command_line.h>
 #include <geogram/basic/command_line_args.h>
 #include <geogram/basic/logger.h>
+#include <geogram/basic/vecg.h>
 
 #include <fmt/core.h>
 #include <fmt/ostream.h>
@@ -12,9 +13,11 @@
 
 #include <iostream>
 #include <iomanip>
+#include <vector>
 
 #include "labeling.h"
 #include "LabelingGraph.h"
+#include "basic_stats.h"
 
 #define LABELING_ATTRIBUTE_NAME "label"
 
@@ -111,8 +114,19 @@ int main(int argc, char** argv) {
     // Fidelity
     ////////////////////////////////
 
-    // TODO
-    // min, max, avg, std
+    // compute normals
+    std::vector<vec3> normals(input_mesh.facets.nb());
+    FOR(f,input_mesh.facets.nb()) {
+        normals[f] = normalize(Geom::mesh_facet_normal(input_mesh,f));
+    }
+    // compute fidelity
+    BasicStats fidelity_stats;
+    compute_per_facet_fidelity(input_mesh, normals, LABELING_ATTRIBUTE_NAME,"fidelity",fidelity_stats);
+    // fill JSON
+    output_JSON["fidelity"]["min"] = fidelity_stats.min();
+    output_JSON["fidelity"]["max"] = fidelity_stats.max();
+    output_JSON["fidelity"]["avg"] = fidelity_stats.avg();
+    output_JSON["fidelity"]["sd"] = fidelity_stats.sd();
 
     std::cout << std::setw(4) << output_JSON << std::endl;
 
