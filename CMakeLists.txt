@@ -89,3 +89,6 @@ target_link_libraries(areas_to_tilt geogram geogram_gfx ${GLFW_LIBRARIES} fmt::f
 
 add_executable(mesh_stats ${SRCFILES} app/mesh_stats)
 target_link_libraries(mesh_stats geogram geogram_gfx ${GLFW_LIBRARIES} fmt::fmt gco nlohmann_json)
+
+add_executable(labeling_stats ${SRCFILES} app/labeling_stats)
+target_link_libraries(labeling_stats geogram geogram_gfx ${GLFW_LIBRARIES} fmt::fmt gco nlohmann_json)

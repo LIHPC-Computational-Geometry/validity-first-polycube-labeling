@@ -712,6 +712,10 @@ std::size_t StaticLabelingGraph::nb_invalid_corners() const {
     return invalid_corners.size();
 }
 
+std::size_t StaticLabelingGraph::nb_non_monotone_boundaries() const {
+    return non_monotone_boundaries.size();
+}
+
 std::size_t StaticLabelingGraph::nb_turning_points() const {
     std::size_t count = 0;
     for(index_t i : non_monotone_boundaries) {

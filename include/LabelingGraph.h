@@ -248,6 +248,7 @@ struct StaticLabelingGraph {
     std::size_t nb_invalid_charts() const;
     std::size_t nb_invalid_boundaries() const;
     std::size_t nb_invalid_corners() const;
+    std::size_t nb_non_monotone_boundaries() const;
     std::size_t nb_turning_points() const;
 
     //// Getters for parameter(s) //////////////////
