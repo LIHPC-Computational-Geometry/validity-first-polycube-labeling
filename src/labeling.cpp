@@ -222,7 +222,7 @@ unsigned int fix_invalid_boundaries(GEO::Mesh& mesh, const char* attribute_name,
             // modify the labels around this vertex
             do {
                 label[current_halfedge.facet] = new_label;
-                mesh_half_edges_.move_to_next_around_vertex(current_halfedge,true);
+                mesh_half_edges_.move_counterclockwise_around_vertex(current_halfedge,true);
             } while (current_halfedge != *boundary_halfedge); // go around the vertex, until we are back on the initial boundary edge
         }
 
@@ -386,7 +386,7 @@ unsigned int move_boundaries_near_turning_points(GEO::Mesh& mesh, const char* at
             current_halfedge = initial_halfedge;
             // go around the vertex and assign new_label to adjacent facets
             do {
-                mesh_halfedges.move_to_next_around_vertex(current_halfedge,true);
+                mesh_halfedges.move_counterclockwise_around_vertex(current_halfedge,true);
                 if(label[current_halfedge.facet] != new_label) {
                     label[current_halfedge.facet] = new_label;
                     nb_labels_changed++;
@@ -447,7 +447,7 @@ void straighten_boundary(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
         current_halfedge = (*boundary_halfedge); // copy the boundary halfedge into a mutable variable
         do { // for each facet around the vertex at the base of the current boundary halfedge
             distance_to_boundary[current_halfedge.facet] = 0; // set distance to 0 (the current facet touch the boundary by an edge or a vertex)
-            mesh_he.move_to_next_around_vertex(current_halfedge,true);
+            mesh_he.move_counterclockwise_around_vertex(current_halfedge,true);
         } while (current_halfedge != *boundary_halfedge); // go around the vertex, until we are back on the initial boundary edge
     }
     per_facet_distance(mesh,distance_to_boundary);
@@ -567,17 +567,17 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
         current_halfedge = boundary.halfedges[0];
         if(tp.towards_left()) {
             do {
-                mesh_he.move_to_prev_around_vertex(current_halfedge,true); // next clockwise
+                mesh_he.move_clockwise_around_vertex(current_halfedge,true); // next clockwise
             }
             while(!mesh_he.halfedge_is_border(current_halfedge));
-            // do while could be replace by move_to_prev_around_vertex(current_halfedge,false); ?
+            // do while could be replace by (...,false); ?
         }
         else {
             do {
-                mesh_he.move_to_next_around_vertex(current_halfedge,true); // next counterclockwise
+                mesh_he.move_counterclockwise_around_vertex(current_halfedge,true); // next counterclockwise
             }
             while(!mesh_he.halfedge_is_border(current_halfedge));
-            // do while could be replace by move_to_next_around_vertex(current_halfedge,false); ?
+            // do while could be replace by (...,false); ?
         }
     }
     else {
@@ -586,17 +586,17 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
         mesh_he.move_to_opposite(current_halfedge);
         if(tp.towards_right()) {
             do {
-                mesh_he.move_to_prev_around_vertex(current_halfedge,true); // next clockwise
+                mesh_he.move_clockwise_around_vertex(current_halfedge,true); // next clockwise
             }
             while(!mesh_he.halfedge_is_border(current_halfedge));
-            // do while could be replace by move_to_prev_around_vertex(current_halfedge,false); ?
+            // do while could be replace by (...,false); ?
         }
         else {
             do {
-                mesh_he.move_to_next_around_vertex(current_halfedge,true); // next counterclockwise
+                mesh_he.move_counterclockwise_around_vertex(current_halfedge,true); // next counterclockwise
             }
             while(!mesh_he.halfedge_is_border(current_halfedge));
-            // do while could be replace by move_to_next_around_vertex(current_halfedge,false); ?
+            // do while could be replace by (...,false); ?
         }
     }
     #ifndef NDEBUG
@@ -803,5 +803,9 @@ void trace_contour(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char
         // first and last edges (which are adjacent) have a different closest axis
         nb_same_axis_groups++;
     }
+    nb_same_axis_groups = (nb_same_axis_groups == 0) ? 1 : nb_same_axis_groups; // if no transition -> 1 group (not possible in practice I think)
     fmt::println(Logger::out("refinement"),"boundary of the created chart contains {} group(s) of closest axis",nb_same_axis_groups); Logger::out("refinement").flush();
+    // created chart = front
+    // counterclockwise : right, back then left
+    // the top chart must have the same label as the initial chart
 }

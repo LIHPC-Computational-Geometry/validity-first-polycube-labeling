@@ -17,6 +17,9 @@
 // - move_to_prev_around_vertex() moves clockwise
 // so counterclockwise, the facet is ahead of the halfedge
 // and clockwise, the halfedge is ahead of the facet
+//
+// see https://github.com/BrunoLevy/geogram/pull/116
+
 #pragma once
 
 #include <geogram/mesh/mesh_halfedges.h>
@@ -38,11 +41,36 @@ public:
     }
 
     // enforce the right function when passing a char array
+    // fixed since https://github.com/BrunoLevy/geogram/commit/ddacc7013124fbb1b8e4514f8d9613bf48d2d95e
     void set_use_facet_region(const char* attribute_name) {
         set_use_facet_region(std::string(attribute_name));
     }
 
-    bool move_to_next_around_vertex(Halfedge& H, bool ignore_borders = false) const { // 2nd argument added
+    // re-expose this method from MeshHalfedges
+    void move_to_next_around_facet(Halfedge& H) const {
+        MeshHalfedges::move_to_next_around_facet(H);
+    }
+
+    // re-expose this method from MeshHalfedges
+    void move_to_prev_around_facet(Halfedge& H) const {
+        MeshHalfedges::move_to_prev_around_facet(H);
+    }
+
+    inline void move_clockwise_around_facet(Halfedge& H) const {
+        // around facets, next is clockwise and prev is counterclockwise
+        // -> call move_to_next_around_facet()
+        move_to_next_around_facet(H);
+    }
+
+    inline void move_counterclockwise_around_facet(Halfedge& H) const {
+        // around facets, next is clockwise and prev is counterclockwise
+        // -> call move_to_prev_around_facet()
+        geo_debug_assert(halfedge_is_valid(H));
+        move_to_prev_around_facet(H);
+    }
+
+    // re-expose this method from MeshHalfedges and add 2nd argument
+    bool move_to_next_around_vertex(Halfedge& H, bool ignore_borders = false) const {
         geo_debug_assert(halfedge_is_valid(H));
         index_t v = mesh_.facet_corners.vertex(H.corner);
         index_t f = mesh_.facet_corners.adjacent_facet(H.corner);
@@ -70,7 +98,8 @@ public:
         geo_assert_not_reached;
     }
 
-    bool move_to_prev_around_vertex(Halfedge& H, bool ignore_borders = false) const { // 2nd argument added
+    // re-expose this method from MeshHalfedges and add 2nd argument
+    bool move_to_prev_around_vertex(Halfedge& H, bool ignore_borders = false) const {
         geo_debug_assert(halfedge_is_valid(H));
         index_t v = mesh_.facet_corners.vertex(H.corner);
         index_t pc = mesh_.facets.prev_corner_around_facet(H.facet, H.corner);
@@ -98,6 +127,29 @@ public:
         geo_assert_not_reached;
     }
 
+    inline bool move_clockwise_around_vertex(Halfedge& H, bool ignore_borders = false) const {
+        // around vertices, next is counterclockwise and prev is clockwise
+        // -> call move_to_prev_around_vertex()
+        return move_to_prev_around_vertex(H,ignore_borders);
+    }
+
+    inline bool move_counterclockwise_around_vertex(Halfedge& H, bool ignore_borders = false) const {
+        // around vertices, next is counterclockwise and prev is clockwise
+        // -> call move_to_next_around_vertex()
+        return move_to_next_around_vertex(H,ignore_borders);
+    }
+
+    // re-expose this method from MeshHalfedges
+    void move_to_next_around_border(Halfedge& H) const {
+        MeshHalfedges::move_to_next_around_border(H);
+    }
+
+    // re-expose this method from MeshHalfedges
+    void move_to_prev_around_border(Halfedge& H) const {
+        MeshHalfedges::move_to_prev_around_border(H);
+    }
+
+    // TODO remove. the right one is the one from MeshHalfedges (vanilla Geogram)
     void custom_move_to_next_around_border(Halfedge& H) const {
         geo_debug_assert(halfedge_is_valid(H));
         geo_debug_assert(halfedge_is_border(H));
@@ -109,6 +161,7 @@ public:
         } while(!halfedge_is_border(H));
     }
 
+    // TODO remove. the right one is the one from MeshHalfedges (vanilla Geogram)
     void custom_move_to_prev_around_border(Halfedge& H) const {
         geo_debug_assert(halfedge_is_valid(H));
         geo_debug_assert(halfedge_is_border(H));
@@ -117,7 +170,32 @@ public:
             ++count;
             geo_assert(count < 10000);
         }
-        move_to_prev_around_facet(H);
+    }
+
+    inline index_t halfedge_vertex_index_from(
+        const Mesh& M, const MeshHalfedges::Halfedge& H
+    ) {
+        return M.facet_corners.vertex(H.corner);
+    }
+
+    inline index_t halfedge_vertex_index_to(
+        const Mesh& M, const MeshHalfedges::Halfedge& H
+    ) {
+        index_t c = M.facets.next_corner_around_facet(H.facet, H.corner);
+        return M.facet_corners.vertex(c);
+    }
+
+    inline index_t halfedge_facet_left(
+        const Mesh& M, const MeshHalfedges::Halfedge& H
+    ) {
+        return M.facet_corners.adjacent_facet(H.corner); // see H.facet new value in move_to_opposite()
+    }
+
+    inline index_t halfedge_facet_right(
+        const Mesh& M, const MeshHalfedges::Halfedge& H
+    ) {
+        geo_argused(M);
+        return H.facet;
     }
 
     bool is_on_lower_than_180_degrees_edge(Halfedge& H) const {

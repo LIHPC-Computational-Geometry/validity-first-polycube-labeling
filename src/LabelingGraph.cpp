@@ -52,7 +52,7 @@ void VertexRingWithBoundaries::explore(const MeshHalfedges::Halfedge& initial_ha
 
     // go around the vertex, from boundary edge to boundary edge
     do {
-        mesh_halfedges.move_to_next_around_vertex(current_halfedge,true);
+        mesh_halfedges.move_counterclockwise_around_vertex(current_halfedge,true);
         if(mesh_halfedges.halfedge_is_border(current_halfedge)) {
             boundary_edges.push_back(current_halfedge); // register the current halfedge as outgoing boundary edge for this vertex ring
         }
@@ -172,18 +172,18 @@ TurningPoint::TurningPoint(index_t outgoing_local_halfedge_index, const Boundary
     double left_side_sum_of_angles = 0.0;
     double right_side_sum_of_angles = 0.0;
     MeshHalfedges::Halfedge current_halfedge = boundary.halfedges[outgoing_local_halfedge_index], previous_halfedge = current_halfedge;
-    mesh_he.move_to_next_around_vertex(previous_halfedge,true); // next counterclockwise
+    mesh_he.move_clockwise_around_vertex(previous_halfedge,true);
     // explore the right side (clockwise)
     do {
         right_side_sum_of_angles += angle(halfedge_vector(mesh_he.mesh(),previous_halfedge),halfedge_vector(mesh_he.mesh(),current_halfedge));
         previous_halfedge = current_halfedge;
-        mesh_he.move_to_prev_around_vertex(current_halfedge,true); // previous counterclockwise
+        mesh_he.move_clockwise_around_vertex(current_halfedge,true); // previous counterclockwise
     } while (!mesh_he.halfedge_is_border(current_halfedge));
     // explore the right side
     do {
         left_side_sum_of_angles += angle(halfedge_vector(mesh_he.mesh(),previous_halfedge),halfedge_vector(mesh_he.mesh(),current_halfedge));
         previous_halfedge = current_halfedge;
-        mesh_he.move_to_prev_around_vertex(current_halfedge,true); // previous counterclockwise
+        mesh_he.move_clockwise_around_vertex(current_halfedge,true); // previous counterclockwise
     } while (!mesh_he.halfedge_is_border(current_halfedge));
     direction_ = (left_side_sum_of_angles > right_side_sum_of_angles); // 0 = towards left, 1 = towards right
 }
