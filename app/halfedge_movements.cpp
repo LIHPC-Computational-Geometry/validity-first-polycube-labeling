@@ -59,80 +59,13 @@ protected:
     }
 
     void draw_object_properties() override {
+        // display halfedge value
         ImGui::Text("halfedge.facet = {%d}",halfedge.facet);
         ImGui::Text("halfedge.corner = {%d}",halfedge.corner);
-        ImGui::SeparatorText("Around facets");
-        if(ImGui::Button("Move to prev around facet")) {
-            mesh_he.move_to_prev_around_facet(halfedge);
-            origin[0] = Geom::halfedge_vertex_from(mesh_,halfedge)[0];
-            origin[1] = Geom::halfedge_vertex_from(mesh_,halfedge)[1];
-            origin[2] = Geom::halfedge_vertex_from(mesh_,halfedge)[2];
-            extremity[0] = Geom::halfedge_vertex_to(mesh_,halfedge)[0];
-            extremity[1] = Geom::halfedge_vertex_to(mesh_,halfedge)[1];
-            extremity[2] = Geom::halfedge_vertex_to(mesh_,halfedge)[2];
-        }
-        if(ImGui::Button("Move to next around facet")) {
-            mesh_he.move_to_next_around_facet(halfedge);
-            origin[0] = Geom::halfedge_vertex_from(mesh_,halfedge)[0];
-            origin[1] = Geom::halfedge_vertex_from(mesh_,halfedge)[1];
-            origin[2] = Geom::halfedge_vertex_from(mesh_,halfedge)[2];
-            extremity[0] = Geom::halfedge_vertex_to(mesh_,halfedge)[0];
-            extremity[1] = Geom::halfedge_vertex_to(mesh_,halfedge)[1];
-            extremity[2] = Geom::halfedge_vertex_to(mesh_,halfedge)[2];
-        }
-        ImGui::SeparatorText("Around vertices");
-        if(ImGui::Button("Move to prev around vertex")) {
-            mesh_he.move_to_prev_around_vertex(halfedge);
-            origin[0] = Geom::halfedge_vertex_from(mesh_,halfedge)[0];
-            origin[1] = Geom::halfedge_vertex_from(mesh_,halfedge)[1];
-            origin[2] = Geom::halfedge_vertex_from(mesh_,halfedge)[2];
-            extremity[0] = Geom::halfedge_vertex_to(mesh_,halfedge)[0];
-            extremity[1] = Geom::halfedge_vertex_to(mesh_,halfedge)[1];
-            extremity[2] = Geom::halfedge_vertex_to(mesh_,halfedge)[2];
-        }
-        if(ImGui::Button("Move to next around vertex")) {
-            mesh_he.move_to_next_around_vertex(halfedge);
-            origin[0] = Geom::halfedge_vertex_from(mesh_,halfedge)[0];
-            origin[1] = Geom::halfedge_vertex_from(mesh_,halfedge)[1];
-            origin[2] = Geom::halfedge_vertex_from(mesh_,halfedge)[2];
-            extremity[0] = Geom::halfedge_vertex_to(mesh_,halfedge)[0];
-            extremity[1] = Geom::halfedge_vertex_to(mesh_,halfedge)[1];
-            extremity[2] = Geom::halfedge_vertex_to(mesh_,halfedge)[2];
-        }
-        ImGui::SeparatorText("Around borders");
-        if(ImGui::Button("Move to prev around border")) {
-            // mesh_he.set_use_facet_region(LABELING_ATTRIBUTE_NAME);
-            mesh_he.move_to_prev_around_border(halfedge);
-            origin[0] = Geom::halfedge_vertex_from(mesh_,halfedge)[0];
-            origin[1] = Geom::halfedge_vertex_from(mesh_,halfedge)[1];
-            origin[2] = Geom::halfedge_vertex_from(mesh_,halfedge)[2];
-            extremity[0] = Geom::halfedge_vertex_to(mesh_,halfedge)[0];
-            extremity[1] = Geom::halfedge_vertex_to(mesh_,halfedge)[1];
-            extremity[2] = Geom::halfedge_vertex_to(mesh_,halfedge)[2];
-        }
-        if(ImGui::Button("Move to next around border")) {
-            // mesh_he.set_use_facet_region(LABELING_ATTRIBUTE_NAME);
-            mesh_he.move_to_next_around_border(halfedge);
-            origin[0] = Geom::halfedge_vertex_from(mesh_,halfedge)[0];
-            origin[1] = Geom::halfedge_vertex_from(mesh_,halfedge)[1];
-            origin[2] = Geom::halfedge_vertex_from(mesh_,halfedge)[2];
-            extremity[0] = Geom::halfedge_vertex_to(mesh_,halfedge)[0];
-            extremity[1] = Geom::halfedge_vertex_to(mesh_,halfedge)[1];
-            extremity[2] = Geom::halfedge_vertex_to(mesh_,halfedge)[2];
-        }
-        ImGui::SeparatorText("Flip");
-        if(ImGui::Button("Move to opposite")) {
-            mesh_he.move_to_opposite(halfedge);
-            origin[0] = Geom::halfedge_vertex_from(mesh_,halfedge)[0];
-            origin[1] = Geom::halfedge_vertex_from(mesh_,halfedge)[1];
-            origin[2] = Geom::halfedge_vertex_from(mesh_,halfedge)[2];
-            extremity[0] = Geom::halfedge_vertex_to(mesh_,halfedge)[0];
-            extremity[1] = Geom::halfedge_vertex_to(mesh_,halfedge)[1];
-            extremity[2] = Geom::halfedge_vertex_to(mesh_,halfedge)[2];
-        }
+        // display validity & on border
         if(mesh_he.halfedge_is_valid(halfedge)) {
             ImGui::TextColored(TEXT_GREEN,"Halfedge is valid");
-            if(mesh_he.halfedge_is_border(halfedge)) {
+            if(mesh_he.halfedge_is_border(halfedge)) { // if called on invalid halfedge -> bad assertion
                 ImGui::TextColored(TEXT_GREEN,"Halfedge is on border");
             }
             else {
@@ -141,6 +74,41 @@ protected:
         }
         else {
             ImGui::TextColored(TEXT_RED,"Halfedge is invalid");
+            ImGui::TextColored(TEXT_RED,"Halfedge is not on border");
+        }
+        ImGui::SeparatorText("Around facets");
+        if(ImGui::Button("Move to prev around facet")) {
+            mesh_he.move_to_prev_around_facet(halfedge);
+            update_points_coordinates();
+        }
+        if(ImGui::Button("Move to next around facet")) {
+            mesh_he.move_to_next_around_facet(halfedge);
+            update_points_coordinates();
+        }
+        ImGui::SeparatorText("Around vertices");
+        if(ImGui::Button("Move to prev around vertex")) {
+            mesh_he.move_to_prev_around_vertex(halfedge);
+            update_points_coordinates();
+        }
+        if(ImGui::Button("Move to next around vertex")) {
+            mesh_he.move_to_next_around_vertex(halfedge);
+            update_points_coordinates();
+        }
+        ImGui::BeginDisabled(!mesh_he.halfedge_is_valid(halfedge) || !mesh_he.halfedge_is_border(halfedge));
+        ImGui::SeparatorText("Around borders");
+        if(ImGui::Button("Move to prev around border")) {
+            mesh_he.move_to_prev_around_border(halfedge);
+            update_points_coordinates();
+        }
+        if(ImGui::Button("Move to next around border")) {
+            mesh_he.move_to_next_around_border(halfedge);
+            update_points_coordinates();
+        }
+        ImGui::EndDisabled();
+        ImGui::SeparatorText("Flip");
+        if(ImGui::Button("Move to opposite")) {
+            mesh_he.move_to_opposite(halfedge);
+            update_points_coordinates();
         }
     }
 
@@ -149,6 +117,7 @@ protected:
             mesh_.vertices.set_double_precision();
             halfedge.facet = 0;
             halfedge.corner = mesh_.facets.corner(0,0); // first corner of facet 0
+            update_points_coordinates();
             if(state_ == labeling) {
                 labeling_visu_mode_transition(VIEW_RAW_LABELING);
                 mesh_he.set_use_facet_region(std::string(LABELING_ATTRIBUTE_NAME));
@@ -156,6 +125,17 @@ protected:
             return true;
         }
         return false;
+    }
+
+    void update_points_coordinates() {
+        if(mesh_he.halfedge_is_valid(halfedge)) {
+            origin[0] = Geom::halfedge_vertex_from(mesh_,halfedge)[0];
+            origin[1] = Geom::halfedge_vertex_from(mesh_,halfedge)[1];
+            origin[2] = Geom::halfedge_vertex_from(mesh_,halfedge)[2];
+            extremity[0] = Geom::halfedge_vertex_to(mesh_,halfedge)[0];
+            extremity[1] = Geom::halfedge_vertex_to(mesh_,halfedge)[1];
+            extremity[2] = Geom::halfedge_vertex_to(mesh_,halfedge)[2];
+        }
     }
 
     MeshHalfedges mesh_he;
