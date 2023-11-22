@@ -7,14 +7,19 @@
 #include <fmt/core.h>
 #include <fmt/ostream.h>
 
-#include "SimpleMeshApplicationExt.h"   // for colormaps indices
+#include <string>
+
+#include "LabelingViewerApp.h"
+
+#define TEXT_GREEN  ImVec4(0.0f,0.8f,0.0,1.0f)
+#define TEXT_RED    ImVec4(0.8f,0.0f,0.0,1.0f)
 
 using namespace GEO;
 
-class HalfedgeMovementsApp : public SimpleMeshApplicationExt {
+class HalfedgeMovementsApp : public LabelingViewerApp {
 public:
 
-    HalfedgeMovementsApp() : SimpleMeshApplicationExt("halfedge_movements"), mesh_he(mesh_) {
+    HalfedgeMovementsApp() : LabelingViewerApp("halfedge_movements"), mesh_he(mesh_) {
         // change default values
         show_surface_ = true;
         surface_color_ = vec4f(0.9f,0.9f,0.9f,1.0f);
@@ -38,7 +43,7 @@ public:
 protected:
 
     void draw_scene() override {
-        SimpleMeshApplication::draw_scene();
+        LabelingViewerApp::draw_scene();
 
         glupSetColor4fv(GLUP_FRONT_COLOR, rgba); // use the color of this group of points
         // draw halfedge base vertex
@@ -54,6 +59,8 @@ protected:
     }
 
     void draw_object_properties() override {
+        ImGui::Text("halfedge.facet = {%d}",halfedge.facet);
+        ImGui::Text("halfedge.corner = {%d}",halfedge.corner);
         ImGui::SeparatorText("Around facets");
         if(ImGui::Button("Move to prev around facet")) {
             mesh_he.move_to_prev_around_facet(halfedge);
@@ -92,13 +99,60 @@ protected:
             extremity[1] = Geom::halfedge_vertex_to(mesh_,halfedge)[1];
             extremity[2] = Geom::halfedge_vertex_to(mesh_,halfedge)[2];
         }
+        ImGui::SeparatorText("Around borders");
+        if(ImGui::Button("Move to prev around border")) {
+            // mesh_he.set_use_facet_region(LABELING_ATTRIBUTE_NAME);
+            mesh_he.move_to_prev_around_border(halfedge);
+            origin[0] = Geom::halfedge_vertex_from(mesh_,halfedge)[0];
+            origin[1] = Geom::halfedge_vertex_from(mesh_,halfedge)[1];
+            origin[2] = Geom::halfedge_vertex_from(mesh_,halfedge)[2];
+            extremity[0] = Geom::halfedge_vertex_to(mesh_,halfedge)[0];
+            extremity[1] = Geom::halfedge_vertex_to(mesh_,halfedge)[1];
+            extremity[2] = Geom::halfedge_vertex_to(mesh_,halfedge)[2];
+        }
+        if(ImGui::Button("Move to next around border")) {
+            // mesh_he.set_use_facet_region(LABELING_ATTRIBUTE_NAME);
+            mesh_he.move_to_next_around_border(halfedge);
+            origin[0] = Geom::halfedge_vertex_from(mesh_,halfedge)[0];
+            origin[1] = Geom::halfedge_vertex_from(mesh_,halfedge)[1];
+            origin[2] = Geom::halfedge_vertex_from(mesh_,halfedge)[2];
+            extremity[0] = Geom::halfedge_vertex_to(mesh_,halfedge)[0];
+            extremity[1] = Geom::halfedge_vertex_to(mesh_,halfedge)[1];
+            extremity[2] = Geom::halfedge_vertex_to(mesh_,halfedge)[2];
+        }
+        ImGui::SeparatorText("Flip");
+        if(ImGui::Button("Move to opposite")) {
+            mesh_he.move_to_opposite(halfedge);
+            origin[0] = Geom::halfedge_vertex_from(mesh_,halfedge)[0];
+            origin[1] = Geom::halfedge_vertex_from(mesh_,halfedge)[1];
+            origin[2] = Geom::halfedge_vertex_from(mesh_,halfedge)[2];
+            extremity[0] = Geom::halfedge_vertex_to(mesh_,halfedge)[0];
+            extremity[1] = Geom::halfedge_vertex_to(mesh_,halfedge)[1];
+            extremity[2] = Geom::halfedge_vertex_to(mesh_,halfedge)[2];
+        }
+        if(mesh_he.halfedge_is_valid(halfedge)) {
+            ImGui::TextColored(TEXT_GREEN,"Halfedge is valid");
+            if(mesh_he.halfedge_is_border(halfedge)) {
+                ImGui::TextColored(TEXT_GREEN,"Halfedge is on border");
+            }
+            else {
+                ImGui::TextColored(TEXT_RED,"Halfedge is not on border");
+            }
+        }
+        else {
+            ImGui::TextColored(TEXT_RED,"Halfedge is invalid");
+        }
     }
 
     bool load(const std::string& filename) override {
-        if(SimpleMeshApplication::load(filename)) {
+        if(LabelingViewerApp::load(filename)) {
             mesh_.vertices.set_double_precision();
             halfedge.facet = 0;
             halfedge.corner = mesh_.facets.corner(0,0); // first corner of facet 0
+            if(state_ == labeling) {
+                labeling_visu_mode_transition(VIEW_RAW_LABELING);
+                mesh_he.set_use_facet_region(std::string(LABELING_ATTRIBUTE_NAME));
+            }
             return true;
         }
         return false;
