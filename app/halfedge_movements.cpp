@@ -26,6 +26,9 @@ public:
         origin[0] = 0.0;
         origin[1] = 0.0;
         origin[2] = 0.0;
+        extremity[0] = 0.0;
+        extremity[1] = 0.0;
+        extremity[2] = 0.0;
         rgba[0] = 1.0f;
         rgba[1] = 0.0f;
         rgba[2] = 0.0f;
@@ -43,6 +46,11 @@ protected:
         glupBegin(GLUP_POINTS);
         glupPrivateVertex3dv(origin); // give a pointer to the coordinates to GLUP
         glupEnd();
+        // draw halfedge vector
+        glupBegin(GLUP_LINES);
+        glupPrivateVertex3dv(origin);
+        glupPrivateVertex3dv(extremity);
+        glupEnd();
     }
 
     void draw_object_properties() override {
@@ -52,12 +60,18 @@ protected:
             origin[0] = Geom::halfedge_vertex_from(mesh_,halfedge)[0];
             origin[1] = Geom::halfedge_vertex_from(mesh_,halfedge)[1];
             origin[2] = Geom::halfedge_vertex_from(mesh_,halfedge)[2];
+            extremity[0] = Geom::halfedge_vertex_to(mesh_,halfedge)[0];
+            extremity[1] = Geom::halfedge_vertex_to(mesh_,halfedge)[1];
+            extremity[2] = Geom::halfedge_vertex_to(mesh_,halfedge)[2];
         }
         if(ImGui::Button("Move to next around facet")) {
             mesh_he.move_to_next_around_facet(halfedge);
             origin[0] = Geom::halfedge_vertex_from(mesh_,halfedge)[0];
             origin[1] = Geom::halfedge_vertex_from(mesh_,halfedge)[1];
             origin[2] = Geom::halfedge_vertex_from(mesh_,halfedge)[2];
+            extremity[0] = Geom::halfedge_vertex_to(mesh_,halfedge)[0];
+            extremity[1] = Geom::halfedge_vertex_to(mesh_,halfedge)[1];
+            extremity[2] = Geom::halfedge_vertex_to(mesh_,halfedge)[2];
         }
         ImGui::SeparatorText("Around vertices");
         if(ImGui::Button("Move to prev around vertex")) {
@@ -65,12 +79,18 @@ protected:
             origin[0] = Geom::halfedge_vertex_from(mesh_,halfedge)[0];
             origin[1] = Geom::halfedge_vertex_from(mesh_,halfedge)[1];
             origin[2] = Geom::halfedge_vertex_from(mesh_,halfedge)[2];
+            extremity[0] = Geom::halfedge_vertex_to(mesh_,halfedge)[0];
+            extremity[1] = Geom::halfedge_vertex_to(mesh_,halfedge)[1];
+            extremity[2] = Geom::halfedge_vertex_to(mesh_,halfedge)[2];
         }
         if(ImGui::Button("Move to next around vertex")) {
             mesh_he.move_to_next_around_vertex(halfedge);
             origin[0] = Geom::halfedge_vertex_from(mesh_,halfedge)[0];
             origin[1] = Geom::halfedge_vertex_from(mesh_,halfedge)[1];
             origin[2] = Geom::halfedge_vertex_from(mesh_,halfedge)[2];
+            extremity[0] = Geom::halfedge_vertex_to(mesh_,halfedge)[0];
+            extremity[1] = Geom::halfedge_vertex_to(mesh_,halfedge)[1];
+            extremity[2] = Geom::halfedge_vertex_to(mesh_,halfedge)[2];
         }
     }
 
@@ -87,6 +107,7 @@ protected:
     MeshHalfedges mesh_he;
     MeshHalfedges::Halfedge halfedge;
     double origin[3];
+    double extremity[3];
     float rgba[4]; // halfedge color, red-green-blue-alpha
 };
 
