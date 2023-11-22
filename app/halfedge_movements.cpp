@@ -17,6 +17,7 @@ public:
     HalfedgeMovementsApp() : SimpleMeshApplicationExt("halfedge_movements"), mesh_he(mesh_) {
         // change default values
         show_surface_ = true;
+        surface_color_ = vec4f(0.9f,0.9f,0.9f,1.0f);
         show_volume_ = false;
         show_colored_cells_ = false;
         // init own variables
@@ -25,6 +26,10 @@ public:
         origin[0] = 0.0;
         origin[1] = 0.0;
         origin[2] = 0.0;
+        rgba[0] = 1.0f;
+        rgba[1] = 0.0f;
+        rgba[2] = 0.0f;
+        rgba[3] = 1.0f;
     }
 
 protected:
@@ -32,6 +37,7 @@ protected:
     void draw_scene() override {
         SimpleMeshApplication::draw_scene();
 
+        glupSetColor4fv(GLUP_FRONT_COLOR, rgba); // use the color of this group of points
         // draw halfedge base vertex
         glupSetPointSize(10.0);
         glupBegin(GLUP_POINTS);
@@ -81,6 +87,7 @@ protected:
     MeshHalfedges mesh_he;
     MeshHalfedges::Halfedge halfedge;
     double origin[3];
+    float rgba[4]; // halfedge color, red-green-blue-alpha
 };
 
 int main(int argc, char** argv) {
