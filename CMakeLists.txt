@@ -92,3 +92,6 @@ target_link_libraries(mesh_stats geogram geogram_gfx ${GLFW_LIBRARIES} fmt::fmt 
 
 add_executable(labeling_stats ${SRCFILES} app/labeling_stats)
 target_link_libraries(labeling_stats geogram geogram_gfx ${GLFW_LIBRARIES} fmt::fmt gco nlohmann_json)
+
+add_executable(halfedge_movements ${SRCFILES} app/halfedge_movements)
+target_link_libraries(halfedge_movements geogram geogram_gfx ${GLFW_LIBRARIES} fmt::fmt gco nlohmann_json)
