@@ -170,6 +170,14 @@ protected:
             mesh_he.move_to_next_around_border(halfedge);
             update_geometry_data();
         }
+        if(ImGui::Button(icon_UTF8("star-of-life") + " Custom move to prev around border")) {
+            custom_mesh_he.custom_move_to_prev_around_border(halfedge);
+            update_geometry_data();
+        }
+        if(ImGui::Button(icon_UTF8("star-of-life") + " Custom move to next around border")) {
+            custom_mesh_he.custom_move_to_next_around_border(halfedge);
+            update_geometry_data();
+        }
         ImGui::EndDisabled();
 
         // flip halfedge
