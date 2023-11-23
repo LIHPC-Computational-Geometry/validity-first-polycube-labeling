@@ -31,12 +31,16 @@ public:
         // init own variables
         halfedge.facet = NO_FACET;
         halfedge.corner = NO_CORNER;
+        origin_vertex = index_t(-1);
         origin[0] = 0.0;
         origin[1] = 0.0;
         origin[2] = 0.0;
+        extremity_vertex = index_t(-1);
         extremity[0] = 0.0;
         extremity[1] = 0.0;
         extremity[2] = 0.0;
+        left_facet = index_t(-1);
+        right_facet = index_t(-1);
         rgba[0] = 1.0f;
         rgba[1] = 0.0f;
         rgba[2] = 0.0f;
@@ -61,6 +65,21 @@ protected:
             glupPrivateVertex3dv(origin);
             glupPrivateVertex3dv(extremity);
             glupEnd();
+            // draw arrow head
+            if(left_facet != NO_FACET) {
+                facet_center = Geom::mesh_facet_center(mesh_,left_facet);
+                glupBegin(GLUP_LINES);
+                glupPrivateVertex3dv(extremity);
+                glupPrivateVertex3dv(facet_center.data());
+                glupEnd();
+            }
+            if(right_facet != NO_FACET) {
+                facet_center = Geom::mesh_facet_center(mesh_,right_facet);
+                glupBegin(GLUP_LINES);
+                glupPrivateVertex3dv(extremity);
+                glupPrivateVertex3dv(facet_center.data());
+                glupEnd();
+            }
         }
     }
 
@@ -72,10 +91,10 @@ protected:
         ImGui::Text("halfedge.corner = {%d}",halfedge.corner);
 
         if(mesh_he.halfedge_is_valid(halfedge)) {
-            ImGui::Text("%s origin vertex is {%d}",icon_UTF8("star-of-life").c_str(),custom_mesh_he.halfedge_vertex_index_from(mesh_,halfedge));
-            ImGui::Text("%s extremity vertex is {%d}",icon_UTF8("star-of-life").c_str(),custom_mesh_he.halfedge_vertex_index_to(mesh_,halfedge));
-            ImGui::Text("%s left facet is {%d}",icon_UTF8("star-of-life").c_str(),custom_mesh_he.halfedge_facet_left(mesh_,halfedge));
-            ImGui::Text("%s right facet is {%d}",icon_UTF8("star-of-life").c_str(),custom_mesh_he.halfedge_facet_right(mesh_,halfedge));
+            ImGui::Text("%s origin vertex is {%d}",icon_UTF8("star-of-life").c_str(),origin_vertex);
+            ImGui::Text("%s extremity vertex is {%d}",icon_UTF8("star-of-life").c_str(),extremity_vertex);
+            ImGui::Text("%s left facet is {%d}",icon_UTF8("star-of-life").c_str(),left_facet);
+            ImGui::Text("%s right facet is {%d}",icon_UTF8("star-of-life").c_str(),right_facet);
         }
         else {
             ImGui::Text("%s origin vertex is undefined",icon_UTF8("star-of-life").c_str());
@@ -105,11 +124,11 @@ protected:
         ImGui::SeparatorText("Around facets");
         if(ImGui::Button("Move to prev around facet")) {
             mesh_he.move_to_prev_around_facet(halfedge);
-            update_points_coordinates();
+            update_geometry_data();
         }
         if(ImGui::Button("Move to next around facet")) {
             mesh_he.move_to_next_around_facet(halfedge);
-            update_points_coordinates();
+            update_geometry_data();
         }
 
         // move around vertices
@@ -117,22 +136,22 @@ protected:
         ImGui::SeparatorText("Around vertices");
         if(ImGui::Button("Move to prev around vertex")) {
             mesh_he.move_to_prev_around_vertex(halfedge);
-            update_points_coordinates();
+            update_geometry_data();
         }
         if(ImGui::Button("Move to next around vertex")) {
             mesh_he.move_to_next_around_vertex(halfedge);
-            update_points_coordinates();
+            update_geometry_data();
         }
         ImGui::TextUnformatted(icon_UTF8("star-of-life").c_str());
         ImGui::SameLine();
         ImGui::Checkbox("ignore borders",&ignore_borders_around_vertices);
         if(ImGui::Button(icon_UTF8("star-of-life") + " Custom clockwise around vertex")) {
             custom_mesh_he.move_clockwise_around_vertex(halfedge,ignore_borders_around_vertices);
-            update_points_coordinates();
+            update_geometry_data();
         }
         if(ImGui::Button(icon_UTF8("star-of-life") + "Custom counterclockwise around vertex")) {
             custom_mesh_he.move_counterclockwise_around_vertex(halfedge,ignore_borders_around_vertices);
-            update_points_coordinates();
+            update_geometry_data();
         }
 
         // move around borders
@@ -141,11 +160,11 @@ protected:
         ImGui::SeparatorText("Around borders");
         if(ImGui::Button("Move to prev around border")) {
             mesh_he.move_to_prev_around_border(halfedge);
-            update_points_coordinates();
+            update_geometry_data();
         }
         if(ImGui::Button("Move to next around border")) {
             mesh_he.move_to_next_around_border(halfedge);
-            update_points_coordinates();
+            update_geometry_data();
         }
         ImGui::EndDisabled();
 
@@ -154,7 +173,7 @@ protected:
         ImGui::SeparatorText("Flip");
         if(ImGui::Button("Move to opposite")) {
             mesh_he.move_to_opposite(halfedge);
-            update_points_coordinates();
+            update_geometry_data();
         }
 
         // legend
@@ -170,7 +189,7 @@ protected:
                 halfedge.facet = 0;
                 halfedge.corner = mesh_.facets.corner(0,0); // first corner of facet 0
             }
-            update_points_coordinates();
+            update_geometry_data();
             if(state_ == labeling) {
                 labeling_visu_mode_transition(VIEW_RAW_LABELING);
                 mesh_he.set_use_facet_region(std::string(LABELING_ATTRIBUTE_NAME));
@@ -183,24 +202,33 @@ protected:
         return false;
     }
 
-    void update_points_coordinates() {
+    void update_geometry_data() {
         if(mesh_he.halfedge_is_valid(halfedge)) {
+            origin_vertex = custom_mesh_he.halfedge_vertex_index_from(mesh_,halfedge);
             origin[0] = Geom::halfedge_vertex_from(mesh_,halfedge)[0];
             origin[1] = Geom::halfedge_vertex_from(mesh_,halfedge)[1];
             origin[2] = Geom::halfedge_vertex_from(mesh_,halfedge)[2];
+            extremity_vertex = custom_mesh_he.halfedge_vertex_index_to(mesh_,halfedge);
             extremity[0] = Geom::halfedge_vertex_to(mesh_,halfedge)[0];
             extremity[1] = Geom::halfedge_vertex_to(mesh_,halfedge)[1];
             extremity[2] = Geom::halfedge_vertex_to(mesh_,halfedge)[2];
+            left_facet = custom_mesh_he.halfedge_facet_left(mesh_,halfedge);
+            right_facet = custom_mesh_he.halfedge_facet_right(mesh_,halfedge);
         }
     }
 
     MeshHalfedges mesh_he;
     CustomMeshHalfedges custom_mesh_he;
     MeshHalfedges::Halfedge halfedge;
+    index_t origin_vertex;
     double origin[3];
+    index_t extremity_vertex;
     double extremity[3];
+    index_t left_facet;
+    index_t right_facet;
     float rgba[4]; // halfedge color, red-green-blue-alpha
     bool ignore_borders_around_vertices;
+    vec3 facet_center;
 };
 
 int main(int argc, char** argv) {
