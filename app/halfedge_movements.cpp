@@ -49,17 +49,19 @@ protected:
     void draw_scene() override {
         LabelingViewerApp::draw_scene();
 
-        glupSetColor4fv(GLUP_FRONT_COLOR, rgba); // use the color of this group of points
-        // draw halfedge base vertex
-        glupSetPointSize(10.0);
-        glupBegin(GLUP_POINTS);
-        glupPrivateVertex3dv(origin); // give a pointer to the coordinates to GLUP
-        glupEnd();
-        // draw halfedge vector
-        glupBegin(GLUP_LINES);
-        glupPrivateVertex3dv(origin);
-        glupPrivateVertex3dv(extremity);
-        glupEnd();
+        if(mesh_he.halfedge_is_valid(halfedge)) {
+            glupSetColor4fv(GLUP_FRONT_COLOR, rgba); // use the color of this group of points
+            // draw halfedge base vertex
+            glupSetPointSize(10.0);
+            glupBegin(GLUP_POINTS);
+            glupPrivateVertex3dv(origin); // give a pointer to the coordinates to GLUP
+            glupEnd();
+            // draw halfedge vector
+            glupBegin(GLUP_LINES);
+            glupPrivateVertex3dv(origin);
+            glupPrivateVertex3dv(extremity);
+            glupEnd();
+        }
     }
 
     void draw_object_properties() override {
@@ -164,8 +166,10 @@ protected:
     bool load(const std::string& filename) override {
         if(LabelingViewerApp::load(filename)) {
             mesh_.vertices.set_double_precision();
-            halfedge.facet = 0;
-            halfedge.corner = mesh_.facets.corner(0,0); // first corner of facet 0
+            if(!mesh_he.halfedge_is_valid(halfedge)) {
+                halfedge.facet = 0;
+                halfedge.corner = mesh_.facets.corner(0,0); // first corner of facet 0
+            }
             update_points_coordinates();
             if(state_ == labeling) {
                 labeling_visu_mode_transition(VIEW_RAW_LABELING);
@@ -174,6 +178,8 @@ protected:
             }
             return true;
         }
+        halfedge.facet = NO_FACET;
+        halfedge.corner = NO_CORNER;
         return false;
     }
 
