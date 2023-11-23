@@ -85,6 +85,10 @@ protected:
 
     void draw_object_properties() override {
 
+        // halfedge color modification
+
+        ImGui::ColorEdit4WithPalette("halfedge color",rgba);
+
         // display halfedge value
 
         ImGui::Text("halfedge.facet = {%d}",halfedge.facet);
