@@ -1,22 +1,25 @@
 // Extended halfedges interface of Geogram
 // 
-// MeshHalfedges/CustomMeshHalfedges is the interface itself
-// MeshHalfedges::Halfedges is an oriented edge, which stores a facet index, and a facet corner index
-//        o
-//       / \
-//      /   \
-//     /     \
-//    / facet \
-//   /         \
-//  /\corner    \
-// o ==========> o
-//    halfedge
-//
-// if your going around a vertex:
+// CustomMeshHalfedges is the interface itself
+// CustomMeshHalfedges::Halfedge is an oriented edge, which stores a facet index and a facet corner index
+// CustomMeshHalfedges::Halfedge.facet is the facet at the right of the halfedge
+// CustomMeshHalfedges::Halfedge.corner is the corner of the facet that is along the halfedge origin
+// 
+//      halfedge
+//   o ==========> o
+//    \/corner    /
+//     \         /
+//      \ facet /
+//       \     /
+//        \   /
+//         \ /
+//          o
+// 
+// Around a vertex:
 // - move_to_next_around_vertex() moves counterclockwise
 // - move_to_prev_around_vertex() moves clockwise
-// so counterclockwise, the facet is ahead of the halfedge
-// and clockwise, the halfedge is ahead of the facet
+// so counterclockwise, the halfedge is ahead of the facet
+// and clockwise, the facet is ahead of the halfedge
 //
 // see https://github.com/BrunoLevy/geogram/pull/116
 
