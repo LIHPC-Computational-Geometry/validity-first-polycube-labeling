@@ -18,6 +18,7 @@
 #include "LabelingGraph.h"   // for StaticLabelingGraph
 #include "labeling.h"		 // for load_labeling(), naive_labeling(), save_labeling()
 #include "basic_stats.h"	 // for BasicStats
+#include "dump_mesh.h"		 // for dump_all_boundaries()
 
 #define RED_WHITE_BLUE_LABELING_COLORS // better for (most) color-deficient users
 
@@ -258,9 +259,17 @@ protected:
 
 		if(ImGui::BeginMainMenuBar()) {
 			if(ImGui::BeginMenu("Debug")) {
-				if(ImGui::MenuItem("Dump StaticLabelingGraph")) {
-					static_labeling_graph_.dump_to_file("StaticLabelingGraph.txt",mesh_);
+				if(ImGui::MenuItem("Dump labeling graph as text file")) {
+					static_labeling_graph_.dump_to_text_file("StaticLabelingGraph.txt",mesh_);
 					fmt::println(Logger::out("I/O"),"Exported to StaticLabelingGraph.txt"); Logger::out("I/O").flush();
+				}
+				if(ImGui::MenuItem("Dump labeling graph as D3 graph")) {
+					static_labeling_graph_.dump_to_D3_graph("StaticLabelingGraph.json",mesh_);
+					fmt::println(Logger::out("I/O"),"Exported to StaticLabelingGraph.json"); Logger::out("I/O").flush();
+				}
+				if(ImGui::MenuItem("Dump boundaries as mesh")) {
+					CustomMeshHalfedges mesh_he(mesh_);
+					dump_all_boundaries_with_indices_and_axes("boundaries",mesh_,mesh_he,static_labeling_graph_);
 				}
 				if (ImGui::MenuItem("Show ImGui demo window", NULL, show_ImGui_demo_window_)) {
 					show_ImGui_demo_window_ = !show_ImGui_demo_window_;

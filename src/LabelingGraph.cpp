@@ -13,6 +13,9 @@
 #include <GCoptimization.h>
 
 #include <utility> // for std::pair
+#include <fstream>
+
+#include <nlohmann/json.hpp>
 
 #include "LabelingGraph.h"
 #include "geometry.h"               // for other_axis(), HalfedgeCompare
@@ -57,6 +60,25 @@ void VertexRingWithBoundaries::explore(const MeshHalfedges::Halfedge& initial_ha
             boundary_edges.push_back(current_halfedge); // register the current halfedge as outgoing boundary edge for this vertex ring
         }
     } while ((current_halfedge != initial_halfedge));
+}
+
+void VertexRingWithBoundaries::explore(index_t init_facet_corner, const CustomMeshHalfedges& mesh_halfedges) {
+    MeshHalfedges::Halfedge initial_halfedge;
+    initial_halfedge.facet = mesh_halfedges.mesh().facet_corners.adjacent_facet(init_facet_corner);
+    index_t init_vertex = mesh_halfedges.mesh().facet_corners.vertex(init_facet_corner);
+    index_t facet_corner_form_adjacent_facet = index_t(-1);
+    // find which facet corner is init_vertex from initial_halfedge.facet
+    FOR(lv,3) {
+        if(mesh_halfedges.mesh().facet_corners.vertex(
+            mesh_halfedges.mesh().facets.corner(initial_halfedge.facet,lv)
+        ) == init_vertex) {
+            initial_halfedge.corner = mesh_halfedges.mesh().facets.corner(initial_halfedge.facet,lv);
+            break;
+        }
+    }
+    geo_assert(mesh_halfedges.halfedge_is_valid(initial_halfedge));
+    geo_assert(Geom::halfedge_vertex_index_from(mesh_halfedges.mesh(),initial_halfedge)==init_vertex);
+    explore(initial_halfedge,mesh_halfedges);
 }
 
 void VertexRingWithBoundaries::check_boundary_edges(const CustomMeshHalfedges& mesh_halfedges) const {
@@ -173,15 +195,15 @@ TurningPoint::TurningPoint(index_t outgoing_local_halfedge_index, const Boundary
     double right_side_sum_of_angles = 0.0;
     MeshHalfedges::Halfedge current_halfedge = boundary.halfedges[outgoing_local_halfedge_index], previous_halfedge = current_halfedge;
     mesh_he.move_clockwise_around_vertex(previous_halfedge,true);
-    // explore the right side (clockwise)
+    // explore the left side (clockwise)
     do {
-        right_side_sum_of_angles += angle(halfedge_vector(mesh_he.mesh(),previous_halfedge),halfedge_vector(mesh_he.mesh(),current_halfedge));
+        left_side_sum_of_angles += angle(halfedge_vector(mesh_he.mesh(),previous_halfedge),halfedge_vector(mesh_he.mesh(),current_halfedge));
         previous_halfedge = current_halfedge;
         mesh_he.move_clockwise_around_vertex(current_halfedge,true); // previous counterclockwise
     } while (!mesh_he.halfedge_is_border(current_halfedge));
     // explore the right side
     do {
-        left_side_sum_of_angles += angle(halfedge_vector(mesh_he.mesh(),previous_halfedge),halfedge_vector(mesh_he.mesh(),current_halfedge));
+        right_side_sum_of_angles += angle(halfedge_vector(mesh_he.mesh(),previous_halfedge),halfedge_vector(mesh_he.mesh(),current_halfedge));
         previous_halfedge = current_halfedge;
         mesh_he.move_clockwise_around_vertex(current_halfedge,true); // previous counterclockwise
     } while (!mesh_he.halfedge_is_border(current_halfedge));
@@ -228,19 +250,22 @@ void Boundary::explore(const MeshHalfedges::Halfedge& initial_halfedge,
     MeshHalfedges::Halfedge current_halfedge = initial_halfedge; // create a modifiable halfedge
 
     geo_assert(mesh_halfedges.halfedge_is_border(current_halfedge));
+    halfedges.push_back(current_halfedge);
+    halfedge2boundary[current_halfedge] = {index_of_self,true}; // mark this halfedge, link it to the current boundary
+    mesh_halfedges.move_to_opposite(current_halfedge); // switch orientation
+    halfedge2boundary[current_halfedge] = {index_of_self,false}; // mark this halfedge, link it to the current boundary (opposite orientation)
+    mesh_halfedges.move_to_opposite(current_halfedge); // switch orientation
 
     // Step 1 : store information we already have with the first boundary edge:
     // the charts at the left and right, and the axis
     
     // fill left_chart field
-    left_chart = facet2chart[initial_halfedge.facet]; // link the current boundary to the chart at its left
+    left_chart = facet2chart[Geom::halfedge_facet_left(mesh,initial_halfedge)]; // link the current boundary to the chart at its left
     charts[left_chart].boundaries.emplace(index_of_self); // link the left chart to the current boundary
     halfedge2boundary[initial_halfedge] = {index_of_self,true}; // mark this halfedge, link it to the current boundary
-    halfedges.push_back(initial_halfedge); // start the list of halfedges composing the current boundary
 
     // fill right_chart field
-    mesh_halfedges.move_to_opposite(current_halfedge); // switch orientation
-    right_chart = facet2chart[current_halfedge.facet]; // link the current boundary to the chart at its right
+    right_chart = facet2chart[Geom::halfedge_facet_right(mesh,initial_halfedge)]; // link the current boundary to the chart at its right
     charts[right_chart].boundaries.emplace(index_of_self); // link the left chart to the current boundary
     halfedge2boundary[current_halfedge] = {index_of_self,false}; // mark this halfedge, link it to the current boundary (opposite orientation)
     
@@ -254,15 +279,19 @@ void Boundary::explore(const MeshHalfedges::Halfedge& initial_halfedge,
     average_normal = mesh_halfedges.normal(current_halfedge);
 
     // Step 2 : go from boundary edge to boundary edge until we found a corner
-
+    
     do {
-        current_vertex = mesh.facet_corners.vertex(current_halfedge.corner); // get the vertex at the base of halfedge
+        current_vertex = Geom::halfedge_vertex_index_to(mesh,current_halfedge);
+
+        // compute the valence of the extremity_vertex
+        //mesh_halfedges.move_to_opposite(current_halfedge); // flip current_halfedge so than extremity_vertex is at its base
         VertexRingWithBoundaries current_vertex_ring;
-        current_vertex_ring.explore(current_halfedge,mesh_halfedges); // explore the halfedges around current_vertex
+        current_vertex_ring.explore(Geom::halfedge_top_right_corner(mesh,current_halfedge),mesh_halfedges); // explore the halfedges around the extremity vertex
+
         if(current_vertex_ring.valence() < 3) {
             // Not a corner. At least, from the point of view of this vertex ring
 
-            mesh_halfedges.custom_move_to_next_around_border(current_halfedge); // cross current_vertex
+            mesh_halfedges.move_to_next_around_border(current_halfedge); // cross current_vertex
 
             if(VECTOR_CONTAINS(halfedges,current_halfedge)) {
                 // we went back on our steps
@@ -276,6 +305,7 @@ void Boundary::explore(const MeshHalfedges::Halfedge& initial_halfedge,
 
             mesh_halfedges.move_to_opposite(current_halfedge); // switch orientation
             halfedge2boundary[current_halfedge] = {index_of_self,false}; // mark this halfedge, link it to the current boundary (opposite orientation)
+            mesh_halfedges.move_to_opposite(current_halfedge); // switch orientation
 
             // update the averge normal of the boundary
             average_normal += mesh_halfedges.normal(current_halfedge);
@@ -453,7 +483,7 @@ void Boundary::print_successive_halfedges(fmt::v9::ostream& out, Mesh& mesh) {
     }
     // print last vertex of the boundary
     CustomMeshHalfedges mesh_halfedges(mesh);
-    out.print("{}\n",mesh.facet_corners.vertex(mesh_halfedges.opposite_corner(*(halfedges.rbegin())))); // get vertex of opposite corner of last halfedge = last vertex
+    out.print("{}\n",Geom::halfedge_vertex_index_to(mesh,*(halfedges.rbegin()))); // get vertex at extremity of last halfedge = last vertex
 }
 
 index_t Boundary::turning_point_vertex(index_t turning_point_index, const Mesh& mesh) const {
@@ -501,7 +531,7 @@ void StaticLabelingGraph::fill_from(Mesh& mesh, std::string facet_attribute, boo
     vertex2corner.resize(mesh.vertices.nb(),index_t(-1)); // contrary to facet2chart where all facets are associated to a chart, not all vertices are associated to a corner -> use UNDEFINED for vertices that are not on a corner
     CustomMeshHalfedges mesh_half_edges_(mesh); // Half edges API
 
-    // STEP 1 : Aggregete adjacent triangles of same label as chart
+    // STEP 1 : Aggregate adjacent triangles of same label as chart
 
     Attribute<index_t> labeling(mesh.facets.attributes(),facet_attribute); // read and store the facets attribute corresponding to the labeling
 
@@ -728,7 +758,7 @@ bool StaticLabelingGraph::is_allowing_boundaries_between_opposite_labels() const
     return allow_boundaries_between_opposite_labels_;
 }
 
-void StaticLabelingGraph::dump_to_file(const char* filename, Mesh& mesh) {
+void StaticLabelingGraph::dump_to_text_file(const char* filename, Mesh& mesh) {
     auto out = fmt::output_file(filename);
     out.print("{}",(*this));
 
@@ -736,6 +766,34 @@ void StaticLabelingGraph::dump_to_file(const char* filename, Mesh& mesh) {
     for(std::size_t boundary_index = 0; boundary_index < nb_boundaries(); ++boundary_index) {
         out.print("boundaries[{}]\n",boundary_index);
         boundaries[boundary_index].print_successive_halfedges(out,mesh);
+    }
+}
+
+void StaticLabelingGraph::dump_to_D3_graph(const char* filename, const Mesh& mesh) {
+    nlohmann::json graph;
+    // export nodes. group 1 = chart, 2 = boundary, 3 = corner
+    FOR(chart_index,nb_charts()) {
+        graph["nodes"] += nlohmann::json::object({{"id", fmt::format("chart{}",chart_index)}, {"group", 1}});
+    }
+    FOR(boundary_index,nb_boundaries()) {
+        graph["nodes"] += nlohmann::json::object({{"id", fmt::format("boundary{}",boundary_index)}, {"group", 2}});
+    }
+    FOR(corner_index,nb_corners()) {
+        graph["nodes"] += nlohmann::json::object({{"id", fmt::format("corner{}",corner_index)}, {"group", 3}});
+    }
+    // export links
+    for(const auto& b : boundaries) {
+        // link this boundary to the left and right charts
+        graph["links"] += nlohmann::json::object({{"source", fmt::format("chart{}",b.left_chart)}, {"target", fmt::format("chart{}",b.right_chart)}, {"value", 1}});
+        // link this boundary to the start and end corner
+        graph["links"] += nlohmann::json::object({{"source", fmt::format("corner{}",b.start_corner)}, {"target", fmt::format("corner{}",b.end_corner)}, {"value", 1}});
+    }
+    std::fstream ofs(filename,std::ios_base::out);
+    if(ofs.good()) {
+        ofs << std::setw(4) << graph << std::endl;
+    }
+    else {
+        fmt::println(Logger::err("I/O"),"Cannot write into {}",filename); Logger::err("I/O").flush();
     }
 }
 

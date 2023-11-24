@@ -57,3 +57,5 @@ bool dump_facets(std::string filename, std::string attribute_name, const Mesh& m
 }
 
 bool dump_all_boundaries(std::string filename, const Mesh& mesh, const CustomMeshHalfedges& mesh_he, const std::vector<Boundary>& boundaries);
+
+bool dump_all_boundaries_with_indices_and_axes(std::string filename, const Mesh& mesh, const CustomMeshHalfedges& mesh_he, const StaticLabelingGraph& slg);

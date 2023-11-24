@@ -79,6 +79,9 @@ struct VertexRingWithBoundaries {
     void explore(const MeshHalfedges::Halfedge& initial_halfedge,
                  const CustomMeshHalfedges& mesh_halfedges);
 
+    // Is it possible to get a facet corner from a vertex ? If so, use a vertex index as first argument
+    void explore(index_t init_facet_corner, const CustomMeshHalfedges& mesh_halfedges);
+
     void check_boundary_edges(const CustomMeshHalfedges& mesh_halfedges) const;
 
     std::size_t circular_previous(std::size_t index) const;
@@ -257,7 +260,8 @@ struct StaticLabelingGraph {
 
     //// Export //////////////////
 
-    void dump_to_file(const char* filename, Mesh& mesh);
+    void dump_to_text_file(const char* filename, Mesh& mesh);
+    void dump_to_D3_graph(const char* filename, const Mesh& mesh); // not tested
 
     //// Debug //////////////////
 

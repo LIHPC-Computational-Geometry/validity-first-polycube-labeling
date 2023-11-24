@@ -216,16 +216,16 @@ protected:
 
     void update_geometry_data() {
         if(mesh_he.halfedge_is_valid(halfedge)) {
-            origin_vertex = custom_mesh_he.halfedge_vertex_index_from(mesh_,halfedge);
+            origin_vertex = Geom::halfedge_vertex_index_from(mesh_,halfedge);
             origin[0] = Geom::halfedge_vertex_from(mesh_,halfedge)[0];
             origin[1] = Geom::halfedge_vertex_from(mesh_,halfedge)[1];
             origin[2] = Geom::halfedge_vertex_from(mesh_,halfedge)[2];
-            extremity_vertex = custom_mesh_he.halfedge_vertex_index_to(mesh_,halfedge);
+            extremity_vertex = Geom::halfedge_vertex_index_to(mesh_,halfedge);
             extremity[0] = Geom::halfedge_vertex_to(mesh_,halfedge)[0];
             extremity[1] = Geom::halfedge_vertex_to(mesh_,halfedge)[1];
             extremity[2] = Geom::halfedge_vertex_to(mesh_,halfedge)[2];
-            left_facet = custom_mesh_he.halfedge_facet_left(mesh_,halfedge);
-            right_facet = custom_mesh_he.halfedge_facet_right(mesh_,halfedge);
+            left_facet = Geom::halfedge_facet_left(mesh_,halfedge);
+            right_facet = Geom::halfedge_facet_right(mesh_,halfedge);
         }
     }
 

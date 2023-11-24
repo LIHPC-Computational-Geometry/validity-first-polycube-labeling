@@ -26,7 +26,7 @@ bool dump_edges(std::string filename, const Mesh& mesh, const std::set<std::pair
         edge_index++;
     }
     out.vertices.remove_isolated();
-    mesh_save(out,filename + ".geogram");
+    return mesh_save(out,filename + ".geogram");
 }
 
 bool dump_facets(std::string filename, const Mesh& mesh, std::set<index_t> facet_indices) {
@@ -40,7 +40,7 @@ bool dump_facets(std::string filename, const Mesh& mesh, std::set<index_t> facet
         facet_index++;
     }
     out.vertices.remove_isolated();
-    mesh_save(out,filename + ".geogram");
+    return mesh_save(out,filename + ".geogram");
 }
 
 bool dump_all_boundaries(std::string filename, const Mesh& mesh, const CustomMeshHalfedges& mesh_he, const std::vector<Boundary>& boundaries) {
@@ -49,10 +49,29 @@ bool dump_all_boundaries(std::string filename, const Mesh& mesh, const CustomMes
     for(const Boundary& b : boundaries) { // for each boundary of the labeling graph
         index_t edge_index = boundaries_mesh.edges.create_edges(b.halfedges.size()); // create as many edges as they are halfedges in the current boundary
         for(const auto& he : b.halfedges) { // for each halfedge of the current boundary
-            CustomMeshHalfedges::Halfedge halfedge = he; //create a mutable copy
-            boundaries_mesh.edges.set_vertex(edge_index,0,mesh.facet_corners.vertex(halfedge.corner)); // get the vertex at the base of 'halfedge', set as 1st vertex
-            mesh_he.move_to_opposite(halfedge); // switch to the opposite halfedge
-            boundaries_mesh.edges.set_vertex(edge_index,1,mesh.facet_corners.vertex(halfedge.corner)); // get the vertex at the base of 'halfedge', set as 2nd vertex
+            boundaries_mesh.edges.set_vertex(edge_index,0,Geom::halfedge_vertex_index_from(mesh,he)); // get the vertex at the base of 'halfedge', set as 1st vertex
+            boundaries_mesh.edges.set_vertex(edge_index,1,Geom::halfedge_vertex_index_to(mesh,he)); // get the vertex at the base of 'halfedge', set as 2nd vertex
+            edge_index++;
+        }
+    }
+    boundaries_mesh.vertices.remove_isolated();
+    return mesh_save(boundaries_mesh,filename + ".geogram");
+}
+
+bool dump_all_boundaries_with_indices_and_axes(std::string filename, const Mesh& mesh, const CustomMeshHalfedges& mesh_he, const StaticLabelingGraph& slg) {
+    // index_t edges_counter = 0;
+    Mesh boundaries_mesh;
+    boundaries_mesh.copy(mesh,false,MESH_VERTICES); // keep only vertices
+    Attribute<index_t> attr_index(boundaries_mesh.edges.attributes(),"index");
+    Attribute<int> attr_axis(boundaries_mesh.edges.attributes(),"axis");
+    FOR(boundary_index,slg.boundaries.size()) { // for each boundary of the labeling graph
+        const Boundary& b = slg.boundaries[boundary_index];
+        index_t edge_index = boundaries_mesh.edges.create_edges(b.halfedges.size()); // create as many edges as they are halfedges in the current boundary
+        for(const auto& he : b.halfedges) { // for each halfedge of the current boundary
+            boundaries_mesh.edges.set_vertex(edge_index,0,Geom::halfedge_vertex_index_from(mesh,he)); // get the vertex at the base of 'halfedge', set as 1st vertex
+            boundaries_mesh.edges.set_vertex(edge_index,1,Geom::halfedge_vertex_index_to(mesh,he)); // get the vertex at the base of 'halfedge', set as 2nd vertex
+            attr_index[edge_index] = boundary_index;
+            attr_axis[edge_index] = b.axis;
             edge_index++;
         }
     }
