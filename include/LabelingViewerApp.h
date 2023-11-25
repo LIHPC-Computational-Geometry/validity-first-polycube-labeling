@@ -39,6 +39,8 @@
 
 using namespace GEO;
 
+const float green[4] = {0.0f, 1.0f, 0.0f, 1.0f};
+
 class LabelingViewerApp : public SimpleMeshApplicationExt {
 public:
 
@@ -96,6 +98,8 @@ public:
 		nb_turning_points_ = 0;
 
 		fidelity_text_label_ = "";
+
+		show_normals_ = false;
 
 		state_transition(empty);
     }
@@ -247,6 +251,25 @@ protected:
 		labeling_visu_mode_ = new_mode;
 	}
 
+	void draw_scene() override {
+		SimpleMeshApplicationExt::draw_scene();
+		if((state_ == triangle_mesh) && show_normals_) {
+			glupSetColor4fv(GLUP_FRONT_COLOR, green);
+			glupSetPointSize(10.0);
+			FOR(f,mesh_.facets.nb()) { // for each 
+				facet_center_ = mesh_facet_center(mesh_,f);
+				normal_tip_ = facet_center_ + normals_[f] / 10.0;
+                glupBegin(GLUP_LINES);
+				glupPrivateVertex3dv(facet_center_.data());
+				glupPrivateVertex3dv(normal_tip_.data());
+                glupEnd();
+				glupBegin(GLUP_POINTS);
+				glupPrivateVertex3dv(normal_tip_.data());
+				glupEnd();
+			}
+		}
+	}
+
 	void draw_gui() override {
 		SimpleMeshApplicationExt::draw_gui();
 		if(show_ImGui_demo_window_)
@@ -284,6 +307,10 @@ protected:
         switch (state_) {
 
 		case triangle_mesh:
+
+			ImGui::Checkbox("Show normals",&show_normals_);
+
+			ImGui::Separator();
 
 			ImGui::Checkbox("Allow boundaries between opposite labels",&allow_boundaries_between_opposite_labels_);
 
@@ -619,6 +646,9 @@ protected:
 	std::size_t valid_but_axisless_boundaries_group_index_;
 	std::vector<vec3> normals_; // facet normals
 	std::string fidelity_text_label_;
+	bool show_normals_; // optional visu overlay when state_ is triangle_mesh
+	vec3 facet_center_;
+	vec3 normal_tip_;
 };
 
 // print specialization of LabelingViewerApp::State for {fmt}
