@@ -2,24 +2,24 @@
 // 
 // CustomMeshHalfedges is the interface itself
 // CustomMeshHalfedges::Halfedge is an oriented edge, which stores a facet index and a facet corner index
-// CustomMeshHalfedges::Halfedge.facet is the facet at the right of the halfedge
+// CustomMeshHalfedges::Halfedge.facet is the facet at the left of the halfedge (assuming outgoing facet normal -> right hand rule)
 // CustomMeshHalfedges::Halfedge.corner is the corner of the facet that is along the halfedge origin
 // 
-//      halfedge
-//   o ==========> o
-//    \/corner    /
-//     \         /
-//      \ facet /
-//       \     /
-//        \   /
-//         \ /
-//          o
-// 
-// Around a vertex:
-// - move_to_next_around_vertex() moves counterclockwise
-// - move_to_prev_around_vertex() moves clockwise
-// so counterclockwise, the halfedge is ahead of the facet
-// and clockwise, the facet is ahead of the halfedge
+//        o
+//       / \
+//      /   \
+//     /     \
+//    / facet \
+//   /         \
+//  /\corner    \
+// o ==========> o
+//    halfedge
+//
+// if you're going around a vertex:
+// - move_to_next_around_vertex() moves clockwise
+// - move_to_prev_around_vertex() moves counterclockwise
+// so counterclockwise, the facet is ahead of the halfedge
+// and clockwise, the halfedge is ahead of the facet
 //
 // see https://github.com/BrunoLevy/geogram/pull/116
 
@@ -30,6 +30,8 @@
 
 #include <fmt/core.h>
 #include <fmt/ostream.h>
+
+#define OPTIONAL_TO_STRING(value) ((value == index_t(-1)) ? "undefined" : std::to_string(value).c_str())
 
 using namespace GEO;
 using namespace GEO::Geom;
@@ -63,16 +65,16 @@ namespace GEO {
         }
 
         inline void move_clockwise_around_facet(Halfedge& H) const {
-            // around facets, next is clockwise and prev is counterclockwise
-            // -> call move_to_next_around_facet()
-            move_to_next_around_facet(H);
+            // around facets, next is counterclockwise and prev is clockwise
+            // -> call move_to_prev_around_facet()
+            move_to_prev_around_facet(H);
         }
 
         inline void move_counterclockwise_around_facet(Halfedge& H) const {
-            // around facets, next is clockwise and prev is counterclockwise
-            // -> call move_to_prev_around_facet()
+            // around facets, next is counterclockwise and prev is clockwise
+            // -> call move_to_next_around_facet()
             geo_debug_assert(halfedge_is_valid(H));
-            move_to_prev_around_facet(H);
+            move_to_next_around_facet(H);
         }
 
         // re-expose this method from MeshHalfedges and add 2nd argument
@@ -134,15 +136,15 @@ namespace GEO {
         }
 
         inline bool move_clockwise_around_vertex(Halfedge& H, bool ignore_borders = false) const {
-            // around vertices, next is counterclockwise and prev is clockwise
-            // -> call move_to_prev_around_vertex()
-            return move_to_prev_around_vertex(H,ignore_borders);
+            // around vertices, next is clockwise and prev is counterclockwise
+            // -> call move_to_next_around_vertex()
+            return move_to_next_around_vertex(H,ignore_borders);
         }
 
         inline bool move_counterclockwise_around_vertex(Halfedge& H, bool ignore_borders = false) const {
-            // around vertices, next is counterclockwise and prev is clockwise
-            // -> call move_to_next_around_vertex()
-            return move_to_next_around_vertex(H,ignore_borders);
+            // around vertices, next is clockwise and prev is counterclockwise
+            // -> call move_to_prev_around_vertex()
+            return move_to_prev_around_vertex(H,ignore_borders);
         }
 
         // re-expose this method from MeshHalfedges
@@ -228,14 +230,14 @@ namespace GEO {
         inline index_t halfedge_facet_left(
             const Mesh& M, const MeshHalfedges::Halfedge& H
         ) {
-            return M.facet_corners.adjacent_facet(H.corner); // see H.facet new value in move_to_opposite()
+            geo_argused(M);
+            return H.facet;
         }
 
         inline index_t halfedge_facet_right(
             const Mesh& M, const MeshHalfedges::Halfedge& H
         ) {
-            geo_argused(M);
-            return H.facet;
+            return M.facet_corners.adjacent_facet(H.corner); // see H.facet new value in move_to_opposite()
         }
 
         inline index_t halfedge_bottom_left_corner(
@@ -258,21 +260,18 @@ namespace GEO {
         inline index_t halfedge_bottom_right_corner(
             const Mesh& M, const MeshHalfedges::Halfedge& H
         ) {
-            geo_argused(M);
-            return (H.corner == NO_CORNER) ? index_t(-1) : H.corner;
-            // // Should be equivalent to:
-            // index_t right_facet = halfedge_facet_right(M,H);
-            // index_t corner = index_t(-1);
-            // if(right_facet == NO_FACET) {
-            //     return index_t(-1);
-            // }
-            // FOR(lv,3) {
-            //     corner = M.facets.corner(right_facet,lv);
-            //     if(M.facet_corners.vertex(corner) == halfedge_vertex_index_from(M,H)) {
-            //         return corner;
-            //     }
-            // }
-            // geo_assert_not_reached;
+            index_t right_facet = halfedge_facet_right(M,H);
+            index_t corner = index_t(-1);
+            if(right_facet == NO_FACET) {
+                return index_t(-1);
+            }
+            FOR(lv,3) {
+                corner = M.facets.corner(right_facet,lv);
+                if(M.facet_corners.vertex(corner) == halfedge_vertex_index_from(M,H)) {
+                    return corner;
+                }
+            }
+            geo_assert_not_reached;
         }
 
         inline index_t halfedge_top_left_corner(
@@ -307,6 +306,21 @@ namespace GEO {
                 }
             }
             geo_assert_not_reached;
+        }
+
+        inline void halfedge_verbose_print(
+            const Mesh& M, const MeshHalfedges::Halfedge& H
+        ) {
+            fmt::println(".facet = {}",OPTIONAL_TO_STRING(H.facet));
+            fmt::println(".corner = {}",OPTIONAL_TO_STRING(H.corner));
+            fmt::println("left facet = {}",OPTIONAL_TO_STRING(Geom::halfedge_facet_left(M,H)));
+            fmt::println("right facet = {}",OPTIONAL_TO_STRING(Geom::halfedge_facet_right(M,H)));
+            fmt::println("origin vertex = {}",OPTIONAL_TO_STRING(Geom::halfedge_vertex_index_from(M,H)));
+            fmt::println("extremity vertex = {}",OPTIONAL_TO_STRING(Geom::halfedge_vertex_index_to(M,H)));
+            fmt::println("bottom left corner = {}",OPTIONAL_TO_STRING(Geom::halfedge_bottom_left_corner(M,H)));
+            fmt::println("bottom right corner = {}",OPTIONAL_TO_STRING(Geom::halfedge_bottom_right_corner(M,H)));
+            fmt::println("top left corner = {}",OPTIONAL_TO_STRING(Geom::halfedge_top_left_corner(M,H)));
+            fmt::println("top right corner = {}",OPTIONAL_TO_STRING(Geom::halfedge_top_right_corner(M,H)));
         }
     }
 
