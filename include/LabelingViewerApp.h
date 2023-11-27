@@ -100,6 +100,7 @@ public:
 		fidelity_text_label_ = "";
 
 		show_normals_ = false;
+		normals_length_factor_ = 0.1f;
 
 		state_transition(empty);
     }
@@ -258,7 +259,7 @@ protected:
 			glupSetPointSize(10.0);
 			FOR(f,mesh_.facets.nb()) { // for each 
 				facet_center_ = mesh_facet_center(mesh_,f);
-				normal_tip_ = facet_center_ + normals_[f] / 10.0;
+				normal_tip_ = facet_center_ + normals_[f] * normals_length_factor_;
                 glupBegin(GLUP_LINES);
 				glupPrivateVertex3dv(facet_center_.data());
 				glupPrivateVertex3dv(normal_tip_.data());
@@ -309,6 +310,7 @@ protected:
 		case triangle_mesh:
 
 			ImGui::Checkbox("Show normals",&show_normals_);
+			ImGui::SliderFloat("Normals length factor",&normals_length_factor_,0.0f,50.0f);
 
 			ImGui::Separator();
 
@@ -649,6 +651,7 @@ protected:
 	bool show_normals_; // optional visu overlay when state_ is triangle_mesh
 	vec3 facet_center_;
 	vec3 normal_tip_;
+	float normals_length_factor_;
 };
 
 // print specialization of LabelingViewerApp::State for {fmt}
