@@ -62,9 +62,6 @@ int main(int argc, char** argv) {
             }
         }
 
-        // put a point outside the mesh
-        vec3 point_outside_mesh = M.vertices.point(corresponding_vertex) - vec3(1.0,0.0,0.0);
-
         // find a facet adjacent to the corresponding_vertex
         // and create a halfedge whose origin is corresponding_vertex
         // Is there a easier way that going through all facets?
@@ -93,7 +90,7 @@ int main(int argc, char** argv) {
         } while (halfedge != init_halfedge);
 
         // compute the dot product of the vertex normal and a vector going outwards the mesh (towards -X)
-        double dot_product = dot(normal_of_corresponding_vertex,point_outside_mesh-M.vertices.point(corresponding_vertex));
+        double dot_product = dot(normal_of_corresponding_vertex,vec3(-1.0,0.0,0.0));
 
         if(dot_product > 0) {
             fmt::println(Logger::out("normals dir."),"The facet normals are outwards"); Logger::out("normals dir.").flush();
