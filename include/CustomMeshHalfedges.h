@@ -158,7 +158,7 @@ namespace GEO {
         }
 
         // TODO remove. the right one is the one from MeshHalfedges (vanilla Geogram)
-        // -> equivalent to move_to_opposite() !!!
+        // -> equivalent to move to prev then move_to_opposite() !!!
         void custom_move_to_next_around_border(Halfedge& H) const {
             geo_debug_assert(halfedge_is_valid(H));
             geo_debug_assert(halfedge_is_border(H));
