@@ -50,7 +50,7 @@ public:
         labeling
 	};
 
-    LabelingViewerApp(const std::string name = "labeling_viewer") : SimpleMeshApplicationExt(name),
+    LabelingViewerApp(const std::string name = "labeling_viewer", bool auto_flip_normals = true) : SimpleMeshApplicationExt(name),
 						     labeling_colors_({
 								{1.0f, 0.0f, 0.0f, 1.0f}, // label 0 -> red
 								{0.6f, 0.0f, 0.0f, 1.0f}, // label 1 -> darker red
@@ -67,7 +67,9 @@ public:
 							 validity_colors_({
 								{1.0f, 0.25f, 0.25f, 1.0f}, // invalid charts/boundaries/corners in light red
 								{0.25f, 0.25f, 1.0f, 1.0f}  // valid charts/boundaries/corners in light blue
-							 }) {
+							 }),
+							 auto_flip_normals_(auto_flip_normals)
+							 {
 
 		show_ImGui_demo_window_ = false;
 
@@ -484,6 +486,14 @@ protected:
 
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+		if(auto_flip_normals_) {
+			// ensure facet normals are outwards
+			if(facet_normals_are_inwards(mesh_)) {
+				flip_facet_normals(mesh_);
+				fmt::println(Logger::out("normals dir."),"Facet normals of the input mesh were inwards.\nYou should flip them and update the file for consistency."); Logger::out("normals dir.").flush();
+			}
+		}
+
 		// compute facet normals
 		normals_.resize(mesh_.facets.nb());
         FOR(f,mesh_.facets.nb()) {
@@ -652,6 +662,7 @@ protected:
 	vec3 facet_center_;
 	vec3 normal_tip_;
 	float normals_length_factor_;
+	bool auto_flip_normals_;
 };
 
 // print specialization of LabelingViewerApp::State for {fmt}

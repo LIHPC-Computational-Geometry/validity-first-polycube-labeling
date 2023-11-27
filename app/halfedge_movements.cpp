@@ -23,7 +23,10 @@ using namespace GEO;
 class HalfedgeMovementsApp : public LabelingViewerApp {
 public:
 
-    HalfedgeMovementsApp() : LabelingViewerApp("halfedge_movements"), mesh_he(mesh_), custom_mesh_he(mesh_) {
+    HalfedgeMovementsApp()
+    : LabelingViewerApp("halfedge_movements",false), // do not auto flip normals (in order to know the orientation in the file)
+    mesh_he(mesh_),
+    custom_mesh_he(mesh_) {
         // change default values
         show_surface_ = true;
         surface_color_ = vec4f(0.9f,0.9f,0.9f,1.0f);
