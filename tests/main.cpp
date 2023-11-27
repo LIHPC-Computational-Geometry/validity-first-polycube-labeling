@@ -116,42 +116,42 @@ protected:
         // starting with the vertex of smallest index
         //
         // 0-------2    0  0-------2  
-        // |       |    | \  \  f1 |  f0 = vertices 0,1,3 = facet corners 0,1,2
+        // |       |    | \  \  f1 |  f0 = vertices 0,1,3 respectively at local vertices 0,1,2, and facet corners 0,1,2
         // | front | => |   \  \   |
-        // |       |    | f0  \  \ |  f1 = vertices 0,3,2 = facet corners 3,4,5
+        // |       |    | f0  \  \ |  f1 = vertices 0,3,2 respectively at local vertices 0,1,2, and facet corners 3,4,5
         // 1-------3    1-------3  3
         //
         // 4-------0    4  4-------0  
-        // |       |    | \  \  f3 |  f2 = vertices 1,4,5 = facet corners 6,7,8
+        // |       |    | \  \  f3 |  f2 = vertices 1,4,5 respectively at local vertices 0,1,2, and facet corners 6,7,8
         // | left  | => |   \  \   |
-        // |       |    | f2  \  \ |  f3 = vertices 0,4,1 = facet corners 9,10,11
+        // |       |    | f2  \  \ |  f3 = vertices 0,4,1 respectively at local vertices 0,1,2, and facet corners 9,10,11
         // 5-------1    5-------1  1
         //
         // 6-------4    6  6-------4  
-        // |       |    | \  \  f5 |  f4 = vertices 5,6,7 = facet corners 12,13,14
+        // |       |    | \  \  f5 |  f4 = vertices 5,6,7 respectively at local vertices 0,1,2, and facet corners 12,13,14
         // | back  | => |   \  \   |
-        // |       |    | f4  \  \ |  f5 = vertices 4,6,5 = facet corners 15,16,17
+        // |       |    | f4  \  \ |  f5 = vertices 4,6,5 respectively at local vertices 0,1,2, and facet corners 15,16,17
         // 7-------5    7-------5  5
         //
         // 2-------6    2  2-------6  
-        // |       |    | \  \  f7 |  f6 = vertices 2,3,7 = facet corners 18,19,20
+        // |       |    | \  \  f7 |  f6 = vertices 2,3,7 respectively at local vertices 0,1,2, and facet corners 18,19,20
         // | right | => |   \  \   |
-        // |       |    | f6  \  \ |  f7 = vertices 2,7,6 = facet corners 21,22,23
+        // |       |    | f6  \  \ |  f7 = vertices 2,7,6 respectively at local vertices 0,1,2, and facet corners 21,22,23
         // 3-------7    3-------7  7
         //
         // 4-------6    4  4-------6  
-        // |       |    | \  \  f9 |  f8 = vertices 0,2,4 = facet corners 24,25,26
+        // |       |    | \  \  f9 |  f8 = vertices 0,2,4 respectively at local vertices 0,1,2, and facet corners 24,25,26
         // |  top  | => |   \  \   |
-        // |       |    | f8  \  \ |  f9 = vertices 2,6,4 = facet corners 27,28,29
+        // |       |    | f8  \  \ |  f9 = vertices 2,6,4 respectively at local vertices 0,1,2, and facet corners 27,28,29
         // 0-------2    0-------2  2
         //
         // 1-------3    1  1-------3  
-        // |       |    | \  \  f11|  f10 = vertices 1,5,7 = facet corners 30,31,32
+        // |       |    | \  \  f11|  f10 = vertices 1,5,7 respectively at local vertices 0,1,2, and facet corners 30,31,32
         // |bottom | => |   \  \   |
-        // |       |    |f10  \  \ |  f11 = vertices 1,7,3 = facet corners 33,34,35
+        // |       |    |f10  \  \ |  f11 = vertices 1,7,3 respectively at local vertices 0,1,2, and facet corners 33,34,35
         // 5-------7    5-------7  7
         //
-        // About local edges (le) : local edge k is the one between k and (k+1)%3
+        // About local edges (le) : local edge k is the one between local vertices k and (k+1)%3
         // See https://github.com/BrunoLevy/geogram/wiki/Mesh#triangulated-and-polygonal-meshes
         //
         index_t index_of_first_facet = cube.facets.create_triangles(12);
