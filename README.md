@@ -48,7 +48,7 @@ make automatic_polycube
 ./bin/automatic_polycube -gui ../../data/B0/surface.obj
 ```
 
-1. In the left panel, click on "Compute naive labeling"
+1. In the right panel, click on "Compute naive labeling"
 1. If the labeling in invalid*, try "Auto fix validity", which loop over manual operators just over the button
 1. If not all boundaries are monotone*, try "Auto fix monotonicity" and take a coffee. Turning points should now be removed.
 1. In the menu bar, click on "Save as", choose a location and a filename, and select "txt" as extension to export the per-surface-triangle labeling.
