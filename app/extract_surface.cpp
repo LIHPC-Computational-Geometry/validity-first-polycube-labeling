@@ -50,6 +50,8 @@
 #include <string>
 #include <set>
 
+#include "geometry.h"
+
 using namespace GEO;
 
 int main(int argc, const char** argv) {
@@ -86,6 +88,12 @@ int main(int argc, const char** argv) {
 
     index_t nb_facets = triangle_mesh.facets.nb();
     geo_assert(surface_map.size() == nb_facets);
+
+    // ensure facet normals are outwards
+    if(facet_normals_are_inwards(triangle_mesh)) {
+        flip_facet_normals(triangle_mesh);
+        fmt::println(Logger::out("normals dir."),"Facet normals were inwards and are now outwards"); Logger::out("normals dir.").flush();
+    }
 
     mesh_save(triangle_mesh,argv[2]);
 
