@@ -360,7 +360,20 @@ int main(int argc, char** argv) {
 	
 	if(CmdLine::get_arg_bool("gui")) { // if GUI mode
 		AutomaticPolycubeApp app;
-	    app.start(argc,argv); 
+		// pass 'filenames' as argc/argv to start()
+		// need to convert vector<string> to char**
+		char** filename_cstr;
+		filename_cstr = new char*[filenames.size()];
+		FOR(filename_index,filenames.size()) {
+			filename_cstr[filename_index] = new char[filenames[filename_index].length()+1];
+			strcpy(filename_cstr[filename_index], filenames[filename_index].c_str());
+		}
+	    app.start((int) filenames.size(),filename_cstr);
+		// dealloc
+		FOR(filename_index,filenames.size()) {
+			delete filename_cstr[filename_index];
+		}
+		delete filename_cstr;
 		return 0;
 	}
 

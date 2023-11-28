@@ -45,7 +45,7 @@ make automatic_polycube
 
 ```bash
 # from automatic_polycube/build_Release
-./bin/automatic_polycube ../../data/B0/surface.obj
+./bin/automatic_polycube -gui ../../data/B0/surface.obj
 ```
 
 1. In the left panel, click on "Compute naive labeling"
