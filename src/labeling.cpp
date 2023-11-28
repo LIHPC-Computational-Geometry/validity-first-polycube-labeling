@@ -104,6 +104,15 @@ index_t nearest_label(const vec3& normal) {
     return (index_t) std::distance(weights.begin(),std::max_element(weights.begin(),weights.end()));
 }
 
+index_t nearest_axis(const vec3& vector) {
+    // find dimension with biggest coeff
+    std::array<double,3> array({
+        std::abs(vector.x),
+        std::abs(vector.y),
+        std::abs(vector.z)});
+    return VECTOR_MAX_INDEX(array); // 0=X, 1=Y, 2=Z
+}
+
 bool is_better_label(const vec3& facet_normal, index_t current_label, index_t new_label) {
     return dot(facet_normal,label2vector[new_label]) > dot(facet_normal,label2vector[current_label]);
 }
@@ -135,7 +144,7 @@ void graphcut_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, const 
 }
 
 void compute_per_facet_fidelity(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* labeling_attribute_name, const char* fidelity_attribute_name, BasicStats& stats) {
-    // goal of the fidelity metric : measure how far the assigned direction (label) is from the triangle normal
+    // goal of the fidelity metric : measure how close the assigned direction (label) is from the triangle normal
     //   fidelity=1 (high fidelity) -> label equal to the normal      ex: triangle is oriented towards +X and we assign +X
     //   fidelity=0 (low fidelity)  -> label opposite to the normal   ex: triangle is oriented towards +X and we assign -X
     // 1. compute and normalize the normal
@@ -825,8 +834,10 @@ void trace_contour(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char
         // start by finding the biggest angle between 2 edges having the same nearest axis
         double biggest_angle = Numeric::min_float64(),
                current_angle = 0.0;
-        index_t vertex_at_biggest_angle = index_t(-1);
-        FOR(bhe,total_nb_halfedges) { //  == all_boundary_halfedges.size()
+        index_t vertex_at_biggest_angle = index_t(-1),
+                init_axis = index_t(-1),
+                axis_to_insert = index_t(-1);
+        FOR(bhe,total_nb_halfedges) { // == all_boundary_halfedges.size()
             if(mesh,all_boundary_halfedges[bhe].second != all_boundary_halfedges[(bhe+1)%total_nb_halfedges].second) {
                 // ignore this pair of adjacent edges, they are not assigned to the same axis
                 continue;
@@ -839,10 +850,32 @@ void trace_contour(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char
             if(current_angle > biggest_angle) {
                 biggest_angle = current_angle;
                 vertex_at_biggest_angle = Geom::halfedge_vertex_index_to(mesh,all_boundary_halfedges[bhe].first);
+                init_axis = all_boundary_halfedges[bhe].second; // axis associated to the 2 edges
+                std::array<double,3> per_axis_dot_product;
+                per_axis_dot_product.fill(Numeric::min_float64());
+                FOR(other__axis,3) {
+                    if(other__axis == init_axis) {
+                        continue; // leave min_float64() value
+                    }
+                    // find the max dot product for this axis,
+                    // for both the current edge and the next one,
+                    // for both the positive and negative axis direction
+                    per_axis_dot_product[other__axis] = std::max({
+                        dot(normalize(Geom::halfedge_vector(mesh,all_boundary_halfedges[bhe].first)),label2vector[other__axis*2]),
+                        dot(normalize(Geom::halfedge_vector(mesh,all_boundary_halfedges[bhe].first)),label2vector[other__axis*2+1]),
+                        dot(normalize(Geom::halfedge_vector(mesh,all_boundary_halfedges[(bhe+1)%total_nb_halfedges].first)),label2vector[other__axis*2]),
+                        dot(normalize(Geom::halfedge_vector(mesh,all_boundary_halfedges[(bhe+1)%total_nb_halfedges].first)),label2vector[other__axis*2+1])
+                    });
+                }
+                axis_to_insert = VECTOR_MAX_INDEX(per_axis_dot_product);
             }
         }
         geo_assert(vertex_at_biggest_angle != index_t(-1));
         dump_vertex("vertex_at_biggest_angle",mesh,vertex_at_biggest_angle);
+        // find the axis to insert between the 2 part of this group
+        // among the 2 others axes, find the one that is best suited for this edge (= the second choice)
+        fmt::println(Logger::out("refinement"),"axis_to_insert={}",axis_to_insert); Logger::out("refinement").flush();
+        
     }
     else if(nb_same_axis_groups == 3) {
         fmt::println(Logger::err("refinement"),"trace_contour operator cannot handle boundaries with 3 groups of closest axis (yet)",nb_same_axis_groups); Logger::err("refinement").flush();
