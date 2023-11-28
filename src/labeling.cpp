@@ -774,7 +774,10 @@ void trace_contour(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char
     for(index_t b : slg.charts[created_chart_index].boundaries) {
         for(const auto& he : slg.boundaries[b].halfedges) { // for each halfedge of the current boundary
             FOR(axis,3) { // X, Y and Z
-                per_axis_dot_product[axis] = dot(halfedge_vector(mesh,he),label2vector[axis*2]); // axis vectors are even indices of label2vector
+                per_axis_dot_product[axis] = std::max(
+                    dot(normalize(halfedge_vector(mesh,he)),label2vector[axis*2]),  // dot prodoct with X/Y/Z (according to axis)
+                    dot(normalize(halfedge_vector(mesh,he)),label2vector[axis*2+1]) // dot prodoct with -X/-Y/-Z (according to axis)
+                    );
             }
             all_boundary_halfedges[he_counter] = std::make_pair(he,VECTOR_MAX_INDEX(per_axis_dot_product));
             he_counter++;
