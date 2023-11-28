@@ -1,5 +1,6 @@
 #include <geogram/basic/attributes.h>   // for GEO::Attribute
 #include <geogram/mesh/mesh_io.h>
+#include <geogram/basic/numeric.h>      // for min_float64()
 
 #include <fmt/core.h>
 #include <fmt/ostream.h>
@@ -808,6 +809,52 @@ void trace_contour(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char
     }
     nb_same_axis_groups = (nb_same_axis_groups == 0) ? 1 : nb_same_axis_groups; // if no transition -> 1 group (not possible in practice I think)
     fmt::println(Logger::out("refinement"),"boundary of the created chart contains {} group(s) of closest axis",nb_same_axis_groups); Logger::out("refinement").flush();
+    // fix validity of the created chart
+    if(nb_same_axis_groups == 2) {
+        //
+        //  |\               |\ 
+        //  | \              | \X
+        //  |  \             |  \/ 
+        // Z|   \Z    =>    Z|  /\ 
+        //  |    \           |    \Z 
+        //  |     \          |     \ 
+        //  |______\         |______\ 
+        //     X                X
+        //
+        // split a group in two and add an orthogonal separator group
+        // start by finding the biggest angle between 2 edges having the same nearest axis
+        double biggest_angle = Numeric::min_float64(),
+               current_angle = 0.0;
+        index_t vertex_at_biggest_angle = index_t(-1);
+        FOR(bhe,total_nb_halfedges) { //  == all_boundary_halfedges.size()
+            if(mesh,all_boundary_halfedges[bhe].second != all_boundary_halfedges[(bhe+1)%total_nb_halfedges].second) {
+                // ignore this pair of adjacent edges, they are not assigned to the same axis
+                continue;
+            }
+            // compute the angle between this boundary halfedge and the next one
+            current_angle = angle(
+                Geom::halfedge_vector(mesh,all_boundary_halfedges[bhe].first),
+                Geom::halfedge_vector(mesh,all_boundary_halfedges[(bhe+1)%total_nb_halfedges].first)
+            );
+            if(current_angle > biggest_angle) {
+                biggest_angle = current_angle;
+                vertex_at_biggest_angle = Geom::halfedge_vertex_index_to(mesh,all_boundary_halfedges[bhe].first);
+            }
+        }
+        geo_assert(vertex_at_biggest_angle != index_t(-1));
+        dump_vertex("vertex_at_biggest_angle",mesh,vertex_at_biggest_angle);
+    }
+    else if(nb_same_axis_groups == 3) {
+        fmt::println(Logger::err("refinement"),"trace_contour operator cannot handle boundaries with 3 groups of closest axis (yet)",nb_same_axis_groups); Logger::err("refinement").flush();
+        // TODO cancel modifications
+        return;
+    }
+    else if(nb_same_axis_groups != 4) {
+        fmt::println(Logger::err("refinement"),"trace_contour operator cannot handle boundaries with {} groups of closest axis",nb_same_axis_groups); Logger::err("refinement").flush();
+        // TODO cancel modifications
+        return;
+        // Future work: kind of graph cut with increasing compactness until there are 4 groups
+    }
     // created chart = front
     // counterclockwise : right, back then left
     // the top chart must have the same label as the initial chart
