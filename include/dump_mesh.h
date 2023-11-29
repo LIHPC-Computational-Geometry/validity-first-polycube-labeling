@@ -15,7 +15,13 @@
 
 using namespace GEO;
 
+// 0D
+
 bool dump_vertex(std::string filename, const Mesh& mesh, index_t vertex_index);
+
+// 1D
+
+bool dump_edge(std::string filename, const Mesh& mesh, MeshHalfedges::Halfedge& halfedge);
 
 bool dump_edges(std::string filename, const Mesh& mesh, const std::set<std::pair<index_t,index_t>>& edges);
 
@@ -33,8 +39,14 @@ bool dump_edges(std::string filename, std::string attribute_name, const Mesh& me
         edge_index++;
     }
     out.vertices.remove_isolated();
-    mesh_save(out,filename + ".geogram");
+    return mesh_save(out,filename + ".geogram");
 }
+
+bool dump_all_boundaries(std::string filename, const Mesh& mesh, const CustomMeshHalfedges& mesh_he, const std::vector<Boundary>& boundaries);
+
+bool dump_all_boundaries_with_indices_and_axes(std::string filename, const Mesh& mesh, const CustomMeshHalfedges& mesh_he, const StaticLabelingGraph& slg);
+
+// 2D
 
 bool dump_facets(std::string filename, const Mesh& mesh, std::set<index_t> facet_indices);
 
@@ -53,9 +65,5 @@ bool dump_facets(std::string filename, std::string attribute_name, const Mesh& m
         facet_index++;
     }
     out.vertices.remove_isolated();
-    mesh_save(out,filename + ".geogram");
+    return mesh_save(out,filename + ".geogram");
 }
-
-bool dump_all_boundaries(std::string filename, const Mesh& mesh, const CustomMeshHalfedges& mesh_he, const std::vector<Boundary>& boundaries);
-
-bool dump_all_boundaries_with_indices_and_axes(std::string filename, const Mesh& mesh, const CustomMeshHalfedges& mesh_he, const StaticLabelingGraph& slg);

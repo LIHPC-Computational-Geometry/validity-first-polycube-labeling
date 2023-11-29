@@ -834,11 +834,12 @@ void trace_contour(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char
         // start by finding the biggest angle between 2 edges having the same nearest axis
         double biggest_angle = Numeric::min_float64(),
                current_angle = 0.0;
-        index_t vertex_at_biggest_angle = index_t(-1),
+        index_t boundary_halfedge_index_before_biggest_angle = index_t(-1),
+                vertex_at_biggest_angle = index_t(-1),
                 init_axis = index_t(-1),
                 axis_to_insert = index_t(-1);
         FOR(bhe,total_nb_halfedges) { // == all_boundary_halfedges.size()
-            if(mesh,all_boundary_halfedges[bhe].second != all_boundary_halfedges[(bhe+1)%total_nb_halfedges].second) {
+            if(all_boundary_halfedges[bhe].second != all_boundary_halfedges[(bhe+1)%total_nb_halfedges].second) {
                 // ignore this pair of adjacent edges, they are not assigned to the same axis
                 continue;
             }
@@ -849,8 +850,11 @@ void trace_contour(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char
             );
             if(current_angle > biggest_angle) {
                 biggest_angle = current_angle;
+                boundary_halfedge_index_before_biggest_angle = bhe;
                 vertex_at_biggest_angle = Geom::halfedge_vertex_index_to(mesh,all_boundary_halfedges[bhe].first);
                 init_axis = all_boundary_halfedges[bhe].second; // axis associated to the 2 edges
+                // find the axis to insert between the 2 part of this group
+                // among the 2 others axes, find the one that is best suited for the current and next edge (= the second choice)
                 std::array<double,3> per_axis_dot_product;
                 per_axis_dot_product.fill(Numeric::min_float64());
                 FOR(other__axis,3) {
@@ -872,10 +876,45 @@ void trace_contour(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char
         }
         geo_assert(vertex_at_biggest_angle != index_t(-1));
         dump_vertex("vertex_at_biggest_angle",mesh,vertex_at_biggest_angle);
-        // find the axis to insert between the 2 part of this group
-        // among the 2 others axes, find the one that is best suited for this edge (= the second choice)
+        // axis_to_insert is orthogonal to init_axis because they are not equal
+        // but axis_to_insert may not be equal to the axis of the 2nd group...
         fmt::println(Logger::out("refinement"),"axis_to_insert={}",axis_to_insert); Logger::out("refinement").flush();
-        
+        // find wich side of the vertex_at_biggest_angle should be assigned to axis_to_insert
+        // -> compute the average dot product when incrementing indices and when decrementing indices, inside this group of edges currently assigned to the same axis
+        double score_of_assigning_new_axis_upward = 0.0,
+               score_of_assigning_new_axis_downward = 0.0;
+        index_t count = 0;
+        for(index_t bhe = boundary_halfedge_index_before_biggest_angle+1; bhe < total_nb_halfedges; bhe++) {
+            if(all_boundary_halfedges[bhe].second != init_axis) {
+                break;
+            }
+            score_of_assigning_new_axis_upward += std::max(
+                dot(normalize(Geom::halfedge_vector(mesh,all_boundary_halfedges[bhe].first)),label2vector[axis_to_insert*2]),
+                dot(normalize(Geom::halfedge_vector(mesh,all_boundary_halfedges[bhe].first)),label2vector[axis_to_insert*2+1])
+            );
+            count++;
+        }
+        score_of_assigning_new_axis_upward /= (double) count;
+        count = 0;
+        for(signed_index_t bhe = (signed_index_t) boundary_halfedge_index_before_biggest_angle; bhe >= 0; bhe--) {
+            if(all_boundary_halfedges[bhe].second != init_axis) {
+                break;
+            }
+            score_of_assigning_new_axis_downward += std::max(
+                dot(normalize(Geom::halfedge_vector(mesh,all_boundary_halfedges[bhe].first)),label2vector[axis_to_insert*2]),
+                dot(normalize(Geom::halfedge_vector(mesh,all_boundary_halfedges[bhe].first)),label2vector[axis_to_insert*2+1])
+                );
+            count++;
+        }
+        score_of_assigning_new_axis_downward /= (double) count;
+        if(score_of_assigning_new_axis_upward > score_of_assigning_new_axis_downward) {
+            fmt::println(Logger::out("refinement"),"better to insert the axis upward the vertex at biggest angle"); Logger::out("refinement").flush();
+            dump_edge("where_to_insert_the_axis",mesh,all_boundary_halfedges[boundary_halfedge_index_before_biggest_angle+1].first);
+        }
+        else {
+            fmt::println(Logger::out("refinement"),"better to insert the axis downward the vertex at biggest angle"); Logger::out("refinement").flush();
+            dump_edge("where_to_insert_the_axis",mesh,all_boundary_halfedges[boundary_halfedge_index_before_biggest_angle].first);
+        }
     }
     else if(nb_same_axis_groups == 3) {
         fmt::println(Logger::err("refinement"),"trace_contour operator cannot handle boundaries with 3 groups of closest axis (yet)",nb_same_axis_groups); Logger::err("refinement").flush();
