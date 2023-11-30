@@ -290,12 +290,12 @@ protected:
 					fmt::println(Logger::out("I/O"),"Exported to StaticLabelingGraph.txt"); Logger::out("I/O").flush();
 				}
 				if(ImGui::MenuItem("Dump labeling graph as D3 graph")) {
-					static_labeling_graph_.dump_to_D3_graph("StaticLabelingGraph.json",mesh_);
+					static_labeling_graph_.dump_to_D3_graph("StaticLabelingGraph.json");
 					fmt::println(Logger::out("I/O"),"Exported to StaticLabelingGraph.json"); Logger::out("I/O").flush();
 				}
 				if(ImGui::MenuItem("Dump boundaries as mesh")) {
 					CustomMeshHalfedges mesh_he(mesh_);
-					dump_all_boundaries_with_indices_and_axes("boundaries",mesh_,mesh_he,static_labeling_graph_);
+					dump_all_boundaries_with_indices_and_axes("boundaries",mesh_,static_labeling_graph_);
 				}
 				if (ImGui::MenuItem("Show ImGui demo window", NULL, show_ImGui_demo_window_)) {
 					show_ImGui_demo_window_ = !show_ImGui_demo_window_;

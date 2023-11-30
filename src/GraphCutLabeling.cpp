@@ -54,7 +54,7 @@ void NeighborsCosts::set_nb_sites(GCoptimization::SiteID nb_sites) {
 bool NeighborsCosts::are_neighbors(GCoptimization::SiteID site1, GCoptimization::SiteID site2, GCoptimization::SiteID& site1_neighbor_index) {
     FOR(current_site1_neighbor_index,per_site_neighbors_[site1]) {
         if(per_site_neighbor_indices_[site1][current_site1_neighbor_index] == site2) {
-            site1_neighbor_index = current_site1_neighbor_index; // = on which neighbor index of site1 is site2
+            site1_neighbor_index = (GCoptimization::SiteID) current_site1_neighbor_index; // = on which neighbor index of site1 is site2
             return true;
         }
     }
@@ -112,7 +112,7 @@ GraphCutLabeling::GraphCutLabeling(const Mesh& mesh, const std::vector<vec3>& no
       : mesh_(mesh),
         nb_sites_(nb_sites),
         count_sites_(nb_sites),
-        data_cost_(nb_sites*6,0),
+        data_cost_((std::vector<int>::size_type) nb_sites*6,0),
         neighbors_costs_(),
         gco_( (GCoptimization::SiteID) nb_sites,6),
         normals_(normals),
@@ -125,7 +125,7 @@ GraphCutLabeling::GraphCutLabeling(const Mesh& mesh, const std::vector<vec3>& no
     else {
         // graph-cut on the whole surface :
         FOR(f,mesh.facets.nb()) {
-            facet2siteID_[f] = f;
+            facet2siteID_[f] = (GCoptimization::SiteID) f;
         }
         // leave count_sites_ == nb_sites_ (making sites_set_() true)
     }
@@ -151,7 +151,7 @@ void GraphCutLabeling::data_cost__set__fidelity_based(int fidelity) {
         fmt::println(Logger::err("graph-cut"),"data cost already set, and can only be set once"); Logger::err("graph-cut").flush();
         geo_assert_not_reached;
     }
-    fill_data_cost__fidelity_based(mesh_,normals_,data_cost_,fidelity,facet2siteID_);
+    fill_data_cost__fidelity_based(normals_,data_cost_,fidelity,facet2siteID_);
     data_cost_set_ = true;
 }
 
@@ -164,7 +164,7 @@ void GraphCutLabeling::data_cost__set__locked_labels(const Attribute<index_t>& p
         fmt::println(Logger::err("graph-cut"),"data cost already set, and can only be set once"); Logger::err("graph-cut").flush();
         geo_assert_not_reached;
     }
-    geo_assert(nb_sites_ == per_facet_label.size()); // this method must only be called when graph-cut is applied on the whole mesh
+    geo_assert((index_t) nb_sites_ == per_facet_label.size()); // this method must only be called when graph-cut is applied on the whole mesh
     FOR(siteID,mesh_.facets.nb()) {
         // zero-cost for the locked label, high cost for other labels
         FOR(label,6) {
@@ -198,7 +198,7 @@ void GraphCutLabeling::data_cost__change_to__fidelity_based(index_t facet_index,
     FOR(label,6) {
         double dot = (GEO::dot(normals_[facet_index],label2vector[label]) - 1.0)/0.2;
         double cost = 1.0 - std::exp(-(1.0/2.0)*std::pow(dot,2));
-        data_cost_[facet2siteID_[facet_index]*6+label] = (int) (fidelity*100*cost);
+        data_cost_[((index_t)facet2siteID_[facet_index])*6+label] = (int) (fidelity*100*cost);
     }
 }
 
@@ -213,7 +213,7 @@ void GraphCutLabeling::data_cost__change_to__locked_label(GCoptimization::SiteID
     }
     geo_assert(siteID < nb_sites_);
     FOR(label,6) {
-        data_cost_[siteID*6+label] = (label==locked_label) ? 0 : HIGH_COST;
+        data_cost_[((index_t) siteID)*6+label] = (label==locked_label) ? 0 : HIGH_COST;
     }
 }
 
@@ -223,7 +223,7 @@ void GraphCutLabeling::data_cost__change_to__forbidden_label(GCoptimization::Sit
         geo_assert_not_reached;
     }
     geo_assert(siteID < nb_sites_);
-    data_cost_[siteID*6+forbidden_label] = HIGH_COST; // do not edit weights of other labels
+    data_cost_[((index_t) siteID)*6+forbidden_label] = HIGH_COST; // do not edit weights of other labels
 }
 
 void GraphCutLabeling::data_cost__change_to__scaled(index_t facet_index, index_t label, float factor) {
@@ -236,7 +236,7 @@ void GraphCutLabeling::data_cost__change_to__scaled(GCoptimization::SiteID siteI
         geo_assert_not_reached;
     }
     geo_assert(siteID < nb_sites_);
-    data_cost_[siteID*6+label] = (int) (((float) data_cost_[siteID*6+label]) * factor);
+    data_cost_[((index_t) siteID)*6+label] = (int) (((float) data_cost_[((index_t) siteID)*6+label]) * factor);
 }
 
 void GraphCutLabeling::data_cost__change_to__shifted(GCoptimization::SiteID siteID, index_t label, float delta) {
@@ -340,7 +340,7 @@ void GraphCutLabeling::neighbors__change_to__scaled(index_t facet1, index_t face
         geo_assert_not_reached;
     }
     float previous_cost = (float) neighbors_costs_.get_neighbors_cost(facet2siteID_[facet1],facet2siteID_[facet2]);
-    neighbors_costs_.set_neighbors(facet2siteID_[facet1],facet2siteID_[facet2], (GCoptimization::EnergyTermType) previous_cost*factor);
+    neighbors_costs_.set_neighbors(facet2siteID_[facet1],facet2siteID_[facet2], (GCoptimization::EnergyTermType) (previous_cost*factor));
 }
 
 void GraphCutLabeling::neighbors__change_to__shifted(index_t facet1, index_t facet2, float delta) {
@@ -366,7 +366,7 @@ int GraphCutLabeling::data_cost__get__for_site_and_label(GCoptimization::SiteID 
         geo_assert_not_reached;
     }
     geo_assert(siteID < nb_sites_);
-    return data_cost_[siteID*6+label];
+    return data_cost_[((index_t) siteID)*6+label];
 }
 
 bool GraphCutLabeling::sites_set() const {
@@ -440,7 +440,7 @@ void GraphCutLabeling::dump_costs() const {
             }
         }
         // fill the remaining of the columns
-        for(index_t n = neighbors_costs_.per_site_neighbors_[f]; n < 6; ++n) {
+        for(index_t n = (index_t) neighbors_costs_.per_site_neighbors_[f]; n < 6; ++n) {
             ofs_neighbors_2.print(" "); // out of bound -> space
             if(n!=5) {
                 ofs_neighbors_2.print(",");
@@ -463,7 +463,7 @@ void GraphCutLabeling::dump_costs() const {
             }
         }
         // fill the remaining of the columns
-        for(index_t n = neighbors_costs_.per_site_neighbors_[f]; n < 6; ++n) {
+        for(index_t n = (index_t) neighbors_costs_.per_site_neighbors_[f]; n < 6; ++n) {
             ofs_neighbors_3.print(" "); // out of bound -> space
             if(n!=5) {
                 ofs_neighbors_3.print(",");
@@ -558,21 +558,20 @@ void GraphCutLabeling::fill_data_cost__fidelity_based(const Mesh& mesh, const st
     }
 }
 
-void GraphCutLabeling::fill_data_cost__fidelity_based(const Mesh& mesh, const std::vector<vec3>& normals, std::vector<int>& data_cost, int fidelity, const std::map<index_t,GCoptimization::SiteID>& facet2siteID) {
+void GraphCutLabeling::fill_data_cost__fidelity_based(const std::vector<vec3>& normals, std::vector<int>& data_cost, int fidelity, const std::map<index_t,GCoptimization::SiteID>& facet2siteID) {
     // cost of assigning a facet to a label, weight based on fidelity coeff & dot product between normal & label direction
     geo_assert(data_cost.size()==facet2siteID.size()*6);
     for(auto kv : facet2siteID) {
         FOR(label,6) {
             double dot = (GEO::dot(normals[kv.first],label2vector[label]) - 1.0)/0.2;
             double cost = 1.0 - std::exp(-(1.0/2.0)*std::pow(dot,2));
-            data_cost[kv.second*6+label] = (int) (fidelity*100*cost);
+            data_cost[((index_t) kv.second)*6+label] = (int) (fidelity*100*cost);
         }
     }
 }
 
 void GraphCutLabeling::shift_data_cost(std::vector<int>& data_cost, GCoptimization::SiteID site, index_t label, float delta) {
-    geo_assert(site*6+label < data_cost.size());
-    data_cost[site*6+label] = (int) std::max(0.0f,(((float) data_cost[site*6+label]) + delta)); // forbid negative cost, min set to 0
+    data_cost[ ((index_t) site)*6+label] = (int) std::max(0.0f,(((float) data_cost[((index_t) site)*6+label]) + delta));
 }
 
 vec6i GraphCutLabeling::per_site_data_cost_as_vector(const std::vector<int>& data_cost, GCoptimization::SiteID site) {
@@ -582,7 +581,7 @@ vec6i GraphCutLabeling::per_site_data_cost_as_vector(const std::vector<int>& dat
 }
 
 void GraphCutLabeling::fill_neighbors_cost__compactness_based(const Mesh& mesh, const std::vector<vec3>& normals, int compactness, NeighborsCosts& neighbors_costs, const std::map<index_t,GCoptimization::SiteID>& facet2siteID) {
-    neighbors_costs.set_nb_sites(facet2siteID.size());
+    neighbors_costs.set_nb_sites((GCoptimization::SiteID) facet2siteID.size());
     for(auto kv : facet2siteID) {
         GCoptimization::SiteID current_site = kv.second;
         FOR(le,3) { // for each local edge of the current facet

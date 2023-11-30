@@ -27,7 +27,7 @@ bool dump_edges(std::string filename, const Mesh& mesh, const std::set<std::pair
 
 //idem but also write an edge attribute
 template <typename T>
-bool dump_edges(std::string filename, std::string attribute_name, const Mesh& mesh, const CustomMeshHalfedges& mesh_he, const std::map<std::pair<index_t,index_t>,T>& edges_and_attributes) {
+bool dump_edges(std::string filename, std::string attribute_name, const Mesh& mesh, const std::map<std::pair<index_t,index_t>,T>& edges_and_attributes) {
     Mesh out;
     out.copy(mesh,false,MESH_VERTICES); // keep only vertices
     index_t edge_index = out.edges.create_edges( (index_t) edges_and_attributes.size());
@@ -42,9 +42,9 @@ bool dump_edges(std::string filename, std::string attribute_name, const Mesh& me
     return mesh_save(out,filename + ".geogram");
 }
 
-bool dump_all_boundaries(std::string filename, const Mesh& mesh, const CustomMeshHalfedges& mesh_he, const std::vector<Boundary>& boundaries);
+bool dump_all_boundaries(std::string filename, const Mesh& mesh, const std::vector<Boundary>& boundaries);
 
-bool dump_all_boundaries_with_indices_and_axes(std::string filename, const Mesh& mesh, const CustomMeshHalfedges& mesh_he, const StaticLabelingGraph& slg);
+bool dump_all_boundaries_with_indices_and_axes(std::string filename, const Mesh& mesh, const StaticLabelingGraph& slg);
 
 // 2D
 

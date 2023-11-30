@@ -261,7 +261,7 @@ struct StaticLabelingGraph {
     //// Export //////////////////
 
     void dump_to_text_file(const char* filename, Mesh& mesh);
-    void dump_to_D3_graph(const char* filename, const Mesh& mesh); // not tested
+    void dump_to_D3_graph(const char* filename); // not tested
 
     //// Debug //////////////////
 

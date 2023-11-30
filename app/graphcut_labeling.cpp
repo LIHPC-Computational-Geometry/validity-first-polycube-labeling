@@ -144,44 +144,44 @@ protected:
 			ImGui::SliderFloat("+X",&new_data_cost_[0],0.0f,new_data_cost_upper_bound_);
 			ImGui::PopStyleColor();
 			ImGui::SameLine();
-			ImGui::Text("min:%6.2f max:%6.2f avg:%6.2f",selected_chart_data_cost_stats_.min[0],
-														selected_chart_data_cost_stats_.max[0],
-														selected_chart_data_cost_stats_.avg[0]);
+			ImGui::Text("min:%6.2f max:%6.2f avg:%6.2f",(double) selected_chart_data_cost_stats_.min[0],
+														(double) selected_chart_data_cost_stats_.max[0],
+														(double) selected_chart_data_cost_stats_.avg[0]);
 			ImGui::PushStyleColor(ImGuiCol_Text, labeling_colors_.color_as_ImVec4( (std::size_t) 1)); // change the text color
 			ImGui::SliderFloat("-X",&new_data_cost_[1],0.0f,new_data_cost_upper_bound_);
 			ImGui::PopStyleColor();
 			ImGui::SameLine();
-			ImGui::Text("min:%6.2f max:%6.2f avg:%6.2f",selected_chart_data_cost_stats_.min[1],
-														selected_chart_data_cost_stats_.max[1],
-														selected_chart_data_cost_stats_.avg[1]);
+			ImGui::Text("min:%6.2f max:%6.2f avg:%6.2f",(double) selected_chart_data_cost_stats_.min[1],
+														(double) selected_chart_data_cost_stats_.max[1],
+														(double) selected_chart_data_cost_stats_.avg[1]);
 			ImGui::PushStyleColor(ImGuiCol_Text, labeling_colors_.color_as_ImVec4( (std::size_t) 2)); // change the text color
 			ImGui::SliderFloat("+Y",&new_data_cost_[2],0.0f,new_data_cost_upper_bound_);
 			ImGui::PopStyleColor();
 			ImGui::SameLine();
-			ImGui::Text("min:%6.2f max:%6.2f avg:%6.2f",selected_chart_data_cost_stats_.min[2],
-														selected_chart_data_cost_stats_.max[2],
-														selected_chart_data_cost_stats_.avg[2]);
+			ImGui::Text("min:%6.2f max:%6.2f avg:%6.2f",(double) selected_chart_data_cost_stats_.min[2],
+														(double) selected_chart_data_cost_stats_.max[2],
+														(double) selected_chart_data_cost_stats_.avg[2]);
 			ImGui::PushStyleColor(ImGuiCol_Text, labeling_colors_.color_as_ImVec4( (std::size_t) 3)); // change the text color
 			ImGui::SliderFloat("-Y",&new_data_cost_[3],0.0f,new_data_cost_upper_bound_);
 			ImGui::PopStyleColor();
 			ImGui::SameLine();
-			ImGui::Text("min:%6.2f max:%6.2f avg:%6.2f",selected_chart_data_cost_stats_.min[3],
-														selected_chart_data_cost_stats_.max[3],
-														selected_chart_data_cost_stats_.avg[3]);
+			ImGui::Text("min:%6.2f max:%6.2f avg:%6.2f",(double) selected_chart_data_cost_stats_.min[3],
+														(double) selected_chart_data_cost_stats_.max[3],
+														(double) selected_chart_data_cost_stats_.avg[3]);
 			ImGui::PushStyleColor(ImGuiCol_Text, labeling_colors_.color_as_ImVec4( (std::size_t) 4)); // change the text color
 			ImGui::SliderFloat("+Z",&new_data_cost_[4],0.0f,new_data_cost_upper_bound_);
 			ImGui::PopStyleColor();
 			ImGui::SameLine();
-			ImGui::Text("min:%6.2f max:%6.2f avg:%6.2f",selected_chart_data_cost_stats_.min[4],
-														selected_chart_data_cost_stats_.max[4],
-														selected_chart_data_cost_stats_.avg[4]);
+			ImGui::Text("min:%6.2f max:%6.2f avg:%6.2f",(double) selected_chart_data_cost_stats_.min[4],
+														(double) selected_chart_data_cost_stats_.max[4],
+														(double) selected_chart_data_cost_stats_.avg[4]);
 			ImGui::PushStyleColor(ImGuiCol_Text, labeling_colors_.color_as_ImVec4( (std::size_t) 5)); // change the text color
 			ImGui::SliderFloat("-Z",&new_data_cost_[5],0.0f,new_data_cost_upper_bound_);
 			ImGui::PopStyleColor();
 			ImGui::SameLine();
-			ImGui::Text("min:%6.2f max:%6.2f avg:%6.2f",selected_chart_data_cost_stats_.min[5],
-														selected_chart_data_cost_stats_.max[5],
-														selected_chart_data_cost_stats_.avg[5]);
+			ImGui::Text("min:%6.2f max:%6.2f avg:%6.2f",(double) selected_chart_data_cost_stats_.min[5],
+														(double) selected_chart_data_cost_stats_.max[5],
+														(double) selected_chart_data_cost_stats_.avg[5]);
 			if(ImGui::Button("Apply")) {
 				std::array<float,6> per_label_shift = {
 					new_data_cost_[0] - selected_chart_data_cost_stats_.avg[0],
@@ -196,7 +196,7 @@ protected:
 				gcl.neighbors__set__compactness_based(compactness_coeff_);
 				for(index_t f : static_labeling_graph_.charts[selected_chart_].facets) { // for each facet of the current chart
 					FOR(l,6) {
-						GraphCutLabeling::shift_data_cost(data_cost_,f,l,per_label_shift[l]); // modify the local data cost vector
+						GraphCutLabeling::shift_data_cost(data_cost_,(GCoptimization::SiteID) f,l,per_label_shift[l]); // modify the local data cost vector
 					}
 				}
 				gcl.data_cost__set__all_at_once(data_cost_); // use the local data cost vector in the optimization

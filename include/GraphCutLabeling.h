@@ -132,7 +132,7 @@ public:
 
     static void fill_data_cost__fidelity_based(const Mesh& mesh, const std::vector<vec3>& normals, std::vector<int>& data_cost, int fidelity);
 
-    static void fill_data_cost__fidelity_based(const Mesh& mesh, const std::vector<vec3>& normals, std::vector<int>& data_cost, int fidelity, const std::map<index_t,GCoptimization::SiteID>& facet2siteID);
+    static void fill_data_cost__fidelity_based(const std::vector<vec3>& normals, std::vector<int>& data_cost, int fidelity, const std::map<index_t,GCoptimization::SiteID>& facet2siteID);
 
     static void shift_data_cost(std::vector<int>& data_cost, GCoptimization::SiteID site, index_t label, float delta);
 

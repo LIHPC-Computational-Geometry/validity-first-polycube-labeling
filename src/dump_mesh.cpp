@@ -39,11 +39,11 @@ bool dump_edges(std::string filename, const Mesh& mesh, const std::set<std::pair
     return mesh_save(out,filename + ".geogram");
 }
 
-bool dump_all_boundaries(std::string filename, const Mesh& mesh, const CustomMeshHalfedges& mesh_he, const std::vector<Boundary>& boundaries) {
+bool dump_all_boundaries(std::string filename, const Mesh& mesh, const std::vector<Boundary>& boundaries) {
     Mesh boundaries_mesh;
     boundaries_mesh.copy(mesh,false,MESH_VERTICES); // keep only vertices
     for(const Boundary& b : boundaries) { // for each boundary of the labeling graph
-        index_t edge_index = boundaries_mesh.edges.create_edges(b.halfedges.size()); // create as many edges as they are halfedges in the current boundary
+        index_t edge_index = boundaries_mesh.edges.create_edges((index_t) b.halfedges.size()); // create as many edges as they are halfedges in the current boundary
         for(const auto& he : b.halfedges) { // for each halfedge of the current boundary
             boundaries_mesh.edges.set_vertex(edge_index,0,Geom::halfedge_vertex_index_from(mesh,he)); // get the vertex at the base of 'halfedge', set as 1st vertex
             boundaries_mesh.edges.set_vertex(edge_index,1,Geom::halfedge_vertex_index_to(mesh,he)); // get the vertex at the base of 'halfedge', set as 2nd vertex
@@ -54,7 +54,7 @@ bool dump_all_boundaries(std::string filename, const Mesh& mesh, const CustomMes
     return mesh_save(boundaries_mesh,filename + ".geogram");
 }
 
-bool dump_all_boundaries_with_indices_and_axes(std::string filename, const Mesh& mesh, const CustomMeshHalfedges& mesh_he, const StaticLabelingGraph& slg) {
+bool dump_all_boundaries_with_indices_and_axes(std::string filename, const Mesh& mesh, const StaticLabelingGraph& slg) {
     // index_t edges_counter = 0;
     Mesh boundaries_mesh;
     boundaries_mesh.copy(mesh,false,MESH_VERTICES); // keep only vertices
@@ -62,7 +62,7 @@ bool dump_all_boundaries_with_indices_and_axes(std::string filename, const Mesh&
     Attribute<int> attr_axis(boundaries_mesh.edges.attributes(),"axis");
     FOR(boundary_index,slg.boundaries.size()) { // for each boundary of the labeling graph
         const Boundary& b = slg.boundaries[boundary_index];
-        index_t edge_index = boundaries_mesh.edges.create_edges(b.halfedges.size()); // create as many edges as they are halfedges in the current boundary
+        index_t edge_index = boundaries_mesh.edges.create_edges((index_t) b.halfedges.size()); // create as many edges as they are halfedges in the current boundary
         for(const auto& he : b.halfedges) { // for each halfedge of the current boundary
             boundaries_mesh.edges.set_vertex(edge_index,0,Geom::halfedge_vertex_index_from(mesh,he)); // get the vertex at the base of 'halfedge', set as 1st vertex
             boundaries_mesh.edges.set_vertex(edge_index,1,Geom::halfedge_vertex_index_to(mesh,he)); // get the vertex at the base of 'halfedge', set as 2nd vertex

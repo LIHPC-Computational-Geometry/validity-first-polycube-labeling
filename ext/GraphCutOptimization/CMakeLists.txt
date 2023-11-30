@@ -7,6 +7,7 @@ SET(GCO_HEADERS
     src/graph.h
     src/block.h
     src/GCoptimization.h
+    src/energy.h
 )
 
 SET(GCO_SOURCES

@@ -36,7 +36,6 @@ include_directories(ext/fmt/include) # why needed ?
 # GraphCutOptimization
 add_subdirectory(ext/GraphCutOptimization)
 include_directories(ext/GraphCutOptimization/src) # why needed ?
-set_source_files_properties(ext/GraphCutOptimization/src/GCoptimization.h PROPERTIES COMPILE_OPTIONS "-Wnon-virtual-dtor;-Wunused-parameter")
 
 # nlohmann/json
 add_subdirectory(ext/json)
@@ -57,44 +56,44 @@ add_compile_definitions(WINDOW_SIZE="3840x2160")
 # EXECUTABLES
 #################
 
-add_executable(automatic_polycube ${SRCFILES} app/automatic_polycube)
+add_executable(automatic_polycube ${SRCFILES} app/automatic_polycube.cpp)
 target_link_libraries(automatic_polycube geogram geogram_gfx ${GLFW_LIBRARIES} fmt::fmt gco nlohmann_json)
 
-add_executable(hex_mesh_viewer ${SRCFILES} app/hex_mesh_viewer)
+add_executable(hex_mesh_viewer ${SRCFILES} app/hex_mesh_viewer.cpp)
 target_link_libraries(hex_mesh_viewer geogram geogram_gfx ${GLFW_LIBRARIES} fmt::fmt gco nlohmann_json)
 
-add_executable(labeling_viewer ${SRCFILES} app/labeling_viewer)
+add_executable(labeling_viewer ${SRCFILES} app/labeling_viewer.cpp)
 target_link_libraries(labeling_viewer geogram geogram_gfx ${GLFW_LIBRARIES} fmt::fmt gco nlohmann_json)
 
-add_executable(labeling_painter ${SRCFILES} app/labeling_painter)
+add_executable(labeling_painter ${SRCFILES} app/labeling_painter.cpp)
 target_link_libraries(labeling_painter geogram geogram_gfx ${GLFW_LIBRARIES} fmt::fmt gco nlohmann_json)
 
-add_executable(extract_surface ${SRCFILES} app/extract_surface)
+add_executable(extract_surface ${SRCFILES} app/extract_surface.cpp)
 target_link_libraries(extract_surface geogram geogram_gfx ${GLFW_LIBRARIES} fmt::fmt gco nlohmann_json)
 
-add_executable(volume_labeling ${SRCFILES} app/volume_labeling)
+add_executable(volume_labeling ${SRCFILES} app/volume_labeling.cpp)
 target_link_libraries(volume_labeling geogram geogram_gfx ${GLFW_LIBRARIES} fmt::fmt gco nlohmann_json)
 
-add_executable(naive_labeling ${SRCFILES} app/naive_labeling)
+add_executable(naive_labeling ${SRCFILES} app/naive_labeling.cpp)
 target_link_libraries(naive_labeling geogram geogram_gfx ${GLFW_LIBRARIES} fmt::fmt gco nlohmann_json)
 
-add_executable(graphcut_labeling ${SRCFILES} app/graphcut_labeling)
+add_executable(graphcut_labeling ${SRCFILES} app/graphcut_labeling.cpp)
 target_link_libraries(graphcut_labeling geogram geogram_gfx ${GLFW_LIBRARIES} fmt::fmt gco nlohmann_json)
 
-add_executable(ovm_io ${SRCFILES} app/ovm_io)
+add_executable(ovm_io ${SRCFILES} app/ovm_io.cpp)
 target_link_libraries(ovm_io geogram geogram_gfx ${GLFW_LIBRARIES} fmt::fmt gco nlohmann_json)
 
-add_executable(areas_to_tilt ${SRCFILES} app/areas_to_tilt)
+add_executable(areas_to_tilt ${SRCFILES} app/areas_to_tilt.cpp)
 target_link_libraries(areas_to_tilt geogram geogram_gfx ${GLFW_LIBRARIES} fmt::fmt gco nlohmann_json)
 
-add_executable(mesh_stats ${SRCFILES} app/mesh_stats)
+add_executable(mesh_stats ${SRCFILES} app/mesh_stats.cpp)
 target_link_libraries(mesh_stats geogram geogram_gfx ${GLFW_LIBRARIES} fmt::fmt gco nlohmann_json)
 
-add_executable(labeling_stats ${SRCFILES} app/labeling_stats)
+add_executable(labeling_stats ${SRCFILES} app/labeling_stats.cpp)
 target_link_libraries(labeling_stats geogram geogram_gfx ${GLFW_LIBRARIES} fmt::fmt gco nlohmann_json)
 
-add_executable(halfedge_movements ${SRCFILES} app/halfedge_movements)
+add_executable(halfedge_movements ${SRCFILES} app/halfedge_movements.cpp)
 target_link_libraries(halfedge_movements geogram geogram_gfx ${GLFW_LIBRARIES} fmt::fmt gco nlohmann_json)
 
-add_executable(flip_normals ${SRCFILES} app/flip_normals)
+add_executable(flip_normals ${SRCFILES} app/flip_normals.cpp)
 target_link_libraries(flip_normals geogram geogram_gfx ${GLFW_LIBRARIES} fmt::fmt gco nlohmann_json)

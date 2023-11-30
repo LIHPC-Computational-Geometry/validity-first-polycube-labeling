@@ -66,7 +66,6 @@ void VertexRingWithBoundaries::explore(index_t init_facet_corner, const CustomMe
     MeshHalfedges::Halfedge initial_halfedge;
     initial_halfedge.facet = mesh_halfedges.mesh().facet_corners.adjacent_facet(init_facet_corner);
     index_t init_vertex = mesh_halfedges.mesh().facet_corners.vertex(init_facet_corner);
-    index_t facet_corner_form_adjacent_facet = index_t(-1);
     // find which facet corner is init_vertex from initial_halfedge.facet
     FOR(lv,3) {
         if(mesh_halfedges.mesh().facet_corners.vertex(
@@ -407,8 +406,8 @@ bool Boundary::find_turning_points(const CustomMeshHalfedges& mesh_halfedges) {
 
     try{
 		GCoptimizationGeneralGraph *gc = new GCoptimizationGeneralGraph( (GCoptimization::SiteID) nb_elem,2);
-		gc->setDataCost(data_cost.data());
-		gc->setSmoothCost(smooth_cost.data());
+        gc->setDataCost(data_cost.data());
+        gc->setSmoothCost(smooth_cost.data());
 		
         FOR(i,nb_elem-1) {
             vec3 edge1 = normalize(halfedge_vector(mesh_halfedges.mesh(),halfedges[i])); // edge from vertex i to vertex i+1 -> halfedge i
@@ -418,9 +417,9 @@ bool Boundary::find_turning_points(const CustomMeshHalfedges& mesh_halfedges) {
             gc->setNeighbors( (GCoptimization::SiteID) i, (GCoptimization::SiteID) i+1, (int) (100.0*cost));
         }
 
-		gc->expansion(2);// run expansion for 2 iterations
+        gc->expansion(2);// run expansion for 2 iterations
 		
-		for ( std::size_t  i = 0; i < nb_elem; i++ )
+        for ( std::size_t  i = 0; i < nb_elem; i++ )
 			per_vertex_result[i] = gc->whatLabel( (GCoptimization::SiteID) i);
 
 		delete gc;
@@ -471,7 +470,6 @@ void Boundary::print_successive_halfedges(fmt::v9::ostream& out, Mesh& mesh) {
     out.print("\t ");
     FOR(he_index,halfedges.size()) {
         // print vertex at the beginning of current halfedge
-        index_t vertex_index = mesh.facet_corners.vertex(halfedges[he_index].corner);
         if(halfedge_has_turning_point_at_base(he_index)) {
             // there is a turning point on this vertex
             out.print("({}) ",mesh.facet_corners.vertex(halfedges[he_index].corner));
@@ -769,7 +767,7 @@ void StaticLabelingGraph::dump_to_text_file(const char* filename, Mesh& mesh) {
     }
 }
 
-void StaticLabelingGraph::dump_to_D3_graph(const char* filename, const Mesh& mesh) {
+void StaticLabelingGraph::dump_to_D3_graph(const char* filename) {
     nlohmann::json graph;
     // export nodes. group 1 = chart, 2 = boundary, 3 = corner
     FOR(chart_index,nb_charts()) {

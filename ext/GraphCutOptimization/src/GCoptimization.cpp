@@ -89,36 +89,38 @@ void GCException::Report()
 GCoptimization::GCoptimization(SiteID nSites, LabelID nLabels) 
 : m_num_labels(nLabels)
 , m_num_sites(nSites)
+, m_labeling(new LabelID[nSites])
+, m_lookupSiteVar(new SiteID[nSites])
+, m_labelTable(new LabelID[nLabels])
+, m_stepsThisCycle(0)
+, m_stepsThisCycleTotal(0)
+, m_random_label_order(false)
 , m_datacostIndividual(0)
 , m_smoothcostIndividual(0)
-, m_labelcostsAll(0)
-, m_labelcostsByLabel(0)
-, m_labelcostCount(0)
-, m_smoothcostFn(0)
-, m_datacostFn(0)
-, m_numNeighborsTotal(0)
-, m_queryActiveSitesExpansion(&GCoptimization::queryActiveSitesExpansion<DataCostFnFromArray>)
-, m_setupDataCostsSwap(0)
-, m_setupDataCostsExpansion(0)
-, m_setupSmoothCostsSwap(0)
-, m_setupSmoothCostsExpansion(0)
-, m_applyNewLabeling(0)
-, m_updateLabelingDataCosts(0)
-, m_giveSmoothEnergyInternal(0)
-, m_solveSpecialCases(&GCoptimization::solveSpecialCases<DataCostFnFromArray>)
-, m_datacostFnDelete(0)
-, m_smoothcostFnDelete(0)
-, m_random_label_order(false)
-, m_verbosity(0)
-, m_labelingInfoDirty(true)
-, m_lookupSiteVar(new SiteID[nSites])
-, m_labeling(new LabelID[nSites])
-, m_labelTable(new LabelID[nLabels])
 , m_labelingDataCosts(new EnergyTermType[nSites])
 , m_labelCounts(new SiteID[nLabels])
 , m_activeLabelCounts(new SiteID[m_num_labels])
-, m_stepsThisCycle(0)
-, m_stepsThisCycleTotal(0)
+, m_labelcostsAll(0)
+, m_labelcostsByLabel(0)
+, m_labelcostCount(0)
+, m_labelingInfoDirty(true)
+, m_verbosity(0)
+, m_datacostFn(0)
+, m_smoothcostFn(0)
+, m_beforeExpansionEnergy(0)
+, m_numNeighbors(0)
+, m_numNeighborsTotal(0)
+, m_giveSmoothEnergyInternal(0)
+, m_queryActiveSitesExpansion(&GCoptimization::queryActiveSitesExpansion<DataCostFnFromArray>)
+, m_setupDataCostsExpansion(0)
+, m_setupSmoothCostsExpansion(0)
+, m_setupDataCostsSwap(0)
+, m_setupSmoothCostsSwap(0)
+, m_applyNewLabeling(0)
+, m_updateLabelingDataCosts(0)
+, m_datacostFnDelete(0)
+, m_smoothcostFnDelete(0)
+, m_solveSpecialCases(&GCoptimization::solveSpecialCases<DataCostFnFromArray>)
 {
 	if ( nLabels <= 1 ) handleError("Number of labels must be >= 2");
 	if ( nSites <= 0 )  handleError("Number of sites must be >= 1");
@@ -132,8 +134,8 @@ GCoptimization::GCoptimization(SiteID nSites, LabelID nLabels)
 		handleError("Not enough memory.");
 	}
 	
-	memset(m_labeling, 0, m_num_sites*sizeof(LabelID));
-	memset(m_lookupSiteVar,-1,m_num_sites*sizeof(SiteID));
+	memset(m_labeling, 0, (size_t) m_num_sites * sizeof(LabelID));
+	memset(m_lookupSiteVar,-1, (size_t) m_num_sites * sizeof(SiteID));
 	setLabelOrder(false);
 	specializeSmoothCostFunctor(SmoothCostFnPotts());
 }
@@ -739,7 +741,7 @@ void GCoptimization::setDataCost(SiteID s, LabelID l, EnergyTermType e) {
 	if ( !m_datacostIndividual )
 	{
 		EnergyTermType* table = new EnergyTermType[m_num_sites*m_num_labels];
-		memset(table, 0, m_num_sites*m_num_labels*sizeof(EnergyTermType));
+		memset(table, 0, (size_t) m_num_sites * (size_t) m_num_labels * sizeof(EnergyTermType));
 		specializeDataCostFunctor(DataCostFnFromArray(table, m_num_labels));
 		m_datacostIndividual = table;
 		m_labelingInfoDirty = true;
@@ -807,7 +809,7 @@ void GCoptimization::setSmoothCost(LabelID l1, LabelID l2, EnergyTermType e){
 	if ( !m_smoothcostIndividual )
 	{
 		EnergyTermType* table = new EnergyTermType[m_num_labels*m_num_labels];
-		memset(table, 0, m_num_labels*m_num_labels*sizeof(EnergyTermType));
+		memset(table, 0, (size_t) m_num_labels * (size_t) m_num_labels * sizeof(EnergyTermType));
 		specializeSmoothCostFunctor(SmoothCostFnFromArray(table, m_num_labels));
 		m_smoothcostIndividual = table;
 	} 
@@ -864,13 +866,13 @@ void GCoptimization::setLabelSubsetCost(LabelID* labels, LabelID numLabels, Ener
 
 	if ( !m_labelcostsByLabel ) {
 		m_labelcostsByLabel = new LabelCostIter*[m_num_labels];
-		memset(m_labelcostsByLabel, 0, m_num_labels*sizeof(void*));
+		memset(m_labelcostsByLabel, 0, (size_t) m_num_labels*sizeof(void*));
 	}
 
 	// If this particular subset already has a cost, simply replace it.
 	for ( LabelCostIter* lci = m_labelcostsByLabel[labels[0]]; lci; lci = lci->next ) {
 		if ( numLabels == lci->node->numLabels ) {
-			if ( !memcmp(labels, lci->node->labels, numLabels*sizeof(LabelID)) ) {
+			if ( !memcmp(labels, lci->node->labels, (size_t) numLabels * sizeof(LabelID)) ) {
 				// This label subset already exists, so just update the cost and return
 				lci->node->cost = cost;
 				return;
@@ -889,7 +891,7 @@ void GCoptimization::setLabelSubsetCost(LabelID* labels, LabelID numLabels, Ener
 	lc->aux = -1;
 	lc->numLabels = numLabels;
 	lc->labels = new LabelID[numLabels];
-	memcpy(lc->labels, labels, numLabels*sizeof(LabelID));
+	memcpy(lc->labels, labels, (size_t) numLabels * sizeof(LabelID));
 	slist_prepend(m_labelcostsAll, lc);
 	for ( LabelID i = 0; i < numLabels; ++i ) {
 		LabelCostIter* lci = new LabelCostIter;
@@ -903,7 +905,7 @@ void GCoptimization::setLabelSubsetCost(LabelID* labels, LabelID numLabels, Ener
 void GCoptimization::whatLabel(SiteID start, SiteID count, LabelID* labeling)
 {
 	assert(start >= 0 && start+count <= m_num_sites);
-	memcpy(labeling, m_labeling+start, count*sizeof(LabelID));
+	memcpy(labeling, m_labeling+start, (size_t) count * sizeof(LabelID));
 }
 
 //-------------------------------------------------------------------
@@ -1062,8 +1064,8 @@ void GCoptimization::setLabelOrder(const LabelID* order, LabelID size)
 		if ( order[i] < 0 || order[i] >= m_num_labels )
 			handleError("Invalid label id in setLabelOrder");
 	m_random_label_order = false;
-	memcpy(m_labelTable,order,size*sizeof(LabelID));
-	memset(m_labelTable+size,-1,(m_num_labels-size)*sizeof(LabelID));
+	memcpy(m_labelTable,order, (size_t) size * sizeof(LabelID));
+	memset(m_labelTable+size,-1, (size_t) (m_num_labels-size) * sizeof(LabelID));
 }
 
 //------------------------------------------------------------------
@@ -1103,7 +1105,7 @@ GCoptimization::EnergyType GCoptimization::setupLabelCostsExpansion(SiteID size,
 	{
 		// For sparse data costs, things are more complicated, because we must ensure that
 		// no label cost for a fixed (non-active) non-alpha label is encoded in the graph.
-		memset(m_activeLabelCounts,0,m_num_labels*sizeof(SiteID));
+		memset(m_activeLabelCounts,0, (size_t) m_num_labels * sizeof(SiteID));
 		for ( SiteID i = 0; i < size; ++i )
 			m_activeLabelCounts[m_labeling[activeSites[i]]]++;
 
@@ -1164,7 +1166,7 @@ void GCoptimization::updateLabelingInfo(bool updateCounts, bool updateActive, bo
 	{
 		if ( updateCounts )
 		{
-			memset(m_labelCounts,0,m_num_labels*sizeof(SiteID));
+			memset(m_labelCounts,0, (size_t) m_num_labels * sizeof(SiteID));
 			for ( SiteID i = 0; i < m_num_sites; ++i )
 				m_labelCounts[m_labeling[i]]++;
 		}
@@ -1173,8 +1175,7 @@ void GCoptimization::updateLabelingInfo(bool updateCounts, bool updateActive, bo
 		{
 			for ( LabelCost* lc = m_labelcostsAll; lc; lc = lc->next )
 				lc->active = false;
-
-			EnergyType energy = 0;
+			
 			for ( LabelID l = 0; l < m_num_labels; ++l ) 
 				if ( m_labelCounts[l] )
 					for ( LabelCostIter* lci = m_labelcostsByLabel[l]; lci; lci = lci->next ) 
@@ -1187,7 +1188,7 @@ void GCoptimization::updateLabelingInfo(bool updateCounts, bool updateActive, bo
 		if (m_updateLabelingDataCosts)
 			(this->*m_updateLabelingDataCosts)();
 		else
-			memset(m_labelingDataCosts,0,m_num_sites*sizeof(EnergyTermType));
+			memset(m_labelingDataCosts,0, (size_t) m_num_sites * sizeof(EnergyTermType));
 	}
 }
 
@@ -1776,14 +1777,14 @@ void GCoptimization::DataCostFnSparse::set(LabelID l, const SparseDataCost* cost
 	//
 	if (!m_buckets) {
 		m_buckets = new DataCostBucket[m_num_labels*m_buckets_per_label];
-		memset(m_buckets, 0, m_num_labels*m_buckets_per_label*sizeof(DataCostBucket));
+		memset(m_buckets, 0, (size_t) m_num_labels * (size_t) m_buckets_per_label * sizeof(DataCostBucket));
 	}
 
 	DataCostBucket* b = &m_buckets[l*m_buckets_per_label];
 	if (b->begin)
 		delete [] b->begin;
 	SparseDataCost* next = new SparseDataCost[count];
-	memcpy(next,costs,count*sizeof(SparseDataCost));
+	memcpy(next,costs, (size_t) count * sizeof(SparseDataCost));
 
 	//
 	// Scan the list of costs and remember pointers to delimit the 'buckets', i.e. where 

@@ -101,7 +101,7 @@ index_t nearest_label(const vec3& normal) {
         normal.z < 0.0 ? -normal.z : 0.0  // -Z
     };
     // return index of max
-    return (index_t) std::distance(weights.begin(),std::max_element(weights.begin(),weights.end()));
+    return (index_t) VECTOR_MAX_INDEX(weights);
 }
 
 index_t nearest_axis(const vec3& vector) {
@@ -110,7 +110,7 @@ index_t nearest_axis(const vec3& vector) {
         std::abs(vector.x),
         std::abs(vector.y),
         std::abs(vector.z)});
-    return VECTOR_MAX_INDEX(array); // 0=X, 1=Y, 2=Z
+    return (index_t) VECTOR_MAX_INDEX(array); // 0=X, 1=Y, 2=Z
 }
 
 bool is_better_label(const vec3& facet_normal, index_t current_label, index_t new_label) {
@@ -308,7 +308,7 @@ void remove_invalid_charts(GEO::Mesh& mesh, const std::vector<vec3>& normals, co
                     gcl.data_cost__change_to__scaled(facet_index,label[adjacent_facet],0.5f); // halve the cost
                 }
             }
-            gcl.data_cost__change_to__forbidden_label(facet_index,label[facet_index]); // prevent the label from staying the same
+            gcl.data_cost__change_to__forbidden_label((GCoptimization::SiteID) facet_index,label[facet_index]); // prevent the label from staying the same
         }
     }
 
@@ -349,7 +349,7 @@ void remove_charts_around_invalid_boundaries(GEO::Mesh& mesh, const std::vector<
                     gcl.data_cost__change_to__scaled(facet_index,label[adjacent_facet],0.5f); // halve the cost
                 }
             }
-            gcl.data_cost__change_to__forbidden_label(facet_index,label[facet_index]); // prevent the label from staying the same
+            gcl.data_cost__change_to__forbidden_label((GCoptimization::SiteID) facet_index,label[facet_index]); // prevent the label from staying the same
         }
     }
 
@@ -414,7 +414,6 @@ void straighten_boundary(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
     index_t right_chart_index = current_boundary.right_chart;
     const Chart& left_chart = slg.charts[left_chart_index];
     const Chart& right_chart = slg.charts[right_chart_index];
-    index_t chart_of_adjacent_facet = index_t(-1);
     CustomMeshHalfedges mesh_he(mesh);
 
     #ifndef NDEBUG
@@ -430,7 +429,7 @@ void straighten_boundary(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
     }
 
     #ifndef NDEBUG
-        dump_all_boundaries("boundaries",mesh,mesh_he,slg.boundaries);
+        dump_all_boundaries("boundaries",mesh,slg.boundaries);
 
         std::map<index_t,bool> facets_of_the_2_charts;
         for(auto f : left_chart.facets) {
@@ -478,7 +477,7 @@ void straighten_boundary(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
         dump_facets("contour",mesh,contour);
     #endif
 
-    auto gcl = GraphCutLabeling(mesh,normals,distance_to_boundary.size()); // graph-cut only on the two charts
+    auto gcl = GraphCutLabeling(mesh,normals, (GCoptimization::SiteID) distance_to_boundary.size()); // graph-cut only on the two charts
     for(const auto& kv : distance_to_boundary) {
         gcl.add_site(kv.first);
     }
@@ -497,7 +496,7 @@ void straighten_boundary(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
             // penalize modification proportionally to the distance to the boundary (only close facets should be modifiable)
             // kv.second is the distance
             // -> multiply the cost of re-assigning by (0.8)^distance
-            gcl.data_cost__change_to__scaled(kv.first,label[kv.first],std::pow(0.8,kv.second));
+            gcl.data_cost__change_to__scaled(kv.first,label[kv.first],(float) std::pow(0.8,kv.second));
         }
     }
     gcl.smooth_cost__set__default();
@@ -527,7 +526,7 @@ void straighten_boundary(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
                     vertex2 = mesh.facet_corners.vertex(mesh.facets.corner(kv.first,(le+1)%3));
                     edge_vector = normalize(mesh.vertices.point(vertex2)-mesh.vertices.point(vertex1));
                     dot_product = std::abs(dot(edge_vector,label2vector[current_boundary.axis*2])); // =1 -> //, =0 -> ⟂
-                    gcl.neighbors__change_to__shifted(kv.first,adjacent_facet,(1-dot_product)*500); // add a penalty the more ⟂ the edge is (// -> 0, ⟂ -> 300)
+                    gcl.neighbors__change_to__shifted(kv.first,adjacent_facet,(float) (1-dot_product)*500); // add a penalty the more ⟂ the edge is (// -> 0, ⟂ -> 300)
                     already_processed.insert({kv.first, adjacent_facet});
                     #ifndef NDEBUG
                         per_edge_dot_product[std::make_pair(vertex1,vertex2)] = dot_product;
@@ -536,7 +535,7 @@ void straighten_boundary(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
             }
         }
         #ifndef NDEBUG
-            dump_edges("dot_products","dot_product",mesh,mesh_he,per_edge_dot_product);
+            dump_edges("dot_products","dot_product",mesh,per_edge_dot_product);
         #endif
     }
     gcl.compute_solution(label);
@@ -616,7 +615,7 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
     #ifndef NDEBUG
         Mesh boundary_to_move_file;
         boundary_to_move_file.copy(mesh,false,MESH_VERTICES);
-        boundary_to_move_file.edges.create_edges(boundary_to_move.halfedges.size());
+        boundary_to_move_file.edges.create_edges((index_t) boundary_to_move.halfedges.size());
         FOR(he_index,boundary_to_move.halfedges.size()) {
             MeshHalfedges::Halfedge tmp_he = boundary_to_move.halfedges[he_index];
             boundary_to_move_file.edges.set_vertex(he_index,0,mesh.facet_corners.vertex(tmp_he.corner));
@@ -641,7 +640,7 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
     #ifndef NDEBUG
         dump_facets("2_charts",mesh,union_of_2_charts);
     #endif
-    auto gcl = GraphCutLabeling(mesh,normals,union_of_2_charts.size()); // graph-cut only on the two charts
+    auto gcl = GraphCutLabeling(mesh,normals,(GCoptimization::SiteID) union_of_2_charts.size()); // graph-cut only on the two charts
     for(index_t f : union_of_2_charts) {
         gcl.add_site(f);
     }
@@ -653,8 +652,8 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
     #endif
     if(closest_corner == boundary.start_corner) {
         // go across the boundary in the opposite way
-        for(signed_index_t halfedge_index = halfedge_index_turning_point-1; halfedge_index>= 0; halfedge_index--) {
-            current_halfedge = boundary.halfedges[halfedge_index];
+        for(signed_index_t halfedge_index = (signed_index_t) (halfedge_index_turning_point-1); halfedge_index>= 0; halfedge_index--) {
+            current_halfedge = boundary.halfedges[(std::vector<GEO::MeshHalfedges::Halfedge>::size_type) halfedge_index];
             if(tp.towards_right()) {
                 mesh_he.move_to_opposite(current_halfedge);
             }
@@ -707,7 +706,7 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
                     vertex2 = mesh.facet_corners.vertex(mesh.facets.corner(f,(le+1)%3));
                     edge_vector = normalize(mesh.vertices.point(vertex2)-mesh.vertices.point(vertex1));
                     dot_product = std::abs(dot(edge_vector,label2vector[boundary_to_move.axis*2])); // =1 -> //, =0 -> ⟂
-                    gcl.neighbors__change_to__shifted(f,adjacent_facet,(1-dot_product)*500); // add a penalty the more ⟂ the edge is (// -> 0, ⟂ -> 300)
+                    gcl.neighbors__change_to__shifted(f,adjacent_facet,(float) (1-dot_product)*500); // add a penalty the more ⟂ the edge is (// -> 0, ⟂ -> 300)
                     already_processed.insert({f, adjacent_facet});
                     #ifndef NDEBUG
                         per_edge_dot_product[std::make_pair(vertex1,vertex2)] = dot_product;
@@ -716,7 +715,7 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
             }
         }
         #ifndef NDEBUG
-            dump_edges("dot_products","dot_product",mesh,mesh_he,per_edge_dot_product);
+            dump_edges("dot_products","dot_product",mesh,per_edge_dot_product);
         #endif
     }
     gcl.compute_solution(label);
@@ -776,7 +775,7 @@ void trace_contour(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char
     index_t total_nb_halfedges = 0,
             he_counter = 0;
     for(index_t b : slg.charts[created_chart_index].boundaries) {
-        total_nb_halfedges += slg.boundaries[b].halfedges.size();
+        total_nb_halfedges += (index_t) slg.boundaries[b].halfedges.size();
     }
     CustomMeshHalfedges mesh_he(mesh);
     std::vector<std::pair<MeshHalfedges::Halfedge,index_t>> all_boundary_halfedges(total_nb_halfedges); // associate a direction in {0,1,2}={X,Y,Z}
@@ -803,7 +802,7 @@ void trace_contour(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char
             vertex_2 = mesh.facet_corners.vertex(mesh.facets.next_corner_around_facet(kv.first.facet,kv.first.corner));
             edges_and_attributes[std::make_pair(vertex_1,vertex_2)] = kv.second;
         }
-        dump_edges("all_boundary_edges","axis",mesh,mesh_he,edges_and_attributes);
+        dump_edges("all_boundary_edges","axis",mesh,edges_and_attributes);
     #endif
     // count number of same-axis groups (by counting transitions between different axes)
     index_t nb_same_axis_groups = 0; // 0 transition encountered for now
@@ -820,18 +819,19 @@ void trace_contour(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char
     fmt::println(Logger::out("refinement"),"boundary of the created chart contains {} group(s) of closest axis",nb_same_axis_groups); Logger::out("refinement").flush();
     // fix validity of the created chart
     if(nb_same_axis_groups == 2) {
-        //
-        //  |\               |\ 
-        //  | \              | \X
-        //  |  \             |  \/ 
-        // Z|   \Z    =>    Z|  /\ 
-        //  |    \           |    \Z 
-        //  |     \          |     \ 
-        //  |______\         |______\ 
-        //     X                X
-        //
-        // split a group in two and add an orthogonal separator group
-        // start by finding the biggest angle between 2 edges having the same nearest axis
+        /*
+         *  |\               |\ 
+         *  | \              | \X
+         *  |  \             |  \/ 
+         * Z|   \Z    =>    Z|  /\ 
+         *  |    \           |    \Z 
+         *  |     \          |     \ 
+         *  |______\         |______\ 
+         *     X                X
+         *
+         * split a group in two and add an orthogonal separator group
+         * start by finding the biggest angle between 2 edges having the same nearest axis
+         */
         double biggest_angle = Numeric::min_float64(),
                current_angle = 0.0;
         index_t boundary_halfedge_index_before_biggest_angle = index_t(-1),
@@ -871,7 +871,7 @@ void trace_contour(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char
                         dot(normalize(Geom::halfedge_vector(mesh,all_boundary_halfedges[(bhe+1)%total_nb_halfedges].first)),label2vector[other__axis*2+1])
                     });
                 }
-                axis_to_insert = VECTOR_MAX_INDEX(per_axis_dot_product);
+                axis_to_insert = (index_t) VECTOR_MAX_INDEX(per_axis_dot_product);
             }
         }
         geo_assert(vertex_at_biggest_angle != index_t(-1));
@@ -897,12 +897,12 @@ void trace_contour(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char
         score_of_assigning_new_axis_upward /= (double) count;
         count = 0;
         for(signed_index_t bhe = (signed_index_t) boundary_halfedge_index_before_biggest_angle; bhe >= 0; bhe--) {
-            if(all_boundary_halfedges[bhe].second != init_axis) {
+            if(all_boundary_halfedges[(size_t) bhe].second != init_axis) {
                 break;
             }
             score_of_assigning_new_axis_downward += std::max(
-                dot(normalize(Geom::halfedge_vector(mesh,all_boundary_halfedges[bhe].first)),label2vector[axis_to_insert*2]),
-                dot(normalize(Geom::halfedge_vector(mesh,all_boundary_halfedges[bhe].first)),label2vector[axis_to_insert*2+1])
+                dot(normalize(Geom::halfedge_vector(mesh,all_boundary_halfedges[(size_t) bhe].first)),label2vector[axis_to_insert*2]),
+                dot(normalize(Geom::halfedge_vector(mesh,all_boundary_halfedges[(size_t) bhe].first)),label2vector[axis_to_insert*2+1])
                 );
             count++;
         }

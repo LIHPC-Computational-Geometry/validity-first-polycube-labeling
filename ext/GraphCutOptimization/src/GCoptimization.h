@@ -110,6 +110,10 @@
 #include "graph.cpp"
 #include "maxflow.cpp"
 
+// remove compiler warning about unused parameter
+template <class T>
+inline void ignore_unused(const T&) {}
+
 /////////////////////////////////////////////////////////////////////
 // Utility functions, classes, and macros
 /////////////////////////////////////////////////////////////////////
@@ -212,6 +216,7 @@ public:
 	void setDataCostFunctor(DataCostFunctor* f);
 	struct DataCostFunctor {
 		virtual EnergyTermType compute(SiteID s, LabelID l) = 0;
+		virtual ~DataCostFunctor() = default; // fixes -Wnon-virtual-dtor
 	};
 	// Set cost of assigning 'l' to a specific subset of sites.
 	// The sites are listed as (SiteID,cost) pairs.
@@ -230,6 +235,7 @@ public:
 	void setSmoothCostFunctor(SmoothCostFunctor* f);
 	struct SmoothCostFunctor {
 		virtual EnergyTermType compute(SiteID s1, SiteID s2, LabelID l1, LabelID l2) = 0;
+		virtual ~SmoothCostFunctor() = default; // fixes -Wnon-virtual-dtor
 	};
 
 	// Sets the cost of using label in the solution. 
@@ -358,7 +364,7 @@ protected:
 	struct SmoothCostFnFromArray {
 		SmoothCostFnFromArray(EnergyTermType* theArray, LabelID num_labels)
 			: m_array(theArray), m_num_labels(num_labels){}
-		OLGA_INLINE EnergyTermType compute(SiteID s1, SiteID s2, LabelID l1, LabelID l2){return m_array[l1*m_num_labels+l2];}
+		OLGA_INLINE EnergyTermType compute(SiteID s1, SiteID s2, LabelID l1, LabelID l2){ignore_unused(s1); ignore_unused(s2); return m_array[l1*m_num_labels+l2];}
 	private:
 		const EnergyTermType* const m_array;
 		const LabelID m_num_labels;
@@ -489,7 +495,7 @@ private:
 	class GreedyIter {
 	public:
 		GreedyIter(DataCostT& dc, SiteID numSites)
-		: m_dc(dc), m_site(0), m_numSites(numSites), m_label(0), m_lbegin(0), m_lend(0)
+		: m_site(0), m_dc(dc), m_numSites(numSites), m_label(0), m_lbegin(0), m_lend(0)
 		{ }
 
 		OLGA_INLINE void start(const LabelID* labels, LabelID labelCount=1)

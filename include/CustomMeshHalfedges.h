@@ -1,27 +1,28 @@
-// Extended halfedges interface of Geogram
-// 
-// CustomMeshHalfedges is the interface itself
-// CustomMeshHalfedges::Halfedge is an oriented edge, which stores a facet index and a facet corner index
-// CustomMeshHalfedges::Halfedge.facet is the facet at the left of the halfedge (assuming outgoing facet normal -> right hand rule)
-// CustomMeshHalfedges::Halfedge.corner is the corner of the facet that is along the halfedge origin
-// 
-//        o
-//       / \
-//      /   \
-//     /     \
-//    / facet \
-//   /         \
-//  /\corner    \
-// o ==========> o
-//    halfedge
-//
-// if you're going around a vertex:
-// - move_to_next_around_vertex() moves clockwise
-// - move_to_prev_around_vertex() moves counterclockwise
-// so counterclockwise, the facet is ahead of the halfedge
-// and clockwise, the halfedge is ahead of the facet
-//
-// see https://github.com/BrunoLevy/geogram/pull/116
+/* Extended halfedges interface of Geogram
+ * 
+ * CustomMeshHalfedges is the interface itself
+ * CustomMeshHalfedges::Halfedge is an oriented edge, which stores a facet index and a facet corner index
+ * CustomMeshHalfedges::Halfedge.facet is the facet at the left of the halfedge (assuming outgoing facet normal -> right hand rule)
+ * CustomMeshHalfedges::Halfedge.corner is the corner of the facet that is along the halfedge origin
+ * 
+ *        o
+ *       / \
+ *      /   \
+ *     /     \
+ *    / facet \
+ *   /         \
+ *  /\corner    \
+ * o ==========> o
+ *    halfedge
+ *
+ * if you're going around a vertex:
+ * - move_to_next_around_vertex() moves clockwise
+ * - move_to_prev_around_vertex() moves counterclockwise
+ * so counterclockwise, the facet is ahead of the halfedge
+ * and clockwise, the halfedge is ahead of the facet
+ *
+ * see https://github.com/BrunoLevy/geogram/pull/116
+ */
 
 #pragma once
 
