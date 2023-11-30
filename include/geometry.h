@@ -57,6 +57,6 @@ struct VecngCompare {
 // map values = 0 if distance of 0, unsigned int(-1) if to be computed in accordance
 void per_facet_distance(const Mesh& mesh, std::map<index_t,unsigned int>& distance);
 
-bool facet_normals_are_inwards(Mesh& mesh); // a mutable Mesh is required by MeshHalfedges
+bool facet_normals_are_inward(Mesh& mesh); // a mutable Mesh is required by MeshHalfedges
 
 void flip_facet_normals(Mesh& mesh);

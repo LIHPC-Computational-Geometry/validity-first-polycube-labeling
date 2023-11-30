@@ -1,5 +1,5 @@
 // Flip the normals of a triangle mesh
-// that is, outwards -> inwards or inwards -> outwards (assuming all have the same direction)
+// that is, outward -> inward or inward -> outward (assuming all have the same direction)
 // If no output mesh filename is provided, determine the normals direction
 
 #include <geogram/mesh/mesh.h>  // for GEO::Mesh
@@ -19,7 +19,7 @@
 #include <set>
 
 #include "CustomMeshHalfedges.h"    // for CustomMeshHalfedges
-#include "geometry.h"               // for facet_normals_are_inwards() & flip_facet_normals()
+#include "geometry.h"               // for facet_normals_are_inward() & flip_facet_normals()
 
 using namespace GEO;
 
@@ -51,11 +51,11 @@ int main(int argc, char** argv) {
 
     if(filenames.size()==1) {
         // no output mesh -> determine normals direction
-        if(facet_normals_are_inwards(M)) {
-            fmt::println(Logger::out("normals dir."),"The facet normals are inwards"); Logger::out("normals dir.").flush();
+        if(facet_normals_are_inward(M)) {
+            fmt::println(Logger::out("normals dir."),"The facet normals are inward"); Logger::out("normals dir.").flush();
         }
         else {
-            fmt::println(Logger::out("normals dir."),"The facet normals are outwards"); Logger::out("normals dir.").flush();
+            fmt::println(Logger::out("normals dir."),"The facet normals are outward"); Logger::out("normals dir.").flush();
         }
         return 0;
     }

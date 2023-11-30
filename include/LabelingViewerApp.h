@@ -487,10 +487,12 @@ protected:
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 		if(auto_flip_normals_) {
-			// ensure facet normals are outwards
-			if(facet_normals_are_inwards(mesh_)) {
+			// ensure facet normals are outward
+			if(facet_normals_are_inward(mesh_)) {
 				flip_facet_normals(mesh_);
-				fmt::println(Logger::out("normals dir."),"Facet normals of the input mesh were inwards.\nYou should flip them and update the file for consistency."); Logger::out("normals dir.").flush();
+				fmt::println(Logger::warn("normals dir."),"Facet normals of the input mesh were inward");
+				fmt::println(Logger::warn("normals dir."),"You should flip them and update the file for consistency.");
+				Logger::warn("normals dir.").flush();
 			}
 		}
 

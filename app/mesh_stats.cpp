@@ -20,6 +20,7 @@
 #include "labeling.h"
 #include "basic_stats.h"
 #include "hex_mesh.h"
+#include "geometry.h" // for facet_normals_are_inward()
 
 #define CELL_TYPE_KEY_STR(cell_type)  ( ((cell_type) == MESH_TET)       ? "tetrahedra"  : (\
                                         ((cell_type) == MESH_HEX)       ? "hexahedra"   : (\
@@ -178,6 +179,7 @@ int main(int argc, char** argv) {
         output_JSON["facets"]["area"]["avg"] = facets_area_stats.avg();
         output_JSON["facets"]["area"]["sd"]  = facets_area_stats.sd();
         output_JSON["facets"]["area"]["sum"] = facets_area_stats.sum();
+        output_JSON["facets"]["normals_outward"] = (facet_normals_are_inward(input_mesh) == false);
     }
 
     ////////////////////////////////

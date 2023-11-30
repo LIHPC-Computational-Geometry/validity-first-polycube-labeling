@@ -31,7 +31,7 @@ void per_facet_distance(const Mesh& mesh, std::map<index_t,unsigned int>& distan
     }
 }
 
-bool facet_normals_are_inwards(Mesh& mesh) {
+bool facet_normals_are_inward(Mesh& mesh) {
     // https://forums.cgsociety.org/t/check-if-mesh-is-inside-out/1688290
 
     // Find the vertex with the smallest X coordinate
@@ -71,8 +71,8 @@ bool facet_normals_are_inwards(Mesh& mesh) {
         mesh_he.move_to_next_around_vertex(halfedge);
     } while (halfedge != init_halfedge);
 
-    // compute the dot product of the vertex normal and a vector going outwards the mesh (towards -X)
-    // if the dot product is negative, the normal is inwards
+    // compute the dot product of the vertex normal and a vector going outward the mesh (towards -X)
+    // if the dot product is negative, the normal is inward
     return dot(normal_of_corresponding_vertex,vec3(-1.0,0.0,0.0)) < 0.0;
 }
 
@@ -117,7 +117,7 @@ void flip_facet_normals(Mesh& mesh) {
         //                        \   /
         //                         \ /
         //
-        // local vertices are clockwise -> right hand rule -> facet normal is inwards
+        // local vertices are clockwise -> right hand rule -> facet normals are inward
         // swap lv1 and lv2 to flip the normal, and swap adjacent facet accordingly
         //
         //                         vA
@@ -146,7 +146,7 @@ void flip_facet_normals(Mesh& mesh) {
         //                        \   /
         //                         \ /
         //
-        // local vertices are counterclockwise -> right hand rule -> facet normal is outwards
+        // local vertices are counterclockwise -> right hand rule -> facet normals are outward
         //
         tmp_vertex_index = mesh.facets.vertex(f,1); // copy vB
         tmp_facet_index = mesh.facets.adjacent(f,0); // copy afI

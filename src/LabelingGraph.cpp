@@ -43,7 +43,7 @@ bool VertexRingWithBoundaries::halfedge_is_in_boundary_edges(const MeshHalfedges
 
 /**
  * \brief Explore the vertex at the base of \c initial_halfedge and fill the struct with boundary edges encountered
- * \param[in] initial_halfedge An half-edge going outwards the vertex to explore
+ * \param[in] initial_halfedge An half-edge going outward the vertex to explore
  * \param[in] mesh_halfedges The half-edges interface of the mesh
  * \param[in] labeling The facet-to-label association, to detect boundary edges (= edges between 2 labels)
  */

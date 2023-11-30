@@ -12,7 +12,7 @@
 
 #include "LabelingViewerApp.h"
 #include "CustomMeshHalfedges.h"
-#include "geometry.h"               // for facet_normals_are_inwards() & flip_facet_normals()
+#include "geometry.h"               // for facet_normals_are_inward() & flip_facet_normals()
 
 #define TEXT_GREEN  ImVec4(0.0f,0.8f,0.0f,1.0f)
 #define TEXT_RED    ImVec4(0.8f,0.0f,0.0f,1.0f)
@@ -50,7 +50,7 @@ public:
         rgba[2] = 0.0f;
         rgba[3] = 1.0f;
         ignore_borders_around_vertices = false;
-        facet_normals_inwards = true; // updated in (load)
+        facet_normals_inward = true; // updated in (load)
     }
 
 protected:
@@ -93,16 +93,16 @@ protected:
         // facet normal direction & button to flip them
 
         ImGui::SeparatorText("Direction of facet normals");
-        if(facet_normals_inwards) {
-            ImGui::TextColored(TEXT_RED,"Inwards");
+        if(facet_normals_inward) {
+            ImGui::TextColored(TEXT_RED,"Inward");
         }
         else {
-            ImGui::TextColored(TEXT_GREEN,"Outwards");
+            ImGui::TextColored(TEXT_GREEN,"Outward");
         }
         ImGui::SameLine();
         if(ImGui::Button("Flip normals")) {
             flip_facet_normals(mesh_);
-            facet_normals_inwards = facet_normals_are_inwards(mesh_);
+            facet_normals_inward = facet_normals_are_inward(mesh_);
         }
 
         // halfedge color modification
@@ -228,7 +228,7 @@ protected:
                 mesh_he.set_use_facet_region(std::string(LABELING_ATTRIBUTE_NAME));
                 custom_mesh_he.set_use_facet_region(std::string(LABELING_ATTRIBUTE_NAME));
             }
-            facet_normals_inwards = facet_normals_are_inwards(mesh_);
+            facet_normals_inward = facet_normals_are_inward(mesh_);
             return true;
         }
         halfedge.facet = NO_FACET;
@@ -263,7 +263,7 @@ protected:
     float rgba[4]; // halfedge color, red-green-blue-alpha
     bool ignore_borders_around_vertices;
     vec3 facet_center;
-    bool facet_normals_inwards;
+    bool facet_normals_inward;
 };
 
 int main(int argc, char** argv) {
