@@ -17,6 +17,7 @@
 #include "basic_stats.h"            // for BasicStats
 #include "containers.h"             // for std_dev()
 #include "CustomMeshHalfedges.h"    // for CustomMeshHalfedges
+#include "labeling.h"               // for naive_labeling()
 
 #define DOUBLE_MAX_ABS_ERROR 10e5
 
@@ -262,9 +263,17 @@ protected:
         }
     }
 
+    void compute_normals() {
+        normals.resize(cube.facets.nb());
+        FOR(f,cube.facets.nb()) {
+            normals[f] = normalize(Geom::mesh_facet_normal(cube,f));
+        }
+    }
+
     Mesh cube;
     CustomMeshHalfedges mesh_halfedges;
-    MeshHalfedges::Halfedge init_halfedge;
+    MeshHalfedges::Halfedge halfedge;
+    std::vector<vec3> normals;
 };
 
 TEST_F(HalfedgesTest, ExportCubeMesh) {
@@ -274,67 +283,188 @@ TEST_F(HalfedgesTest, ExportCubeMesh) {
 }
 
 TEST_F(HalfedgesTest, InitializedHalfedge) {
-    EXPECT_TRUE(mesh_halfedges.halfedge_is_valid(init_halfedge));
-    EXPECT_EQ(Geom::halfedge_facet_left(cube,init_halfedge),0);
-    EXPECT_EQ(Geom::halfedge_facet_right(cube,init_halfedge),11);
-    EXPECT_EQ(Geom::halfedge_vertex_index_from(cube,init_halfedge),1);
-    EXPECT_EQ(Geom::halfedge_vertex_index_to(cube,init_halfedge),3);
-    EXPECT_EQ(Geom::halfedge_bottom_left_corner(cube,init_halfedge),1);
-    EXPECT_EQ(Geom::halfedge_bottom_right_corner(cube,init_halfedge),33);
-    EXPECT_EQ(Geom::halfedge_top_left_corner(cube,init_halfedge),2);
-    EXPECT_EQ(Geom::halfedge_top_right_corner(cube,init_halfedge),35);
+    EXPECT_TRUE(mesh_halfedges.halfedge_is_valid(halfedge));
+    // halfedge going from vertices 1 to 3
+    EXPECT_EQ(Geom::halfedge_vertex_index_from(cube,halfedge),1);
+    EXPECT_EQ(Geom::halfedge_vertex_index_to(cube,halfedge),3);
+    EXPECT_EQ(Geom::halfedge_facet_left(cube,halfedge),0);
+    EXPECT_EQ(Geom::halfedge_facet_right(cube,halfedge),11);
+    EXPECT_EQ(Geom::halfedge_bottom_left_corner(cube,halfedge),1);
+    EXPECT_EQ(Geom::halfedge_bottom_right_corner(cube,halfedge),33);
+    EXPECT_EQ(Geom::halfedge_top_left_corner(cube,halfedge),2);
+    EXPECT_EQ(Geom::halfedge_top_right_corner(cube,halfedge),35);
 }
 
 TEST_F(HalfedgesTest, MoveToPrevAroundFacet) {
-    mesh_halfedges.move_to_prev_around_facet(init_halfedge);
-    EXPECT_TRUE(mesh_halfedges.halfedge_is_valid(init_halfedge));
-    EXPECT_EQ(Geom::halfedge_facet_left(cube,init_halfedge),0);
-    EXPECT_EQ(Geom::halfedge_facet_right(cube,init_halfedge),3);
-    EXPECT_EQ(Geom::halfedge_vertex_index_from(cube,init_halfedge),0);
-    EXPECT_EQ(Geom::halfedge_vertex_index_to(cube,init_halfedge),1);
-    EXPECT_EQ(Geom::halfedge_bottom_left_corner(cube,init_halfedge),0);
-    EXPECT_EQ(Geom::halfedge_bottom_right_corner(cube,init_halfedge),9);
-    EXPECT_EQ(Geom::halfedge_top_left_corner(cube,init_halfedge),1);
-    EXPECT_EQ(Geom::halfedge_top_right_corner(cube,init_halfedge),11);
+    mesh_halfedges.move_to_prev_around_facet(halfedge);
+    EXPECT_TRUE(mesh_halfedges.halfedge_is_valid(halfedge));
+    // halfedge going from vertices 0 to 1
+    EXPECT_EQ(Geom::halfedge_vertex_index_from(cube,halfedge),0);
+    EXPECT_EQ(Geom::halfedge_vertex_index_to(cube,halfedge),1);
+    EXPECT_EQ(Geom::halfedge_facet_left(cube,halfedge),0);
+    EXPECT_EQ(Geom::halfedge_facet_right(cube,halfedge),3);
+    EXPECT_EQ(Geom::halfedge_bottom_left_corner(cube,halfedge),0);
+    EXPECT_EQ(Geom::halfedge_bottom_right_corner(cube,halfedge),9);
+    EXPECT_EQ(Geom::halfedge_top_left_corner(cube,halfedge),1);
+    EXPECT_EQ(Geom::halfedge_top_right_corner(cube,halfedge),11);
 }
 
 TEST_F(HalfedgesTest, MoveToNextAroundFacet) {
-    mesh_halfedges.move_to_next_around_facet(init_halfedge);
-    EXPECT_TRUE(mesh_halfedges.halfedge_is_valid(init_halfedge));
-    EXPECT_EQ(Geom::halfedge_facet_left(cube,init_halfedge),0);
-    EXPECT_EQ(Geom::halfedge_facet_right(cube,init_halfedge),1);
-    EXPECT_EQ(Geom::halfedge_vertex_index_from(cube,init_halfedge),3);
-    EXPECT_EQ(Geom::halfedge_vertex_index_to(cube,init_halfedge),0);
-    EXPECT_EQ(Geom::halfedge_bottom_left_corner(cube,init_halfedge),2);
-    EXPECT_EQ(Geom::halfedge_bottom_right_corner(cube,init_halfedge),4);
-    EXPECT_EQ(Geom::halfedge_top_left_corner(cube,init_halfedge),0);
-    EXPECT_EQ(Geom::halfedge_top_right_corner(cube,init_halfedge),3);
+    mesh_halfedges.move_to_next_around_facet(halfedge);
+    EXPECT_TRUE(mesh_halfedges.halfedge_is_valid(halfedge));
+    // halfedge going from vertices 3 to 0
+    EXPECT_EQ(Geom::halfedge_vertex_index_from(cube,halfedge),3);
+    EXPECT_EQ(Geom::halfedge_vertex_index_to(cube,halfedge),0);
+    EXPECT_EQ(Geom::halfedge_facet_left(cube,halfedge),0);
+    EXPECT_EQ(Geom::halfedge_facet_right(cube,halfedge),1);
+    EXPECT_EQ(Geom::halfedge_bottom_left_corner(cube,halfedge),2);
+    EXPECT_EQ(Geom::halfedge_bottom_right_corner(cube,halfedge),4);
+    EXPECT_EQ(Geom::halfedge_top_left_corner(cube,halfedge),0);
+    EXPECT_EQ(Geom::halfedge_top_right_corner(cube,halfedge),3);
 }
 
 TEST_F(HalfedgesTest, MoveClockwiseAroundVertex) {
-    mesh_halfedges.move_clockwise_around_vertex(init_halfedge);
-    EXPECT_TRUE(mesh_halfedges.halfedge_is_valid(init_halfedge));
-    EXPECT_EQ(Geom::halfedge_facet_left(cube,init_halfedge),11);
-    EXPECT_EQ(Geom::halfedge_facet_right(cube,init_halfedge),10);
-    EXPECT_EQ(Geom::halfedge_vertex_index_from(cube,init_halfedge),1);
-    EXPECT_EQ(Geom::halfedge_vertex_index_to(cube,init_halfedge),7);
-    EXPECT_EQ(Geom::halfedge_bottom_left_corner(cube,init_halfedge),33);
-    EXPECT_EQ(Geom::halfedge_bottom_right_corner(cube,init_halfedge),30);
-    EXPECT_EQ(Geom::halfedge_top_left_corner(cube,init_halfedge),34);
-    EXPECT_EQ(Geom::halfedge_top_right_corner(cube,init_halfedge),32);
+    mesh_halfedges.move_clockwise_around_vertex(halfedge);
+    EXPECT_TRUE(mesh_halfedges.halfedge_is_valid(halfedge));
+    /* halfedge going from vertices 1 to 7 */
+    EXPECT_EQ(Geom::halfedge_vertex_index_from(cube,halfedge),1);
+    EXPECT_EQ(Geom::halfedge_vertex_index_to(cube,halfedge),7);
+    EXPECT_EQ(Geom::halfedge_facet_left(cube,halfedge),11);
+    EXPECT_EQ(Geom::halfedge_facet_right(cube,halfedge),10);
+    EXPECT_EQ(Geom::halfedge_bottom_left_corner(cube,halfedge),33);
+    EXPECT_EQ(Geom::halfedge_bottom_right_corner(cube,halfedge),30);
+    EXPECT_EQ(Geom::halfedge_top_left_corner(cube,halfedge),34);
+    EXPECT_EQ(Geom::halfedge_top_right_corner(cube,halfedge),32);
 }
 
 TEST_F(HalfedgesTest, MoveCounterclockwiseAroundVertex) {
-    mesh_halfedges.move_counterclockwise_around_vertex(init_halfedge);
-    EXPECT_TRUE(mesh_halfedges.halfedge_is_valid(init_halfedge));
-    EXPECT_EQ(Geom::halfedge_facet_left(cube,init_halfedge),3);
-    EXPECT_EQ(Geom::halfedge_facet_right(cube,init_halfedge),0);
-    EXPECT_EQ(Geom::halfedge_vertex_index_from(cube,init_halfedge),1);
-    EXPECT_EQ(Geom::halfedge_vertex_index_to(cube,init_halfedge),0);
-    EXPECT_EQ(Geom::halfedge_bottom_left_corner(cube,init_halfedge),11);
-    EXPECT_EQ(Geom::halfedge_bottom_right_corner(cube,init_halfedge),1);
-    EXPECT_EQ(Geom::halfedge_top_left_corner(cube,init_halfedge),9);
-    EXPECT_EQ(Geom::halfedge_top_right_corner(cube,init_halfedge),0);
+    mesh_halfedges.move_counterclockwise_around_vertex(halfedge);
+    EXPECT_TRUE(mesh_halfedges.halfedge_is_valid(halfedge));
+    // halfedge going from vertices 1 to 0
+    EXPECT_EQ(Geom::halfedge_vertex_index_from(cube,halfedge),1);
+    EXPECT_EQ(Geom::halfedge_vertex_index_to(cube,halfedge),0);
+    EXPECT_EQ(Geom::halfedge_facet_left(cube,halfedge),3);
+    EXPECT_EQ(Geom::halfedge_facet_right(cube,halfedge),0);
+    EXPECT_EQ(Geom::halfedge_bottom_left_corner(cube,halfedge),11);
+    EXPECT_EQ(Geom::halfedge_bottom_right_corner(cube,halfedge),1);
+    EXPECT_EQ(Geom::halfedge_top_left_corner(cube,halfedge),9);
+    EXPECT_EQ(Geom::halfedge_top_right_corner(cube,halfedge),0);
+}
+
+TEST_F(HalfedgesTest, MoveToPrevAroundBorder) {
+    compute_normals();
+    naive_labeling(cube,normals,"label");
+    mesh_halfedges.set_use_facet_region("label");
+
+    mesh_halfedges.move_to_prev_around_border(halfedge);
+    EXPECT_TRUE(mesh_halfedges.halfedge_is_valid(halfedge));
+    EXPECT_TRUE(mesh_halfedges.halfedge_is_border(halfedge));
+    // halfedge going from vertices 0 to 1
+    EXPECT_EQ(Geom::halfedge_vertex_index_from(cube,halfedge),0);
+    EXPECT_EQ(Geom::halfedge_vertex_index_to(cube,halfedge),1);
+    EXPECT_EQ(Geom::halfedge_facet_left(cube,halfedge),0);
+    EXPECT_EQ(Geom::halfedge_facet_right(cube,halfedge),3);
+    EXPECT_EQ(Geom::halfedge_bottom_left_corner(cube,halfedge),0);
+    EXPECT_EQ(Geom::halfedge_bottom_right_corner(cube,halfedge),9);
+    EXPECT_EQ(Geom::halfedge_top_left_corner(cube,halfedge),1);
+    EXPECT_EQ(Geom::halfedge_top_right_corner(cube,halfedge),11);
+
+    mesh_halfedges.move_to_prev_around_border(halfedge);
+    EXPECT_TRUE(mesh_halfedges.halfedge_is_valid(halfedge));
+    EXPECT_TRUE(mesh_halfedges.halfedge_is_border(halfedge));
+    // halfedge going from vertices 2 to 0
+    EXPECT_EQ(Geom::halfedge_vertex_index_from(cube,halfedge),2);
+    EXPECT_EQ(Geom::halfedge_vertex_index_to(cube,halfedge),0);
+    EXPECT_EQ(Geom::halfedge_facet_left(cube,halfedge),1);
+    EXPECT_EQ(Geom::halfedge_facet_right(cube,halfedge),8);
+    EXPECT_EQ(Geom::halfedge_bottom_left_corner(cube,halfedge),5);
+    EXPECT_EQ(Geom::halfedge_bottom_right_corner(cube,halfedge),25);
+    EXPECT_EQ(Geom::halfedge_top_left_corner(cube,halfedge),3);
+    EXPECT_EQ(Geom::halfedge_top_right_corner(cube,halfedge),24);
+
+    mesh_halfedges.move_to_prev_around_border(halfedge);
+    EXPECT_TRUE(mesh_halfedges.halfedge_is_valid(halfedge));
+    EXPECT_TRUE(mesh_halfedges.halfedge_is_border(halfedge));
+    // halfedge going from vertices 3 to 2
+    EXPECT_EQ(Geom::halfedge_vertex_index_from(cube,halfedge),3);
+    EXPECT_EQ(Geom::halfedge_vertex_index_to(cube,halfedge),2);
+    EXPECT_EQ(Geom::halfedge_facet_left(cube,halfedge),1);
+    EXPECT_EQ(Geom::halfedge_facet_right(cube,halfedge),6);
+    EXPECT_EQ(Geom::halfedge_bottom_left_corner(cube,halfedge),4);
+    EXPECT_EQ(Geom::halfedge_bottom_right_corner(cube,halfedge),19);
+    EXPECT_EQ(Geom::halfedge_top_left_corner(cube,halfedge),5);
+    EXPECT_EQ(Geom::halfedge_top_right_corner(cube,halfedge),18);
+
+    mesh_halfedges.move_to_prev_around_border(halfedge);
+    EXPECT_TRUE(mesh_halfedges.halfedge_is_valid(halfedge));
+    EXPECT_TRUE(mesh_halfedges.halfedge_is_border(halfedge));
+    // halfedge going from vertices 1 to 3
+    EXPECT_EQ(Geom::halfedge_vertex_index_from(cube,halfedge),1);
+    EXPECT_EQ(Geom::halfedge_vertex_index_to(cube,halfedge),3);
+    EXPECT_EQ(Geom::halfedge_facet_left(cube,halfedge),0);
+    EXPECT_EQ(Geom::halfedge_facet_right(cube,halfedge),11);
+    EXPECT_EQ(Geom::halfedge_bottom_left_corner(cube,halfedge),1);
+    EXPECT_EQ(Geom::halfedge_bottom_right_corner(cube,halfedge),33);
+    EXPECT_EQ(Geom::halfedge_top_left_corner(cube,halfedge),2);
+    EXPECT_EQ(Geom::halfedge_top_right_corner(cube,halfedge),35);
+}
+
+TEST_F(HalfedgesTest, MoveToNextAroundBorder) {
+    compute_normals();
+    naive_labeling(cube,normals,"label");
+    mesh_halfedges.set_use_facet_region("label");
+
+    mesh_halfedges.move_to_next_around_border(halfedge);
+    EXPECT_TRUE(mesh_halfedges.halfedge_is_valid(halfedge));
+    EXPECT_TRUE(mesh_halfedges.halfedge_is_border(halfedge));
+    // halfedge going from vertices 3 to 2
+    EXPECT_EQ(Geom::halfedge_vertex_index_from(cube,halfedge),3);
+    EXPECT_EQ(Geom::halfedge_vertex_index_to(cube,halfedge),2);
+    EXPECT_EQ(Geom::halfedge_facet_left(cube,halfedge),1);
+    EXPECT_EQ(Geom::halfedge_facet_right(cube,halfedge),6);
+    EXPECT_EQ(Geom::halfedge_bottom_left_corner(cube,halfedge),4);
+    EXPECT_EQ(Geom::halfedge_bottom_right_corner(cube,halfedge),19);
+    EXPECT_EQ(Geom::halfedge_top_left_corner(cube,halfedge),5);
+    EXPECT_EQ(Geom::halfedge_top_right_corner(cube,halfedge),18);
+
+    mesh_halfedges.move_to_next_around_border(halfedge);
+    EXPECT_TRUE(mesh_halfedges.halfedge_is_valid(halfedge));
+    EXPECT_TRUE(mesh_halfedges.halfedge_is_border(halfedge));
+    // halfedge going from vertices 2 to 0
+    EXPECT_EQ(Geom::halfedge_vertex_index_from(cube,halfedge),2);
+    EXPECT_EQ(Geom::halfedge_vertex_index_to(cube,halfedge),0);
+    EXPECT_EQ(Geom::halfedge_facet_left(cube,halfedge),1);
+    EXPECT_EQ(Geom::halfedge_facet_right(cube,halfedge),8);
+    EXPECT_EQ(Geom::halfedge_bottom_left_corner(cube,halfedge),5);
+    EXPECT_EQ(Geom::halfedge_bottom_right_corner(cube,halfedge),25);
+    EXPECT_EQ(Geom::halfedge_top_left_corner(cube,halfedge),3);
+    EXPECT_EQ(Geom::halfedge_top_right_corner(cube,halfedge),24);
+
+    mesh_halfedges.move_to_next_around_border(halfedge);
+    EXPECT_TRUE(mesh_halfedges.halfedge_is_valid(halfedge));
+    EXPECT_TRUE(mesh_halfedges.halfedge_is_border(halfedge));
+    // halfedge going from vertices 0 to 1
+    EXPECT_EQ(Geom::halfedge_vertex_index_from(cube,halfedge),0);
+    EXPECT_EQ(Geom::halfedge_vertex_index_to(cube,halfedge),1);
+    EXPECT_EQ(Geom::halfedge_facet_left(cube,halfedge),0);
+    EXPECT_EQ(Geom::halfedge_facet_right(cube,halfedge),3);
+    EXPECT_EQ(Geom::halfedge_bottom_left_corner(cube,halfedge),0);
+    EXPECT_EQ(Geom::halfedge_bottom_right_corner(cube,halfedge),9);
+    EXPECT_EQ(Geom::halfedge_top_left_corner(cube,halfedge),1);
+    EXPECT_EQ(Geom::halfedge_top_right_corner(cube,halfedge),11);
+
+    mesh_halfedges.move_to_next_around_border(halfedge);
+    EXPECT_TRUE(mesh_halfedges.halfedge_is_valid(halfedge));
+    EXPECT_TRUE(mesh_halfedges.halfedge_is_border(halfedge));
+    // halfedge going from vertices 1 to 3
+    EXPECT_EQ(Geom::halfedge_vertex_index_from(cube,halfedge),1);
+    EXPECT_EQ(Geom::halfedge_vertex_index_to(cube,halfedge),3);
+    EXPECT_EQ(Geom::halfedge_facet_left(cube,halfedge),0);
+    EXPECT_EQ(Geom::halfedge_facet_right(cube,halfedge),11);
+    EXPECT_EQ(Geom::halfedge_bottom_left_corner(cube,halfedge),1);
+    EXPECT_EQ(Geom::halfedge_bottom_right_corner(cube,halfedge),33);
+    EXPECT_EQ(Geom::halfedge_top_left_corner(cube,halfedge),2);
+    EXPECT_EQ(Geom::halfedge_top_right_corner(cube,halfedge),35);
 }
 
 int main(int argc, char** argv)
