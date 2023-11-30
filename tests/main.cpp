@@ -242,8 +242,8 @@ protected:
         cube.facets.set_adjacent(11,2,0);
 
         // initialize the halfedge with the one going from vertex 1 to vertex 3
-        init_halfedge.facet = 0; // the facet at its left is facet 11
-        init_halfedge.corner = 1; // the facet corner of facet 11 that is on the origin vertex (1) is 1
+        halfedge.facet = 0; // the facet at its left is facet 0
+        halfedge.corner = 1; // the facet corner of facet 0 that is on the origin vertex (1) is 1
     }
 
     void print_facet_corners() {
