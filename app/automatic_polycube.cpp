@@ -1,6 +1,7 @@
 #include <geogram/basic/attributes.h>
 #include <geogram/basic/command_line.h>	// for declare_arg(), parse(), get_arg_bool()
 #include <geogram/mesh/mesh_io.h>		// for mesh_load()
+#include <geogram/basic/numeric.h>		// for min_float64()
 
 #include <set>
 #include <array>
@@ -32,7 +33,7 @@ protected:
 #ifdef STDDEV_BASED_CHART_REFINEMENT
 			Attribute<double> per_chart_stddev_validity(mesh_.facets.attributes(),"per_chart_stddev_validity"); // create new facet attribute
 			std::vector<double> per_chart_fidelity_values;
-			double global_max; // will store the max std dev of all facets
+			double global_max = Numeric::min_float64(); // will store the max std dev of all facets
 			FOR(c,static_labeling_graph_.nb_charts()) { // for each chart
 				double stddev = 0.0;
 				per_chart_fidelity_values.resize(static_labeling_graph_.charts[c].facets.size());
