@@ -694,6 +694,124 @@ TEST_F(HalfedgesTest, MoveToNextAroundBorder) {
     EXPECT_EQ(Geom::halfedge_top_right_corner(cube,halfedge),35);
 }
 
+TEST_F(HalfedgesTest, MoveClockwiseAroundVertexIgnoreBorders) {
+    compute_normals();
+    naive_labeling(cube,normals,"label");
+    mesh_halfedges.set_use_facet_region("label");
+
+    // move should fail because halfedge is on border
+    EXPECT_FALSE(mesh_halfedges.move_clockwise_around_vertex(halfedge));
+    EXPECT_TRUE(mesh_halfedges.halfedge_is_valid(halfedge));
+    EXPECT_TRUE(mesh_halfedges.halfedge_is_border(halfedge));
+    // halfedge going from vertices 1 to 3
+    EXPECT_EQ(Geom::halfedge_vertex_index_from(cube,halfedge),1);
+    EXPECT_EQ(Geom::halfedge_vertex_index_to(cube,halfedge),3);
+    EXPECT_EQ(Geom::halfedge_facet_left(cube,halfedge),0);
+    EXPECT_EQ(Geom::halfedge_facet_right(cube,halfedge),11);
+    EXPECT_EQ(Geom::halfedge_bottom_left_corner(cube,halfedge),1);
+    EXPECT_EQ(Geom::halfedge_bottom_right_corner(cube,halfedge),33);
+    EXPECT_EQ(Geom::halfedge_top_left_corner(cube,halfedge),2);
+    EXPECT_EQ(Geom::halfedge_top_right_corner(cube,halfedge),35);
+
+    // move should success because we ignore borders (2nd argument)
+    EXPECT_TRUE(mesh_halfedges.move_clockwise_around_vertex(halfedge,true));
+    EXPECT_TRUE(mesh_halfedges.halfedge_is_valid(halfedge));
+    EXPECT_FALSE(mesh_halfedges.halfedge_is_border(halfedge));
+    // halfedge going from vertices 1 to 7
+    EXPECT_EQ(Geom::halfedge_vertex_index_from(cube,halfedge),1);
+    EXPECT_EQ(Geom::halfedge_vertex_index_to(cube,halfedge),7);
+    EXPECT_EQ(Geom::halfedge_facet_left(cube,halfedge),11);
+    EXPECT_EQ(Geom::halfedge_facet_right(cube,halfedge),10);
+    EXPECT_EQ(Geom::halfedge_bottom_left_corner(cube,halfedge),33);
+    EXPECT_EQ(Geom::halfedge_bottom_right_corner(cube,halfedge),30);
+    EXPECT_EQ(Geom::halfedge_top_left_corner(cube,halfedge),34);
+    EXPECT_EQ(Geom::halfedge_top_right_corner(cube,halfedge),32);
+
+    // move should success because the left facet is still on the same region
+    EXPECT_TRUE(mesh_halfedges.move_clockwise_around_vertex(halfedge));
+    EXPECT_TRUE(mesh_halfedges.halfedge_is_valid(halfedge));
+    EXPECT_TRUE(mesh_halfedges.halfedge_is_border(halfedge));
+    // halfedge going from vertices 1 to 5
+    EXPECT_EQ(Geom::halfedge_vertex_index_from(cube,halfedge),1);
+    EXPECT_EQ(Geom::halfedge_vertex_index_to(cube,halfedge),5);
+    EXPECT_EQ(Geom::halfedge_facet_left(cube,halfedge),10);
+    EXPECT_EQ(Geom::halfedge_facet_right(cube,halfedge),2);
+    EXPECT_EQ(Geom::halfedge_bottom_left_corner(cube,halfedge),30);
+    EXPECT_EQ(Geom::halfedge_bottom_right_corner(cube,halfedge),6);
+    EXPECT_EQ(Geom::halfedge_top_left_corner(cube,halfedge),31);
+    EXPECT_EQ(Geom::halfedge_top_right_corner(cube,halfedge),8);
+
+    // move should fail because halfedge is on border
+    EXPECT_FALSE(mesh_halfedges.move_clockwise_around_vertex(halfedge));
+    EXPECT_TRUE(mesh_halfedges.halfedge_is_valid(halfedge));
+    EXPECT_TRUE(mesh_halfedges.halfedge_is_border(halfedge));
+    // halfedge going from vertices 1 to 5
+    EXPECT_EQ(Geom::halfedge_vertex_index_from(cube,halfedge),1);
+    EXPECT_EQ(Geom::halfedge_vertex_index_to(cube,halfedge),5);
+    EXPECT_EQ(Geom::halfedge_facet_left(cube,halfedge),10);
+    EXPECT_EQ(Geom::halfedge_facet_right(cube,halfedge),2);
+    EXPECT_EQ(Geom::halfedge_bottom_left_corner(cube,halfedge),30);
+    EXPECT_EQ(Geom::halfedge_bottom_right_corner(cube,halfedge),6);
+    EXPECT_EQ(Geom::halfedge_top_left_corner(cube,halfedge),31);
+    EXPECT_EQ(Geom::halfedge_top_right_corner(cube,halfedge),8);
+
+    // move should success because we ignore borders (2nd argument)
+    EXPECT_TRUE(mesh_halfedges.move_clockwise_around_vertex(halfedge,true));
+    EXPECT_TRUE(mesh_halfedges.halfedge_is_valid(halfedge));
+    EXPECT_FALSE(mesh_halfedges.halfedge_is_border(halfedge));
+    // halfedge going from vertices 1 to 4
+    EXPECT_EQ(Geom::halfedge_vertex_index_from(cube,halfedge),1);
+    EXPECT_EQ(Geom::halfedge_vertex_index_to(cube,halfedge),4);
+    EXPECT_EQ(Geom::halfedge_facet_left(cube,halfedge),2);
+    EXPECT_EQ(Geom::halfedge_facet_right(cube,halfedge),3);
+    EXPECT_EQ(Geom::halfedge_bottom_left_corner(cube,halfedge),6);
+    EXPECT_EQ(Geom::halfedge_bottom_right_corner(cube,halfedge),11);
+    EXPECT_EQ(Geom::halfedge_top_left_corner(cube,halfedge),7);
+    EXPECT_EQ(Geom::halfedge_top_right_corner(cube,halfedge),10);
+
+    // move should success because the left facet is still on the same region
+    EXPECT_TRUE(mesh_halfedges.move_clockwise_around_vertex(halfedge));
+    EXPECT_TRUE(mesh_halfedges.halfedge_is_valid(halfedge));
+    EXPECT_TRUE(mesh_halfedges.halfedge_is_border(halfedge));
+    // halfedge going from vertices 1 to 0
+    EXPECT_EQ(Geom::halfedge_vertex_index_from(cube,halfedge),1);
+    EXPECT_EQ(Geom::halfedge_vertex_index_to(cube,halfedge),0);
+    EXPECT_EQ(Geom::halfedge_facet_left(cube,halfedge),3);
+    EXPECT_EQ(Geom::halfedge_facet_right(cube,halfedge),0);
+    EXPECT_EQ(Geom::halfedge_bottom_left_corner(cube,halfedge),11);
+    EXPECT_EQ(Geom::halfedge_bottom_right_corner(cube,halfedge),1);
+    EXPECT_EQ(Geom::halfedge_top_left_corner(cube,halfedge),9);
+    EXPECT_EQ(Geom::halfedge_top_right_corner(cube,halfedge),0);
+
+    // move should fail because halfedge is on border
+    EXPECT_FALSE(mesh_halfedges.move_clockwise_around_vertex(halfedge));
+    EXPECT_TRUE(mesh_halfedges.halfedge_is_valid(halfedge));
+    EXPECT_TRUE(mesh_halfedges.halfedge_is_border(halfedge));
+    // halfedge going from vertices 1 to 0
+    EXPECT_EQ(Geom::halfedge_vertex_index_from(cube,halfedge),1);
+    EXPECT_EQ(Geom::halfedge_vertex_index_to(cube,halfedge),0);
+    EXPECT_EQ(Geom::halfedge_facet_left(cube,halfedge),3);
+    EXPECT_EQ(Geom::halfedge_facet_right(cube,halfedge),0);
+    EXPECT_EQ(Geom::halfedge_bottom_left_corner(cube,halfedge),11);
+    EXPECT_EQ(Geom::halfedge_bottom_right_corner(cube,halfedge),1);
+    EXPECT_EQ(Geom::halfedge_top_left_corner(cube,halfedge),9);
+    EXPECT_EQ(Geom::halfedge_top_right_corner(cube,halfedge),0);
+
+    // move should success because we ignore borders (2nd argument)
+    EXPECT_TRUE(mesh_halfedges.move_clockwise_around_vertex(halfedge,true));
+    EXPECT_TRUE(mesh_halfedges.halfedge_is_valid(halfedge));
+    EXPECT_TRUE(mesh_halfedges.halfedge_is_border(halfedge));
+    // halfedge going from vertices 1 to 3
+    EXPECT_EQ(Geom::halfedge_vertex_index_from(cube,halfedge),1);
+    EXPECT_EQ(Geom::halfedge_vertex_index_to(cube,halfedge),3);
+    EXPECT_EQ(Geom::halfedge_facet_left(cube,halfedge),0);
+    EXPECT_EQ(Geom::halfedge_facet_right(cube,halfedge),11);
+    EXPECT_EQ(Geom::halfedge_bottom_left_corner(cube,halfedge),1);
+    EXPECT_EQ(Geom::halfedge_bottom_right_corner(cube,halfedge),33);
+    EXPECT_EQ(Geom::halfedge_top_left_corner(cube,halfedge),2);
+    EXPECT_EQ(Geom::halfedge_top_right_corner(cube,halfedge),35);
+}
+
 int main(int argc, char** argv)
 {
     ::testing::InitGoogleTest(&argc, argv);
