@@ -53,6 +53,23 @@ struct VecngCompare {
     }
 };
 
+// to compare 2 vecng in tests, we have to define equality between vecng
+
+// operator must be in the same namespace as the operand type
+// https://itecnote.com/tecnote/c-how-to-get-a-custom-operator-to-work-with-google-test/ 
+namespace GEO {
+    template <index_t DIM, typename T>
+    bool operator==(const vecng<DIM,T>& a, const vecng<DIM,T>& b) {
+        for(index_t d = 0; d < DIM; ++d) {
+            if(a[d] != b[d]) {
+                return false;
+            }
+            // else : compare other dimensions
+        }
+        return true;
+    }
+}
+
 // map keys = surface to explore with all the facet indices
 // map values = 0 if distance of 0, unsigned int(-1) if to be computed in accordance
 void per_facet_distance(const Mesh& mesh, std::map<index_t,unsigned int>& distance);

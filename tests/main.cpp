@@ -18,6 +18,7 @@
 #include "containers.h"             // for std_dev()
 #include "CustomMeshHalfedges.h"    // for CustomMeshHalfedges
 #include "labeling.h"               // for naive_labeling()
+#include "geometry.h"               // for comparison between vec3
 
 #define DOUBLE_MAX_ABS_ERROR 10e5
 
@@ -423,6 +424,29 @@ TEST_F(HalfedgesTest, MoveCounterclockwiseAroundVertex) {
     EXPECT_EQ(Geom::halfedge_bottom_right_corner(cube,halfedge),1);
     EXPECT_EQ(Geom::halfedge_top_left_corner(cube,halfedge),9);
     EXPECT_EQ(Geom::halfedge_top_right_corner(cube,halfedge),0);
+}
+
+TEST_F(HalfedgesTest, ComputeNormals) {
+    compute_normals();
+    EXPECT_EQ(normals.size(),12);
+    // facets 0 and 1 are on the front square, toward -Y
+    EXPECT_EQ(normals[0],vec3(0.0,-1.0,0.0));
+    EXPECT_EQ(normals[1],vec3(0.0,-1.0,0.0));
+    // facets 2 and 3 are on the left square, toward -X
+    EXPECT_EQ(normals[2],vec3(-1.0,0.0,0.0));
+    EXPECT_EQ(normals[3],vec3(-1.0,0.0,0.0));
+    // facets 4 and 5 are on the back square, toward +Y
+    EXPECT_EQ(normals[4],vec3(0.0,1.0,0.0));
+    EXPECT_EQ(normals[5],vec3(0.0,1.0,0.0));
+    // facets 6 and 7 are on the right square, toward +X
+    EXPECT_EQ(normals[6],vec3(1.0,0.0,0.0));
+    EXPECT_EQ(normals[7],vec3(1.0,0.0,0.0));
+    // facets 8 and 9 are on the top square, toward +Z
+    EXPECT_EQ(normals[8],vec3(0.0,0.0,1.0));
+    EXPECT_EQ(normals[9],vec3(0.0,0.0,1.0));
+    // facets 10 and 11 are on the bottom square, toward -Z
+    EXPECT_EQ(normals[10],vec3(0.0,0.0,-1.0));
+    EXPECT_EQ(normals[11],vec3(0.0,0.0,-1.0));
 }
 
 TEST_F(HalfedgesTest, MoveToPrevAroundBorder) {
