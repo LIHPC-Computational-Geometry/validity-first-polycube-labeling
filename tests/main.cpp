@@ -92,14 +92,17 @@ protected:
 
         // create the 8 vertices of the cube
         // Vertex ordering from the Geogram convention for hexahedra, see include/hex_mesh.h
-        //          4-------6   v0 = (0,0,1)
-        //         /|      /|   v1 = (0,0,0)
-        //        / |     / |   v2 = (1,0,1)
-        //       0-------2  |   v3 = (1,0,0)
-        //       |  5----|--7   v4 = (0,1,1)
-        // Z     | /     | /    v5 = (0,1,0)
-        // ^  Y  |/      |/     v6 = (1,1,1)
-        // | /   1-------3      v7 = (1,1,0)
+        //
+        //                  vertex | X | Y | Z |
+        //                  -------|---|---|---|
+        //          4-------6   v0 | 0 | 0 | 1 |
+        //         /|      /|   v1 | 0 | 0 | 0 |
+        //        / |     / |   v2 | 1 | 0 | 1 |
+        //       0-------2  |   v3 | 1 | 0 | 0 |
+        //       |  5----|--7   v4 | 0 | 1 | 1 |
+        // Z     | /     | /    v5 | 0 | 1 | 0 |
+        // ^  Y  |/      |/     v6 | 1 | 1 | 1 |
+        // | /   1-------3      v7 | 1 | 1 | 0 |
         // |/
         // o----> X
         index_t index_of_first_vertex = cube.vertices.create_vertices(8);
@@ -117,41 +120,46 @@ protected:
         // inside a given facet, local vertices will be ordered to have an outgoing normal (right hand rule -> counterclockwise)
         // starting with the vertex of smallest index
         //
-        // 0-------2    0  0-------2  
-        // |       |    | \  \  f1 |  f0 = vertices 0,1,3 respectively at local vertices 0,1,2, and facet corners 0,1,2
-        // | front | => |   \  \   |
-        // |       |    | f0  \  \ |  f1 = vertices 0,3,2 respectively at local vertices 0,1,2, and facet corners 3,4,5
-        // 1-------3    1-------3  3
-        //
-        // 4-------0    4  4-------0  
-        // |       |    | \  \  f3 |  f2 = vertices 1,4,5 respectively at local vertices 0,1,2, and facet corners 6,7,8
-        // | left  | => |   \  \   |
-        // |       |    | f2  \  \ |  f3 = vertices 0,4,1 respectively at local vertices 0,1,2, and facet corners 9,10,11
-        // 5-------1    5-------1  1
-        //
-        // 6-------4    6  6-------4  
-        // |       |    | \  \  f5 |  f4 = vertices 5,6,7 respectively at local vertices 0,1,2, and facet corners 12,13,14
-        // | back  | => |   \  \   |
-        // |       |    | f4  \  \ |  f5 = vertices 4,6,5 respectively at local vertices 0,1,2, and facet corners 15,16,17
-        // 7-------5    7-------5  5
-        //
-        // 2-------6    2  2-------6  
-        // |       |    | \  \  f7 |  f6 = vertices 2,3,7 respectively at local vertices 0,1,2, and facet corners 18,19,20
-        // | right | => |   \  \   |
-        // |       |    | f6  \  \ |  f7 = vertices 2,7,6 respectively at local vertices 0,1,2, and facet corners 21,22,23
-        // 3-------7    3-------7  7
-        //
-        // 4-------6    4  4-------6  
-        // |       |    | \  \  f9 |  f8 = vertices 0,2,4 respectively at local vertices 0,1,2, and facet corners 24,25,26
-        // |  top  | => |   \  \   |
-        // |       |    | f8  \  \ |  f9 = vertices 2,6,4 respectively at local vertices 0,1,2, and facet corners 27,28,29
-        // 0-------2    0-------2  2
-        //
-        // 1-------3    1  1-------3  
-        // |       |    | \  \  f11|  f10 = vertices 1,5,7 respectively at local vertices 0,1,2, and facet corners 30,31,32
-        // |bottom | => |   \  \   |
-        // |       |    |f10  \  \ |  f11 = vertices 1,7,3 respectively at local vertices 0,1,2, and facet corners 33,34,35
-        // 5-------7    5-------7  7
+        //                                | vertex (facet corner) |
+        //                                | at each local vertex  |
+        //                                |-------|-------|-------|
+        //                                |   0   |   1   |   2   |
+        //                                |-------|-------|-------|
+        // 0-------2    0  0-------2      |       |       |       |
+        // |       |    | \  \  f1 |   f0 | 0 (0) | 1 (1) | 3 (2) |
+        // | front | => |   \  \   |      |       |       |       |
+        // |       |    | f0  \  \ |   f1 | 0 (3) | 3 (4) | 2 (5) |
+        // 1-------3    1-------3  3      |       |       |       |
+        //                                |       |       |       |
+        // 4-------0    4  4-------0      |       |       |       |
+        // |       |    | \  \  f3 |   f2 | 1 (6) | 4 (7) | 5 (8) |
+        // | left  | => |   \  \   |      |       |       |       |
+        // |       |    | f2  \  \ |   f3 | 0 (9) | 4 (10)| 1 (11)|
+        // 5-------1    5-------1  1      |       |       |       |
+        //                                |       |       |       |
+        // 6-------4    6  6-------4      |       |       |       |
+        // |       |    | \  \  f5 |   f4 | 5 (12)| 6 (13)| 7 (14)|
+        // | back  | => |   \  \   |      |       |       |       |
+        // |       |    | f4  \  \ |   f5 | 4 (15)| 6 (16)| 5 (17)|
+        // 7-------5    7-------5  5      |       |       |       |
+        //                                |       |       |       |
+        // 2-------6    2  2-------6      |       |       |       |
+        // |       |    | \  \  f7 |   f6 | 2 (18)| 3 (19)| 7 (20)|
+        // | right | => |   \  \   |      |       |       |       |
+        // |       |    | f6  \  \ |   f7 | 2 (21)| 7 (22)| 6 (23)|
+        // 3-------7    3-------7  7      |       |       |       |
+        //                                |       |       |       |
+        // 4-------6    4  4-------6      |       |       |       |
+        // |       |    | \  \  f9 |   f8 | 0 (24)| 2 (25)| 4 (26)|
+        // |  top  | => |   \  \   |      |       |       |       |
+        // |       |    | f8  \  \ |   f9 | 2 (27)| 6 (28)| 4 (29)|
+        // 0-------2    0-------2  2      |       |       |       |
+        //                                |       |       |       |
+        // 1-------3    1  1-------3      |       |       |       |
+        // |       |    | \  \  f11|  f10 | 1 (30)| 5 (31)| 7 (32)|
+        // |bottom | => |   \  \   |      |       |       |       |
+        // |       |    |f10  \  \ |  f11 | 1 (33)| 7 (34)| 3 (35)|
+        // 5-------7    5-------7  7      |       |       |       |
         //
         // About local edges (le) : local edge k is the one between local vertices k and (k+1)%3
         // See https://github.com/BrunoLevy/geogram/wiki/Mesh#triangulated-and-polygonal-meshes
