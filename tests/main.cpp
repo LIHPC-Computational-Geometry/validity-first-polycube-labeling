@@ -449,6 +449,31 @@ TEST_F(HalfedgesTest, ComputeNormals) {
     EXPECT_EQ(normals[11],vec3(0.0,0.0,-1.0));
 }
 
+TEST_F(HalfedgesTest, NaiveLabeling) {
+    compute_normals();
+    naive_labeling(cube,normals,"label");
+    Attribute<index_t> label(cube.facets.attributes(), "label"); // retreive the labeling
+    EXPECT_EQ(label.size(),12);
+    // facets 0 and 1 are on the front square, toward -Y = 3
+    EXPECT_EQ(label[0],3);
+    EXPECT_EQ(label[1],3);
+    // facets 2 and 3 are on the left square, toward -X = 1
+    EXPECT_EQ(label[2],1);
+    EXPECT_EQ(label[3],1);
+    // facets 4 and 5 are on the back square, toward +Y = 2
+    EXPECT_EQ(label[4],2);
+    EXPECT_EQ(label[5],2);
+    // facets 6 and 7 are on the right square, toward +X = 0
+    EXPECT_EQ(label[6],0);
+    EXPECT_EQ(label[7],0);
+    // facets 8 and 9 are on the top square, toward +Z = 4
+    EXPECT_EQ(label[8],4);
+    EXPECT_EQ(label[9],4);
+    // facets 10 and 11 are on the bottom square, toward -Z = 5
+    EXPECT_EQ(label[10],5);
+    EXPECT_EQ(label[11],5);
+}
+
 TEST_F(HalfedgesTest, MoveToPrevAroundBorder) {
     compute_normals();
     naive_labeling(cube,normals,"label");
