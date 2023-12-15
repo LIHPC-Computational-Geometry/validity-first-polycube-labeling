@@ -1,7 +1,19 @@
+/*
+ * Tricky CLI arguments format with Geogram :
+ * Filenames first, then options without dashes prefixes
+ * 
+ * With GUI:
+ *     ./automatic_polycube surface_mesh.obj gui=true
+ * 
+ * Without GUI:
+ *     ./automatic_polycube surface_mesh.obj output_labeling.txt gui=false
+ */
+
 #include <geogram/basic/attributes.h>
-#include <geogram/basic/command_line.h>	// for declare_arg(), parse(), get_arg_bool()
-#include <geogram/mesh/mesh_io.h>		// for mesh_load()
-#include <geogram/basic/numeric.h>		// for min_float64()
+#include <geogram/basic/command_line.h>			// for declare_arg(), parse(), get_arg_bool()
+#include <geogram/basic/command_line_args.h>	// for import_arg_group()
+#include <geogram/mesh/mesh_io.h>				// for mesh_load()
+#include <geogram/basic/numeric.h>				// for min_float64()
 
 #include <set>
 #include <array>
@@ -348,6 +360,7 @@ int main(int argc, char** argv) {
 
 	std::vector<std::string> filenames;
 	GEO::initialize();
+	CmdLine::import_arg_group("standard"); // strangely, this line is required for the Logger to work on Release mode when gui=false...
 	CmdLine::declare_arg("gui", true, "Show the graphical user interface");
 	if(!CmdLine::parse(
 		argc,
@@ -361,26 +374,12 @@ int main(int argc, char** argv) {
 	
 	if(CmdLine::get_arg_bool("gui")) { // if GUI mode
 		AutomaticPolycubeApp app;
-		// pass 'filenames' as argc/argv to start()
-		// need to convert vector<string> to char**
-		char** filename_cstr;
-		filename_cstr = new char*[filenames.size()];
-		FOR(filename_index,filenames.size()) {
-			filename_cstr[filename_index] = new char[filenames[filename_index].length()+1];
-			strcpy(filename_cstr[filename_index], filenames[filename_index].c_str());
-		}
-	    app.start((int) filenames.size(),filename_cstr);
-		// dealloc
-		FOR(filename_index,filenames.size()) {
-			delete filename_cstr[filename_index];
-		}
-		delete filename_cstr;
+		app.start(argc,argv);
 		return 0;
 	}
 
-	// batch mode : no GUI, save output labeling at given path
-
 	if(filenames.size() < 2) { // missing filenames[1], that is <output_labeling> argument
+		fmt::println(Logger::warn("I/O"),"The output filename was not provided, using default labeling.txt"); Logger::warn("I/O").flush();
 		filenames.push_back("labeling.txt"); // default output filename
 	}
 
@@ -415,7 +414,9 @@ int main(int argc, char** argv) {
 		// auto-fix the monotonicity only if the validity was fixed
 		AutomaticPolycubeApp::auto_fix_monotonicity(M,slg,500);
 	}
+	fmt::println(Logger::out("I/O"),"Writing {}...",filenames[1]); Logger::out("I/O").flush();
 	save_labeling(filenames[1],M,LABELING_ATTRIBUTE_NAME);
+	fmt::println(Logger::out("I/O"),"Done"); Logger::out("I/O").flush();
 	
     return 0;
 }
