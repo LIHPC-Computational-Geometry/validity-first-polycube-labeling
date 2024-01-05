@@ -127,6 +127,10 @@ add_executable(flip_normals app/flip_normals.cpp)
 target_include_directories(flip_normals PRIVATE include)
 target_link_libraries(flip_normals PRIVATE automatic_polycube_lib ${EXTERNAL_LIBS})
 
+add_executable(reorient_mesh app/reorient_mesh.cpp)
+target_include_directories(reorient_mesh PRIVATE include)
+target_link_libraries(reorient_mesh PRIVATE automatic_polycube_lib ${EXTERNAL_LIBS})
+
 # optional test subdirectory (using googletest)
 option(AUTOMATIC_POLYCUBE_BUILD_TESTS "Build automatic_polycube tests" OFF)
 if(AUTOMATIC_POLYCUBE_BUILD_TESTS)
