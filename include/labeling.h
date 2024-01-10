@@ -13,6 +13,14 @@
                           (label==5) ? "-Z" :   \
                           "undef."))))))
 
+#define NAIVE_LABELING_TWEAK_SENSITIVITY 0.3 // min difference between the 2 closest labels before the rotation tweak
+#define NAIVE_LABELING_TWEAK_ANGLE 0.1 // angle of rotation of the normal when we cannot choose between 2 or 3 labels
+const double COS_TILT_ANGLE = cos(NAIVE_LABELING_TWEAK_ANGLE);
+const double SIN_TILT_ANGLE = sin(NAIVE_LABELING_TWEAK_ANGLE);
+const double COS_SQUARED_TILT_ANGLE = COS_TILT_ANGLE*COS_TILT_ANGLE;
+const double SIN_SQUARED_TILT_ANGLE = SIN_TILT_ANGLE*SIN_TILT_ANGLE;
+const double SIN_BY_COS_TILT_ANGLE = SIN_TILT_ANGLE*COS_TILT_ANGLE;
+
 using namespace GEO;
 
 bool load_labeling(const std::string& filename, Mesh& mesh, const char* attribute_name);
@@ -45,6 +53,13 @@ bool are_orthogonal_labels(index_t label1, index_t label2);
  * \param[in] attribute_name The name of the facet attribute in which the labeling will be stored
  */
 void naive_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name);
+
+/*
+ * Like naive_labeling() but triangle normals are considered slightly rotated
+ * when 2 or 3 labels have almost the same cost (like areas at 45°)
+ * -> avoid labeling fragmentation
+ */
+void tweaked_naive_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name);
 
 void graphcut_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, int compactness_coeff = 1, int fidelity_coeff = 1);
 

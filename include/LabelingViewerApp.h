@@ -326,6 +326,15 @@ protected:
 
 				state_transition(labeling);
 			}
+
+			if(ImGui::Button("Compute tweaked naive labeling")) {
+
+				tweaked_naive_labeling(mesh_,normals_,LABELING_ATTRIBUTE_NAME);
+
+				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+
+				state_transition(labeling);
+			}
 			
 			break;
 		case labeling:

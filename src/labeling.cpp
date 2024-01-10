@@ -1,6 +1,8 @@
 #include <geogram/basic/attributes.h>   // for GEO::Attribute
 #include <geogram/mesh/mesh_io.h>
 #include <geogram/basic/numeric.h>      // for min_float64()
+#include <geogram/basic/vecg.h>     // for vec3
+#include <geogram/basic/matrix.h>   // for mat3
 
 #include <fmt/core.h>
 #include <fmt/ostream.h>
@@ -8,7 +10,7 @@
 
 #include <array>            // for std::array
 #include <initializer_list> // for std::initializer_list
-#include <algorithm>        // for std::max_element(), std::min(), std::max()
+#include <algorithm>        // for std::max_element(), std::min(), std::max(), std::sort
 #include <iterator>         // for std::distance()
 #include <tuple>            // for std::tuple
 #include <queue>            // for std::queue
@@ -130,6 +132,49 @@ void naive_labeling(Mesh& mesh, const std::vector<vec3>& normals, const char* at
     Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // create a facet attribute in this mesh
     for(index_t f: mesh.facets) { // for each facet
         label[f] = nearest_label(normals[f]);
+    }
+}
+
+void tweaked_naive_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name) {
+
+    // https://en.wikipedia.org/wiki/Rotation_matrix#Basic_3D_rotations
+    // rotation of NAIVE_LABELING_TWEAK_ANGLE around the x, y and z axes
+    mat3 rotation; 
+    rotation(0,0) = COS_SQUARED_TILT_ANGLE; // <=> cos*cos
+    rotation(0,1) = SIN_BY_COS_TILT_ANGLE*(SIN_TILT_ANGLE-1); // <=> sin*sin*cos-cos*sin
+    rotation(0,2) = SIN_TILT_ANGLE*(COS_SQUARED_TILT_ANGLE+SIN_TILT_ANGLE); // <=> cos*sin*cos+sin*sin
+    rotation(1,0) = SIN_BY_COS_TILT_ANGLE; // <=> cos*sin
+    rotation(1,1) = SIN_SQUARED_TILT_ANGLE*SIN_TILT_ANGLE+COS_SQUARED_TILT_ANGLE; // <=> sin*sin*sin+cos*cos
+    rotation(1,2) = SIN_BY_COS_TILT_ANGLE*(SIN_TILT_ANGLE-1); // <=> cos*sin*sin-sin*cos
+    rotation(2,0) = -SIN_TILT_ANGLE; // <=> -sin
+    rotation(2,1) = SIN_BY_COS_TILT_ANGLE; // <=> sin*cos
+    rotation(2,2) = COS_SQUARED_TILT_ANGLE; // <=> cos*cos
+
+    Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // create a facet attribute in this mesh
+    FOR(f,mesh.facets.nb()) { // for each facet
+        vec3 normal = normals[f];
+        // based on nearest_label()
+        std::array<std::pair<double,index_t>,6> per_label_weights = {
+            std::make_pair(normal.x < 0.0 ? 0.0 : normal.x,     0), // +X
+            std::make_pair(normal.x < 0.0 ? -normal.x : 0.0,    1), // -X
+            std::make_pair(normal.y < 0.0 ? 0.0 : normal.y,     2), // +Y
+            std::make_pair(normal.y < 0.0 ? -normal.y : 0.0,    3), // -Y
+            std::make_pair(normal.z < 0.0 ? 0.0 : normal.z,     4), // +Z
+            std::make_pair(normal.z < 0.0 ? -normal.z : 0.0,    5)  // -Z
+        };
+        std::sort(per_label_weights.begin(),per_label_weights.end());
+        if(std::abs(per_label_weights[5].first-per_label_weights[4].first) < NAIVE_LABELING_TWEAK_SENSITIVITY) {
+            // the 2 labels with the most weight are too close
+            // slightly rotate the the normal to go out of this indecisiveness area
+            normal = mult(rotation,normal);
+
+            // find the nearest label of the rotated normal
+            label[f] = nearest_label(normal);
+        }
+        else {
+            // assign the closest label
+            label[f] = per_label_weights[5].second;
+        }
     }
 }
 

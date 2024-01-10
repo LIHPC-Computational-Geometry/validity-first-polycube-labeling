@@ -1,3 +1,8 @@
+/* An app to identify areas on a 3D triangle mesh where, among {+X,-X,+Y,-Y,+Z,-Z}, several directions are very close to the normal.
+ * A suitable solution would be to slightly tilt each area, taking into account dependencies (global consistency of the rotations) to avoid overlapping polycube parts after the tilt.
+ * A basic solution is tweaked_naive_labeling() in src/labeling.cpp (apply the same rotation for all of those areas to tilt)
+ */
+
 #include <geogram/mesh/mesh_geometry.h>
 #include <geogram/basic/command_line.h>
 #include <geogram/basic/logger.h>
@@ -12,7 +17,7 @@
 #include <array>
 #include <map>
 #include <utility> // for std::pair<>
-#include <algorithm> // for std::random_shuffle()
+#include <algorithm> // for std::random_shuffle(), std::sort
 
 #include "SimpleMeshApplicationExt.h"   // for colormaps indices
 #include "about_window.h"               // for draw_about_window()
