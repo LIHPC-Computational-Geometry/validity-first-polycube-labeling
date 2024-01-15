@@ -186,3 +186,15 @@ void center_mesh(Mesh& mesh, bool normalize) {
         }
     }
 }
+
+void compute_adjacent_facets_of_vertices(const Mesh& mesh, std::vector<std::vector<index_t>>& adj_facets) {
+    adj_facets.clear();
+    adj_facets.resize(mesh.vertices.nb());
+
+    // link each facet to adjacent vertices
+    FOR(f,mesh.facets.nb()) {
+        FOR(lv,mesh.facets.nb_vertices(f)) { // for each local vertices of the facet f
+            adj_facets[mesh.facets.vertex(f,lv)].push_back(f);
+        }
+    }
+}

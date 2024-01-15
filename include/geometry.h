@@ -82,3 +82,5 @@ void flip_facet_normals(Mesh& mesh);
 // shift a mesh so that 0,0,0 is at the center of the bounding box
 // if normalize==true, scale the mesh so that the bounding box is in [-1,1]^3
 void center_mesh(Mesh& mesh, bool normalize);
+
+void compute_adjacent_facets_of_vertices(const Mesh& mesh, std::vector<std::vector<index_t>>& adj_facets);

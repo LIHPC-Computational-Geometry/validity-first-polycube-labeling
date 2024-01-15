@@ -37,9 +37,12 @@
 #define COLORMAP_LABELING       (SIMPLE_APPLICATION_NB_COLORMAPS)
 #define COLORMAP_VALIDITY       ((SIMPLE_APPLICATION_NB_COLORMAPS)+1)
 
+#define FEATURE_EDGES_MIN_ANGLE	0.5
+
 using namespace GEO;
 
 const float green[4] = {0.0f, 1.0f, 0.0f, 1.0f};
+const float dark_blue[4] = {0.0f, 0.0f, 5.0f, 1.0f};
 
 class LabelingViewerApp : public SimpleMeshApplicationExt {
 public:
@@ -103,6 +106,8 @@ public:
 
 		show_normals_ = false;
 		normals_length_factor_ = 0.1f;
+
+		show_feature_edges_ = true;
 
 		state_transition(empty);
     }
@@ -271,6 +276,15 @@ protected:
 				glupEnd();
 			}
 		}
+		if((state_ == triangle_mesh) && show_feature_edges_) {
+			glupSetColor4fv(GLUP_FRONT_COLOR, dark_blue);
+			glupBegin(GLUP_LINES);
+			FOR(e,mesh_.edges.nb()) { // for each edge stored in mesh_.edges, draw vertex0 and vertex1
+				glupPrivateVertex3dv(mesh_.vertices.point_ptr(mesh_.edges.vertex(e,0)));
+				glupPrivateVertex3dv(mesh_.vertices.point_ptr(mesh_.edges.vertex(e,1)));
+			}
+			glupEnd();
+		}
 	}
 
 	void draw_gui() override {
@@ -313,6 +327,7 @@ protected:
 
 			ImGui::Checkbox("Show normals",&show_normals_);
 			ImGui::SliderFloat("Normals length factor",&normals_length_factor_,0.0f,50.0f);
+			ImGui::Checkbox("Show feature edges",&show_feature_edges_);
 
 			ImGui::Separator();
 
@@ -511,6 +526,65 @@ protected:
         FOR(f,mesh_.facets.nb()) {
             normals_[f] = normalize(Geom::mesh_facet_normal(mesh_,f));
         }
+		
+		// Remove feature edges with low dihedral angle
+		// We need facets at each side of edge e to compute angle between their normals
+		// Issue : no adjecency between edges and facets
+		// -> find an halfedge (oriented edge) which is on this edge. halfedges have adjacency with facets
+		// issue : we need a facet index and a facet corner index to construct an halfedge
+		// -> find the facet and the facet corner from the two vertices of the edge e
+		// issue : no adjacency between vertices and facets
+		// -> call compute_adjacent_facets_of_vertices()
+		GEO::vector<index_t> to_remove(mesh_.edges.nb(),0); // for each edge, store 0 = keep or 1 = remove
+		CustomMeshHalfedges mesh_he(mesh_);
+		compute_adjacent_facets_of_vertices(mesh_,adj_facets_);
+		index_t v0_index = index_t(-1),
+				v1_index = index_t(-1),
+				facet_corner_on_v0 = index_t(-1),
+				facet_at_left = index_t(-1),
+				facet_at_right = index_t(-1);
+		unsigned int nb_edges_removed = 0;
+		CustomMeshHalfedges::Halfedge outgoing_halfedge;
+		FOR(e,mesh_.edges.nb()) {
+			// get indices of the 2 vertices of the current edge
+			v0_index = mesh_.edges.vertex(e,0);
+			v1_index = mesh_.edges.vertex(e,1);
+			// parse adjacent facets of v0 until we found an halfedge whose tip is on v1
+			for(index_t f : adj_facets_[v0_index]) {
+				FOR(lv,mesh_.facets.nb_vertices(f)) {
+					facet_corner_on_v0 = mesh_.facets.corner(f,lv);
+					if(mesh_.facet_corners.vertex(facet_corner_on_v0) == v0_index) {
+						break; // we found which facet corner is on v0
+					}
+				}
+				// know that we have a facet and a facet cornet, we can have an halfedge,
+				// going out of v0
+				outgoing_halfedge.facet = f;
+				outgoing_halfedge.corner = facet_corner_on_v0;
+				geo_assert(halfedge_vertex_index_from(mesh_,outgoing_halfedge) == v0_index)
+				// check of the vertex at the tip is v1
+				if(halfedge_vertex_index_to(mesh_,outgoing_halfedge) == v1_index) {
+					break;
+				}
+				// else : continue and check another adjacent facet
+			}
+			facet_at_left = halfedge_facet_left(mesh_,outgoing_halfedge);
+			facet_at_right = halfedge_facet_right(mesh_,outgoing_halfedge);
+			if(angle(mesh_facet_normal(mesh_,facet_at_left),mesh_facet_normal(mesh_,facet_at_right)) < FEATURE_EDGES_MIN_ANGLE) {
+				to_remove[e] = 1;
+				nb_edges_removed++;
+			}
+			// else : keep this feature edge because significant angle
+		}
+		// print before the value of mesh_.edges.nb() is updated
+		fmt::println(
+			Logger::out("feature edges"),
+			"{} feature edge(s) removed ({:.1f}%) because dihedral angle < {}",
+			nb_edges_removed,
+			(nb_edges_removed * 100.0) / (double) mesh_.edges.nb(),
+			FEATURE_EDGES_MIN_ANGLE);
+		Logger::out("feature edges").flush();
+		mesh_.edges.delete_elements(to_remove,false);
 
 		clear_scene_overlay();
 		state_transition(triangle_mesh);
@@ -675,6 +749,8 @@ protected:
 	vec3 normal_tip_;
 	float normals_length_factor_;
 	bool auto_flip_normals_;
+	bool show_feature_edges_;
+	std::vector<std::vector<index_t>> adj_facets_; // for each vertex, store adjacent facets. no ordering
 };
 
 // print specialization of LabelingViewerApp::State for {fmt}
