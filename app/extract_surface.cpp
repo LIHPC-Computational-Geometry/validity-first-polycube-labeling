@@ -56,7 +56,7 @@ using namespace GEO;
 
 int main(int argc, const char** argv) {
 
-    if (argc<3) {
+    if (argc<4) {
         fmt::println("Missing arguments");
         fmt::println("./extract_surface input_tetra.mesh output_surface.obj surface_map.txt");
         return 1;
