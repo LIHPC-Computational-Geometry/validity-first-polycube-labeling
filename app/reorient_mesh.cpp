@@ -12,11 +12,15 @@
 #include <geogram/points/principal_axes.h>  // for PrincipalAxes3d
 #include <geogram/basic/vecg.h>             // for vec3, length()
 #include <geogram/basic/matrix.h>           // for mat3
+#include <geogram/mesh/mesh_geometry.h>     // for get_bbox()
 
 #include <fmt/core.h>
 #include <fmt/ostream.h>
 
 #include <array>
+
+#include "basic_stats.h" // for BasicStats
+#include "geometry.h"
 
 using namespace GEO;
 
@@ -56,14 +60,15 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    ////////////////////////////////
-    // Compute principal axes
-    ////////////////////////////////
-    
     if(input_mesh.vertices.nb() == 0) {
         fmt::println(Logger::err("reorient"),"The input mesh has no vertices"); Logger::err("reorient");
         return 1;
     }
+
+    ////////////////////////////////
+    // Compute principal axes
+    ////////////////////////////////
+    
     PrincipalAxes3d principal_axes;
     principal_axes.begin();
     FOR(v,input_mesh.vertices.nb()) {
@@ -75,18 +80,27 @@ int main(int argc, char** argv) {
     // Compute vector toward (1,1,1) in the principal axes
     ////////////////////////////////
 
-    vec3 rotated_vector = normalize(principal_axes.axis(0)) +
-                          normalize(principal_axes.axis(1)) + 
-                          normalize(principal_axes.axis(2));
+    vec3 rotated_vector = normalize(normalize(principal_axes.axis(0)) +
+                                    normalize(principal_axes.axis(1)) + 
+                                    normalize(principal_axes.axis(2)));
     
     ////////////////////////////////
     // Compute rotation matrix that align (1,1,1) (regarding init axes) to rotated_vector
     ////////////////////////////////
 
+    vec3 reference(1.0,1.0,1.0);
+    reference = normalize(reference);
+
     // thanks Jur van den Berg https://math.stackexchange.com/a/476311
     geo_assert(length(rotated_vector - vec3(-1.0,-1.0,-1.0)) > 10e-3); // formula not applicable if the 2 vectors are opposite
-    vec3 v = cross(vec3(1.0,1.0,1.0),rotated_vector);
+    vec3 v = cross(reference,rotated_vector); // = [v0 v1 v2]
+    double c = dot(reference,rotated_vector); // <=> cosine of angle
     mat3 skew_symmetric_cross_product;
+    /* 
+     * = [[ 0  -v2  v1],
+     *    [ v2  0  -v0],
+     *    [-v1  v0  0 ]]
+     */
     skew_symmetric_cross_product(0,0) = 0;
     skew_symmetric_cross_product(0,1) = -v[2];
     skew_symmetric_cross_product(0,2) = v[1];
@@ -96,7 +110,6 @@ int main(int argc, char** argv) {
     skew_symmetric_cross_product(2,0) = -v[1];
     skew_symmetric_cross_product(2,1) = v[0];
     skew_symmetric_cross_product(2,2) = 0;
-    double c = dot(vec3(1.0,1.0,1.0),rotated_vector);
     mat3 R; // initialized with identity
     R += skew_symmetric_cross_product + skew_symmetric_cross_product * skew_symmetric_cross_product * (1/(1+c));
 
