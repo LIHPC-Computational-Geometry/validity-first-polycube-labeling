@@ -3,7 +3,7 @@
 #include <geogram/basic/logger.h>
 #include <geogram/basic/vecg.h>
 #include <geogram/mesh/mesh_halfedges.h>
-#include <geogram_gfx/ImGui_ext/icon_font.h>
+#include <geogram_gfx/imgui_ext/icon_font.h>
 
 #include <fmt/core.h>
 #include <fmt/ostream.h>

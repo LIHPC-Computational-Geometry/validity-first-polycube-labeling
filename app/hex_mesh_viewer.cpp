@@ -34,7 +34,7 @@ private:
             if(show_SJ_) {
                 lighting_ = false;
                 show_attributes_ = true;
-                current_colormap_texture_ = colormaps_[COLORMAP_PARULA].texture;
+                current_colormap_index_ = COLORMAP_PARULA;
                 // reversed colormap:
                 attribute_min_ = 1.0f; // SJ=1 -> blue
                 attribute_max_ = 0.0f; // SJ=0 -> yellow

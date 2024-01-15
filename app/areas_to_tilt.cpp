@@ -74,17 +74,10 @@ protected:
 
         compute_areas_to_tilt();
 
-        // don't call update_drawing_settings() now because GL is not likely to be initialized
+        update_drawing_settings();
 
         return true;
     }
-
-    void GL_initialize() override {
-		SimpleMeshApplicationExt::GL_initialize();
-		if(mesh_.vertices.nb()) { // if a mesh has been loaded
-			update_drawing_settings();
-		}
-	}
 
     void compute_areas_to_tilt() {
 
@@ -142,7 +135,7 @@ protected:
         if(group_by_area_) {
             lighting_ = false;
             show_attributes_ = true;
-            current_colormap_texture_ = colormaps_[COLORMAP_CEI_60757].texture;
+            current_colormap_index_ =COLORMAP_CEI_60757;
             attribute_min_ = 0.0f;
             attribute_max_ = (float) nb_areas+1;
             attribute_ = "facets.area_index";
@@ -152,7 +145,7 @@ protected:
         else {
             lighting_ = false;
             show_attributes_ = true;
-            current_colormap_texture_ = colormaps_[COLORMAP_BLUE_RED].texture;
+            current_colormap_index_ = COLORMAP_BLUE_RED;
             attribute_min_ = 0.0f;
             attribute_max_ = 1.0f;
             attribute_ = "facets.on_area_to_tilt";

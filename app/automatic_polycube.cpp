@@ -90,7 +90,7 @@ protected:
 			show_mesh_ = false;
 			lighting_ = false;
 			show_attributes_ = true;
-			current_colormap_texture_ = colormaps_[COLORMAP_BLACK_WHITE].texture;
+			current_colormap_index_ = COLORMAP_BLACK_WHITE;
 			attribute_subelements_ = MESH_FACETS;
 			
 			// points in overlay

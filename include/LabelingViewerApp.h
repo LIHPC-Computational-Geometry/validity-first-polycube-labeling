@@ -155,7 +155,7 @@ protected:
 				show_mesh_ = true;
 				lighting_ = false;
 				show_attributes_ = true;
-				current_colormap_texture_ = colormaps_[COLORMAP_LABELING].texture;
+				current_colormap_index_ = COLORMAP_LABELING;
 				attribute_ = fmt::format("facets.{}",LABELING_ATTRIBUTE_NAME);
 				attribute_subelements_ = MESH_FACETS;
 				attribute_name_ = LABELING_ATTRIBUTE_NAME;
@@ -169,7 +169,7 @@ protected:
 				lighting_ = false;
 				show_attributes_ = true;
 				geo_assert(COLORMAP_LABELING < colormaps_.size());
-				current_colormap_texture_ = colormaps_[COLORMAP_LABELING].texture;
+				current_colormap_index_ = COLORMAP_LABELING;
 				attribute_ = fmt::format("facets.{}",LABELING_ATTRIBUTE_NAME);
 				attribute_subelements_ = MESH_FACETS;
 				attribute_name_ = LABELING_ATTRIBUTE_NAME;
@@ -189,7 +189,7 @@ protected:
 				show_mesh_ = false;
 				lighting_ = false;
 				show_attributes_ = true;
-				current_colormap_texture_ = colormaps_[COLORMAP_INFERNO].texture;
+				current_colormap_index_ = COLORMAP_INFERNO;
 				attribute_ = "facets.fidelity";
 				attribute_subelements_ = MESH_FACETS;
 				attribute_name_ = "fidelity";
@@ -202,7 +202,7 @@ protected:
 				show_mesh_ = false;
 				lighting_ = false;
 				show_attributes_ = true;
-				current_colormap_texture_ = colormaps_[COLORMAP_VALIDITY].texture;
+				current_colormap_index_ = COLORMAP_VALIDITY;
 				attribute_ = "facets.on_invalid_chart";
 				attribute_subelements_ = MESH_FACETS;
 				attribute_name_ = "on_invalid_chart";
