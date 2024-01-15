@@ -156,3 +156,33 @@ void flip_facet_normals(Mesh& mesh) {
         mesh.facets.set_adjacent(f,2,tmp_facet_index); // beyond le2 is no longer afK but afI
     }
 }
+
+void center_mesh(Mesh& mesh, bool normalize) {
+    double xyzmin[3];
+    double xyzmax[3];
+    vec3 midpoint;
+    double scale = Numeric::min_float64(); // will store width of widest dimension
+
+    get_bbox(mesh, xyzmin, xyzmax);
+
+    FOR(i,3) { // for each axis {0=X, 1=Y, 2=Z}
+        if ( (xyzmax[i]-xyzmin[i]) > scale) {
+            scale = xyzmax[i]-xyzmin[i];
+        }
+        midpoint[i] = (xyzmax[i]+xyzmin[i]) / 2.0;
+    }
+
+    if(normalize) {
+        scale /= 2.0; // we need half of the bounding box length when rescaling
+        FOR(v,mesh.vertices.nb()) {
+            mesh.vertices.point(v) -= midpoint; // center
+            mesh.vertices.point(v) /= scale; // scaling
+        }
+    }
+    else {
+        // center but no scaling
+        FOR(v,mesh.vertices.nb()) {
+            mesh.vertices.point(v) -= midpoint; // center
+        }
+    }
+}

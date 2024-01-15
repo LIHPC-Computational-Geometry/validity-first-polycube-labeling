@@ -506,6 +506,7 @@ protected:
 		}
 
 		// compute facet normals
+		// TODO use geogram's compute_normals() ? in mesh/mesh_geometry.h
 		normals_.resize(mesh_.facets.nb());
         FOR(f,mesh_.facets.nb()) {
             normals_[f] = normalize(Geom::mesh_facet_normal(mesh_,f));

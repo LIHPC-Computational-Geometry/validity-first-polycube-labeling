@@ -76,4 +76,9 @@ void per_facet_distance(const Mesh& mesh, std::map<index_t,unsigned int>& distan
 
 bool facet_normals_are_inward(Mesh& mesh); // a mutable Mesh is required by MeshHalfedges
 
+// TODO use geogram's invert_normals() ? in mesh/mesh_preprocessing.h
 void flip_facet_normals(Mesh& mesh);
+
+// shift a mesh so that 0,0,0 is at the center of the bounding box
+// if normalize==true, scale the mesh so that the bounding box is in [-1,1]^3
+void center_mesh(Mesh& mesh, bool normalize);
