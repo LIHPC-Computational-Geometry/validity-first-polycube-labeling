@@ -290,3 +290,12 @@ void transfer_feature_edges(Mesh& mesh, std::set<std::pair<index_t,index_t>>& fe
     }
     mesh.edges.clear();
 }
+
+bool halfedge_is_on_feature_edge(const Mesh& mesh, const MeshHalfedges::Halfedge& H, const std::set<std::pair<index_t,index_t>>& feature_edges) {
+    index_t v0 = halfedge_vertex_index_from(mesh,H),
+            v1 = halfedge_vertex_index_to(mesh,H);
+    return feature_edges.contains(std::make_pair(
+        std::min(v0,v1),
+        std::max(v0,v1)
+    ));
+}

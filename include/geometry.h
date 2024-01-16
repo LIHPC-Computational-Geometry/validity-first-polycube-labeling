@@ -99,3 +99,5 @@ void remove_feature_edges_with_low_dihedral_angle(Mesh& mesh, std::vector<std::v
 // Instead we can use a set of pair of vertices, the pair being sorted by ascending index,
 // to quickly check if (v0,v1) is a feature edge with `feature_edges.contains(min(v0,v1),max(v0,v1))`
 void transfer_feature_edges(Mesh& mesh, std::set<std::pair<index_t,index_t>>& feature_edges);
+
+bool halfedge_is_on_feature_edge(const Mesh& mesh, const MeshHalfedges::Halfedge& H, const std::set<std::pair<index_t,index_t>>& feature_edges);
