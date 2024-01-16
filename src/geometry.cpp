@@ -5,6 +5,8 @@
 
 #include <queue>
 #include <vector>
+#include <utility>      // for std::pair, std::make_pair()
+#include <algorithm>    // for std::min(), std::max()
 
 #include "geometry.h"
 #include "CustomMeshHalfedges.h"
@@ -272,4 +274,19 @@ void remove_feature_edges_with_low_dihedral_angle(Mesh& mesh, std::vector<std::v
         (nb_edges_removed * 100.0) / (double) nb_edges,
         FEATURE_EDGES_MIN_ANGLE);
     Logger::out("feature edges").flush();
+}
+
+void transfer_feature_edges(Mesh& mesh, std::set<std::pair<index_t,index_t>>& feature_edges) {
+    feature_edges.clear();
+    index_t v0 = index_t(-1),
+            v1 = index_t(-1);
+    FOR(e,mesh.edges.nb()) {
+        v0 = mesh.edges.vertex(e,0);
+        v1 = mesh.edges.vertex(e,1);
+        feature_edges.insert(std::make_pair(
+            std::min(v0,v1),
+            std::max(v0,v1)
+        ));
+    }
+    mesh.edges.clear();
 }

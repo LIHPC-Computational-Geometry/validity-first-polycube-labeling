@@ -87,4 +87,15 @@ void center_mesh(Mesh& mesh, bool normalize);
 
 void compute_adjacent_facets_of_vertices(const Mesh& mesh, std::vector<std::vector<index_t>>& adj_facets);
 
+// /!\ if adj_facets not empty, adjacency will not be recomputed
 void remove_feature_edges_with_low_dihedral_angle(Mesh& mesh, std::vector<std::vector<index_t>>& adj_facets);
+
+// Move feature edges from mesh.edges to set of pair of vertices
+// Why? 
+// Because when working on the labeling graph (charts, boundaries & corners), we use oriented edges
+// and we need to know if a given oriented edge is on a feature edge
+// When feature edges are stored in mesh edges, see https://github.com/BrunoLevy/geogram/wiki/Mesh#mesh-edges
+// finding if they contains (v0,v1) is expensive, we have to check all edges
+// Instead we can use a set of pair of vertices, the pair being sorted by ascending index,
+// to quickly check if (v0,v1) is a feature edge with `feature_edges.contains(min(v0,v1),max(v0,v1))`
+void transfer_feature_edges(Mesh& mesh, std::set<std::pair<index_t,index_t>>& feature_edges);

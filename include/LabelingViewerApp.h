@@ -13,6 +13,8 @@
 
 #include <string>
 #include <tuple>	// for std::tie()
+#include <set>
+#include <utility>	// for std::pair
 
 #include "SimpleMeshApplicationExt.h"
 #include "LabelingGraph.h"   // for StaticLabelingGraph
@@ -277,9 +279,9 @@ protected:
 		if((state_ == triangle_mesh) && show_feature_edges_) {
 			glupSetColor4fv(GLUP_FRONT_COLOR, dark_blue);
 			glupBegin(GLUP_LINES);
-			FOR(e,mesh_.edges.nb()) { // for each edge stored in mesh_.edges, draw vertex0 and vertex1
-				glupPrivateVertex3dv(mesh_.vertices.point_ptr(mesh_.edges.vertex(e,0)));
-				glupPrivateVertex3dv(mesh_.vertices.point_ptr(mesh_.edges.vertex(e,1)));
+			for(const std::pair<index_t,index_t>& edge : feature_edges_) { // for each edge in the set of feature edges
+				glupPrivateVertex3dv(mesh_.vertices.point_ptr(edge.first)); // draw first vertex
+				glupPrivateVertex3dv(mesh_.vertices.point_ptr(edge.second)); // draw second vertex
 			}
 			glupEnd();
 		}
@@ -487,6 +489,7 @@ protected:
 		}
 
         mesh_gfx_.set_mesh(nullptr);
+		feature_edges_.clear();
 		mesh_.clear(false,true);
         MeshIOFlags flags;
         if(!mesh_load(filename, mesh_, flags)) {
@@ -525,7 +528,11 @@ protected:
             normals_[f] = normalize(Geom::mesh_facet_normal(mesh_,f));
         }
 		
+		adj_facets_.clear();
 		remove_feature_edges_with_low_dihedral_angle(mesh_,adj_facets_);
+
+		// transfert feature edges from mesh_.edges to the feature_edges_ set
+		transfer_feature_edges(mesh_,feature_edges_);
 
 		clear_scene_overlay();
 		state_transition(triangle_mesh);
@@ -692,6 +699,7 @@ protected:
 	bool auto_flip_normals_;
 	bool show_feature_edges_;
 	std::vector<std::vector<index_t>> adj_facets_; // for each vertex, store adjacent facets. no ordering
+	std::set<std::pair<index_t,index_t>> feature_edges_;
 };
 
 // print specialization of LabelingViewerApp::State for {fmt}
