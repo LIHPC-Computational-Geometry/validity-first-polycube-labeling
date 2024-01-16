@@ -526,6 +526,7 @@ std::ostream& operator<< (std::ostream &out, const Boundary& data) {
     for(const auto tp : data.turning_points) {
         fmt::print(out,"{}",tp);
     }
+    fmt::println(out,"\ton_feature_edge : {}",data.on_feature_edge);
     fmt::println(out,"\thalfedges : {}",data.halfedges);
     fmt::println(out,"\tleft_chart : {}",OPTIONAL_TO_STRING(data.left_chart));
     fmt::println(out,"\tright_chart : {}",OPTIONAL_TO_STRING(data.right_chart));
