@@ -1,6 +1,13 @@
+#include <geogram/basic/memory.h> // for GEO::vector
+
+#include <fmt/core.h>
+#include <fmt/ostream.h>    // to use fmt::print() on ostreams
+
 #include <queue>
+#include <vector>
 
 #include "geometry.h"
+#include "CustomMeshHalfedges.h"
 
 void per_facet_distance(const Mesh& mesh, std::map<index_t,unsigned int>& distance) {
     // thank you Trizalio https://stackoverflow.com/a/72437022
@@ -197,4 +204,72 @@ void compute_adjacent_facets_of_vertices(const Mesh& mesh, std::vector<std::vect
             adj_facets[mesh.facets.vertex(f,lv)].push_back(f);
         }
     }
+}
+
+void remove_feature_edges_with_low_dihedral_angle(Mesh& mesh, std::vector<std::vector<index_t>>& adj_facets) {
+    // Remove feature edges with low dihedral angle
+    // We need facets at each side of edge e to compute angle between their normals
+    // Issue : no adjecency between edges and facets
+    // -> find an halfedge (oriented edge) which is on this edge. halfedges have adjacency with facets
+    // issue : we need a facet index and a facet corner index to construct an halfedge
+    // -> find the facet and the facet corner from the two vertices of the edge e
+    // issue : no adjacency between vertices and facets
+    // -> call compute_adjacent_facets_of_vertices() if not already done
+
+    index_t nb_edges = mesh.edges.nb(),
+            v0_index = index_t(-1),
+            v1_index = index_t(-1),
+            facet_corner_on_v0 = index_t(-1),
+            facet_at_left = index_t(-1),
+            facet_at_right = index_t(-1);
+    GEO::vector<index_t> to_remove(nb_edges,0); // for each edge, store 0 = keep or 1 = remove
+    CustomMeshHalfedges mesh_he(mesh);
+    unsigned int nb_edges_removed = 0;
+    CustomMeshHalfedges::Halfedge outgoing_halfedge;
+
+    if (adj_facets.empty()) {
+        compute_adjacent_facets_of_vertices(mesh,adj_facets);
+    }
+
+    FOR(e,nb_edges) {
+        // get indices of the 2 vertices of the current edge
+        v0_index = mesh.edges.vertex(e,0);
+        v1_index = mesh.edges.vertex(e,1);
+        // parse adjacent facets of v0 until we found an halfedge
+        // whose origin is on v0 and tip on v1
+        for(index_t f : adj_facets[v0_index]) {
+            FOR(lv,mesh.facets.nb_vertices(f)) {
+                facet_corner_on_v0 = mesh.facets.corner(f,lv);
+                if(mesh.facet_corners.vertex(facet_corner_on_v0) == v0_index) {
+                    break; // we found which facet corner is on v0
+                }
+            }
+            // now that we have a facet and a facet cornet, we can have an halfedge going out of v0
+            outgoing_halfedge.facet = f;
+            outgoing_halfedge.corner = facet_corner_on_v0;
+            geo_assert(halfedge_vertex_index_from(mesh,outgoing_halfedge) == v0_index)
+            // check of the vertex at the tip is v1
+            if(halfedge_vertex_index_to(mesh,outgoing_halfedge) == v1_index) {
+                break;
+            }
+            // else : continue and check another adjacent facet
+        }
+        facet_at_left = halfedge_facet_left(mesh,outgoing_halfedge);
+        facet_at_right = halfedge_facet_right(mesh,outgoing_halfedge);
+        if(angle(mesh_facet_normal(mesh,facet_at_left),mesh_facet_normal(mesh,facet_at_right)) < FEATURE_EDGES_MIN_ANGLE) {
+            to_remove[e] = 1;
+            nb_edges_removed++;
+        }
+        // else : keep this feature edge because significant angle
+    }
+    
+    mesh.edges.delete_elements(to_remove,false);
+
+    fmt::println(
+        Logger::out("feature edges"),
+        "{} feature edge(s) removed ({:.1f}%) because dihedral angle < {}",
+        nb_edges_removed,
+        (nb_edges_removed * 100.0) / (double) nb_edges,
+        FEATURE_EDGES_MIN_ANGLE);
+    Logger::out("feature edges").flush();
 }

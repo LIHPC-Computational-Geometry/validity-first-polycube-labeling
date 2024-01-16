@@ -6,6 +6,8 @@
 
 #include "CustomMeshHalfedges.h"
 
+#define FEATURE_EDGES_MIN_ANGLE	0.5
+
 inline int label2axis(GEO::index_t label) {
     // GEO::index_t is unsigned, so no need to check (0 <= label)
     geo_assert(label <= 5);
@@ -84,3 +86,5 @@ void flip_facet_normals(Mesh& mesh);
 void center_mesh(Mesh& mesh, bool normalize);
 
 void compute_adjacent_facets_of_vertices(const Mesh& mesh, std::vector<std::vector<index_t>>& adj_facets);
+
+void remove_feature_edges_with_low_dihedral_angle(Mesh& mesh, std::vector<std::vector<index_t>>& adj_facets);
