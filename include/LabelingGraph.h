@@ -39,6 +39,9 @@ using namespace GEO;
 // to print an index_t that can be undefined
 #define OPTIONAL_TO_STRING(value) ((value == index_t(-1)) ? "undefined" : std::to_string(value).c_str())
 
+// we must declare that 'Boundary' will be defined later
+struct Boundary;
+
 // A set of adjacent triangles having the same label
 // based on https://github.com/LIHPC-Computational-Geometry/genomesh/blob/main/include/flagging.h#L61
 struct Chart {
@@ -56,6 +59,10 @@ struct Chart {
 
     std::set<index_t> boundaries; // indices of adjacent boundaries
     // adjacent charts can be retrieved with Boundary::chart_at_the_other_side()
+
+    //// Methods //////////////////
+
+    bool is_surrounded_by_feature_edges(const std::vector<Boundary>& all_boundaries) const;
 };
 
 std::ostream& operator<< (std::ostream &out, const Chart& data);
@@ -94,9 +101,6 @@ std::ostream& operator<< (std::ostream &out, const VertexRingWithBoundaries& dat
 // Use the operator<< overloading with {fmt}
 // https://fmt.dev/latest/api.html#std-ostream-support
 template <> struct fmt::formatter<VertexRingWithBoundaries> : ostream_formatter {};
-
-// we must declare that 'Boundary' will be defined later
-struct Boundary;
 
 // A vertex where 3 or more boundaries are meeting
 // based on https://github.com/LIHPC-Computational-Geometry/genomesh/blob/main/include/flagging.h#L126

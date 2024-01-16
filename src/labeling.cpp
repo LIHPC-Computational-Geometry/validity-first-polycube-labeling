@@ -324,11 +324,11 @@ unsigned int fix_invalid_corners(GEO::Mesh& mesh, const std::vector<vec3>& norma
 }
 
 // from https://github.com/LIHPC-Computational-Geometry/evocube/blob/master/src/labeling_ops.cpp removeChartMutation()
-void remove_invalid_charts(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, const StaticLabelingGraph& slg) {
+bool remove_invalid_charts(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, const StaticLabelingGraph& slg) {
 
     if(slg.invalid_charts.empty()) {
-        fmt::println(Logger::out("fix_labeling"),"Warning : operation canceled because there are no invalid charts"); Logger::out("fix_labeling").flush();
-        return;
+        fmt::println(Logger::warn("fix_labeling"),"remove_invalid_charts canceled because there are no invalid charts"); Logger::warn("fix_labeling").flush();
+        return false;
     }
 
     Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // get labeling attribute
@@ -342,7 +342,15 @@ void remove_invalid_charts(GEO::Mesh& mesh, const std::vector<vec3>& normals, co
     gcl.smooth_cost__set__default();
     gcl.neighbors__set__compactness_based(1);
 
+    unsigned int nb_charts_to_remove = 0;
     for(index_t chart_index : slg.invalid_charts) { // for each invalid chart
+
+        // prevent removal of chart surrounded by feature edges
+        // TODO : increase their valence, by boundary duplication or boundary shift
+        if(slg.charts[chart_index].is_surrounded_by_feature_edges(slg.boundaries)) {
+            fmt::println(Logger::warn("fix_labeling"),"Cannot remove chart n°{} because it is surrounded by feature edges",chart_index); Logger::warn("fix_labeling").flush();
+            continue;
+        }
 
         for(index_t facet_index : slg.charts[chart_index].facets) { // for each facet inside this chart
             gcl.data_cost__change_to__fidelity_based(facet_index,1);
@@ -355,9 +363,16 @@ void remove_invalid_charts(GEO::Mesh& mesh, const std::vector<vec3>& normals, co
             }
             gcl.data_cost__change_to__forbidden_label((GCoptimization::SiteID) facet_index,label[facet_index]); // prevent the label from staying the same
         }
+        nb_charts_to_remove++;
+    }
+
+    if(nb_charts_to_remove == 0) {
+        // all invalid charts are surrounded by feature edges
+        return true;
     }
 
     gcl.compute_solution(label);
+    return false;
 }
 
 void remove_charts_around_invalid_boundaries(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, const StaticLabelingGraph& slg) {

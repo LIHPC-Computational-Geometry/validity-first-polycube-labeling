@@ -71,7 +71,8 @@ unsigned int fix_invalid_boundaries(GEO::Mesh& mesh, const char* attribute_name,
 
 unsigned int fix_invalid_corners(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, const StaticLabelingGraph& slg);
 
-void remove_invalid_charts(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, const StaticLabelingGraph& slg);
+// return true if all invalid charts are locked, ie we cannot remove them because they are surrounded by feature edges
+bool remove_invalid_charts(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, const StaticLabelingGraph& slg);
 
 void remove_charts_around_invalid_boundaries(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, const StaticLabelingGraph& slg);
 

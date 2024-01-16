@@ -14,6 +14,7 @@
 
 #include <utility> // for std::pair
 #include <fstream>
+#include <vector>
 
 #include <nlohmann/json.hpp>
 
@@ -22,6 +23,16 @@
 #include "containers.h"             // for VECTOR_CONTAINS(), MAP_CONTAINS(), index_of_last(), += on std::vector
 #include "CustomMeshHalfedges.h"    // for CustomMeshHalfedges
 #include "labeling.h"               // for label2vector
+
+bool Chart::is_surrounded_by_feature_edges(const std::vector<Boundary>& all_boundaries) const {
+    geo_assert(!boundaries.empty());
+    for(index_t boundary_index : boundaries) { // for each boundary around this chart
+        if(all_boundaries[boundary_index].on_feature_edge == false) {
+            return false; // no, at least a subset of the contour is not on feature edges
+        }
+    }
+    return true;
+}
 
 std::ostream& operator<< (std::ostream &out, const Chart& data) {
     fmt::println(out,"\tlabel : {}",data.label);
