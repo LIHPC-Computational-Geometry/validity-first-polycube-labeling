@@ -158,6 +158,7 @@ struct Boundary {
     int axis = -1; // in {0 = X, 1 = Y, 2 = Z, -1 = boundary between opposite labels }
     bool is_valid = false;
     std::vector<TurningPoint> turning_points;
+    bool on_feature_edge = true;
 
     //// Underlying geometry //////////////////
 
@@ -178,6 +179,7 @@ struct Boundary {
     void explore(const MeshHalfedges::Halfedge& initial_halfedge,
                  const CustomMeshHalfedges& mesh_halfedges,
                  index_t index_of_self,
+                 const std::set<std::pair<index_t,index_t>>& feature_edges,
                  const std::vector<index_t>& facet2chart,
                  std::vector<index_t>& vertex2corner,
                  std::vector<Chart>& charts,
@@ -234,7 +236,7 @@ struct StaticLabelingGraph {
 
     //// Fill & clear //////////////////
 
-    void fill_from(Mesh& mesh, std::string facet_attribute, bool allow_boundaries_between_opposite_labels);
+    void fill_from(Mesh& mesh, std::string facet_attribute, bool allow_boundaries_between_opposite_labels, const std::set<std::pair<index_t,index_t>>& feature_edges);
     void clear();
 
     //// Validity //////////////////

@@ -221,13 +221,15 @@ bool Boundary::empty() const {
         left_chart == index_t(-1) &&
         right_chart == index_t(-1) &&
         start_corner == index_t(-1) &&
-        end_corner == index_t(-1)
+        end_corner == index_t(-1) &&
+        on_feature_edge == true
     );
 }
 
 void Boundary::explore(const MeshHalfedges::Halfedge& initial_halfedge,
                        const CustomMeshHalfedges& mesh_halfedges,
                        index_t index_of_self,
+                       const std::set<std::pair<index_t,index_t>>& feature_edges,
                        const std::vector<index_t>& facet2chart,
                        std::vector<index_t>& vertex2corner,
                        std::vector<Chart>& charts,
@@ -242,6 +244,7 @@ void Boundary::explore(const MeshHalfedges::Halfedge& initial_halfedge,
     geo_assert(left_chart == index_t(-1));
     geo_assert(right_chart == index_t(-1));
     geo_assert(end_corner == index_t(-1));
+    geo_assert(on_feature_edge == true);
 
     // initialization
     index_t current_vertex = index_t(-1);
@@ -254,6 +257,9 @@ void Boundary::explore(const MeshHalfedges::Halfedge& initial_halfedge,
     mesh_halfedges.move_to_opposite(current_halfedge); // switch orientation
     halfedge2boundary[current_halfedge] = {index_of_self,false}; // mark this halfedge, link it to the current boundary (opposite orientation)
     mesh_halfedges.move_to_opposite(current_halfedge); // switch orientation
+    if(!halfedge_is_on_feature_edge(mesh_halfedges.mesh(),current_halfedge,feature_edges)) {
+        on_feature_edge = false;
+    }
 
     // Step 1 : store information we already have with the first boundary edge:
     // the charts at the left and right, and the axis
@@ -308,6 +314,11 @@ void Boundary::explore(const MeshHalfedges::Halfedge& initial_halfedge,
 
             // update the averge normal of the boundary
             average_normal += mesh_halfedges.normal(current_halfedge);
+
+            // check if we (still) are on a feature edge
+            if(!halfedge_is_on_feature_edge(mesh_halfedges.mesh(),current_halfedge,feature_edges)) {
+                on_feature_edge = false;
+            }
 
             // the vertex at the base of halfedge will be explored in the next interation
         }
@@ -513,7 +524,7 @@ std::ostream& operator<< (std::ostream &out, const Boundary& data) {
     return out;
 }
 
-void StaticLabelingGraph::fill_from(Mesh& mesh, std::string facet_attribute, bool allow_boundaries_between_opposite_labels) {
+void StaticLabelingGraph::fill_from(Mesh& mesh, std::string facet_attribute, bool allow_boundaries_between_opposite_labels, const std::set<std::pair<index_t,index_t>>& feature_edges) {
 
     // based on https://github.com/LIHPC-Computational-Geometry/genomesh/blob/main/src/flagging.cpp#L795
     // but here we use a disjoint-set for step 1
@@ -613,6 +624,7 @@ void StaticLabelingGraph::fill_from(Mesh& mesh, std::string facet_attribute, boo
             boundaries.back().explore(halfedge,
                                        mesh_half_edges_,
                                        (index_t) index_of_last(boundaries), // get the index of this boundary
+                                       feature_edges,
                                        facet2chart,
                                        vertex2corner,
                                        charts,
@@ -651,6 +663,7 @@ void StaticLabelingGraph::fill_from(Mesh& mesh, std::string facet_attribute, boo
         boundaries.back().explore(halfedge,
                                   mesh_half_edges_,
                                   (index_t) index_of_last(boundaries), // get the index of this boundary
+                                  feature_edges,
                                   facet2chart,
                                   vertex2corner,
                                   charts,

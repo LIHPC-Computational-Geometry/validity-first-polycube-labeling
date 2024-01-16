@@ -142,7 +142,7 @@ protected:
 			}
 
 			if(ImGui::Button("Auto fix validity")) {
-				auto_fix_validity(mesh_,normals_,static_labeling_graph_,100);
+				auto_fix_validity(mesh_,normals_,static_labeling_graph_,100,feature_edges_);
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 
@@ -169,7 +169,7 @@ protected:
 			}
 
 			if(ImGui::Button("Auto fix monotonicity")) {
-				auto_fix_monotonicity(mesh_,static_labeling_graph_,500);
+				auto_fix_monotonicity(mesh_,static_labeling_graph_,500,feature_edges_);
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 
@@ -190,7 +190,7 @@ protected:
 			ImGui::EndDisabled();
 
 			if(ImGui::Button("Trace contour")) {
-				trace_contour(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_);
+				trace_contour(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,feature_edges_);
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 		}
@@ -249,7 +249,7 @@ protected:
 public:
 
 	// return true if successfully found a valid labeling
-	static bool auto_fix_validity(Mesh& mesh, std::vector<vec3>& normals, StaticLabelingGraph& slg, unsigned int max_nb_loop) {
+	static bool auto_fix_validity(Mesh& mesh, std::vector<vec3>& normals, StaticLabelingGraph& slg, unsigned int max_nb_loop, const std::set<std::pair<index_t,index_t>>& feature_edges) {
 		unsigned int nb_loops = 0;
 		unsigned int nb_fixed_features = 0;
 		std::set<std::array<std::size_t,7>> set_of_labeling_features_combinations_encountered;
@@ -260,7 +260,7 @@ public:
 			do {
 				nb_fixed_features = remove_surrounded_charts(mesh,LABELING_ATTRIBUTE_NAME,slg);
 				// update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
-				slg.fill_from(mesh,LABELING_ATTRIBUTE_NAME,slg.is_allowing_boundaries_between_opposite_labels());
+				slg.fill_from(mesh,LABELING_ATTRIBUTE_NAME,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
 			} while(nb_fixed_features != 0);
 
 			if(slg.is_valid())
@@ -268,14 +268,14 @@ public:
 
 			fix_invalid_boundaries(mesh,LABELING_ATTRIBUTE_NAME,slg);
 			// update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
-			slg.fill_from(mesh,LABELING_ATTRIBUTE_NAME,slg.is_allowing_boundaries_between_opposite_labels());
+			slg.fill_from(mesh,LABELING_ATTRIBUTE_NAME,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
 
 			if(slg.is_valid())
 				return true;
 
 			fix_invalid_corners(mesh,normals,LABELING_ATTRIBUTE_NAME,slg);
 			// update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
-			slg.fill_from(mesh,LABELING_ATTRIBUTE_NAME,slg.is_allowing_boundaries_between_opposite_labels());
+			slg.fill_from(mesh,LABELING_ATTRIBUTE_NAME,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
 
 			if(slg.is_valid())
 				return true;
@@ -294,7 +294,7 @@ public:
 			while(1) {
 				remove_invalid_charts(mesh,normals,LABELING_ATTRIBUTE_NAME,slg);
 				// update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
-				slg.fill_from(mesh,LABELING_ATTRIBUTE_NAME,slg.is_allowing_boundaries_between_opposite_labels());
+				slg.fill_from(mesh,LABELING_ATTRIBUTE_NAME,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
 
 				if(slg.is_valid())
 					return true;
@@ -313,7 +313,7 @@ public:
 					// we backtracked
 					// There is probably small charts that we can remove to help the fixing routine
 					remove_charts_around_invalid_boundaries(mesh,normals,LABELING_ATTRIBUTE_NAME,slg);
-					slg.fill_from(mesh,LABELING_ATTRIBUTE_NAME,slg.is_allowing_boundaries_between_opposite_labels());
+					slg.fill_from(mesh,LABELING_ATTRIBUTE_NAME,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
 					break; // go back to the beginning of the loop, with other fix operators
 				}
 				else {
@@ -331,15 +331,15 @@ public:
 		return true;
 	}
 
-	static bool auto_fix_monotonicity(Mesh& mesh, StaticLabelingGraph& slg, unsigned int max_nb_steps) {
+	static bool auto_fix_monotonicity(Mesh& mesh, StaticLabelingGraph& slg, unsigned int max_nb_steps, const std::set<std::pair<index_t,index_t>>& feature_edges) {
 		unsigned int nb_steps = 0;
 		while(!slg.non_monotone_boundaries.empty() && nb_steps <= max_nb_steps) {
 			move_boundaries_near_turning_points(mesh,LABELING_ATTRIBUTE_NAME,slg);
 			// update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
-			slg.fill_from(mesh,LABELING_ATTRIBUTE_NAME,slg.is_allowing_boundaries_between_opposite_labels());
+			slg.fill_from(mesh,LABELING_ATTRIBUTE_NAME,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
 			remove_surrounded_charts(mesh,LABELING_ATTRIBUTE_NAME,slg);
 			// update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
-			slg.fill_from(mesh,LABELING_ATTRIBUTE_NAME,slg.is_allowing_boundaries_between_opposite_labels());
+			slg.fill_from(mesh,LABELING_ATTRIBUTE_NAME,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
 		}
 
 		if(!slg.non_monotone_boundaries.empty()) {
@@ -400,20 +400,59 @@ int main(int argc, char** argv) {
 		return 1;
 	}
 
+	//////////////////////////////////////////////////
+	// Geometry preprocessing, see LabelingViewerApp::load()
+	//////////////////////////////////////////////////
+
+	// TODO mesh rotation according to the PCA, see reorient_mesh app
+
+	// ensure facet normals are outward
+	if(facet_normals_are_inward(M)) {
+		flip_facet_normals(M);
+		fmt::println(Logger::warn("normals dir."),"Facet normals of the input mesh were inward");
+		fmt::println(Logger::warn("normals dir."),"You should flip them and update the file for consistency.");
+		Logger::warn("normals dir.").flush();
+	}
+
 	// compute facet normals
 	std::vector<vec3> normals(M.facets.nb());
 	FOR(f,M.facets.nb()) {
 		normals[f] = normalize(Geom::mesh_facet_normal(M,f));
 	}
 
-	naive_labeling(M,normals,LABELING_ATTRIBUTE_NAME);
+	// remove feature edges on edge with small angle
+	std::vector<std::vector<index_t>> adj_facets; // for each vertex, store adjacent facets. no ordering
+	remove_feature_edges_with_low_dihedral_angle(M,adj_facets);
+	// store them as a set
+	std::set<std::pair<index_t,index_t>> feature_edges;
+	transfer_feature_edges(M,feature_edges);
+
+	//////////////////////////////////////////////////
+	// Compute initial labeling
+	//////////////////////////////////////////////////
+
+	tweaked_naive_labeling(M,normals,LABELING_ATTRIBUTE_NAME);
+
+	//////////////////////////////////////////////////
+	// Construct charts, boundaries & corners
+	//////////////////////////////////////////////////
 
 	StaticLabelingGraph slg;
-	slg.fill_from(M,LABELING_ATTRIBUTE_NAME,allow_boundaries_between_opposite_labels);
-	if(AutomaticPolycubeApp::auto_fix_validity(M,normals,slg,100)) {
+	slg.fill_from(M,LABELING_ATTRIBUTE_NAME,allow_boundaries_between_opposite_labels,feature_edges);
+
+	//////////////////////////////////////////////////
+	// Validity & monotonicity correction
+	//////////////////////////////////////////////////
+
+	if(AutomaticPolycubeApp::auto_fix_validity(M,normals,slg,100,feature_edges)) {
 		// auto-fix the monotonicity only if the validity was fixed
-		AutomaticPolycubeApp::auto_fix_monotonicity(M,slg,500);
+		AutomaticPolycubeApp::auto_fix_monotonicity(M,slg,500,feature_edges);
 	}
+
+	//////////////////////////////////////////////////
+	// Write output labeling
+	//////////////////////////////////////////////////
+
 	fmt::println(Logger::out("I/O"),"Writing {}...",filenames[1]); Logger::out("I/O").flush();
 	save_labeling(filenames[1],M,LABELING_ATTRIBUTE_NAME);
 	fmt::println(Logger::out("I/O"),"Done"); Logger::out("I/O").flush();

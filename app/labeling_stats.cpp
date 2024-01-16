@@ -67,12 +67,19 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    // remove feature edges on edge with small angle
+	std::vector<std::vector<index_t>> adj_facets; // for each vertex, store adjacent facets. no ordering
+	remove_feature_edges_with_low_dihedral_angle(input_mesh,adj_facets);
+	// store them as a set
+	std::set<std::pair<index_t,index_t>> feature_edges;
+	transfer_feature_edges(input_mesh,feature_edges);
+
     if (!load_labeling(filenames[1],input_mesh,LABELING_ATTRIBUTE_NAME)) {
         exit(1);
     }
 
     StaticLabelingGraph slg;
-    slg.fill_from(input_mesh,LABELING_ATTRIBUTE_NAME,CmdLine::get_arg_bool("allow-opposite-labels"));
+    slg.fill_from(input_mesh,LABELING_ATTRIBUTE_NAME,CmdLine::get_arg_bool("allow-opposite-labels"),feature_edges);
 
     nlohmann::json output_JSON;
 
