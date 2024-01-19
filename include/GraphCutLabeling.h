@@ -14,11 +14,11 @@
 #include <array>
 #include <map>
 #include <utility>      // for std::pair
+#include <initializer_list>
 
 using namespace GEO;
 
-typedef vecng<6, float> vec6f; // useful to store per label weights
-typedef vecng<6, int> vec6i; // useful to store per label weights
+typedef vecng<6, int> vec6i; // useful to store per label weights (in case of an optimization with 6 possible labels per facet)
 
 // GCoptimizationGeneralGraph has 2 methods for neighbors weigths : setNeighbors() and setAllNeighbors()
 // -> setNeighbors() will require redundancy: weights in GCoptimizationGeneralGraph given by value, weights in GraphCutLabeling, maybe also in GraphCutLabelingApp
@@ -61,35 +61,31 @@ public:
      */
     GraphCutLabeling(const Mesh& mesh, const std::vector<vec3>& normals);
 
-    GraphCutLabeling(const Mesh& mesh, const std::vector<vec3>& normals, GCoptimization::SiteID nb_sites); // if graph-cut on a subset of the surface
+    GraphCutLabeling(const Mesh& mesh, const std::vector<vec3>& normals, index_t nb_facets, std::initializer_list<index_t> labels); // if graph-cut on a subset of the surface and/or a subset of the labels
 
-    //// Sites definition //////////////////
+    //// Facets definition //////////////////
 
-    void add_site(index_t facet);
+    void add_facet(index_t facet);
 
     //// Data cost definition //////////////////
 
     void data_cost__set__fidelity_based(int fidelity);
 
-    void data_cost__set__locked_labels(const Attribute<index_t>& per_facet_label);
+    void data_cost__set__locked_labels(const Attribute<index_t>& per_facet_polycube_label);
 
     void data_cost__set__all_at_once(const std::vector<int>& data_cost);
 
     void data_cost__change_to__fidelity_based(index_t facet_index, int fidelity);
 
-    void data_cost__change_to__locked_label(index_t facet_index, index_t locked_label);
-    
-    void data_cost__change_to__locked_label(GCoptimization::SiteID siteID, index_t locked_label);
+    void data_cost__change_to__locked_polycube_label(index_t facet_index, index_t locked_polycube_label);
 
-    void data_cost__change_to__forbidden_label(GCoptimization::SiteID siteID, index_t forbidden_label);
+    void data_cost__change_to__forbidden_polycube_label(index_t facet_index, index_t forbidden_polycube_label);
 
-    void data_cost__change_to__scaled(index_t facet_index, index_t label, float factor);
+    void data_cost__change_to__scaled(index_t facet_index, index_t polycube_label, float factor);
 
-    void data_cost__change_to__scaled(GCoptimization::SiteID siteID, index_t label, float factor);
+    void data_cost__change_to__shifted(index_t facet_index, index_t polycube_label, float delta);
 
-    void data_cost__change_to__shifted(GCoptimization::SiteID siteID, index_t label, float delta);
-
-    void data_cost__change_to__per_label_weights(GCoptimization::SiteID siteID, const vec6i& per_label_weights);
+    void data_cost__change_to__per_label_weights(index_t facet_index, const vec6i& per_polycube_label_weights); // only usable when nb_labels_ == 6
 
     //// Smooth cost definition //////////////////
 
@@ -97,7 +93,7 @@ public:
 
     void smooth_cost__set__prevent_opposite_neighbors();
 
-    void smooth_cost__set__custom(const std::array<int,6*6>& smooth_cost);
+    void smooth_cost__set__custom(const std::vector<int>& smooth_cost);
 
     //// Neighbors definition //////////////////
 
@@ -111,11 +107,11 @@ public:
 
     //// Getters & debug //////////////////
 
-    vec6i data_cost__get__for_site(GCoptimization::SiteID siteID) const;
+    vec6i data_cost__get__for_facet(index_t facet_index) const; // only usable when nb_labels_ == 6
 
-    int data_cost__get__for_site_and_label(GCoptimization::SiteID siteID, index_t label) const;
+    int data_cost__get__for_facet_and_polycube_label(index_t facet_index, index_t polycube_label) const;
 
-    inline bool sites_set() const;
+    inline bool facets_defined() const;
 
     void dump_costs() const;
 
@@ -130,28 +126,45 @@ public:
 
     //// Static functions (for class methods & for data cost managed externally) //////////////////
 
-    static void fill_data_cost__fidelity_based(const Mesh& mesh, const std::vector<vec3>& normals, std::vector<int>& data_cost, int fidelity);
+    static void fill_data_cost__fidelity_based(const std::vector<vec3>& normals, std::vector<int>& data_cost, int fidelity, const std::map<index_t,GCoptimization::SiteID>& facet2siteID, const std::map<index_t,GCoptimization::LabelID>& polycubeLabel2labelID);
 
-    static void fill_data_cost__fidelity_based(const std::vector<vec3>& normals, std::vector<int>& data_cost, int fidelity, const std::map<index_t,GCoptimization::SiteID>& facet2siteID);
+    static void shift_data_cost(std::vector<int>& data_cost, GCoptimization::SiteID siteID, GCoptimization::LabelID labelID, float delta);
 
-    static void shift_data_cost(std::vector<int>& data_cost, GCoptimization::SiteID site, index_t label, float delta);
-
-    static vec6i per_site_data_cost_as_vector(const std::vector<int>& data_cost, GCoptimization::SiteID site);
+    static vec6i per_siteID_data_cost_as_vector(const std::vector<int>& data_cost, GCoptimization::SiteID siteID, index_t nb_labels_, index_t nb_siteID);
 
     static void fill_neighbors_cost__compactness_based(const Mesh& mesh, const std::vector<vec3>& normals, int compactness, NeighborsCosts& neighbors_costs, const std::map<index_t,GCoptimization::SiteID>& facet2siteID);
 
 private:
 
+    // mesh
+
     const Mesh& mesh_; // needed for the facet number (everywhere) and facet adjacency (neighborhood weights)
-    GCoptimization::SiteID nb_sites_;
-    GCoptimization::SiteID count_sites_;
-    std::map<index_t,GCoptimization::SiteID> facet2siteID_; // map between facet index and site ID, used if nb sites != nb facets
-    std::vector<int> data_cost_; // #facet*6, cost of assigning a facet to a label
-    std::array<int,6*6> smooth_cost_; // label adjacency cost
-    NeighborsCosts neighbors_costs_;
-    GCoptimizationGeneralGraph gco_; // underlying optimizer
     const std::vector<vec3>& normals_; // facet normals
-    bool data_cost_set_; // if the data cost is already set or not, required for compute_solution()
-    bool smooth_cost_set_; // if the smooth cost is already set or not, required for compute_solution()
-    bool neighbors_set_; // if the neighbors are already set or not, required for compute_solution()
+
+    // facets on which the optimization will operate
+
+    index_t nb_facets_;
+    index_t count_facets_; // count how many facets have been defined
+    std::map<index_t,GCoptimization::SiteID> facet2siteID_; // map between facet index (what the user manage) and siteID (internal to GCO)
+
+    // possible labels for facets
+
+    GCoptimization::LabelID nb_labels_;
+    std::map<index_t,GCoptimization::LabelID> polycubeLabel2labelID_; // map between polycube label (what the user manage) and labelID (internal to GCO)
+    std::vector<index_t> labelID2polycubeLabel_; // map between labelID and polycube label
+
+    // underlying optimizer
+    
+    GCoptimizationGeneralGraph gco_;
+
+    // optimizer settings
+
+    std::vector<int> data_cost_; // nb_facets_*nb_labels_ items, cost of assigning a facet to a label
+    bool data_cost_defined_; // if the data cost is already set or not, required for compute_solution()
+
+    std::vector<int> smooth_cost_; // nb_labels_*nb_labels_ items, label adjacency cost
+    bool smooth_cost_defined_; // if the smooth cost is already set or not, required for compute_solution()
+
+    NeighborsCosts neighbors_costs_;
+    bool neighbors_defined_; // if the neighbors are already set or not, required for compute_solution()
 };

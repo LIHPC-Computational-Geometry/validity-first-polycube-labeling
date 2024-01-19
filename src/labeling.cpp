@@ -361,7 +361,7 @@ bool remove_invalid_charts(GEO::Mesh& mesh, const std::vector<vec3>& normals, co
                     gcl.data_cost__change_to__scaled(facet_index,label[adjacent_facet],0.5f); // halve the cost
                 }
             }
-            gcl.data_cost__change_to__forbidden_label((GCoptimization::SiteID) facet_index,label[facet_index]); // prevent the label from staying the same
+            gcl.data_cost__change_to__forbidden_polycube_label(facet_index,label[facet_index]); // prevent the label from staying the same
         }
         nb_charts_to_remove++;
     }
@@ -409,7 +409,7 @@ void remove_charts_around_invalid_boundaries(GEO::Mesh& mesh, const std::vector<
                     gcl.data_cost__change_to__scaled(facet_index,label[adjacent_facet],0.5f); // halve the cost
                 }
             }
-            gcl.data_cost__change_to__forbidden_label((GCoptimization::SiteID) facet_index,label[facet_index]); // prevent the label from staying the same
+            gcl.data_cost__change_to__forbidden_polycube_label(facet_index,label[facet_index]); // prevent the label from staying the same
         }
     }
 
@@ -537,9 +537,9 @@ void straighten_boundary(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
         dump_facets("contour",mesh,contour);
     #endif
 
-    auto gcl = GraphCutLabeling(mesh,normals, (GCoptimization::SiteID) distance_to_boundary.size()); // graph-cut only on the two charts
+    auto gcl = GraphCutLabeling(mesh,normals, (index_t) distance_to_boundary.size(),{0,1,2,3,4,5}); // graph-cut only on the two charts
     for(const auto& kv : distance_to_boundary) {
-        gcl.add_site(kv.first);
+        gcl.add_facet(kv.first);
     }
     gcl.data_cost__set__fidelity_based(1);
     // tweak data cost based on fidelity
@@ -550,7 +550,7 @@ void straighten_boundary(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
              !distance_to_boundary.contains(mesh.facets.adjacent(kv.first,1)) || 
              !distance_to_boundary.contains(mesh.facets.adjacent(kv.first,2)) ) {
             // this facet is on the contour of the 2 charts -> lock its label
-            gcl.data_cost__change_to__locked_label(kv.first,label[kv.first]);
+            gcl.data_cost__change_to__locked_polycube_label(kv.first,label[kv.first]);
         }
         else {
             // penalize modification proportionally to the distance to the boundary (only close facets should be modifiable)
@@ -700,9 +700,9 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
     #ifndef NDEBUG
         dump_facets("2_charts",mesh,union_of_2_charts);
     #endif
-    auto gcl = GraphCutLabeling(mesh,normals,(GCoptimization::SiteID) union_of_2_charts.size()); // graph-cut only on the two charts
+    auto gcl = GraphCutLabeling(mesh,normals,(index_t) union_of_2_charts.size(),{0,1,2,3,4,5}); // graph-cut only on the two charts
     for(index_t f : union_of_2_charts) {
-        gcl.add_site(f);
+        gcl.add_facet(f);
     }
     gcl.data_cost__set__fidelity_based(1);
     // Lock labels between the turning point and the corner, to ensure the corner moves where the turning point is
@@ -717,7 +717,7 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
             if(tp.towards_right()) {
                 mesh_he.move_to_opposite(current_halfedge);
             }
-            gcl.data_cost__change_to__locked_label(current_halfedge.facet,new_label);
+            gcl.data_cost__change_to__locked_polycube_label(current_halfedge.facet,new_label);
             #ifndef NDEBUG
                 facets_with_locked_label.insert(current_halfedge.facet);
             #endif
@@ -730,7 +730,7 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
             if(tp.towards_right()) {
                 mesh_he.move_to_opposite(current_halfedge);
             }
-            gcl.data_cost__change_to__locked_label(current_halfedge.facet,new_label);
+            gcl.data_cost__change_to__locked_polycube_label(current_halfedge.facet,new_label);
             #ifndef NDEBUG
                 facets_with_locked_label.insert(current_halfedge.facet);
             #endif

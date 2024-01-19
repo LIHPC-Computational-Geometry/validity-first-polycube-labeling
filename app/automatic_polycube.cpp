@@ -413,7 +413,7 @@ int main(int argc, char** argv) {
 	// Geometry preprocessing, see LabelingViewerApp::load()
 	//////////////////////////////////////////////////
 
-	// TODO mesh rotation according to the PCA, see reorient_mesh app
+	// TODO mesh rotation according to the PCA, see rotate_mesh_according_to_principal_axes() in geometry.h
 
 	// ensure facet normals are outward
 	if(facet_normals_are_inward(M)) {
