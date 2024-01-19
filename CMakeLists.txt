@@ -43,6 +43,9 @@ add_subdirectory(ext/GraphCutOptimization)
 # nlohmann/json
 add_subdirectory(ext/json)
 
+# dbg-macro
+include_directories(ext/dbg-macro)
+
 set(
   EXTERNAL_LIBS
   geogram
