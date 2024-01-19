@@ -196,7 +196,7 @@ protected:
 				gcl.neighbors__set__compactness_based(compactness_coeff_);
 				for(index_t f : static_labeling_graph_.charts[selected_chart_].facets) { // for each facet of the current chart
 					FOR(l,6) {
-						GraphCutLabeling::shift_data_cost(data_cost_,(GCoptimization::SiteID) f,l,per_label_shift[l]); // modify the local data cost vector
+						GraphCutLabeling::shift_data_cost(data_cost_,(GCoptimization::SiteID) f,(GCoptimization::LabelID) l,per_label_shift[l]); // modify the local data cost vector
 					}
 				}
 				gcl.data_cost__set__all_at_once(data_cost_); // use the local data cost vector in the optimization

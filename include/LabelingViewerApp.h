@@ -527,12 +527,15 @@ protected:
         FOR(f,mesh_.facets.nb()) {
             normals_[f] = normalize(Geom::mesh_facet_normal(mesh_,f));
         }
-		
-		adj_facets_.clear();
-		remove_feature_edges_with_low_dihedral_angle(mesh_,adj_facets_);
 
-		// transfert feature edges from mesh_.edges to the feature_edges_ set
-		transfer_feature_edges(mesh_,feature_edges_);
+		if(mesh_.edges.nb() > 0) {
+			// the loaded mesh contains edges -> expect they are feature edges
+			adj_facets_.clear();
+			remove_feature_edges_with_low_dihedral_angle(mesh_,adj_facets_);
+
+			// transfert feature edges from mesh_.edges to the feature_edges_ set
+			transfer_feature_edges(mesh_,feature_edges_);
+		}
 
 		clear_scene_overlay();
 		state_transition(triangle_mesh);
@@ -710,7 +713,7 @@ template <> struct fmt::formatter<LabelingViewerApp::State>: formatter<string_vi
 		switch (state) {
 		case LabelingViewerApp::State::empty			: return formatter<string_view>::format("empty", ctx);
 		case LabelingViewerApp::State::triangle_mesh	: return formatter<string_view>::format("triangle_mesh", ctx);
-		case LabelingViewerApp::State::labeling		: return formatter<string_view>::format("labeling", ctx);
+		case LabelingViewerApp::State::labeling			: return formatter<string_view>::format("labeling", ctx);
 		}
 		return formatter<string_view>::format("?", ctx);
 	}

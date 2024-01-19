@@ -261,6 +261,9 @@ void Boundary::explore(const MeshHalfedges::Halfedge& initial_halfedge,
     index_t current_vertex = index_t(-1);
     const Mesh& mesh = mesh_halfedges.mesh();
     MeshHalfedges::Halfedge current_halfedge = initial_halfedge; // create a modifiable halfedge
+    if(feature_edges.empty()) { // if this mesh doesn't have feature edges
+        on_feature_edge = false; // this boundary is not on a feature edge
+    }
 
     geo_assert(mesh_halfedges.halfedge_is_border(current_halfedge));
     halfedges.push_back(current_halfedge);
