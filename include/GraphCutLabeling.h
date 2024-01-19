@@ -18,6 +18,7 @@
 
 using namespace GEO;
 
+typedef vecng<6, float> vec6f; // useful to store per label weights in `graphcut_labeling` app (in case of an optimization with 6 possible labels per facet)
 typedef vecng<6, int> vec6i; // useful to store per label weights (in case of an optimization with 6 possible labels per facet)
 
 // GCoptimizationGeneralGraph has 2 methods for neighbors weigths : setNeighbors() and setAllNeighbors()
@@ -126,11 +127,13 @@ public:
 
     //// Static functions (for class methods & for data cost managed externally) //////////////////
 
+    static void fill_data_cost__fidelity_based(const std::vector<vec3>& normals, std::vector<int>& data_cost, int fidelity, const Mesh& mesh); // only usable when optimization on the whole mesh
+
     static void fill_data_cost__fidelity_based(const std::vector<vec3>& normals, std::vector<int>& data_cost, int fidelity, const std::map<index_t,GCoptimization::SiteID>& facet2siteID, const std::map<index_t,GCoptimization::LabelID>& polycubeLabel2labelID);
 
     static void shift_data_cost(std::vector<int>& data_cost, GCoptimization::SiteID siteID, GCoptimization::LabelID labelID, float delta);
 
-    static vec6i per_siteID_data_cost_as_vector(const std::vector<int>& data_cost, GCoptimization::SiteID siteID, index_t nb_labels_, index_t nb_siteID);
+    static vec6i per_siteID_data_cost_as_vector(const std::vector<int>& data_cost, GCoptimization::SiteID siteID, index_t nb_labels, index_t nb_siteID);
 
     static void fill_neighbors_cost__compactness_based(const Mesh& mesh, const std::vector<vec3>& normals, int compactness, NeighborsCosts& neighbors_costs, const std::map<index_t,GCoptimization::SiteID>& facet2siteID);
 

@@ -6,7 +6,6 @@
 #include "LabelingViewerApp.h"
 #include "labeling.h"
 
-#include <array>
 #include <algorithm>	// for std::max_element(), std::min_element()
 #include <cmath>		// for std::round()
 
@@ -35,6 +34,7 @@ public:
 		// [2] Dumery, Protais, Mestrallet, Bourcier, Ledoux, "Evocube: a Genetic Labeling Framework for Polycube-Maps", Computer Graphics Forum, 2022
 		compactness_coeff_ = 1;
 		fidelity_coeff_ = 3;
+		smooth_cost_.resize(6*6);
 		// fill smooth_cost_. equivalent to what GraphCutLabeling::smooth_cost__set__default() does.
 		FOR(label1,6) {
         	FOR(label2,6) {
@@ -59,7 +59,7 @@ protected:
 				return;
 			}
 			data_cost_.resize(mesh_.facets.nb()*6);
-			GraphCutLabeling::fill_data_cost__fidelity_based(mesh_,normals_,data_cost_,fidelity_coeff_);
+			GraphCutLabeling::fill_data_cost__fidelity_based(normals_,data_cost_,fidelity_coeff_,mesh_);
 			graphcut_labeling(mesh_,normals_,LABELING_ATTRIBUTE_NAME,compactness_coeff_,fidelity_coeff_); // compute graph-cut with init value of parameters
 			update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			new_state = labeling;
@@ -109,7 +109,7 @@ protected:
 						char label[32];
 						sprintf(label, "##smooth:%d,%d", column, row);
 						ImGui::SetNextItemWidth(100.0f);
-						ImGui::InputInt(label,&smooth_cost_[(std::array<int, 36>::size_type) (column*6+row)]);
+						ImGui::InputInt(label,&smooth_cost_[(std::vector<int>::size_type) (column*6+row)]);
 					}
 				}
 				ImGui::EndTable();
@@ -225,7 +225,7 @@ protected:
 				// compute data cost stats for the current chart
 				vec6i current_facet_data_cost;
 				for(index_t f : static_labeling_graph_.charts[selected_chart_].facets) { // for each facet of the selected chart
-					current_facet_data_cost = GraphCutLabeling::per_site_data_cost_as_vector(data_cost_,(GCoptimization::SiteID) f);
+					current_facet_data_cost = GraphCutLabeling::per_siteID_data_cost_as_vector(data_cost_,(GCoptimization::SiteID) f,6,mesh_.facets.nb());
 					selected_chart_data_cost_stats_.avg += (vec6f) current_facet_data_cost; // add per-label data cost of current facet
 					FOR(label,6) {
 						selected_chart_data_cost_stats_.min[label] = std::min(selected_chart_data_cost_stats_.min[label], (float) current_facet_data_cost[label]);
@@ -256,7 +256,7 @@ protected:
 		float global_max = 0.0f; // max of all data costs, for all facets and all labels
 		FOR(chart_index,static_labeling_graph_.nb_charts()) { // for each chart
 			for(index_t f : static_labeling_graph_.charts[chart_index].facets) { // for each facet of the current chart
-				global_max = std::max(global_max,(float) max(GraphCutLabeling::per_site_data_cost_as_vector(data_cost_,(GCoptimization::SiteID) f)));
+				global_max = std::max(global_max,(float) max(GraphCutLabeling::per_siteID_data_cost_as_vector(data_cost_,(GCoptimization::SiteID) f,6,mesh_.facets.nb())));
 			}
 		}
 		new_data_cost_upper_bound_ = global_max*1.1f;
@@ -265,7 +265,7 @@ protected:
 	int compactness_coeff_;
 	int fidelity_coeff_;
 	std::vector<int> data_cost_;
-	std::array<int,6*6> smooth_cost_;
+	std::vector<int> smooth_cost_;
 	index_t selected_chart_;
 	bool selected_chart_mode_;
 	StatsComponents<vec6f> selected_chart_data_cost_stats_; // 3 vec6f : per-label min, per-label max and per-label avg

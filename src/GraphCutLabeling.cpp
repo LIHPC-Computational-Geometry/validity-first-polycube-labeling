@@ -610,6 +610,18 @@ void GraphCutLabeling::compute_solution(Attribute<index_t>& output_labeling, int
 	}
 }
 
+void GraphCutLabeling::fill_data_cost__fidelity_based(const std::vector<vec3>& normals, std::vector<int>& data_cost, int fidelity, const Mesh& mesh) {
+    // TODO avoid redundancy with the other fill_data_cost__fidelity_based() ?
+    geo_assert(data_cost.size()==mesh.facets.nb()*6);
+    FOR(f,mesh.facets.nb()) {
+        FOR(label,6) {
+            double dot = (GEO::dot(normals[f],label2vector[label]) - 1.0)/0.2;
+            double cost = 1.0 - std::exp(-(1.0/2.0)*std::pow(dot,2));
+            data_cost[f*6+label] = (int) (fidelity*100*cost);
+        }
+    }
+}
+
 void GraphCutLabeling::fill_data_cost__fidelity_based(const std::vector<vec3>& normals, std::vector<int>& data_cost, int fidelity, const std::map<index_t,GCoptimization::SiteID>& facet2siteID, const std::map<index_t,GCoptimization::LabelID>& polycubeLabel2labelID) {
     // cost of assigning a facet to a label, weight based on fidelity coeff & dot product between normal & label direction
     index_t nb_labels = polycubeLabel2labelID.size();
@@ -627,9 +639,9 @@ void GraphCutLabeling::shift_data_cost(std::vector<int>& data_cost, GCoptimizati
     data_cost[siteID*6+labelID] = (int) std::max(0.0f,(((float) data_cost[siteID*6+labelID]) + delta));
 }
 
-vec6i GraphCutLabeling::per_siteID_data_cost_as_vector(const std::vector<int>& data_cost, GCoptimization::SiteID siteID, index_t nb_labels_, index_t nb_siteID) {
-    geo_assert(nb_labels_ == 6); // this method expect GCO on all labels (returns a vec6i)
-    geo_assert(siteID < nb_labels_);
+vec6i GraphCutLabeling::per_siteID_data_cost_as_vector(const std::vector<int>& data_cost, GCoptimization::SiteID siteID, index_t nb_labels, index_t nb_siteID) {
+    geo_assert(nb_labels == 6); // this method expect GCO on all labels (returns a vec6i)
+    geo_assert(siteID < nb_siteID);
     vec6i result;
     memcpy(result.data(),data_cost.data()+(siteID*6),sizeof(int)*6);
     return result;
