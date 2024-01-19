@@ -152,7 +152,7 @@ private:
 
     // possible labels for facets
 
-    GCoptimization::LabelID nb_labels_;
+    index_t nb_labels_;
     std::map<index_t,GCoptimization::LabelID> polycubeLabel2labelID_; // map between polycube label (what the user manage) and labelID (internal to GCO)
     std::vector<index_t> labelID2polycubeLabel_; // map between labelID and polycube label
 

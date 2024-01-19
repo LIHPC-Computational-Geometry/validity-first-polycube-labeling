@@ -136,11 +136,11 @@ GraphCutLabeling::GraphCutLabeling(const Mesh& mesh, const std::vector<vec3>& no
         nb_facets_(nb_facets),
         count_facets_(0), // the user has to call add_facet() nb_facets_ times
         // default initialization for facet2siteID_ (empty map)
-        nb_labels_(labels.size()),
+        nb_labels_((index_t) labels.size()),
         // default initialization for polycubeLabel2labelID_ (empty map)
         labelID2polycubeLabel_(labels), // fill vector from initializer_list
-        gco_( (GCoptimization::SiteID) nb_facets_,nb_labels_),
-        data_cost_((std::vector<int>::size_type) nb_facets_*nb_labels_,0),
+        gco_( (GCoptimization::SiteID) nb_facets_, (GCoptimization::LabelID) labels.size()),
+        data_cost_((std::vector<int>::size_type) nb_facets_*labels.size(),0),
         data_cost_defined_(false),
         smooth_cost_((std::vector<int>::size_type) nb_labels_*nb_labels_,1),
         smooth_cost_defined_(false),
@@ -162,7 +162,7 @@ GraphCutLabeling::GraphCutLabeling(const Mesh& mesh, const std::vector<vec3>& no
     FOR(i,nb_labels_) {
         geo_assert(labelID2polycubeLabel_[i] <= 5); // assert is a valid polycube label
         geo_assert(!polycubeLabel2labelID_.contains(labelID2polycubeLabel_[i])); // prevent duplication of a label
-        polycubeLabel2labelID_[labelID2polycubeLabel_[i]] = i;
+        polycubeLabel2labelID_[labelID2polycubeLabel_[i]] = (GCoptimization::SiteID) i;
     }
 }
 
@@ -173,7 +173,7 @@ void GraphCutLabeling::add_facet(index_t facet) {
     }
     geo_assert(!facet2siteID_.contains(facet)); // prevent re-insertion of a facet
     // register the facet and store the association between facet index and site ID
-    facet2siteID_[facet] = count_facets_;
+    facet2siteID_[facet] = (GCoptimization::SiteID) count_facets_;
     count_facets_++;
 }
 
@@ -208,7 +208,7 @@ void GraphCutLabeling::data_cost__set__locked_labels(const Attribute<index_t>& p
         // but we need a LabelID -> convert with polycubeLabel2labelID_
         FOR(labelID,nb_labels_) {
             // zero-cost for the locked label, high cost for other labels
-            data_cost_[siteID*nb_labels_+labelID] = (labelID==polycubeLabel2labelID_[per_facet_polycube_label[siteID]]) ? 0 : HIGH_COST;
+            data_cost_[siteID*nb_labels_+labelID] = ( (GCoptimization::LabelID) labelID == polycubeLabel2labelID_[per_facet_polycube_label[siteID]]) ? 0 : HIGH_COST;
         }
     }
     data_cost_defined_ = true;
@@ -234,11 +234,14 @@ void GraphCutLabeling::data_cost__change_to__fidelity_based(index_t facet_index,
         geo_assert_not_reached;
     }
     geo_assert(facet2siteID_.contains(facet_index)); // `facet_index` should be among the facets defined for the optimization
-    geo_assert(facet2siteID_[facet_index] < nb_facets_); // the corresponding siteID should be in the range [0:nb_facets_[ = [0:#siteID[
+    geo_assert(facet2siteID_[facet_index] < (GCoptimization::SiteID) nb_facets_); // the corresponding siteID should be in the range [0:nb_facets_[ = [0:#siteID[
     FOR(labelID,nb_labels_) { // for each labelID
         double dot = (GEO::dot(normals_[facet_index],label2vector[labelID2polycubeLabel_[labelID]]) - 1.0)/0.2;
         double cost = 1.0 - std::exp(-(1.0/2.0)*std::pow(dot,2));
-        data_cost_[facet2siteID_[facet_index]*nb_labels_+labelID] = (int) (fidelity*100*cost);
+        data_cost_[
+            (std::vector<int>::size_type) facet2siteID_[facet_index] * (std::vector<int>::size_type) nb_labels_ +
+            (std::vector<int>::size_type) labelID
+        ] = (int) (fidelity*100*cost);
     }
 }
 
@@ -248,10 +251,13 @@ void GraphCutLabeling::data_cost__change_to__locked_polycube_label(index_t facet
         geo_assert_not_reached;
     }
     geo_assert(facet2siteID_.contains(facet_index)); // `facet_index` should be among the facets defined for the optimization
-    geo_assert(facet2siteID_[facet_index] < nb_facets_); // the corresponding siteID should be in the range [0:nb_facets_[ = [0:#siteID[
+    geo_assert(facet2siteID_[facet_index] < (GCoptimization::SiteID) nb_facets_); // the corresponding siteID should be in the range [0:nb_facets_[ = [0:#siteID[
     geo_assert(polycubeLabel2labelID_.contains(locked_polycube_label)); // assert locked_polycube_label is among the possible polycube labels
     FOR(labelID,nb_labels_) { // for each labelID
-        data_cost_[facet2siteID_[facet_index]*nb_labels_+labelID] = (labelID==polycubeLabel2labelID_[locked_polycube_label]) ? 0 : HIGH_COST;
+        data_cost_[
+            (std::vector<int>::size_type) facet2siteID_[facet_index] * (std::vector<int>::size_type) nb_labels_ +
+            (std::vector<int>::size_type) labelID
+        ] = ( (GCoptimization::SiteID) labelID == polycubeLabel2labelID_[locked_polycube_label]) ? 0 : HIGH_COST;
     }
 }
 
@@ -261,9 +267,13 @@ void GraphCutLabeling::data_cost__change_to__forbidden_polycube_label(index_t fa
         geo_assert_not_reached;
     }
     geo_assert(facet2siteID_.contains(facet_index)); // `facet_index` should be among the facets defined for the optimization
-    geo_assert(facet2siteID_[facet_index] < nb_facets_); // the corresponding siteID should be in the range [0:nb_facets_[ = [0:#siteID[
+    geo_assert(facet2siteID_[facet_index] < (GCoptimization::SiteID) nb_facets_); // the corresponding siteID should be in the range [0:nb_facets_[ = [0:#siteID[
     geo_assert(polycubeLabel2labelID_.contains(forbidden_polycube_label)); // assert forbidden_polycube_label is among the possible polycube labels
-    data_cost_[facet2siteID_[facet_index]*nb_labels_+polycubeLabel2labelID_[forbidden_polycube_label]] = HIGH_COST; // do not edit weights of other labels
+    data_cost_[
+        (std::vector<int>::size_type) facet2siteID_[facet_index] * (std::vector<int>::size_type) nb_labels_ +
+        (std::vector<int>::size_type) polycubeLabel2labelID_[forbidden_polycube_label]
+    ] = HIGH_COST;
+    // do not edit weights of other labels
 }
 
 void GraphCutLabeling::data_cost__change_to__scaled(index_t facet_index, index_t polycube_label, float factor) {
@@ -272,9 +282,12 @@ void GraphCutLabeling::data_cost__change_to__scaled(index_t facet_index, index_t
         geo_assert_not_reached;
     }
     geo_assert(facet2siteID_.contains(facet_index)); // `facet_index` should be among the facets defined for the optimization
-    geo_assert(facet2siteID_[facet_index] < nb_facets_); // the corresponding siteID should be in the range [0:nb_facets_[ = [0:#siteID[
+    geo_assert(facet2siteID_[facet_index] < (GCoptimization::SiteID) nb_facets_); // the corresponding siteID should be in the range [0:nb_facets_[ = [0:#siteID[
     geo_assert(polycubeLabel2labelID_.contains(polycube_label)); // assert polycube_label is among the possible polycube labels
-    data_cost_[facet2siteID_[facet_index]*nb_labels_+polycubeLabel2labelID_[polycube_label]] = (int) (((float) data_cost_[facet2siteID_[facet_index]*nb_labels_+polycubeLabel2labelID_[polycube_label]]) * factor);
+    std::vector<int>::size_type index_in_data_cost =
+        (std::vector<int>::size_type) facet2siteID_[facet_index] * (std::vector<int>::size_type) nb_labels_ +
+        (std::vector<int>::size_type) polycubeLabel2labelID_[polycube_label];
+    data_cost_[index_in_data_cost] = (int) (((float) data_cost_[index_in_data_cost]) * factor);
 }
 
 void GraphCutLabeling::data_cost__change_to__shifted(index_t facet_index, index_t polycube_label, float delta) {
@@ -283,7 +296,7 @@ void GraphCutLabeling::data_cost__change_to__shifted(index_t facet_index, index_
         geo_assert_not_reached;
     }
     geo_assert(facet2siteID_.contains(facet_index)); // `facet_index` should be among the facets defined for the optimization
-    geo_assert(facet2siteID_[facet_index] < nb_facets_); // the corresponding siteID should be in the range [0:nb_facets_[ = [0:#siteID[
+    geo_assert(facet2siteID_[facet_index] < (GCoptimization::SiteID) nb_facets_); // the corresponding siteID should be in the range [0:nb_facets_[ = [0:#siteID[
     geo_assert(polycubeLabel2labelID_.contains(polycube_label)); // assert polycube_label is among the possible polycube labels
     shift_data_cost(data_cost_,facet2siteID_[facet_index],polycubeLabel2labelID_[polycube_label],delta);
 }
@@ -294,7 +307,7 @@ void GraphCutLabeling::data_cost__change_to__per_label_weights(index_t facet_ind
         geo_assert_not_reached;
     }
     geo_assert(facet2siteID_.contains(facet_index)); // `facet_index` should be among the facets defined for the optimization
-    geo_assert(facet2siteID_[facet_index] < nb_facets_); // the corresponding siteID should be in the range [0:nb_facets_[ = [0:#siteID[
+    geo_assert(facet2siteID_[facet_index] < (GCoptimization::SiteID) nb_facets_); // the corresponding siteID should be in the range [0:nb_facets_[ = [0:#siteID[
     geo_assert(nb_labels_ == 6); // this method expect GCO on all labels (returns a vec6i)
     memcpy(data_cost_.data()+(facet2siteID_[facet_index]*6),per_polycube_label_weights.data(),sizeof(int)*6);
 }
@@ -312,7 +325,7 @@ void GraphCutLabeling::smooth_cost__set__default() {
     FOR(labelID1,nb_labels_) {
         FOR(labelID2,nb_labels_) {
             // same labelID = very smooth edge = zero cost, different labelID = less smooth = small cost
-            smooth_cost_[labelID1+labelID2*nb_labels_] = (labelID1==labelID2) ? 0 : 1;
+            smooth_cost_[(std::vector<int>::size_type) labelID1 + (std::vector<int>::size_type) labelID2 * (std::vector<int>::size_type) nb_labels_] = (labelID1==labelID2) ? 0 : 1;
         }
     }
     smooth_cost_defined_ = true;
@@ -329,9 +342,10 @@ void GraphCutLabeling::smooth_cost__set__prevent_opposite_neighbors() {
     }
     FOR(labelID1,nb_labels_) {
         FOR(labelID2,nb_labels_) {
-            smooth_cost_[labelID1+labelID2*nb_labels_] = (labelID1==labelID2) ? 0 : ( // if samel label -> null cost
-                                                         (label2axis(labelID2polycubeLabel_[labelID1])==label2axis(labelID2polycubeLabel_[labelID2])) ? HIGH_COST : 1 // if same axis but different label (= opposite labels) -> high cost, else small cost (1)
-                                                         );
+            smooth_cost_[(std::vector<int>::size_type) labelID1 + (std::vector<int>::size_type) labelID2 * (std::vector<int>::size_type) nb_labels_] =
+                (labelID1==labelID2) ? 0 : ( // if samel label -> null cost
+                (label2axis(labelID2polycubeLabel_[labelID1])==label2axis(labelID2polycubeLabel_[labelID2])) ? HIGH_COST : 1 // if same axis but different label (= opposite labels) -> high cost, else small cost (1)
+                );
         }
     }
     smooth_cost_defined_ = true;
@@ -401,7 +415,7 @@ vec6i GraphCutLabeling::data_cost__get__for_facet(index_t facet_index) const {
         geo_assert_not_reached;
     }
     geo_assert(facet2siteID_.contains(facet_index)); // `facet_index` should be among the facets defined for the optimization
-    geo_assert(facet2siteID_.at(facet_index) < nb_facets_); // the corresponding siteID should be in the range [0:nb_facets_[ = [0:#siteID[
+    geo_assert(facet2siteID_.at(facet_index) < (GCoptimization::SiteID) nb_facets_); // the corresponding siteID should be in the range [0:nb_facets_[ = [0:#siteID[
     geo_assert(nb_labels_ == 6); // this method expect GCO on all labels (returns a vec6i)
     return per_siteID_data_cost_as_vector(data_cost_,facet2siteID_.at(facet_index),nb_labels_,nb_facets_);
 }
@@ -412,10 +426,13 @@ int GraphCutLabeling::data_cost__get__for_facet_and_polycube_label(index_t facet
         geo_assert_not_reached;
     }
     geo_assert(facet2siteID_.contains(facet_index)); // `facet_index` should be among the facets defined for the optimization
-    geo_assert(facet2siteID_.at(facet_index) < nb_facets_); // the corresponding siteID should be in the range [0:nb_facets_[ = [0:#siteID[
+    geo_assert(facet2siteID_.at(facet_index) < (GCoptimization::SiteID) nb_facets_); // the corresponding siteID should be in the range [0:nb_facets_[ = [0:#siteID[
     geo_assert(polycubeLabel2labelID_.contains(polycube_label)); // assert polycube_label is among the possible polycube labels
-    geo_assert(polycubeLabel2labelID_.at(polycube_label) < nb_labels_);
-    return data_cost_[facet2siteID_.at(facet_index)*nb_labels_+polycubeLabel2labelID_.at(polycube_label)];
+    geo_assert(polycubeLabel2labelID_.at(polycube_label) < (GCoptimization::LabelID) nb_labels_);
+    return data_cost_[
+        (std::vector<int>::size_type) facet2siteID_.at(facet_index) * (std::vector<int>::size_type) nb_labels_ +
+        (std::vector<int>::size_type) polycubeLabel2labelID_.at(polycube_label)
+    ];
 }
 
 bool GraphCutLabeling::facets_defined() const {
@@ -443,7 +460,12 @@ void GraphCutLabeling::dump_costs() const {
     for(const auto& kv : facet2siteID_) { // first = key = facet index, second = value = siteID
         ofs_data.print("{},{}",kv.first,kv.second);
         FOR(labelID,nb_labels_) {
-            ofs_data.print(",{}",data_cost_[kv.second*nb_labels_+labelID]);
+            ofs_data.print(",{}",
+                data_cost_[
+                    (std::vector<int>::size_type) kv.second * (std::vector<int>::size_type) nb_labels_ +
+                    (std::vector<int>::size_type) labelID
+                ]
+            );
         }
         ofs_data.print("\n");
     }
@@ -603,7 +625,7 @@ void GraphCutLabeling::compute_solution(Attribute<index_t>& output_labeling, int
 
         // get results
         for(auto kv : facet2siteID_)
-            output_labeling[kv.first] = labelID2polycubeLabel_[gco_.whatLabel(kv.second)];
+            output_labeling[kv.first] = labelID2polycubeLabel_[ (std::vector<index_t>::size_type) gco_.whatLabel(kv.second)];
     }
     catch (GCException e) {
 		e.Report();
@@ -624,24 +646,28 @@ void GraphCutLabeling::fill_data_cost__fidelity_based(const std::vector<vec3>& n
 
 void GraphCutLabeling::fill_data_cost__fidelity_based(const std::vector<vec3>& normals, std::vector<int>& data_cost, int fidelity, const std::map<index_t,GCoptimization::SiteID>& facet2siteID, const std::map<index_t,GCoptimization::LabelID>& polycubeLabel2labelID) {
     // cost of assigning a facet to a label, weight based on fidelity coeff & dot product between normal & label direction
-    index_t nb_labels = polycubeLabel2labelID.size();
+    index_t nb_labels = (index_t) polycubeLabel2labelID.size();
     geo_assert(data_cost.size()==facet2siteID.size()*nb_labels); // data_cost should have #facets * #labels elements
     for(const auto& sites : facet2siteID) { // first = facet index, second = siteID
         for(const auto& labels : polycubeLabel2labelID) { // first = polycube label, second = labelID
             double dot = (GEO::dot(normals[sites.first],label2vector[labels.first]) - 1.0)/0.2;
             double cost = 1.0 - std::exp(-(1.0/2.0)*std::pow(dot,2));
-            data_cost[((index_t) sites.second)*nb_labels+labels.second] = (int) (fidelity*100*cost);
+            data_cost[
+                (std::vector<int>::size_type) sites.second * (std::vector<int>::size_type) nb_labels +
+                (std::vector<int>::size_type) labels.second
+            ] = (int) (fidelity*100*cost);
         }
     }
 }
 
 void GraphCutLabeling::shift_data_cost(std::vector<int>& data_cost, GCoptimization::SiteID siteID, GCoptimization::LabelID labelID, float delta) {
-    data_cost[siteID*6+labelID] = (int) std::max(0.0f,(((float) data_cost[siteID*6+labelID]) + delta));
+    std::vector<int>::size_type index_in_data_cost = (std::vector<int>::size_type) siteID * 6 + (std::vector<int>::size_type) labelID;
+    data_cost[index_in_data_cost] = (int) std::max(0.0f,(((float) data_cost[index_in_data_cost]) + delta));
 }
 
 vec6i GraphCutLabeling::per_siteID_data_cost_as_vector(const std::vector<int>& data_cost, GCoptimization::SiteID siteID, index_t nb_labels, index_t nb_siteID) {
     geo_assert(nb_labels == 6); // this method expect GCO on all labels (returns a vec6i)
-    geo_assert(siteID < nb_siteID);
+    geo_assert(siteID < (GCoptimization::SiteID) nb_siteID);
     vec6i result;
     memcpy(result.data(),data_cost.data()+(siteID*6),sizeof(int)*6);
     return result;
