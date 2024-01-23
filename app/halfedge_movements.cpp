@@ -170,11 +170,14 @@ protected:
         ImGui::TextUnformatted(icon_UTF8("star-of-life").c_str());
         ImGui::SameLine();
         ImGui::Checkbox("ignore borders",&ignore_borders_around_vertices);
-        if(ImGui::Button(icon_UTF8("star-of-life") + " Custom clockwise around vertex")) {
+        ImGui::SameLine();
+        ImGui::TextDisabled("(?)");
+        ImGui::SetItemTooltip("Allow \"move (counter)clockwise around vertex\" functions to cross borders");
+        if(ImGui::Button(icon_UTF8("star-of-life") + "Move clockwise around vertex")) {
             custom_mesh_he.move_clockwise_around_vertex(halfedge,ignore_borders_around_vertices);
             update_geometry_data();
         }
-        if(ImGui::Button(icon_UTF8("star-of-life") + "Custom counterclockwise around vertex")) {
+        if(ImGui::Button(icon_UTF8("star-of-life") + "Move counterclockwise around vertex")) {
             custom_mesh_he.move_counterclockwise_around_vertex(halfedge,ignore_borders_around_vertices);
             update_geometry_data();
         }
@@ -189,14 +192,6 @@ protected:
         }
         if(ImGui::Button("Move to next around border")) {
             mesh_he.move_to_next_around_border(halfedge);
-            update_geometry_data();
-        }
-        if(ImGui::Button(icon_UTF8("star-of-life") + " Custom move to prev around border")) {
-            custom_mesh_he.custom_move_to_prev_around_border(halfedge);
-            update_geometry_data();
-        }
-        if(ImGui::Button(icon_UTF8("star-of-life") + " Custom move to next around border")) {
-            custom_mesh_he.custom_move_to_next_around_border(halfedge);
             update_geometry_data();
         }
         ImGui::EndDisabled();

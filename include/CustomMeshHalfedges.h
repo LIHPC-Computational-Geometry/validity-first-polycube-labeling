@@ -158,31 +158,6 @@ namespace GEO {
             MeshHalfedges::move_to_prev_around_border(H);
         }
 
-        // TODO remove. the right one is the one from MeshHalfedges (vanilla Geogram)
-        // -> equivalent to move to prev then move_to_opposite() !!!
-        void custom_move_to_next_around_border(Halfedge& H) const {
-            geo_debug_assert(halfedge_is_valid(H));
-            geo_debug_assert(halfedge_is_border(H));
-            index_t count = 0;
-            do {
-                ++count;
-                geo_assert(count < 10000);
-                move_to_next_around_vertex(H,true);
-            } while(!halfedge_is_border(H));
-        }
-
-        // TODO remove. the right one is the one from MeshHalfedges (vanilla Geogram)
-        // -> the new halfedge is not even on a border !!!
-        void custom_move_to_prev_around_border(Halfedge& H) const {
-            geo_debug_assert(halfedge_is_valid(H));
-            geo_debug_assert(halfedge_is_border(H));
-            index_t count = 0;
-            while(move_to_prev_around_vertex(H)) {
-                ++count;
-                geo_assert(count < 10000);
-            }
-        }
-
         bool is_on_lower_than_180_degrees_edge(Halfedge& H) const {
             // define the plane passing through three points of H.facet
             index_t vertex0 = mesh_.facet_corners.vertex(mesh_.facets.corner(H.facet,0));
