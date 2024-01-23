@@ -375,7 +375,7 @@ int main(int argc, char** argv) {
 		argc,
 		argv,
 		filenames,
-		"input_surface_mesh <output_labeling>"
+		"<input_surface_mesh> <output_labeling>"
 		))
 	{
 		return 1;
@@ -385,6 +385,12 @@ int main(int argc, char** argv) {
 		AutomaticPolycubeApp app;
 		app.start(argc,argv);
 		return 0;
+	}
+	// else: no GUI, auto-process the input mesh
+
+	if(filenames.size() == 0) { // missing filenames[0], that is <input_surface_mesh> argument
+		fmt::println(Logger::err("I/O"),"When gui=false, the input filename must be given as CLI argument"); Logger::err("I/O").flush();
+		return 1;
 	}
 
 	if(filenames.size() < 2) { // missing filenames[1], that is <output_labeling> argument
@@ -401,6 +407,11 @@ int main(int argc, char** argv) {
 
 	if(M.facets.nb() == 0) {
 		fmt::println(Logger::err("I/O"),"Input mesh {} has no facets",filenames[0]);
+		return 1;
+	}
+
+	if(!M.facets.are_simplices()) {
+		fmt::println(Logger::err("I/O"),"Input mesh {} is not a triangle mesh",filenames[0]);
 		return 1;
 	}
 
