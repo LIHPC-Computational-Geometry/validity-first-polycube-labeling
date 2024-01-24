@@ -18,6 +18,7 @@
 #include <set>
 #include <array>
 #include <algorithm>			// for std::min(), std::max(), std::min_element()
+#include <tuple>				// for std::tie()
 
 #include "containers.h"			// for std_dev()
 #include "LabelingViewerApp.h"
@@ -155,11 +156,35 @@ protected:
 			}
 
 			if(ImGui::Button("Straighten boundaries")) {
-				FOR(b,static_labeling_graph_.boundaries.size()) {
-					straighten_boundary(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,b);
-					update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+				if(static_labeling_graph_.boundaries.empty()) {
+					fmt::println(Logger::out("monotonicity"),"No boundaries, operation canceled"); Logger::out("monotonicity").flush();
+				}
+				else {
+					// Because the boundaries may not have the same index before and after update_static_labeling_graph()
+					// and because we need to call update_static_labeling_graph() after that one boundary is processed to update charts,
+					// we first gather the first boundary edge of all boundaries, so at each step we can get the current index of the
+					// associated boundary with static_labeling_graph_.halfedge2boundary
+					// The fist boundary edges should not move after a call of straighten_boundary()...
+					std::vector<MeshHalfedges::Halfedge> boundary_edges_to_process;
+					boundary_edges_to_process.reserve(static_labeling_graph_.nb_boundaries()); // preallocation
+					for(const auto& boundary : static_labeling_graph_.boundaries) {
+						geo_assert(!boundary.halfedges.empty());
+						boundary_edges_to_process.push_back(boundary.halfedges[0]);
+					}
+					index_t boundary_index = index_t(-1);
+					bool boundary_in_same_direction = false;
+					while (!boundary_edges_to_process.empty()) {
+						std::tie(boundary_index,boundary_in_same_direction) = static_labeling_graph_.halfedge2boundary[boundary_edges_to_process.back()];
+						boundary_edges_to_process.pop_back();
+						geo_assert(boundary_index != index_t(-1));
+						straighten_boundary(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,boundary_index);
+						update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+					}
 				}
 			}
+			ImGui::SameLine();
+			ImGui::TextDisabled("(?)");
+			ImGui::SetItemTooltip("Re-draw boundaries so that they are straighter");
 
 			if(ImGui::Button("Merge a turning-point with closest corner")) {
 				if(static_labeling_graph_.non_monotone_boundaries.empty()) {
