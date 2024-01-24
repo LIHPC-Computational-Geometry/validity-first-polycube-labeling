@@ -206,13 +206,7 @@ namespace GEO {
         }
 
         vec3 normal(Halfedge& H) const {
-            vec3 normal = Geom::mesh_facet_normal(mesh_,H.facet);
-            // change direction, so that H.facet is the facet at the other side of the edge
-            move_to_opposite(H);
-            normal += Geom::mesh_facet_normal(mesh_,H.facet);
-            // move back to the initial halfedge
-            move_to_opposite(H);
-            return normal;
+            return Geom::mesh_facet_normal(mesh_,halfedge_facet_left(mesh_,H)) + Geom::mesh_facet_normal(mesh_,halfedge_facet_right(mesh_,H));
         }
     };
 
