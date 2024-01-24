@@ -23,6 +23,7 @@
 #include "containers.h"             // for VECTOR_CONTAINS(), MAP_CONTAINS(), index_of_last(), += on std::vector
 #include "CustomMeshHalfedges.h"    // for CustomMeshHalfedges
 #include "labeling.h"               // for label2vector
+#include "dump_mesh.h"              // for dump_vertex()
 
 bool Chart::is_surrounded_by_feature_edges(const std::vector<Boundary>& all_boundaries) const {
     geo_assert(!boundaries.empty());
@@ -198,26 +199,47 @@ std::ostream& operator<< (std::ostream &out, const Corner& data) {
 }
 
 TurningPoint::TurningPoint(index_t outgoing_local_halfedge_index, const Boundary& boundary, const CustomMeshHalfedges& mesh_he) {
+    geo_assert(mesh_he.is_using_facet_region()); // assert a facet region is defined in mesh_he
     outgoing_local_halfedge_index_ = outgoing_local_halfedge_index;
     // Explore clockwise : right side then left side
     // For each side, sum of angles to know towards with side the turning point is
-    double left_side_sum_of_angles = 0.0;
     double right_side_sum_of_angles = 0.0;
+    double left_side_sum_of_angles = 0.0;
     MeshHalfedges::Halfedge current_halfedge = boundary.halfedges[outgoing_local_halfedge_index], previous_halfedge = current_halfedge;
     mesh_he.move_clockwise_around_vertex(previous_halfedge,true);
-    // explore the left side (clockwise)
-    do {
-        left_side_sum_of_angles += angle(halfedge_vector(mesh_he.mesh(),previous_halfedge),halfedge_vector(mesh_he.mesh(),current_halfedge));
-        previous_halfedge = current_halfedge;
-        mesh_he.move_clockwise_around_vertex(current_halfedge,true); // previous counterclockwise
-    } while (!mesh_he.halfedge_is_border(current_halfedge));
     // explore the right side
     do {
         right_side_sum_of_angles += angle(halfedge_vector(mesh_he.mesh(),previous_halfedge),halfedge_vector(mesh_he.mesh(),current_halfedge));
         previous_halfedge = current_halfedge;
-        mesh_he.move_clockwise_around_vertex(current_halfedge,true); // previous counterclockwise
+        mesh_he.move_clockwise_around_vertex(current_halfedge,true);
+    } while (!mesh_he.halfedge_is_border(current_halfedge));
+    // explore the left side
+    do {
+        left_side_sum_of_angles += angle(halfedge_vector(mesh_he.mesh(),previous_halfedge),halfedge_vector(mesh_he.mesh(),current_halfedge));
+        previous_halfedge = current_halfedge;
+        mesh_he.move_clockwise_around_vertex(current_halfedge,true);
     } while (!mesh_he.halfedge_is_border(current_halfedge));
     direction_ = (left_side_sum_of_angles > right_side_sum_of_angles); // 0 = towards left, 1 = towards right
+}
+
+index_t TurningPoint::get_closest_corner(const Boundary& boundary, const CustomMeshHalfedges& mesh_he) const {
+    // the turning-point is at the base of the halfedge 'outgoing_local_halfedge_index_'
+    // compute 2 distances :
+    // - from boundary.start_corner to turning point (= first halfedge to outgoing_local_halfedge_index_-1 included)
+    // - from turning point to boundary.end_corner (= outgoing_local_halfedge_index_ to last halfedge included)
+    double distance_to_start_corner = 0.0;
+    double distance_to_end_corner = 0.0;
+    FOR(i,outgoing_local_halfedge_index_-1) {
+        distance_to_start_corner += Geom::edge_length(mesh_he.mesh(),boundary.halfedges[i]);
+    }
+    FOR(i,outgoing_local_halfedge_index_-1) {
+        distance_to_end_corner += Geom::edge_length(mesh_he.mesh(),boundary.halfedges[i]);
+    }
+    return (distance_to_start_corner < distance_to_end_corner) ? boundary.start_corner : boundary.end_corner;
+}
+
+index_t TurningPoint::vertex(const Boundary& boundary, const Mesh& mesh) const {
+    return halfedge_vertex_index_from(mesh,boundary.halfedges[outgoing_local_halfedge_index_]);
 }
 
 std::ostream& operator<< (std::ostream &out, const TurningPoint& data) {
@@ -520,6 +542,46 @@ bool Boundary::halfedge_has_turning_point_at_base(index_t local_halfedge_index) 
         }
     }
     return false;
+}
+
+index_t Boundary::get_closest_boundary_of_turning_point(const TurningPoint& turning_point, index_t closest_corner, const CustomMeshHalfedges& mesh_he, const std::map<MeshHalfedges::Halfedge,std::pair<index_t,bool>,HalfedgeCompare>& halfedge2boundary, const std::vector<Corner>& corners) const {
+    geo_assert(mesh_he.is_using_facet_region()); // assert a facet region is defined in mesh_he
+
+    // find the closest corner if not already done in parent function
+    if(closest_corner == index_t(-1)) {
+        closest_corner = turning_point.get_closest_corner(*this,mesh_he);
+    }
+    
+    MeshHalfedges::Halfedge current_halfedge;
+    // TODO check association between closest corner, turning point direction and direction around vertex (clockwise/counterclockwise)
+    if(closest_corner == start_corner) {
+        current_halfedge = halfedges[0]; // get first halfedge of the boundary. its origin vertex is on start_corner
+        geo_assert(halfedge_vertex_index_from(mesh_he.mesh(),current_halfedge) == corners[closest_corner].vertex);
+        if(turning_point.towards_left()) {
+            mesh_he.move_counterclockwise_around_vertex_until_on_border(current_halfedge);
+        }
+        else { // turning point towards right
+            mesh_he.move_clockwise_around_vertex_until_on_border(current_halfedge);
+        }
+    }
+    else if(closest_corner == end_corner) {
+        current_halfedge = *halfedges.rbegin(); // get last halfedge of the boundary. its extremity vertex is on end_corner
+        mesh_he.move_to_opposite(current_halfedge); // flip it so that its origin vertex is on end_corner
+        geo_assert(halfedge_vertex_index_from(mesh_he.mesh(),current_halfedge) == corners[closest_corner].vertex);
+        if(turning_point.towards_right()) {
+            mesh_he.move_counterclockwise_around_vertex_until_on_border(current_halfedge);
+        }
+        else { // turning point towards left
+            mesh_he.move_clockwise_around_vertex_until_on_border(current_halfedge);
+        }
+    }
+    else {
+        geo_assert_not_reached;
+    }
+    geo_assert(halfedge_vertex_index_from(mesh_he.mesh(),current_halfedge) == corners[closest_corner].vertex);
+    geo_assert(halfedge2boundary.contains(current_halfedge)); // assert `current_halfedge` is on a boundary
+    geo_assert(halfedge2boundary.at(current_halfedge).first != halfedge2boundary.at(halfedges[0]).first); // assert the boundary found is not *this
+    return halfedge2boundary.at(current_halfedge).first;
 }
 
 std::ostream& operator<< (std::ostream &out, const Boundary& data) {

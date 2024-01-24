@@ -142,6 +142,10 @@ public:
     bool towards_left() const  { return direction_==0; }
     bool towards_right() const { return direction_==1; }
 
+    // `boundary` must be the boundary on which the turning point is
+    index_t get_closest_corner(const Boundary& boundary, const CustomMeshHalfedges& mesh_he) const;
+    index_t vertex(const Boundary& boundary, const Mesh& mesh) const; // get the vertex on which the turning point is
+
 protected:
 
     index_t outgoing_local_halfedge_index_; // index in Boundary::halfedges
@@ -204,6 +208,8 @@ struct Boundary {
     index_t turning_point_vertex(index_t turning_point_index, const Mesh& mesh) const;
 
     bool halfedge_has_turning_point_at_base(index_t local_halfedge_index) const;
+
+    index_t get_closest_boundary_of_turning_point(const TurningPoint& turning_point, index_t closest_corner, const CustomMeshHalfedges& mesh_he, const std::map<MeshHalfedges::Halfedge,std::pair<index_t,bool>,HalfedgeCompare>& halfedge2boundary, const std::vector<Corner>& corners) const;
 };
 
 std::ostream& operator<< (std::ostream &out, const Boundary& data);

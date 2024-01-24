@@ -612,6 +612,10 @@ void GraphCutLabeling::compute_solution(Attribute<index_t>& output_labeling, int
         geo_assert_not_reached;
     }
 
+    #ifndef NDEBUG
+        fmt::println(Logger::out("graph-cut"),"Launching GCO optimizer with {} facet and {} labels",nb_facets_,nb_labels_); Logger::out("graph-cut").flush();
+    #endif
+
     try {
         gco_.setDataCost(data_cost_.data());
         gco_.setSmoothCost(smooth_cost_.data());

@@ -4,6 +4,7 @@
 
 #include <geogram/mesh/mesh.h>
 #include <geogram/mesh/mesh_halfedges.h>    // for MeshHalfedges::Halfedge
+#include <geogram/mesh/mesh_io.h>           // for mesh_save()
 
 #include <string>
 #include <set>

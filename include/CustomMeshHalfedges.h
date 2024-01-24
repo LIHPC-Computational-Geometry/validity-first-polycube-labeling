@@ -55,6 +55,10 @@ namespace GEO {
             set_use_facet_region(std::string(attribute_name));
         }
 
+        bool is_using_facet_region() const {
+            return facet_region_.is_bound();
+        }
+
         // re-expose this method from MeshHalfedges
         void move_to_next_around_facet(Halfedge& H) const {
             MeshHalfedges::move_to_next_around_facet(H);
@@ -146,6 +150,30 @@ namespace GEO {
             // around vertices, next is clockwise and prev is counterclockwise
             // -> call move_to_prev_around_vertex()
             return move_to_prev_around_vertex(H,ignore_borders);
+        }
+
+        void move_clockwise_around_vertex_until_on_border(Halfedge& H) const {
+            index_t count = 0;
+            do {
+                if(!move_clockwise_around_vertex(H,true)) { // move clockwise and ignore borders
+                    geo_assert_not_reached; // move failed
+                }
+                ++count;
+                geo_assert(count < 10000); // prevent infinite loop
+            }
+            while(!halfedge_is_border(H));
+        }
+
+        void move_counterclockwise_around_vertex_until_on_border(Halfedge& H) const {
+            index_t count = 0;
+            do {
+                if(!move_counterclockwise_around_vertex(H,true)) { // move clockwise and ignore borders
+                    geo_assert_not_reached;  // move failed
+                }
+                ++count;
+                geo_assert(count < 10000); // prevent infinite loop
+            }
+            while(!halfedge_is_border(H));
         }
 
         // re-expose this method from MeshHalfedges

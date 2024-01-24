@@ -602,76 +602,35 @@ void straighten_boundary(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
 }
 
 void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, const StaticLabelingGraph& slg, index_t non_monotone_boundary_index) {
+    
+    // get the boundary from its index
+
     const Boundary& boundary = slg.boundaries[slg.non_monotone_boundaries[non_monotone_boundary_index]];
+
+    // get its only turning point
+
     if(boundary.turning_points.size() != 1) {
         fmt::println(Logger::out("monotonicity"),"Ignoring boundary {} which has {} turning-points instead of 1 for pull_closest_corner()",slg.non_monotone_boundaries[non_monotone_boundary_index],boundary.turning_points.size()); Logger::out("monotonicity").flush();
         return;
     }
-    Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // get labeling attribute
     const TurningPoint& tp = boundary.turning_points[0];
-    index_t halfedge_index_turning_point = tp.outgoing_local_halfedge_index();
-    #ifndef NDEBUG
-        dump_vertex("current_tp",mesh,boundary.turning_point_vertex(0,mesh));
-    #endif
-    index_t closest_corner = index_t(-1);
-    index_t new_label = index_t(-1); // label to assign between the boundary to remove, and its "parallel" passing by the turning point
+    
+    // get labeling attribute and instanciate the halfedges API
+
+    Attribute<index_t> label(mesh.facets.attributes(), attribute_name);
     CustomMeshHalfedges mesh_he(mesh);
     mesh_he.set_use_facet_region(attribute_name);
-    MeshHalfedges::Halfedge current_halfedge; // first, will store outgoing halfedge of the closest_corner
-    // the turning-point is at the base of the halfedge 'halfedge_index_turning_point'
-    // compute 2 distances :
-    // - from start corner to turning point (= first halfedge to halfedge_index_turning_point-1 included)
-    // - from turning point to end corner (= halfedge_index_turning_point to last halfedge included)
-    double distance_to_start_corner = 0.0;
-    double distance_to_end_corner = 0.0;
-    FOR(i,halfedge_index_turning_point-1) {
-        distance_to_start_corner += length(Geom::halfedge_vector(mesh,boundary.halfedges[i]));
-    }
-    FOR(i,halfedge_index_turning_point-1) {
-        distance_to_end_corner += length(Geom::halfedge_vector(mesh,boundary.halfedges[i]));
-    }
-    // TODO check association between closest corner, turning point direction and direction around vertex (clockwise/counterclockwise)
-    if(distance_to_start_corner < distance_to_end_corner) {
-        closest_corner = boundary.start_corner;
-        current_halfedge = boundary.halfedges[0];
-        if(tp.towards_left()) {
-            do {
-                mesh_he.move_clockwise_around_vertex(current_halfedge,true); // next clockwise
-            }
-            while(!mesh_he.halfedge_is_border(current_halfedge));
-            // do while could be replace by (...,false); ?
-        }
-        else {
-            do {
-                mesh_he.move_counterclockwise_around_vertex(current_halfedge,true); // next counterclockwise
-            }
-            while(!mesh_he.halfedge_is_border(current_halfedge));
-            // do while could be replace by (...,false); ?
-        }
-    }
-    else {
-        closest_corner = boundary.end_corner;
-        current_halfedge = *boundary.halfedges.rbegin();
-        mesh_he.move_to_opposite(current_halfedge);
-        if(tp.towards_right()) {
-            do {
-                mesh_he.move_clockwise_around_vertex(current_halfedge,true); // next clockwise
-            }
-            while(!mesh_he.halfedge_is_border(current_halfedge));
-            // do while could be replace by (...,false); ?
-        }
-        else {
-            do {
-                mesh_he.move_counterclockwise_around_vertex(current_halfedge,true); // next counterclockwise
-            }
-            while(!mesh_he.halfedge_is_border(current_halfedge));
-            // do while could be replace by (...,false); ?
-        }
-    }
     #ifndef NDEBUG
-        dump_vertex("closest_corner",mesh,slg.corners[closest_corner].vertex);
+        dump_vertex("current_tp",mesh_he.mesh(),tp.vertex(boundary,mesh_he.mesh()));
     #endif
-    const Boundary& boundary_to_move = slg.boundaries[slg.halfedge2boundary.at(current_halfedge).first];
+
+    // find which corner of `boundary` is the closest of `tp`
+    
+    index_t closest_corner = tp.get_closest_corner(boundary,mesh_he);
+
+    // find which boundary around `closest_corner` is closest to `tp`, excluding `boundary`
+
+    const Boundary& boundary_to_move = slg.boundaries[boundary.get_closest_boundary_of_turning_point(tp,closest_corner,mesh_he,slg.halfedge2boundary,slg.corners)];
     #ifndef NDEBUG
         Mesh boundary_to_move_file;
         boundary_to_move_file.copy(mesh,false,MESH_VERTICES);
@@ -682,8 +641,12 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
             mesh_he.move_to_opposite(tmp_he);
             boundary_to_move_file.edges.set_vertex(he_index,1,mesh.facet_corners.vertex(tmp_he.corner));
         }
-        mesh_save(boundary_to_move_file,"boundary_to_move_file.geogram");
+        mesh_save(boundary_to_move_file,"boundary_to_move.geogram");
     #endif
+
+    // find which label to assign between the boundary to remove and its "parallel" passing by the turning point
+    
+    index_t new_label = index_t(-1);
     // TODO check new_label computation
     if(tp.towards_right()) {
         new_label = slg.charts[boundary_to_move.right_chart].label;
@@ -691,31 +654,42 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
     else {
         new_label = slg.charts[boundary_to_move.left_chart].label;
     }
-    // prepare a graph-cut optimization on both sides (2 charts)
-    // TODO distance-based : the further a facet is, the bigger is the cost of changing its label. (too restrictive for this operator?)
-    // TODO restrict possible labels to the ones of the 2 charts
+
+    // aggregate the facets of the left and right chart into a single set
+
     std::set<index_t> union_of_2_charts;
     union_of_2_charts.insert(slg.charts[boundary_to_move.left_chart].facets.begin(),slg.charts[boundary_to_move.left_chart].facets.end());
-        union_of_2_charts.insert(slg.charts[boundary_to_move.right_chart].facets.begin(),slg.charts[boundary_to_move.right_chart].facets.end());
+    union_of_2_charts.insert(slg.charts[boundary_to_move.right_chart].facets.begin(),slg.charts[boundary_to_move.right_chart].facets.end());
     #ifndef NDEBUG
         dump_facets("2_charts",mesh,union_of_2_charts);
     #endif
-    auto gcl = GraphCutLabeling(mesh,normals,(index_t) union_of_2_charts.size(),{0,1,2,3,4,5}); // graph-cut only on the two charts
+
+    // prepare a graph-cut optimization on both sides (2 charts)
+
+    // TODO distance-based : the further a facet is, the bigger is the cost of changing its label. (too restrictive for this operator?)
+    // TODO restrict the possible labels
+    auto gcl = GraphCutLabeling(mesh,normals,(index_t) union_of_2_charts.size(),{0,1,2,3,4,5});
     for(index_t f : union_of_2_charts) {
         gcl.add_facet(f);
     }
     gcl.data_cost__set__fidelity_based(1);
+
     // Lock labels between the turning point and the corner, to ensure the corner moves where the turning point is
     // Note that MeshHalfedges::Halfedge::facet is the facet at the LEFT of the halfedge
     #ifndef NDEBUG
         std::set<index_t> facets_with_locked_label;
     #endif
+    MeshHalfedges::Halfedge current_halfedge;
     if(closest_corner == boundary.start_corner) {
         // go across the boundary in the opposite way
-        for(signed_index_t halfedge_index = (signed_index_t) (halfedge_index_turning_point-1); halfedge_index>= 0; halfedge_index--) {
+        for(signed_index_t halfedge_index = (signed_index_t) (tp.outgoing_local_halfedge_index()-1); halfedge_index>= 0; halfedge_index--) {
             current_halfedge = boundary.halfedges[(std::vector<GEO::MeshHalfedges::Halfedge>::size_type) halfedge_index];
             if(tp.towards_right()) {
                 mesh_he.move_to_opposite(current_halfedge);
+            }
+            if(!union_of_2_charts.contains(current_halfedge.facet)) {
+                fmt::println(Logger::warn("monotonicity"),"pull_closest_corner() : facet {} ignored in GCoptimization because not a part of the 2 charts",current_halfedge.facet); Logger::warn("monotonicity").flush();
+                continue;
             }
             gcl.data_cost__change_to__locked_polycube_label(current_halfedge.facet,new_label);
             #ifndef NDEBUG
@@ -725,10 +699,14 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
     }
     else {
         // go across the boundary in the same direction as the halfedges
-        for(index_t halfedge_index = halfedge_index_turning_point; halfedge_index < boundary.halfedges.size(); halfedge_index++) {
+        for(index_t halfedge_index = tp.outgoing_local_halfedge_index(); halfedge_index < boundary.halfedges.size(); halfedge_index++) {
             current_halfedge = boundary.halfedges[halfedge_index];
             if(tp.towards_right()) {
                 mesh_he.move_to_opposite(current_halfedge);
+            }
+            if(!union_of_2_charts.contains(current_halfedge.facet)) {
+                fmt::println(Logger::warn("monotonicity"),"pull_closest_corner() : facet {} ignored in GCoptimization because not a part of the 2 charts",current_halfedge.facet); Logger::warn("monotonicity").flush();
+                continue;
             }
             gcl.data_cost__change_to__locked_polycube_label(current_halfedge.facet,new_label);
             #ifndef NDEBUG
@@ -737,6 +715,7 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
         }
     }
     #ifndef NDEBUG
+        fmt::println(Logger::out("monotonicity"),"facets_with_locked_label contains {} facets",facets_with_locked_label.size()); Logger::out("monotonicity").flush();
         dump_facets("facets_with_locked_label",mesh,facets_with_locked_label);
     #endif
     gcl.smooth_cost__set__default();
