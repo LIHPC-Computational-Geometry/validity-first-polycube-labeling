@@ -606,6 +606,9 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
     // get the boundary from its index
 
     const Boundary& boundary = slg.boundaries[slg.non_monotone_boundaries[non_monotone_boundary_index]];
+    #ifndef NDEBUG
+        dump_boundary_with_halfedges_indices("non-monotone_boundary",mesh,boundary);
+    #endif
 
     // get its only turning point
 
