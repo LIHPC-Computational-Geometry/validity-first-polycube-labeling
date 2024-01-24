@@ -584,6 +584,14 @@ index_t Boundary::get_closest_boundary_of_turning_point(const TurningPoint& turn
     return halfedge2boundary.at(current_halfedge).first;
 }
 
+vec3 Boundary::average_vector(const Mesh& mesh, const std::vector<Corner>& corners) const {
+    geo_assert(start_corner != index_t(-1));
+    geo_assert(end_corner != index_t(-1));
+    // compute the vector going from the start corner to the end corner of the boundary
+    // and divide by the number of halfedges
+    return (mesh_vertex(mesh,corners[end_corner].vertex) - mesh_vertex(mesh,corners[start_corner].vertex)) / (double) halfedges.size();
+}
+
 std::ostream& operator<< (std::ostream &out, const Boundary& data) {
     fmt::println(out,"\taxis : {}",data.axis);
     fmt::println(out,"\tis_valid : {}",data.is_valid);

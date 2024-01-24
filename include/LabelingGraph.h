@@ -210,6 +210,8 @@ struct Boundary {
     bool halfedge_has_turning_point_at_base(index_t local_halfedge_index) const;
 
     index_t get_closest_boundary_of_turning_point(const TurningPoint& turning_point, index_t closest_corner, const CustomMeshHalfedges& mesh_he, const std::map<MeshHalfedges::Halfedge,std::pair<index_t,bool>,HalfedgeCompare>& halfedge2boundary, const std::vector<Corner>& corners) const;
+
+    vec3 average_vector(const Mesh& mesh, const std::vector<Corner>& corners) const;
 };
 
 std::ostream& operator<< (std::ostream &out, const Boundary& data);
