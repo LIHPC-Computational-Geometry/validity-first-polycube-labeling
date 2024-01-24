@@ -840,9 +840,9 @@ void trace_contour(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char
         std::map<std::pair<GEO::index_t, GEO::index_t>, index_t> edges_and_attributes;
         index_t vertex_1 = index_t(-1),
                 vertex_2 = index_t(-1);
-        for(const auto& kv : all_boundary_halfedges) {
-            vertex_1 = mesh.facet_corners.vertex(kv.first.corner);
-            vertex_2 = mesh.facet_corners.vertex(mesh.facets.next_corner_around_facet(kv.first.facet,kv.first.corner));
+        for(const auto& kv : all_boundary_halfedges) { // kv.first will be the halfedge itselft, kv.second the associated direction
+            vertex_1 = halfedge_vertex_index_from(mesh,kv.first);
+            vertex_2 = halfedge_vertex_index_to(mesh,kv.first);
             edges_and_attributes[std::make_pair(vertex_1,vertex_2)] = kv.second;
         }
         dump_edges("all_boundary_edges","axis",mesh,edges_and_attributes);
