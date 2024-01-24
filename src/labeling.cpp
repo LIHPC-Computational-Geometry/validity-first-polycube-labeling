@@ -613,7 +613,7 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
     // get its only turning point
 
     if(boundary.turning_points.size() != 1) {
-        fmt::println(Logger::out("monotonicity"),"Ignoring boundary {} which has {} turning-points instead of 1 for pull_closest_corner()",slg.non_monotone_boundaries[non_monotone_boundary_index],boundary.turning_points.size()); Logger::out("monotonicity").flush();
+        fmt::println(Logger::out("monotonicity"),"Cannot apply pull_closest_corner() on boundary {} which has {} turning-points instead of 1",slg.non_monotone_boundaries[non_monotone_boundary_index],boundary.turning_points.size()); Logger::out("monotonicity").flush();
         return;
     }
     const TurningPoint& tp = boundary.turning_points[0];

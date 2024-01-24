@@ -161,12 +161,18 @@ protected:
 				}
 			}
 
-			if(ImGui::Button("Merge corners and turning points")) {
-				FOR(b,static_labeling_graph_.non_monotone_boundaries.size()) {
-					pull_closest_corner(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,b);
+			if(ImGui::Button("Merge a turning-point with closest corner")) {
+				if(static_labeling_graph_.non_monotone_boundaries.empty()) {
+					fmt::println(Logger::out("monotonicity"),"All boundaries are monotones, operation canceled"); Logger::out("monotonicity").flush();
+				}
+				else {
+					pull_closest_corner(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,0);
 					update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 				}
 			}
+			ImGui::SameLine();
+			ImGui::TextDisabled("(?)");
+			ImGui::SetItemTooltip("Select the first non-monotone boundary, and if it has only 1 turning-point, try to pull the closest corner so that they coincide");
 
 			if(ImGui::Button("Auto fix monotonicity")) {
 				auto_fix_monotonicity(mesh_,static_labeling_graph_,500,feature_edges_);
