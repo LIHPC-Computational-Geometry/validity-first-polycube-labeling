@@ -232,7 +232,7 @@ index_t TurningPoint::get_closest_corner(const Boundary& boundary, const CustomM
     FOR(i,outgoing_local_halfedge_index_-1) {
         distance_to_start_corner += Geom::edge_length(mesh_he.mesh(),boundary.halfedges[i]);
     }
-    FOR(i,outgoing_local_halfedge_index_-1) {
+    for(index_t i = outgoing_local_halfedge_index_; i < boundary.halfedges.size(); i++) {
         distance_to_end_corner += Geom::edge_length(mesh_he.mesh(),boundary.halfedges[i]);
     }
     return (distance_to_start_corner < distance_to_end_corner) ? boundary.start_corner : boundary.end_corner;

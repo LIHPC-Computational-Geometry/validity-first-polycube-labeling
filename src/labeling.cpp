@@ -627,6 +627,9 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
     // find which corner of `boundary` is the closest of `tp`
     
     index_t closest_corner = tp.get_closest_corner(boundary,mesh_he);
+    #ifndef NDEBUG
+        dump_vertex("closest_corner",mesh,slg.corners[closest_corner].vertex);
+    #endif
 
     // find which boundary around `closest_corner` is closest to `tp`, excluding `boundary`
 
