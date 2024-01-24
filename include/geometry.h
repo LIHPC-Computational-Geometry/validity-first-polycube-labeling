@@ -103,3 +103,6 @@ void transfer_feature_edges(Mesh& mesh, std::set<std::pair<index_t,index_t>>& fe
 bool halfedge_is_on_feature_edge(const Mesh& mesh, const MeshHalfedges::Halfedge& H, const std::set<std::pair<index_t,index_t>>& feature_edges);
 
 void rotate_mesh_according_to_principal_axes(Mesh& mesh);
+
+// the vertex around which halfedges will be tested is the origin vertex of `init_halfedge` 
+MeshHalfedges::Halfedge get_most_aligned_halfedge_around_vertex(const MeshHalfedges::Halfedge& init_halfedge, const CustomMeshHalfedges& mesh_he, const vec3& reference);
