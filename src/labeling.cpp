@@ -451,7 +451,7 @@ unsigned int move_boundaries_near_turning_points(GEO::Mesh& mesh, const char* at
             geo_assert(vr.valence() == 2); // should have only 2 charts
 
             // new label according to towards which chart the turning point is
-            new_label = slg.charts[tp.towards_left() ? slg.boundaries[b].left_chart : slg.boundaries[b].right_chart].label;
+            new_label = slg.charts[tp.is_towards_left() ? slg.boundaries[b].left_chart : slg.boundaries[b].right_chart].label;
 
             current_halfedge = initial_halfedge;
             // go around the vertex and assign new_label to adjacent facets
@@ -654,7 +654,7 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
     
     index_t new_label = index_t(-1);
     // TODO check new_label computation
-    if(tp.towards_right()) {
+    if(tp.is_towards_right()) {
         new_label = slg.charts[boundary_to_move.right_chart].label;
     }
     else {
@@ -690,7 +690,7 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
         // go across the boundary in the opposite way
         for(signed_index_t halfedge_index = (signed_index_t) (tp.outgoing_local_halfedge_index()-1); halfedge_index>= 0; halfedge_index--) {
             current_halfedge = boundary.halfedges[(std::vector<GEO::MeshHalfedges::Halfedge>::size_type) halfedge_index];
-            if(tp.towards_right()) {
+            if(tp.is_towards_right()) {
                 mesh_he.move_to_opposite(current_halfedge);
             }
             if(!union_of_2_charts.contains(current_halfedge.facet)) {
@@ -707,7 +707,7 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
         // go across the boundary in the same direction as the halfedges
         for(index_t halfedge_index = tp.outgoing_local_halfedge_index(); halfedge_index < boundary.halfedges.size(); halfedge_index++) {
             current_halfedge = boundary.halfedges[halfedge_index];
-            if(tp.towards_right()) {
+            if(tp.is_towards_right()) {
                 mesh_he.move_to_opposite(current_halfedge);
             }
             if(!union_of_2_charts.contains(current_halfedge.facet)) {

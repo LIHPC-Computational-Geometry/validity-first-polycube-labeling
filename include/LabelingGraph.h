@@ -139,8 +139,8 @@ public:
     
     TurningPoint(index_t outgoing_local_halfedge_index, const Boundary& boundary, const CustomMeshHalfedges& mesh_he); // important : mesh_he must use facet region (on the labeling)
     index_t outgoing_local_halfedge_index() const { return outgoing_local_halfedge_index_; }
-    bool towards_left() const  { return direction_==0; }
-    bool towards_right() const { return direction_==1; }
+    bool is_towards_left() const  { return is_towards_right_ == false; }
+    bool is_towards_right() const { return is_towards_right_; }
 
     // `boundary` must be the boundary on which the turning point is
     index_t get_closest_corner(const Boundary& boundary, const CustomMeshHalfedges& mesh_he) const;
@@ -149,7 +149,7 @@ public:
 protected:
 
     index_t outgoing_local_halfedge_index_; // index in Boundary::halfedges
-    bool direction_; // 0 = left, 1 = right
+    bool is_towards_right_;
 };
 
 std::ostream& operator<< (std::ostream &out, const TurningPoint& data);

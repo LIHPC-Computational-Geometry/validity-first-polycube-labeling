@@ -219,7 +219,7 @@ TurningPoint::TurningPoint(index_t outgoing_local_halfedge_index, const Boundary
         previous_halfedge = current_halfedge;
         mesh_he.move_clockwise_around_vertex(current_halfedge,true);
     } while (!mesh_he.halfedge_is_border(current_halfedge));
-    direction_ = (left_side_sum_of_angles > right_side_sum_of_angles); // 0 = towards left, 1 = towards right
+    is_towards_right_ = (right_side_sum_of_angles > left_side_sum_of_angles);
 }
 
 index_t TurningPoint::get_closest_corner(const Boundary& boundary, const CustomMeshHalfedges& mesh_he) const {
@@ -243,7 +243,7 @@ index_t TurningPoint::vertex(const Boundary& boundary, const Mesh& mesh) const {
 }
 
 std::ostream& operator<< (std::ostream &out, const TurningPoint& data) {
-    fmt::println(out,"\t\toutgoing_local_halfedge_index : {}, direction : {}",data.outgoing_local_halfedge_index(),data.towards_left() ? "left" : "right");
+    fmt::println(out,"\t\toutgoing_local_halfedge_index : {}, direction : {}",data.outgoing_local_halfedge_index(),data.is_towards_left() ? "left" : "right");
     return out;
 }
 
@@ -557,7 +557,7 @@ index_t Boundary::get_closest_boundary_of_turning_point(const TurningPoint& turn
     if(closest_corner == start_corner) {
         current_halfedge = halfedges[0]; // get first halfedge of the boundary. its origin vertex is on start_corner
         geo_assert(halfedge_vertex_index_from(mesh_he.mesh(),current_halfedge) == corners[closest_corner].vertex);
-        if(turning_point.towards_left()) {
+        if(turning_point.is_towards_left()) {
             mesh_he.move_counterclockwise_around_vertex_until_on_border(current_halfedge);
         }
         else { // turning point towards right
@@ -568,7 +568,7 @@ index_t Boundary::get_closest_boundary_of_turning_point(const TurningPoint& turn
         current_halfedge = *halfedges.rbegin(); // get last halfedge of the boundary. its extremity vertex is on end_corner
         mesh_he.move_to_opposite(current_halfedge); // flip it so that its origin vertex is on end_corner
         geo_assert(halfedge_vertex_index_from(mesh_he.mesh(),current_halfedge) == corners[closest_corner].vertex);
-        if(turning_point.towards_right()) {
+        if(turning_point.is_towards_right()) {
             mesh_he.move_counterclockwise_around_vertex_until_on_border(current_halfedge);
         }
         else { // turning point towards left
