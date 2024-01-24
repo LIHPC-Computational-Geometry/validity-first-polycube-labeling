@@ -204,10 +204,6 @@ namespace GEO {
             // evaluate the plane equation at tip, return the sign
             return ((plane.a * tip.x) + (plane.b * tip.y) + (plane.c * tip.z) + plane.d < 0);
         }
-
-        vec3 normal(Halfedge& H) const {
-            return Geom::mesh_facet_normal(mesh_,halfedge_facet_left(mesh_,H)) + Geom::mesh_facet_normal(mesh_,halfedge_facet_right(mesh_,H));
-        }
     };
 
     namespace Geom {
@@ -304,6 +300,12 @@ namespace GEO {
                 }
             }
             geo_assert_not_reached;
+        }
+
+        inline vec3 halfedge_normal(
+            const Mesh& M, const MeshHalfedges::Halfedge& H
+        ) {
+            return Geom::mesh_facet_normal(M,halfedge_facet_left(M,H)) + Geom::mesh_facet_normal(M,halfedge_facet_right(M,H));
         }
 
         inline void halfedge_verbose_print(

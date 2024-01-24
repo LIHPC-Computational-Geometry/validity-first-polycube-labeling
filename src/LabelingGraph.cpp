@@ -317,7 +317,7 @@ void Boundary::explore(const MeshHalfedges::Halfedge& initial_halfedge,
     );
 
     // start computation of the average normal
-    average_normal = mesh_halfedges.normal(current_halfedge);
+    average_normal = halfedge_normal(mesh,current_halfedge);
 
     // Step 2 : go from boundary edge to boundary edge until we found a corner
     
@@ -349,7 +349,7 @@ void Boundary::explore(const MeshHalfedges::Halfedge& initial_halfedge,
             mesh_halfedges.move_to_opposite(current_halfedge); // switch orientation
 
             // update the averge normal of the boundary
-            average_normal += mesh_halfedges.normal(current_halfedge);
+            average_normal += halfedge_normal(mesh,current_halfedge);
 
             // check if we (still) are on a feature edge
             if(!halfedge_is_on_feature_edge(mesh_halfedges.mesh(),current_halfedge,feature_edges)) {
