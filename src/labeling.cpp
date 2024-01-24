@@ -638,16 +638,7 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
 
     const Boundary& boundary_to_move = slg.boundaries[boundary.get_closest_boundary_of_turning_point(tp,closest_corner,mesh_he,slg.halfedge2boundary,slg.corners)];
     #ifndef NDEBUG
-        Mesh boundary_to_move_file;
-        boundary_to_move_file.copy(mesh,false,MESH_VERTICES);
-        boundary_to_move_file.edges.create_edges((index_t) boundary_to_move.halfedges.size());
-        FOR(he_index,boundary_to_move.halfedges.size()) {
-            MeshHalfedges::Halfedge tmp_he = boundary_to_move.halfedges[he_index];
-            boundary_to_move_file.edges.set_vertex(he_index,0,mesh.facet_corners.vertex(tmp_he.corner));
-            mesh_he.move_to_opposite(tmp_he);
-            boundary_to_move_file.edges.set_vertex(he_index,1,mesh.facet_corners.vertex(tmp_he.corner));
-        }
-        mesh_save(boundary_to_move_file,"boundary_to_move.geogram");
+        dump_boundary("boundary_to_move",mesh,boundary_to_move);
     #endif
 
     // find which label to assign between the boundary to remove and its "parallel" passing by the turning point

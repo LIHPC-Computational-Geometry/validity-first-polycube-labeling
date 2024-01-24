@@ -39,6 +39,19 @@ bool dump_edges(std::string filename, const Mesh& mesh, const std::set<std::pair
     return mesh_save(out,filename + ".geogram");
 }
 
+bool dump_boundary(std::string filename, const Mesh& mesh, const Boundary& boundary) {
+    Mesh boundary_mesh;
+    boundary_mesh.copy(mesh,false,MESH_VERTICES); // keep only vertices
+    index_t first_edge_index = boundary_mesh.edges.create_edges((index_t) boundary.halfedges.size()); // create as many edges as they are halfedges in `boundary`
+    geo_assert(first_edge_index==0);
+    FOR(halfedge_index,boundary.halfedges.size()) {
+        boundary_mesh.edges.set_vertex(halfedge_index,0,Geom::halfedge_vertex_index_from(mesh,boundary.halfedges[halfedge_index]));
+        boundary_mesh.edges.set_vertex(halfedge_index,1,Geom::halfedge_vertex_index_to(mesh,boundary.halfedges[halfedge_index]));
+    }
+    boundary_mesh.vertices.remove_isolated();
+    return mesh_save(boundary_mesh,filename + ".geogram");
+}
+
 bool dump_boundary_with_halfedges_indices(std::string filename, const Mesh& mesh, const Boundary& boundary) {
     Mesh boundary_mesh;
     boundary_mesh.copy(mesh,false,MESH_VERTICES); // keep only vertices
