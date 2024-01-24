@@ -653,35 +653,33 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
     // find which label to assign between the boundary to remove and its "parallel" passing by the turning point
     
     index_t new_label = index_t(-1);
-    // TODO check new_label computation
+    index_t chart_on_which_the_new_boundary_will_be_ = index_t(-1);
     if(tp.is_towards_right()) {
-        new_label = slg.charts[boundary_to_move.right_chart].label;
-    }
-    else {
+        chart_on_which_the_new_boundary_will_be_ = boundary_to_move.right_chart;
         new_label = slg.charts[boundary_to_move.left_chart].label;
     }
-
-    // aggregate the facets of the left and right chart into a single set
-
-    std::set<index_t> union_of_2_charts;
-    union_of_2_charts.insert(slg.charts[boundary_to_move.left_chart].facets.begin(),slg.charts[boundary_to_move.left_chart].facets.end());
-    union_of_2_charts.insert(slg.charts[boundary_to_move.right_chart].facets.begin(),slg.charts[boundary_to_move.right_chart].facets.end());
+    else {
+        chart_on_which_the_new_boundary_will_be_ = boundary_to_move.left_chart;
+        new_label = slg.charts[boundary_to_move.right_chart].label;
+    }
+    
+    const std::set<index_t>& facets_used = slg.charts[chart_on_which_the_new_boundary_will_be_].facets;
     #ifndef NDEBUG
-        dump_facets("2_charts",mesh,union_of_2_charts);
+        dump_facets("chart_on_which_the_new_boundary_will_be",mesh,facets_used);
     #endif
 
-    // prepare a graph-cut optimization on both sides (2 charts)
+    // prepare a graph-cut optimization on `facets_used`
 
     // TODO distance-based : the further a facet is, the bigger is the cost of changing its label. (too restrictive for this operator?)
     // TODO restrict the possible labels
-    auto gcl = GraphCutLabeling(mesh,normals,(index_t) union_of_2_charts.size(),{0,1,2,3,4,5});
-    for(index_t f : union_of_2_charts) {
+    auto gcl = GraphCutLabeling(mesh,normals,(index_t) facets_used.size(),{0,1,2,3,4,5});
+    for(index_t f : facets_used) {
         gcl.add_facet(f);
     }
     gcl.data_cost__set__fidelity_based(1);
 
     // Lock labels between the turning point and the corner, to ensure the corner moves where the turning point is
-    // Note that MeshHalfedges::Halfedge::facet is the facet at the LEFT of the halfedge
+    // Note that MeshHalfedges::Halfedge::facet is the facet at the LEFT of the halfedge (we assume outward normals)
     #ifndef NDEBUG
         std::set<index_t> facets_with_locked_label;
     #endif
@@ -693,8 +691,8 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
             if(tp.is_towards_right()) {
                 mesh_he.move_to_opposite(current_halfedge);
             }
-            if(!union_of_2_charts.contains(current_halfedge.facet)) {
-                fmt::println(Logger::warn("monotonicity"),"pull_closest_corner() : facet {} ignored in GCoptimization because not a part of the 2 charts",current_halfedge.facet); Logger::warn("monotonicity").flush();
+            if(!facets_used.contains(current_halfedge.facet)) {
+                fmt::println(Logger::warn("monotonicity"),"pull_closest_corner() : facet {} ignored in GCoptimization because not a part of the facets_used",current_halfedge.facet); Logger::warn("monotonicity").flush();
                 continue;
             }
             gcl.data_cost__change_to__locked_polycube_label(current_halfedge.facet,new_label);
@@ -710,8 +708,8 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
             if(tp.is_towards_right()) {
                 mesh_he.move_to_opposite(current_halfedge);
             }
-            if(!union_of_2_charts.contains(current_halfedge.facet)) {
-                fmt::println(Logger::warn("monotonicity"),"pull_closest_corner() : facet {} ignored in GCoptimization because not a part of the 2 charts",current_halfedge.facet); Logger::warn("monotonicity").flush();
+            if(!facets_used.contains(current_halfedge.facet)) {
+                fmt::println(Logger::warn("monotonicity"),"pull_closest_corner() : facet {} ignored in GCoptimization because not a part of the facets_used",current_halfedge.facet); Logger::warn("monotonicity").flush();
                 continue;
             }
             gcl.data_cost__change_to__locked_polycube_label(current_halfedge.facet,new_label);
@@ -728,8 +726,8 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
     gcl.neighbors__set__compactness_based(5); // increase compactness/fidelity ratio. fidelity is less important for this operator
     index_t adjacent_facet = index_t(-1);
     if(boundary_to_move.axis != -1) {
-        // penalize boundary tracing through halfedges poorly aligned with the boundary axis (X, Y or Z)
-        // parse all undirected edge inside the 2 charts surface and tweak the cost
+        // penalize boundary passing through halfedges poorly aligned with the boundary axis (X, Y or Z)
+        // parse all undirected edge inside the `facets_used` sub-surface and tweak the cost
         #ifndef NDEBUG
             std::map<std::pair<index_t,index_t>,double> per_edge_dot_product;
         #endif
@@ -738,14 +736,14 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
         vec3 edge_vector;
         double dot_product = 0.0; // dot product of the edge vector & boundary axis
         std::set<std::set<index_t>> already_processed; // use a set and not a pair so that the facets are sorted -> unordered pairs
-        for(index_t f : union_of_2_charts) {
+        for(index_t f : facets_used) { // for all facets used in the GCoptimization
             FOR(le,3) { // for each local edge of the current facet
                 adjacent_facet = mesh.facets.adjacent(f,le);
                 if(already_processed.contains({f,adjacent_facet})) {
                     continue; // we already processed this edge (indices flipped)
                 }
-                if(union_of_2_charts.contains(adjacent_facet)) { // the edge at le is between 2 facets of the 2 charts union
-                    // the vertices at the end point of the local edge le are le and (le+1)%3
+                if(facets_used.contains(adjacent_facet)) { // the edge at `le` is between 2 facets that are both in the sub-surface
+                    // the vertices at the end points of the local edge `le` are le and (le+1)%3
                     // https://github.com/BrunoLevy/geogram/wiki/Mesh#triangulated-and-polygonal-meshes
                     vertex1 = mesh.facet_corners.vertex(mesh.facets.corner(f,le));
                     vertex2 = mesh.facet_corners.vertex(mesh.facets.corner(f,(le+1)%3));
