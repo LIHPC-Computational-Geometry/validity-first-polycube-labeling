@@ -367,10 +367,10 @@ void rotate_mesh_according_to_principal_axes(Mesh& mesh) {
 
 MeshHalfedges::Halfedge get_most_aligned_halfedge_around_vertex(const MeshHalfedges::Halfedge& init_halfedge, const CustomMeshHalfedges& mesh_he, const vec3& reference) {
     vec3 normalized_reference = normalize(reference);
-    MeshHalfedges::Halfedge current_halfedge = init_halfedge,
-                            most_aligned_halfedge(NO_FACET,NO_CORNER);
+    MeshHalfedges::Halfedge current_halfedge = init_halfedge;
+    MeshHalfedges::Halfedge most_aligned_halfedge; // init value is (NO_FACET,NO_CORNER)
     double current_dot_product = 0.0,
-           max_dot_product = Numeric::min_float32();
+           max_dot_product = Numeric::min_float64();
     do {
         mesh_he.move_clockwise_around_vertex(current_halfedge,true);
         current_dot_product = dot(normalize(halfedge_vector(mesh_he.mesh(),current_halfedge)),normalized_reference);
@@ -379,5 +379,7 @@ MeshHalfedges::Halfedge get_most_aligned_halfedge_around_vertex(const MeshHalfed
             most_aligned_halfedge = current_halfedge;
         }
     } while (current_halfedge != init_halfedge);
+    geo_assert(most_aligned_halfedge.facet != NO_FACET);
+    geo_assert(most_aligned_halfedge.corner != NO_CORNER);
     return most_aligned_halfedge;
 }
