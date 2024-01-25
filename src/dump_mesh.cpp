@@ -16,6 +16,24 @@ bool dump_vertex(std::string filename, const Mesh& mesh, index_t vertex_index) {
     return mesh_save(out,filename + ".geogram");
 }
 
+bool dump_vector(std::string filename, const vec3& origin, const vec3& vector) {
+    Mesh out;
+    index_t v0 = out.vertices.create_vertex(origin.data());
+    geo_assert(v0 == 0);
+    vec3 tip_of_vector = origin+vector;
+    index_t v1 = out.vertices.create_vertex(tip_of_vector.data());
+    geo_assert(v1 == 1);
+    out.edges.create_edge(v0,v1);
+    Attribute<bool> attr_index(out.vertices.attributes(),"index_in_edge");
+    attr_index[v0] = 0; // 0 = origin vertex
+    attr_index[v1] = 1; // 1 = extremity vertex
+    return mesh_save(out,filename + ".geogram");
+}
+
+bool dump_vector(std::string filename, const Mesh& mesh, index_t origin_vertex, const vec3& vector) {
+    return dump_vector(filename,mesh_vertex(mesh,origin_vertex),vector);
+}
+
 bool dump_edge(std::string filename, const Mesh& mesh, MeshHalfedges::Halfedge& halfedge) {
     Mesh out;
     out.copy(mesh,false,MESH_VERTICES); // keep only vertices

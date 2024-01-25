@@ -22,6 +22,10 @@ bool dump_vertex(std::string filename, const Mesh& mesh, index_t vertex_index);
 
 // 1D
 
+bool dump_vector(std::string filename, const vec3& origin, const vec3& vector);
+
+bool dump_vector(std::string filename, const Mesh& mesh, index_t origin_vertex, const vec3& vector);
+
 bool dump_edge(std::string filename, const Mesh& mesh, MeshHalfedges::Halfedge& halfedge);
 
 bool dump_edges(std::string filename, const Mesh& mesh, const std::set<std::pair<index_t,index_t>>& edges);
