@@ -467,7 +467,7 @@ unsigned int move_boundaries_near_turning_points(GEO::Mesh& mesh, const char* at
     return nb_labels_changed;
 }
 
-void straighten_boundary(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, const StaticLabelingGraph& slg, index_t boundary_index) {
+void straighten_boundary_with_GCO(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, const StaticLabelingGraph& slg, index_t boundary_index) {
     Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // get labeling attribute
     const Boundary& current_boundary = slg.boundaries[boundary_index];
     index_t left_chart_index = current_boundary.left_chart;
@@ -599,6 +599,61 @@ void straighten_boundary(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
         #endif
     }
     gcl.compute_solution(label);
+}
+
+void straighten_boundary(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg, index_t boundary_index) {
+    Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // get labeling attribute
+    const Boundary& current_boundary = slg.boundaries[boundary_index];
+
+    if(current_boundary.halfedges.size() <= 3) {
+        return;
+    }
+
+    // trace a new path for `current_boundary` between its two corners
+    // by keeping its first and last halfedges, and, starting from the extremity of the first halfedge (= 2nd vertex),
+    // move edge by edge toward the last halfedge, choosing the best-aligned edges
+
+    index_t left_chart_index = current_boundary.left_chart;
+    index_t right_chart_index = current_boundary.right_chart;
+    const Chart& left_chart = slg.charts[left_chart_index];
+    const Chart& right_chart = slg.charts[right_chart_index];
+    CustomMeshHalfedges mesh_he(mesh);
+
+    index_t target_vertex = halfedge_vertex_index_from(mesh,*current_boundary.halfedges.rbegin()); // origin of laft halfedge
+    vec3 target_point = mesh_vertex(mesh,target_vertex);
+
+    std::set<std::pair<index_t,index_t>> edges_created;
+    MeshHalfedges::Halfedge current_halfedge;
+
+    // write last halfedge in `edges_created`
+    MeshHalfedges::Halfedge next_halfedge = *current_boundary.halfedges.rbegin(); // last halfedge
+    edges_created.insert(std::make_pair(
+        halfedge_vertex_index_from(mesh,next_halfedge),
+        halfedge_vertex_index_to(mesh,next_halfedge)
+    ));
+    
+    // write first halfedge in `edges_created`
+    next_halfedge = current_boundary.halfedges[0]; // first halfedge
+    edges_created.insert(std::make_pair(
+        halfedge_vertex_index_from(mesh,next_halfedge),
+        halfedge_vertex_index_to(mesh,next_halfedge)
+    ));
+    
+    // add edges one by one, aiming at `target_point`
+    while (halfedge_vertex_index_to(mesh,next_halfedge) != target_vertex) {
+        current_halfedge = next_halfedge;
+        mesh_he.move_to_opposite(current_halfedge); // flip `current_halfedge` so that its origin vertex is the origin vertex of the next halfedge
+        next_halfedge = get_most_aligned_halfedge_around_vertex(current_halfedge,mesh_he,target_point - halfedge_vertex_from(mesh,current_halfedge));
+        geo_assert(next_halfedge != current_halfedge); // assert the previous halfedge is not the one the best aligned. else we are backtracking
+        edges_created.insert(std::make_pair(
+            halfedge_vertex_index_from(mesh,current_halfedge),
+            halfedge_vertex_index_to(mesh,current_halfedge)
+        ));
+    }
+
+    #ifndef NDEBUG
+        dump_edges("straightened_boundary",mesh,edges_created);
+    #endif
 }
 
 void pull_closest_corner(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg, index_t non_monotone_boundary_index) {

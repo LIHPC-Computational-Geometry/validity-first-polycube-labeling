@@ -177,7 +177,7 @@ protected:
 						std::tie(boundary_index,boundary_in_same_direction) = static_labeling_graph_.halfedge2boundary[boundary_edges_to_process.back()];
 						boundary_edges_to_process.pop_back();
 						geo_assert(boundary_index != index_t(-1));
-						straighten_boundary(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,boundary_index);
+						straighten_boundary(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,boundary_index);
 						update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 					}
 				}
