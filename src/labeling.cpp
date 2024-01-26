@@ -601,7 +601,7 @@ void straighten_boundary(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
     gcl.compute_solution(label);
 }
 
-void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, const StaticLabelingGraph& slg, index_t non_monotone_boundary_index) {
+void pull_closest_corner(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg, index_t non_monotone_boundary_index) {
     
     // get the non-monotone boundary from its index
 
@@ -654,20 +654,16 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
     // find which label to assign between `boundary_to_move` and its "parallel" passing by the turning point
     
     index_t new_label = index_t(-1);
-    index_t chart_on_which_the_new_boundary_will_be_ = index_t(-1);
+    index_t chart_on_which_the_new_boundary_will_be = index_t(-1);
     if(tp.is_towards_right()) {
-        chart_on_which_the_new_boundary_will_be_ = boundary_to_move.right_chart;
+        chart_on_which_the_new_boundary_will_be = boundary_to_move.right_chart;
         new_label = slg.charts[boundary_to_move.left_chart].label;
     }
     else {
-        chart_on_which_the_new_boundary_will_be_ = boundary_to_move.left_chart;
+        chart_on_which_the_new_boundary_will_be = boundary_to_move.left_chart;
         new_label = slg.charts[boundary_to_move.right_chart].label;
     }
-    
-    const std::set<index_t>& facets_used = slg.charts[chart_on_which_the_new_boundary_will_be_].facets;
-    #ifndef NDEBUG
-        dump_facets("chart_on_which_the_new_boundary_will_be",mesh,facets_used);
-    #endif
+    const std::set<index_t>& facet_of_the_chart_on_which_the_new_boundary_will_be = slg.charts[chart_on_which_the_new_boundary_will_be].facets;
 
     // Start from the turning-point, move edge by edge in the direction of `boundary_to_move_vector`
     // To not drift away from this direction, at each step we recompute the difference between `boundary_to_move_vector` and the current vector of the new boundary,
@@ -677,6 +673,7 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
     std::set<std::pair<index_t,index_t>> edges_created;
     MeshHalfedges::Halfedge current_halfedge = non_monotone_boundary.halfedges[tp.outgoing_local_halfedge_index()],
                             next_halfedge;
+    std::set<index_t> facets_at_left, facets_at_right;
     next_halfedge = get_most_aligned_halfedge_around_vertex(current_halfedge,mesh_he,boundary_to_move_vector);
     vec3 new_boundary_average_vector(0.0,0.0,0.0);
     do {
@@ -685,16 +682,44 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
             halfedge_vertex_index_from(mesh,current_halfedge),
             halfedge_vertex_index_to(mesh,current_halfedge)
         ));
+        facets_at_left.insert(halfedge_facet_left(mesh,current_halfedge));
+        facets_at_right.insert(halfedge_facet_right(mesh,current_halfedge));
         new_boundary_average_vector += halfedge_vector(mesh,current_halfedge);
         mesh_he.move_to_opposite(current_halfedge); // flip `current_halfedge` so that its origin vertex is the origin vertex of the next halfedge
         next_halfedge = get_most_aligned_halfedge_around_vertex(current_halfedge,mesh_he,boundary_to_move_vector - new_boundary_average_vector);
         geo_assert(next_halfedge != current_halfedge); // assert the previous halfedge is not the one the best aligned. else we are backtracking
     } while(
-        label[Geom::halfedge_facet_left(mesh,next_halfedge)] == slg.charts[chart_on_which_the_new_boundary_will_be_].label &&
-        label[Geom::halfedge_facet_right(mesh,next_halfedge)] == slg.charts[chart_on_which_the_new_boundary_will_be_].label
+        label[Geom::halfedge_facet_left(mesh,next_halfedge)] == slg.charts[chart_on_which_the_new_boundary_will_be].label &&
+        label[Geom::halfedge_facet_right(mesh,next_halfedge)] == slg.charts[chart_on_which_the_new_boundary_will_be].label
     );
 
-    dump_edges("path_of_new_boundary",mesh,edges_created);
+    bool the_wall_is_left_facets = (tp.is_towards_left() && closest_corner == non_monotone_boundary.end_corner) || 
+                                   (tp.is_towards_right() && closest_corner == non_monotone_boundary.start_corner);
+    const std::set<index_t>& wall = the_wall_is_left_facets ? facets_at_left : facets_at_right;
+    const std::set<index_t>& to_process_as_set = the_wall_is_left_facets ? facets_at_right : facets_at_left;
+    std::vector<index_t> to_process(to_process_as_set.begin(),to_process_as_set.end()); // set to vector
+
+    index_t current_facet = index_t(-1),
+            adjacent_facet = index_t(-1);
+    while (!to_process.empty()) {
+        current_facet = to_process.back();
+        to_process.pop_back();
+        if(label[current_facet] == new_label) {
+            // facet already processed since insertion
+            continue;
+        }
+        label[current_facet] = new_label;
+        FOR(le,3) { // process adjacent triangles
+            adjacent_facet = mesh.facets.adjacent(current_facet,le);
+            if(wall.contains(adjacent_facet)) {
+                continue;
+            }
+            if(!facet_of_the_chart_on_which_the_new_boundary_will_be.contains(adjacent_facet)) {
+                continue;
+            }
+            to_process.push_back(adjacent_facet);
+        }
+    }
 }
 
 void trace_contour(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, StaticLabelingGraph& slg, const std::set<std::pair<index_t,index_t>>& feature_edges) {

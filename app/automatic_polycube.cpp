@@ -191,7 +191,7 @@ protected:
 					fmt::println(Logger::out("monotonicity"),"All boundaries are monotones, operation canceled"); Logger::out("monotonicity").flush();
 				}
 				else {
-					pull_closest_corner(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,0);
+					pull_closest_corner(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,0);
 					update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 				}
 			}
