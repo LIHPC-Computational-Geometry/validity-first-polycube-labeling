@@ -634,11 +634,21 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
         dump_vertex("closest_corner",mesh,slg.corners[closest_corner].vertex);
     #endif
 
-    // find which boundary around `closest_corner` is closest to `tp`, excluding `boundary`
+    // Find which boundary around `closest_corner` is closest to `tp`, excluding `boundary`
+    // Also compute the vector between its corners
 
     const Boundary& boundary_to_move = slg.boundaries[boundary.get_closest_boundary_of_turning_point(tp,closest_corner,mesh_he,slg.halfedge2boundary,slg.corners)];
     #ifndef NDEBUG
         dump_boundary("boundary_to_move",mesh,boundary_to_move);
+    #endif
+    vec3 boundary_to_move_vector = boundary_to_move.vector_between_corners(mesh,slg.corners);
+    // flip the vector if `boundary_to_move.end_corner` is adjacent to `boundary` and not `boundary_to_move.start_corner`
+    if(slg.corners[boundary_to_move.start_corner].vertex != slg.corners[closest_corner].vertex) {
+        geo_assert(slg.corners[boundary_to_move.end_corner].vertex == slg.corners[closest_corner].vertex);
+        boundary_to_move_vector *= -1.0;
+    }
+    #ifndef NDEBUG
+        dump_vector("direction_for_new_boundary",mesh,tp.vertex(boundary,mesh_he.mesh()),boundary_to_move_vector*2.0);
     #endif
 
     // find which label to assign between the boundary to remove and its "parallel" passing by the turning point
@@ -659,100 +669,32 @@ void pull_closest_corner(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
         dump_facets("chart_on_which_the_new_boundary_will_be",mesh,facets_used);
     #endif
 
-    // prepare a graph-cut optimization on `facets_used`
+    // Start from the turning-point, and edge by edge move in the direction of `boundary_to_move_vector`
+    // To not drift away from this direction, at each step we recompute the difference between `boundary_to_move_vector` and the current average vector of the new boundary,
+    // that is, the vector going from the current vertex to where would be the end corner if the new boundary has the same vector_between_corners() than `boundary_to_move`
+    // /!\ WARNING : This will not work if the path of the new boundary has to be longer than the `boundary_to_move`
 
-    // TODO distance-based : the further a facet is, the bigger is the cost of changing its label. (too restrictive for this operator?)
-    // TODO restrict the possible labels
-    auto gcl = GraphCutLabeling(mesh,normals,(index_t) facets_used.size(),{0,1,2,3,4,5});
-    for(index_t f : facets_used) {
-        gcl.add_facet(f);
-    }
-    gcl.data_cost__set__fidelity_based(1);
+    std::set<std::pair<index_t,index_t>> edges_created;
+    MeshHalfedges::Halfedge current_halfedge = boundary.halfedges[tp.outgoing_local_halfedge_index()],
+                            next_halfedge;
+    next_halfedge = get_most_aligned_halfedge_around_vertex(current_halfedge,mesh_he,boundary_to_move_vector);
+    vec3 new_boundary_average_vector(0.0,0.0,0.0);
+    do {
+        current_halfedge = next_halfedge;
+        edges_created.insert(std::make_pair(
+            halfedge_vertex_index_from(mesh,current_halfedge),
+            halfedge_vertex_index_to(mesh,current_halfedge)
+        ));
+        new_boundary_average_vector += halfedge_vector(mesh,current_halfedge);
+        mesh_he.move_to_opposite(current_halfedge); // flip `current_halfedge` so that its origin vertex is the origin vertex of the next halfedge
+        next_halfedge = get_most_aligned_halfedge_around_vertex(current_halfedge,mesh_he,boundary_to_move_vector - new_boundary_average_vector);
+        geo_assert(next_halfedge != current_halfedge); // assert the previous halfedge is not the one the best aligned. else we are backtracking
+    } while(
+        label[Geom::halfedge_facet_left(mesh,next_halfedge)] == slg.charts[chart_on_which_the_new_boundary_will_be_].label &&
+        label[Geom::halfedge_facet_right(mesh,next_halfedge)] == slg.charts[chart_on_which_the_new_boundary_will_be_].label
+    );
 
-    // Lock labels between the turning point and the corner, to ensure the corner moves where the turning point is
-    // Note that MeshHalfedges::Halfedge::facet is the facet at the LEFT of the halfedge (we assume outward normals)
-    #ifndef NDEBUG
-        std::set<index_t> facets_with_locked_label;
-    #endif
-    MeshHalfedges::Halfedge current_halfedge;
-    if(closest_corner == boundary.start_corner) {
-        // go across the boundary in the opposite way
-        for(signed_index_t halfedge_index = (signed_index_t) (tp.outgoing_local_halfedge_index()-1); halfedge_index>= 0; halfedge_index--) {
-            current_halfedge = boundary.halfedges[(std::vector<GEO::MeshHalfedges::Halfedge>::size_type) halfedge_index];
-            if(tp.is_towards_right()) {
-                mesh_he.move_to_opposite(current_halfedge);
-            }
-            if(!facets_used.contains(current_halfedge.facet)) {
-                fmt::println(Logger::warn("monotonicity"),"pull_closest_corner() : facet {} ignored in GCoptimization because not a part of the facets_used",current_halfedge.facet); Logger::warn("monotonicity").flush();
-                continue;
-            }
-            gcl.data_cost__change_to__locked_polycube_label(current_halfedge.facet,new_label);
-            #ifndef NDEBUG
-                facets_with_locked_label.insert(current_halfedge.facet);
-            #endif
-        }
-    }
-    else {
-        // go across the boundary in the same direction as the halfedges
-        for(index_t halfedge_index = tp.outgoing_local_halfedge_index(); halfedge_index < boundary.halfedges.size(); halfedge_index++) {
-            current_halfedge = boundary.halfedges[halfedge_index];
-            if(tp.is_towards_right()) {
-                mesh_he.move_to_opposite(current_halfedge);
-            }
-            if(!facets_used.contains(current_halfedge.facet)) {
-                fmt::println(Logger::warn("monotonicity"),"pull_closest_corner() : facet {} ignored in GCoptimization because not a part of the facets_used",current_halfedge.facet); Logger::warn("monotonicity").flush();
-                continue;
-            }
-            gcl.data_cost__change_to__locked_polycube_label(current_halfedge.facet,new_label);
-            #ifndef NDEBUG
-                facets_with_locked_label.insert(current_halfedge.facet);
-            #endif
-        }
-    }
-    #ifndef NDEBUG
-        fmt::println(Logger::out("monotonicity"),"facets_with_locked_label contains {} facets",facets_with_locked_label.size()); Logger::out("monotonicity").flush();
-        dump_facets("facets_with_locked_label",mesh,facets_with_locked_label);
-    #endif
-    gcl.smooth_cost__set__default();
-    gcl.neighbors__set__compactness_based(5); // increase compactness/fidelity ratio. fidelity is less important for this operator
-    index_t adjacent_facet = index_t(-1);
-    if(boundary_to_move.axis != -1) {
-        // penalize boundary passing through halfedges poorly aligned with the boundary axis (X, Y or Z)
-        // parse all undirected edge inside the `facets_used` sub-surface and tweak the cost
-        #ifndef NDEBUG
-            std::map<std::pair<index_t,index_t>,double> per_edge_dot_product;
-        #endif
-        index_t vertex1 = index_t(-1);
-        index_t vertex2 = index_t(-1);
-        vec3 edge_vector;
-        double dot_product = 0.0; // dot product of the edge vector & boundary axis
-        std::set<std::set<index_t>> already_processed; // use a set and not a pair so that the facets are sorted -> unordered pairs
-        for(index_t f : facets_used) { // for all facets used in the GCoptimization
-            FOR(le,3) { // for each local edge of the current facet
-                adjacent_facet = mesh.facets.adjacent(f,le);
-                if(already_processed.contains({f,adjacent_facet})) {
-                    continue; // we already processed this edge (indices flipped)
-                }
-                if(facets_used.contains(adjacent_facet)) { // the edge at `le` is between 2 facets that are both in the sub-surface
-                    // the vertices at the end points of the local edge `le` are le and (le+1)%3
-                    // https://github.com/BrunoLevy/geogram/wiki/Mesh#triangulated-and-polygonal-meshes
-                    vertex1 = mesh.facet_corners.vertex(mesh.facets.corner(f,le));
-                    vertex2 = mesh.facet_corners.vertex(mesh.facets.corner(f,(le+1)%3));
-                    edge_vector = normalize(mesh.vertices.point(vertex2)-mesh.vertices.point(vertex1));
-                    dot_product = std::abs(dot(edge_vector,label2vector[boundary_to_move.axis*2])); // =1 -> //, =0 -> ⟂
-                    gcl.neighbors__change_to__shifted(f,adjacent_facet,(float) (1-dot_product)*500); // add a penalty the more ⟂ the edge is (// -> 0, ⟂ -> 300)
-                    already_processed.insert({f, adjacent_facet});
-                    #ifndef NDEBUG
-                        per_edge_dot_product[std::make_pair(vertex1,vertex2)] = dot_product;
-                    #endif
-                }
-            }
-        }
-        #ifndef NDEBUG
-            dump_edges("dot_products","dot_product",mesh,per_edge_dot_product);
-        #endif
-    }
-    gcl.compute_solution(label);
+    dump_edges("path_of_new_boundary",mesh,edges_created);
 }
 
 void trace_contour(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, StaticLabelingGraph& slg, const std::set<std::pair<index_t,index_t>>& feature_edges) {
