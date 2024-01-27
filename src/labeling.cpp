@@ -605,6 +605,10 @@ void straighten_boundary(GEO::Mesh& mesh, const char* attribute_name, const Stat
     Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // get labeling attribute
     const Boundary& current_boundary = slg.boundaries[boundary_index];
 
+    #ifndef NDEBUG
+        dump_boundary_with_halfedges_indices("boundary_to_straighten",mesh,current_boundary);
+    #endif
+
     if(current_boundary.halfedges.size() <= 3) {
         return;
     }
@@ -622,38 +626,84 @@ void straighten_boundary(GEO::Mesh& mesh, const char* attribute_name, const Stat
     index_t target_vertex = halfedge_vertex_index_from(mesh,*current_boundary.halfedges.rbegin()); // origin of laft halfedge
     vec3 target_point = mesh_vertex(mesh,target_vertex);
 
-    std::set<std::pair<index_t,index_t>> edges_created;
-    MeshHalfedges::Halfedge current_halfedge;
-
-    // write last halfedge in `edges_created`
-    MeshHalfedges::Halfedge next_halfedge = *current_boundary.halfedges.rbegin(); // last halfedge
-    edges_created.insert(std::make_pair(
-        halfedge_vertex_index_from(mesh,next_halfedge),
-        halfedge_vertex_index_to(mesh,next_halfedge)
-    ));
-    
-    // write first halfedge in `edges_created`
-    next_halfedge = current_boundary.halfedges[0]; // first halfedge
-    edges_created.insert(std::make_pair(
-        halfedge_vertex_index_from(mesh,next_halfedge),
-        halfedge_vertex_index_to(mesh,next_halfedge)
-    ));
+    MeshHalfedges::Halfedge previous_halfedge;
+    MeshHalfedges::Halfedge current_halfedge = current_boundary.halfedges[0]; // first halfedge
     
     // add edges one by one, aiming at `target_point`
-    while (halfedge_vertex_index_to(mesh,next_halfedge) != target_vertex) {
-        current_halfedge = next_halfedge;
-        mesh_he.move_to_opposite(current_halfedge); // flip `current_halfedge` so that its origin vertex is the origin vertex of the next halfedge
-        next_halfedge = get_most_aligned_halfedge_around_vertex(current_halfedge,mesh_he,target_point - halfedge_vertex_from(mesh,current_halfedge));
-        geo_assert(next_halfedge != current_halfedge); // assert the previous halfedge is not the one the best aligned. else we are backtracking
-        edges_created.insert(std::make_pair(
-            halfedge_vertex_index_from(mesh,current_halfedge),
-            halfedge_vertex_index_to(mesh,current_halfedge)
-        ));
+    std::set<index_t> facets_at_left, facets_at_right;
+    facets_at_left.insert(halfedge_facet_left(mesh,current_boundary.halfedges[0]));
+    facets_at_left.insert(halfedge_facet_left(mesh,*current_boundary.halfedges.rbegin()));
+    facets_at_right.insert(halfedge_facet_right(mesh,current_boundary.halfedges[0]));
+    facets_at_right.insert(halfedge_facet_right(mesh,*current_boundary.halfedges.rbegin()));
+    while (halfedge_vertex_index_to(mesh,current_halfedge) != target_vertex) {
+        previous_halfedge = current_halfedge;
+        mesh_he.move_to_opposite(previous_halfedge); // flip `previous_halfedge` so that its origin vertex is the origin vertex of the next halfedge
+        current_halfedge = get_most_aligned_halfedge_around_vertex(previous_halfedge,mesh_he,target_point - halfedge_vertex_from(mesh,previous_halfedge));
+        if(current_halfedge == previous_halfedge) {
+            // we are backtracking
+            fmt::println(Logger::warn("monotonicity"),"Cannot straighten boundary {}",boundary_index); Logger::warn("monotonicity").flush();
+            return;
+        }
+        // TODO if the path is passing by a vertex of another boundary, we have to straighten the other boundary first
+        facets_at_left.insert(halfedge_facet_left(mesh,current_halfedge));
+        facets_at_right.insert(halfedge_facet_right(mesh,current_halfedge));
     }
 
-    #ifndef NDEBUG
-        dump_edges("straightened_boundary",mesh,edges_created);
-    #endif
+    std::vector<index_t> left_facets_to_process(facets_at_left.begin(),facets_at_left.end());
+    std::vector<index_t> right_facets_to_process(facets_at_right.begin(),facets_at_right.end());
+
+    index_t current_facet = index_t(-1),
+            adjacent_facet = index_t(-1);
+
+    // process facets at left of new boundary path
+
+    while (!left_facets_to_process.empty()) {
+        current_facet = left_facets_to_process.back();
+        left_facets_to_process.pop_back();
+        if(label[current_facet] == left_chart.label) {
+            // facet already processed since insertion
+            continue;
+        }
+        label[current_facet] = left_chart.label;
+        FOR(le,3) { // process adjacent triangles
+            adjacent_facet = mesh.facets.adjacent(current_facet,le);
+            if(label[adjacent_facet] == left_chart.label) {
+                continue;
+            }
+            if(facets_at_right.contains(adjacent_facet)) {
+                continue;
+            }
+            if(!left_chart.facets.contains(adjacent_facet) && !right_chart.facets.contains(adjacent_facet)) {
+                continue;
+            }
+            left_facets_to_process.push_back(adjacent_facet);
+        }
+    }
+
+    // process facets at right of new boundary path
+
+    while (!right_facets_to_process.empty()) {
+        current_facet = right_facets_to_process.back();
+        right_facets_to_process.pop_back();
+        if(label[current_facet] == right_chart.label) {
+            // facet already processed since insertion
+            continue;
+        }
+        label[current_facet] = right_chart.label;
+        FOR(le,3) { // process adjacent triangles
+            adjacent_facet = mesh.facets.adjacent(current_facet,le);
+            if(label[adjacent_facet] == right_chart.label) {
+                continue;
+            }
+            if(facets_at_left.contains(adjacent_facet)) {
+                continue;
+            }
+            if(!left_chart.facets.contains(adjacent_facet) && !right_chart.facets.contains(adjacent_facet)) {
+                continue;
+            }
+            right_facets_to_process.push_back(adjacent_facet);
+        }
+    }
 }
 
 void pull_closest_corner(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg, index_t non_monotone_boundary_index) {
@@ -725,7 +775,6 @@ void pull_closest_corner(GEO::Mesh& mesh, const char* attribute_name, const Stat
     // that is, the vector going from the current vertex to where would be the end corner if the new boundary has the same vector_between_corners() than `boundary_to_move`
     // /!\ WARNING : This will not work if the path of the new boundary has to be longer than the `boundary_to_move`
 
-    std::set<std::pair<index_t,index_t>> edges_created;
     MeshHalfedges::Halfedge current_halfedge = non_monotone_boundary.halfedges[tp.outgoing_local_halfedge_index()],
                             next_halfedge;
     std::set<index_t> facets_at_left, facets_at_right;
@@ -733,10 +782,6 @@ void pull_closest_corner(GEO::Mesh& mesh, const char* attribute_name, const Stat
     vec3 new_boundary_average_vector(0.0,0.0,0.0);
     do {
         current_halfedge = next_halfedge;
-        edges_created.insert(std::make_pair(
-            halfedge_vertex_index_from(mesh,current_halfedge),
-            halfedge_vertex_index_to(mesh,current_halfedge)
-        ));
         facets_at_left.insert(halfedge_facet_left(mesh,current_halfedge));
         facets_at_right.insert(halfedge_facet_right(mesh,current_halfedge));
         new_boundary_average_vector += halfedge_vector(mesh,current_halfedge);
