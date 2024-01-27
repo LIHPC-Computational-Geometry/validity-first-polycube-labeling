@@ -595,6 +595,17 @@ vec3 Boundary::average_vector_between_corners(const Mesh& mesh, const std::vecto
     return vector_between_corners(mesh,corners) / (double) halfedges.size();
 }
 
+void Boundary::get_adjacent_facets(const Mesh& mesh, std::set<index_t>& adjacent_facets, BoundaryNeighborhoodExplorationMode mode) const {
+    for(const auto& current_halfedge : halfedges) {
+        if( (mode == LeftAndRight) || (mode == OnlyLeft) ) {
+            adjacent_facets.insert(halfedge_facet_left(mesh,current_halfedge));
+        }
+        if( (mode == LeftAndRight) || (mode == OnlyRight) ) {
+            adjacent_facets.insert(halfedge_facet_right(mesh,current_halfedge));
+        }
+    }
+}
+
 std::ostream& operator<< (std::ostream &out, const Boundary& data) {
     fmt::println(out,"\taxis : {}",data.axis);
     fmt::println(out,"\tis_valid : {}",data.is_valid);

@@ -158,6 +158,12 @@ std::ostream& operator<< (std::ostream &out, const TurningPoint& data);
 // https://fmt.dev/latest/api.html#std-ostream-support
 template <> struct fmt::formatter<TurningPoint> : ostream_formatter {};
 
+enum BoundaryNeighborhoodExplorationMode {
+    LeftAndRight,
+    OnlyLeft,
+    OnlyRight
+};
+
 // A boundary is a list of halfedges between 2 charts
 struct Boundary {
 
@@ -214,6 +220,8 @@ struct Boundary {
     vec3 vector_between_corners(const Mesh& mesh, const std::vector<Corner>& corners) const;
 
     vec3 average_vector_between_corners(const Mesh& mesh, const std::vector<Corner>& corners) const;
+
+    void get_adjacent_facets(const Mesh& mesh, std::set<index_t>& adjacent_facets, BoundaryNeighborhoodExplorationMode mode) const;
 };
 
 std::ostream& operator<< (std::ostream &out, const Boundary& data);
