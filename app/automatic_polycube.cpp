@@ -143,9 +143,9 @@ protected:
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 
-			ImGui::PushStyleColor(ImGuiCol_Button, 			ImVec4(0.4f, 0.9f, 0.4f, 1.0f)); // green
-			ImGui::PushStyleColor(ImGuiCol_ButtonHovered,	ImVec4(0.2f, 0.9f, 0.2f, 1.0f)); // darker green
-			ImGui::PushStyleColor(ImGuiCol_ButtonActive,	ImVec4(0.0f, 0.9f, 0.0f, 1.0f));
+			ImGui::PushStyleColor(ImGuiCol_Button, 			ImVec4(0.6f, 0.9f, 0.6f, 1.0f)); // green
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered,	ImVec4(0.3f, 0.8f, 0.3f, 1.0f)); // darker green
+			ImGui::PushStyleColor(ImGuiCol_ButtonActive,	ImVec4(0.0f, 0.8f, 0.0f, 1.0f));
 			if(ImGui::Button("Auto fix validity")) {
 				auto_fix_validity(mesh_,normals_,static_labeling_graph_,100,feature_edges_);
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
@@ -218,9 +218,9 @@ protected:
 			ImGui::TextDisabled("(?)");
 			ImGui::SetItemTooltip("Select the first non-monotone boundary, and if it has only 1 turning-point, try to pull the closest corner so that they coincide");
 
-			ImGui::PushStyleColor(ImGuiCol_Button, 			ImVec4(0.4f, 0.9f, 0.4f, 1.0f)); // green
-			ImGui::PushStyleColor(ImGuiCol_ButtonHovered,	ImVec4(0.2f, 0.9f, 0.2f, 1.0f)); // darker green
-			ImGui::PushStyleColor(ImGuiCol_ButtonActive,	ImVec4(0.0f, 0.9f, 0.0f, 1.0f));
+			ImGui::PushStyleColor(ImGuiCol_Button, 			ImVec4(0.6f, 0.9f, 0.6f, 1.0f)); // green
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered,	ImVec4(0.3f, 0.8f, 0.3f, 1.0f)); // darker green
+			ImGui::PushStyleColor(ImGuiCol_ButtonActive,	ImVec4(0.0f, 0.8f, 0.0f, 1.0f));
 			if(ImGui::Button("Auto fix monotonicity")) {
 				auto_fix_monotonicity(mesh_,static_labeling_graph_,500,feature_edges_);
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
