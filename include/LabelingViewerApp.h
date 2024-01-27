@@ -328,6 +328,14 @@ protected:
 			ImGui::Checkbox("Show normals",&show_normals_);
 			ImGui::SliderFloat("Normals length factor",&normals_length_factor_,0.0f,50.0f);
 			ImGui::Checkbox("Show feature edges",&show_feature_edges_);
+			if(ImGui::Button("Rotate mesh according to principal axes")) {
+				rotate_mesh_according_to_principal_axes(mesh_);
+				mesh_gfx_.set_mesh(&mesh_); // re-link the MeshGfx to the mesh
+				// update normals
+				FOR(f,mesh_.facets.nb()) {
+					normals_[f] = normalize(Geom::mesh_facet_normal(mesh_,f));
+				}
+			}
 
 			ImGui::Separator();
 
