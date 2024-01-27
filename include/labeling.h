@@ -80,7 +80,8 @@ unsigned int move_boundaries_near_turning_points(GEO::Mesh& mesh, const char* at
 
 void straighten_boundary_with_GCO(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, const StaticLabelingGraph& slg, index_t boundary_index);
 
-void straighten_boundary(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg, index_t boundary_index, const std::vector<std::vector<index_t>>& adj_facets);
+// return true if successful
+bool straighten_boundary(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg, index_t boundary_index, const std::vector<std::vector<index_t>>& adj_facets);
 
 void pull_closest_corner(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg, index_t non_monotone_boundary_index);
 

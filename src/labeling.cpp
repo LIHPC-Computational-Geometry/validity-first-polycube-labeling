@@ -601,7 +601,7 @@ void straighten_boundary_with_GCO(GEO::Mesh& mesh, const std::vector<vec3>& norm
     gcl.compute_solution(label);
 }
 
-void straighten_boundary(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg, index_t boundary_index, const std::vector<std::vector<index_t>>& adj_facets) {
+bool straighten_boundary(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg, index_t boundary_index, const std::vector<std::vector<index_t>>& adj_facets) {
     Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // get labeling attribute
     const Boundary& current_boundary = slg.boundaries[boundary_index];
 
@@ -610,7 +610,7 @@ void straighten_boundary(GEO::Mesh& mesh, const char* attribute_name, const Stat
     #endif
 
     if(current_boundary.halfedges.size() <= 3) {
-        return;
+        return true; // too small, no need to straighten
     }
 
     // trace a new path for `current_boundary` between its two corners
@@ -642,7 +642,7 @@ void straighten_boundary(GEO::Mesh& mesh, const char* attribute_name, const Stat
         if(current_halfedge == previous_halfedge) {
             // we are backtracking
             fmt::println(Logger::warn("monotonicity"),"Cannot straighten boundary {} (backtracking)",boundary_index); Logger::warn("monotonicity").flush();
-            return;
+            return false;
         }
         if(!slg.vertex_is_only_surrounded_by(halfedge_vertex_index_to(mesh,current_halfedge),{left_chart_index,right_chart_index},adj_facets)) {
             // the `current_halfedge` is leading us away from the two charts on which the boundary must stay, we are going to cross another boundary
@@ -650,7 +650,7 @@ void straighten_boundary(GEO::Mesh& mesh, const char* attribute_name, const Stat
 
             // for now, do not straighten the `current_boundary` 
             fmt::println(Logger::warn("monotonicity"),"Cannot straighten boundary {} (new path encountered another boundary)",boundary_index); Logger::warn("monotonicity").flush();
-            return;
+            return false;
         }
         facets_at_left.insert(halfedge_facet_left(mesh,current_halfedge));
         facets_at_right.insert(halfedge_facet_right(mesh,current_halfedge));
@@ -711,6 +711,8 @@ void straighten_boundary(GEO::Mesh& mesh, const char* attribute_name, const Stat
             right_facets_to_process.push_back(adjacent_facet);
         }
     }
+
+    return true;
 }
 
 void pull_closest_corner(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg, index_t non_monotone_boundary_index) {

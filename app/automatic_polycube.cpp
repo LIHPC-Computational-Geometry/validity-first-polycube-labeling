@@ -19,6 +19,7 @@
 #include <array>
 #include <algorithm>			// for std::min(), std::max(), std::min_element()
 #include <tuple>				// for std::tie()
+#include <deque>
 
 #include "containers.h"			// for std_dev()
 #include "LabelingViewerApp.h"
@@ -170,20 +171,29 @@ protected:
 					// we first gather the first boundary edge of all boundaries, so at each step we can get the current index of the
 					// associated boundary with static_labeling_graph_.halfedge2boundary
 					// The fist boundary edges should not move after a call of straighten_boundary()...
-					std::vector<MeshHalfedges::Halfedge> boundary_edges_to_process;
-					boundary_edges_to_process.reserve(static_labeling_graph_.nb_boundaries()); // preallocation
+					std::deque<MeshHalfedges::Halfedge> boundary_edges_to_process;
+					boundary_edges_to_process.resize(static_labeling_graph_.nb_boundaries()); // preallocation
 					for(const auto& boundary : static_labeling_graph_.boundaries) {
 						geo_assert(!boundary.halfedges.empty());
 						boundary_edges_to_process.push_back(boundary.halfedges[0]);
 					}
+					MeshHalfedges::Halfedge current_boundary_edge;
 					index_t boundary_index = index_t(-1);
 					bool boundary_in_same_direction = false;
 					while (!boundary_edges_to_process.empty()) {
-						std::tie(boundary_index,boundary_in_same_direction) = static_labeling_graph_.halfedge2boundary[boundary_edges_to_process.back()];
+						current_boundary_edge = boundary_edges_to_process.back();
 						boundary_edges_to_process.pop_back();
+						std::tie(boundary_index,boundary_in_same_direction) = static_labeling_graph_.halfedge2boundary[current_boundary_edge];
 						geo_assert(boundary_index != index_t(-1));
-						straighten_boundary(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,boundary_index,adj_facets_);
-						update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+						if(straighten_boundary(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,boundary_index,adj_facets_)) 
+						{
+							update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+						}
+						else {
+							boundary_edges_to_process.push_front(current_boundary_edge); // re-process this boundary edge later
+							// /!\ WARNING : if straighten_boundary() failed because backtracking and not because we encountered another boundary,
+							// we could end up in an infinite loop where we process again and again a boundary for which we cannot reach the end corner...
+						}
 					}
 				}
 			}
