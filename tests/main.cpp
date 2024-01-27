@@ -170,86 +170,53 @@ protected:
         cube.facets.set_vertex(0,0,0);
         cube.facets.set_vertex(0,1,1);
         cube.facets.set_vertex(0,2,3);
-        cube.facets.set_adjacent(0,0,3);
-        cube.facets.set_adjacent(0,1,11);
-        cube.facets.set_adjacent(0,2,1);
         // facet 1
         cube.facets.set_vertex(1,0,0);
         cube.facets.set_vertex(1,1,3);
         cube.facets.set_vertex(1,2,2);
-        cube.facets.set_adjacent(1,0,0);
-        cube.facets.set_adjacent(1,1,6);
-        cube.facets.set_adjacent(1,2,8);
         // facet 2
         cube.facets.set_vertex(2,0,1);
         cube.facets.set_vertex(2,1,4);
         cube.facets.set_vertex(2,2,5);
-        cube.facets.set_adjacent(2,0,3);
-        cube.facets.set_adjacent(2,1,5);
-        cube.facets.set_adjacent(2,2,10);
         // facet 3
         cube.facets.set_vertex(3,0,0);
         cube.facets.set_vertex(3,1,4);
         cube.facets.set_vertex(3,2,1);
-        cube.facets.set_adjacent(3,0,8);
-        cube.facets.set_adjacent(3,1,2);
-        cube.facets.set_adjacent(3,2,0);
         // facet 4
         cube.facets.set_vertex(4,0,5);
         cube.facets.set_vertex(4,1,6);
         cube.facets.set_vertex(4,2,7);
-        cube.facets.set_adjacent(4,0,5);
-        cube.facets.set_adjacent(4,1,7);
-        cube.facets.set_adjacent(4,2,10);
         // facet 5
         cube.facets.set_vertex(5,0,4);
         cube.facets.set_vertex(5,1,6);
         cube.facets.set_vertex(5,2,5);
-        cube.facets.set_adjacent(5,0,9);
-        cube.facets.set_adjacent(5,1,4);
-        cube.facets.set_adjacent(5,2,2);
         // facet 6
         cube.facets.set_vertex(6,0,2);
         cube.facets.set_vertex(6,1,3);
         cube.facets.set_vertex(6,2,7);
-        cube.facets.set_adjacent(6,0,1);
-        cube.facets.set_adjacent(6,1,11);
-        cube.facets.set_adjacent(6,2,7);
         // facet 7
         cube.facets.set_vertex(7,0,2);
         cube.facets.set_vertex(7,1,7);
         cube.facets.set_vertex(7,2,6);
-        cube.facets.set_adjacent(7,0,6);
-        cube.facets.set_adjacent(7,1,4);
-        cube.facets.set_adjacent(7,2,9);
         // facet 8
         cube.facets.set_vertex(8,0,0);
         cube.facets.set_vertex(8,1,2);
         cube.facets.set_vertex(8,2,4);
-        cube.facets.set_adjacent(8,0,1);
-        cube.facets.set_adjacent(8,1,9);
-        cube.facets.set_adjacent(8,2,3);
         // facet 9
         cube.facets.set_vertex(9,0,2);
         cube.facets.set_vertex(9,1,6);
         cube.facets.set_vertex(9,2,4);
-        cube.facets.set_adjacent(9,0,7);
-        cube.facets.set_adjacent(9,1,5);
-        cube.facets.set_adjacent(9,2,8);
         // facet 10
         cube.facets.set_vertex(10,0,1);
         cube.facets.set_vertex(10,1,5);
         cube.facets.set_vertex(10,2,7);
-        cube.facets.set_adjacent(10,0,2);
-        cube.facets.set_adjacent(10,1,4);
-        cube.facets.set_adjacent(10,2,11);
         // facet 11
         cube.facets.set_vertex(11,0,1);
         cube.facets.set_vertex(11,1,7);
         cube.facets.set_vertex(11,2,3);
-        cube.facets.set_adjacent(11,0,10);
-        cube.facets.set_adjacent(11,1,6);
-        cube.facets.set_adjacent(11,2,0);
+
+        // auto-compute facets adjacency
+        cube.facets.connect();
 
         // initialize the halfedge with the one going from vertex 1 to vertex 3
         halfedge.facet = 0; // the facet at its left is facet 0
