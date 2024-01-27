@@ -857,6 +857,16 @@ bool StaticLabelingGraph::is_allowing_boundaries_between_opposite_labels() const
     return allow_boundaries_between_opposite_labels_;
 }
 
+bool StaticLabelingGraph::vertex_is_only_surrounded_by(index_t vertex_index, std::vector<index_t> expected_charts, const std::vector<std::vector<index_t>>& vertex_to_adj_facets) const {
+    geo_assert(!vertex_to_adj_facets.empty());
+    for(auto adj_facet : vertex_to_adj_facets.at(vertex_index)) { // for each adjacent facet of `vertex_index`
+        if (!VECTOR_CONTAINS(expected_charts,facet2chart.at(adj_facet))) { // if the chart index of this facet is not among the `expected_charts`
+            return false;
+        }
+    }
+    return true;
+}
+
 void StaticLabelingGraph::dump_to_text_file(const char* filename, Mesh& mesh) {
     auto out = fmt::output_file(filename);
     out.print("{}",(*this));

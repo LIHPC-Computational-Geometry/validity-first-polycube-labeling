@@ -160,6 +160,11 @@ protected:
 					fmt::println(Logger::out("monotonicity"),"No boundaries, operation canceled"); Logger::out("monotonicity").flush();
 				}
 				else {
+					// compute vertex-to-facet adjacency if not already done
+					if(adj_facets_.empty()) {
+						compute_adjacent_facets_of_vertices(mesh_,adj_facets_);
+					}
+
 					// Because the boundaries may not have the same index before and after update_static_labeling_graph()
 					// and because we need to call update_static_labeling_graph() after that one boundary is processed to update charts,
 					// we first gather the first boundary edge of all boundaries, so at each step we can get the current index of the
@@ -177,7 +182,7 @@ protected:
 						std::tie(boundary_index,boundary_in_same_direction) = static_labeling_graph_.halfedge2boundary[boundary_edges_to_process.back()];
 						boundary_edges_to_process.pop_back();
 						geo_assert(boundary_index != index_t(-1));
-						straighten_boundary(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,boundary_index);
+						straighten_boundary(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,boundary_index,adj_facets_);
 						update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 					}
 				}

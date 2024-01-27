@@ -274,6 +274,10 @@ struct StaticLabelingGraph {
 
     bool is_allowing_boundaries_between_opposite_labels() const;
 
+    //// Other getters //////////////////
+
+    bool vertex_is_only_surrounded_by(index_t vertex_index, std::vector<index_t> expected_charts, const std::vector<std::vector<index_t>>& vertex_to_adj_facets) const;
+
     //// Export //////////////////
 
     void dump_to_text_file(const char* filename, Mesh& mesh);

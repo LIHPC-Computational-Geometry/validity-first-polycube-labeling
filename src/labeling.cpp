@@ -601,7 +601,7 @@ void straighten_boundary_with_GCO(GEO::Mesh& mesh, const std::vector<vec3>& norm
     gcl.compute_solution(label);
 }
 
-void straighten_boundary(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg, index_t boundary_index) {
+void straighten_boundary(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg, index_t boundary_index, const std::vector<std::vector<index_t>>& adj_facets) {
     Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // get labeling attribute
     const Boundary& current_boundary = slg.boundaries[boundary_index];
 
@@ -641,10 +641,17 @@ void straighten_boundary(GEO::Mesh& mesh, const char* attribute_name, const Stat
         current_halfedge = get_most_aligned_halfedge_around_vertex(previous_halfedge,mesh_he,target_point - halfedge_vertex_from(mesh,previous_halfedge));
         if(current_halfedge == previous_halfedge) {
             // we are backtracking
-            fmt::println(Logger::warn("monotonicity"),"Cannot straighten boundary {}",boundary_index); Logger::warn("monotonicity").flush();
+            fmt::println(Logger::warn("monotonicity"),"Cannot straighten boundary {} (backtracking)",boundary_index); Logger::warn("monotonicity").flush();
             return;
         }
-        // TODO if the path is passing by a vertex of another boundary, we have to straighten the other boundary first
+        if(!slg.vertex_is_only_surrounded_by(halfedge_vertex_index_to(mesh,current_halfedge),{left_chart_index,right_chart_index},adj_facets)) {
+            // the `current_halfedge` is leading us away from the two charts on which the boundary must stay, we are going to cross another boundary
+            // -> we have to straighten the other boundary first
+
+            // for now, do not straighten the `current_boundary` 
+            fmt::println(Logger::warn("monotonicity"),"Cannot straighten boundary {} (new path encountered another boundary)",boundary_index); Logger::warn("monotonicity").flush();
+            return;
+        }
         facets_at_left.insert(halfedge_facet_left(mesh,current_halfedge));
         facets_at_right.insert(halfedge_facet_right(mesh,current_halfedge));
     }
