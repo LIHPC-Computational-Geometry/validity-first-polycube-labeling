@@ -326,8 +326,16 @@ protected:
 		case triangle_mesh:
 
 			ImGui::Checkbox("Show normals",&show_normals_);
+			ImGui::SameLine();
+			ImGui::TextDisabled("(?)");
+			ImGui::SetItemTooltip("Draw facet normals as segments. The point is the tip of the vector.");
 			ImGui::SliderFloat("Normals length factor",&normals_length_factor_,0.0f,50.0f);
 			ImGui::Checkbox("Show feature edges",&show_feature_edges_);
+			ImGui::SameLine();
+			ImGui::Text("(%ld)",feature_edges_.size());
+			ImGui::SameLine();
+			ImGui::TextDisabled("(?)");
+			ImGui::SetItemTooltip("Draw feature edges in blue on top of the mesh");
 			if(ImGui::Button("Rotate mesh according to principal axes")) {
 				rotate_mesh_according_to_principal_axes(mesh_);
 				mesh_gfx_.set_mesh(&mesh_); // re-link the MeshGfx to the mesh
@@ -336,10 +344,16 @@ protected:
 					normals_[f] = normalize(Geom::mesh_facet_normal(mesh_,f));
 				}
 			}
+			ImGui::SameLine();
+			ImGui::TextDisabled("(?)");
+			ImGui::SetItemTooltip("Compute principal axes of the point cloud and rotate the mesh to be aligned with them");
 
 			ImGui::Separator();
 
 			ImGui::Checkbox("Allow boundaries between opposite labels",&allow_boundaries_between_opposite_labels_);
+			ImGui::SameLine();
+			ImGui::TextDisabled("(?)");
+			ImGui::SetItemTooltip("If on, boundaries between opposite labels (e.g. +X and -X)\ncan be considered valid if they only contain > 180° angles");
 
 			if(ImGui::Button("Compute naive labeling")) {
 
@@ -349,6 +363,9 @@ protected:
 
 				state_transition(labeling);
 			}
+			ImGui::SameLine();
+			ImGui::TextDisabled("(?)");
+			ImGui::SetItemTooltip("Associate each facet to the label the closest to its normal");
 
 			if(ImGui::Button("Compute tweaked naive labeling")) {
 
@@ -358,6 +375,9 @@ protected:
 
 				state_transition(labeling);
 			}
+			ImGui::SameLine();
+			ImGui::TextDisabled("(?)");
+			ImGui::SetItemTooltip("Like the naive labeling, but facets normals close to multiple labels\nare slightly rotated before choosing the closest label,\nto avoid labeling fragmentation on subsurfaces\npoorly aligned with XY, XZ, YZ planes");
 			
 			break;
 		case labeling:
@@ -387,22 +407,33 @@ protected:
 				ImGui::EndPopup();
 			}
 
-
 			ImGui::Checkbox("Allow boundaries between opposite labels",&allow_boundaries_between_opposite_labels_);
+			ImGui::SameLine();
+			ImGui::TextDisabled("(?)");
+			ImGui::SetItemTooltip("If on, boundaries between opposite labels (e.g. +X and -X)\ncan be considered valid if they only contain > 180° angles");
 
 			ImGui::BeginDisabled( allow_boundaries_between_opposite_labels_ == static_labeling_graph_.is_allowing_boundaries_between_opposite_labels() ); // allow to recompute only if the UI control value changed
 			if(ImGui::Button("Recompute labeling graph")) {
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
+			ImGui::SameLine();
+			ImGui::TextDisabled("(?)");
+			ImGui::SetItemTooltip("Update charts, boundaries and corners according to the new value of \"Allow boundaries between opposite labels\"");
 			ImGui::EndDisabled();
 
 			ImGui::Separator();
 
 			if(ImGui::RadioButton("View triangle mesh",&labeling_visu_mode_,VIEW_TRIANGLE_MESH))
 				labeling_visu_mode_transition(VIEW_TRIANGLE_MESH);
+			ImGui::SameLine();
+			ImGui::TextDisabled("(?)");
+			ImGui::SetItemTooltip("Show the triangle mesh without the labeling");
 
 			if(ImGui::RadioButton("View raw labeling",&labeling_visu_mode_,VIEW_RAW_LABELING))
 				labeling_visu_mode_transition(VIEW_RAW_LABELING);
+			ImGui::SameLine();
+			ImGui::TextDisabled("(?)");
+			ImGui::SetItemTooltip("Show the triangle mesh and the labeling");
 
 			ImGui::BeginDisabled( (labeling_visu_mode_!=VIEW_RAW_LABELING) && (labeling_visu_mode_!=VIEW_LABELING_GRAPH) );
 			if(ImGui::ColorEdit4WithPalette("Label 0 = +X", labeling_colors_.color_as_floats(0))) {
@@ -433,29 +464,48 @@ protected:
 
 			if(ImGui::RadioButton("View labeling graph",&labeling_visu_mode_,VIEW_LABELING_GRAPH))
 				labeling_visu_mode_transition(VIEW_LABELING_GRAPH);
+			ImGui::SameLine();
+			ImGui::TextDisabled("(?)");
+			ImGui::SetItemTooltip("Show the charts, the boundaries, the corners and the turning-points computed from the labeling");
 
 			ImGui::Text("%ld charts, %ld boundaries",static_labeling_graph_.nb_charts(),static_labeling_graph_.nb_boundaries());
 
 			ImGui::BeginDisabled(labeling_visu_mode_!=VIEW_LABELING_GRAPH);
-			ImGui::ColorEdit4WithPalette(fmt::format("Corners ({})",static_labeling_graph_.nb_corners()).c_str(), corners_color_);
+
+			ImGui::ColorEdit4WithPalette("Corners", corners_color_);
+			ImGui::SameLine();
+			ImGui::Text("(%ld)",static_labeling_graph_.nb_corners());
 			ImGui::SliderFloat("Corners size", &corners_size_, 0.0f, 50.0f, "%.1f");
-			ImGui::ColorEdit4WithPalette(fmt::format("Turning points ({})",nb_turning_points_).c_str(), turning_points_color_);
+
+			ImGui::ColorEdit4WithPalette("Turning points", turning_points_color_);
+			ImGui::SameLine();
+			ImGui::Text("(%ld)",nb_turning_points_);
 			ImGui::SliderFloat("Turning points size", &turning_points_size_, 0.0f, 50.0f, "%.1f");
+
 			ImGui::EndDisabled();
 
 			if(ImGui::RadioButton("View fidelity",&labeling_visu_mode_,VIEW_FIDELITY))
 				labeling_visu_mode_transition(VIEW_FIDELITY);
+			ImGui::SameLine();
+			ImGui::TextDisabled("(?)");
+			ImGui::SetItemTooltip("Color the facets according to the angle between the normal and the assigned direction.\nYellow = small angle, black = wide angle.\nClick on a facet to print its fidelity.");
 			
 			ImGui::TextUnformatted(fidelity_text_label_.c_str());
 
-			if(ImGui::RadioButton(fmt::format("View invalid charts ({})",static_labeling_graph_.nb_invalid_charts()).c_str(),&labeling_visu_mode_,VIEW_INVALID_CHARTS))
+			if(ImGui::RadioButton("View invalid charts",&labeling_visu_mode_,VIEW_INVALID_CHARTS))
 				labeling_visu_mode_transition(VIEW_INVALID_CHARTS);
+			ImGui::SameLine();
+			ImGui::Text("(%ld)",static_labeling_graph_.nb_invalid_charts());
 
-			if(ImGui::RadioButton(fmt::format("View invalid boundaries ({})",static_labeling_graph_.nb_invalid_boundaries()).c_str(),&labeling_visu_mode_,VIEW_INVALID_BOUNDARIES))
+			if(ImGui::RadioButton("View invalid boundaries",&labeling_visu_mode_,VIEW_INVALID_BOUNDARIES))
 				labeling_visu_mode_transition(VIEW_INVALID_BOUNDARIES);
+			ImGui::SameLine();
+			ImGui::Text("(%ld)",static_labeling_graph_.nb_invalid_boundaries());
 
-			if(ImGui::RadioButton(fmt::format("View invalid corners ({})",static_labeling_graph_.nb_invalid_corners()).c_str(),&labeling_visu_mode_,VIEW_INVALID_CORNERS))
+			if(ImGui::RadioButton("View invalid corners",&labeling_visu_mode_,VIEW_INVALID_CORNERS))
 				labeling_visu_mode_transition(VIEW_INVALID_CORNERS);
+			ImGui::SameLine();
+			ImGui::Text("(%ld)",static_labeling_graph_.nb_invalid_corners());
 			
 			ImGui::BeginDisabled( (labeling_visu_mode_!=VIEW_INVALID_CHARTS) && 
 								  (labeling_visu_mode_!=VIEW_INVALID_BOUNDARIES) && 
@@ -464,24 +514,42 @@ protected:
 				validity_colors_.update_chars_of_color(0);
 				update_GL_texture(colormaps_[COLORMAP_VALIDITY].texture,2,1,validity_colors_.as_chars());
 			}
+			ImGui::SameLine();
+			ImGui::TextDisabled("(?)");
+			ImGui::SetItemTooltip("Color of invalid charts/boundaries/corners");
 			if(ImGui::ColorEdit4WithPalette("Valid", validity_colors_.color_as_floats(1))) {
 				validity_colors_.update_chars_of_color(1);
 				update_GL_texture(colormaps_[COLORMAP_VALIDITY].texture,2,1,validity_colors_.as_chars());
 			}
+			ImGui::SameLine();
+			ImGui::TextDisabled("(?)");
+			ImGui::SetItemTooltip("Color of valid charts/boundaries/corners");
 			ImGui::EndDisabled();
 
 			if(static_labeling_graph_.is_valid()) {
 				ImGui::TextColored(ImVec4(0.0f,0.5f,0.0f,1.0f),"Valid labeling");
+				ImGui::SameLine();
+				ImGui::TextDisabled("(?)");
+				ImGui::SetItemTooltip("The current labeling is a valid polycube representation");
 			}
 			else {
 				ImGui::TextColored(ImVec4(0.8f,0.0f,0.0f,1.0f),"Invalid labeling");
+				ImGui::SameLine();
+				ImGui::TextDisabled("(?)");
+				ImGui::SetItemTooltip("The current labeling is not valid polycube representation.\nValence or adjacency of some components (charts, boundaries, corners) cannot turn into polycube components.");
 			}
 
 			if(nb_turning_points_==0) {
 				ImGui::TextColored(ImVec4(0.0f,0.5f,0.0f,1.0f),"All monotone boundaries");
+				ImGui::SameLine();
+				ImGui::TextDisabled("(?)");
+				ImGui::SetItemTooltip("There are no turning-points");
 			}
 			else {
 				ImGui::TextColored(ImVec4(0.8f,0.0f,0.0f,1.0f),"Non-monotone boundaries");
+				ImGui::SameLine();
+				ImGui::TextDisabled("(?)");
+				ImGui::SetItemTooltip("Some boundaries contain turning-points");
 			}
 			
 			break;
