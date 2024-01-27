@@ -354,6 +354,32 @@ protected:
 			break;
 		case labeling:
 
+			if(ImGui::Button("Remove labeling")) {
+				ImGui::OpenPopup("Remove labeling ?");
+			}
+			ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f)); // Always center the modal when appearing
+			if(ImGui::BeginPopupModal("Remove labeling ?", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+			{
+				ImGui::TextUnformatted("If not manually saved before, the labeling will be lost.");
+				ImGui::TextUnformatted("Are you sure you want to remove the labeling?");
+				ImGui::PushStyleColor(ImGuiCol_Button, 			ImVec4(0.9f, 0.4f, 0.4f, 1.0f)); // red
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered,	ImVec4(0.9f, 0.2f, 0.2f, 1.0f)); // darker red
+				ImGui::PushStyleColor(ImGuiCol_ButtonActive,	ImVec4(0.9f, 0.0f, 0.0f, 1.0f));
+				if(ImGui::Button("Yes, remove the labeling", ImVec2(200, 0))) {
+					clear_scene_overlay();
+					state_transition(triangle_mesh);
+					ImGui::CloseCurrentPopup();
+				}
+				ImGui::PopStyleColor(3);
+				ImGui::SetItemDefaultFocus();
+				ImGui::SameLine();
+				if(ImGui::Button("No, cancel", ImVec2(120, 0))) {
+					ImGui::CloseCurrentPopup();
+				}
+				ImGui::EndPopup();
+			}
+
+
 			ImGui::Checkbox("Allow boundaries between opposite labels",&allow_boundaries_between_opposite_labels_);
 
 			ImGui::BeginDisabled( allow_boundaries_between_opposite_labels_ == static_labeling_graph_.is_allowing_boundaries_between_opposite_labels() ); // allow to recompute only if the UI control value changed
