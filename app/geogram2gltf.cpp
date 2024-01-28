@@ -12,12 +12,6 @@
 
 using GEO::index_t; // to use the FOR() macro of Geogram
 
-// to access the binary representation of a float (fp32)
-union BinaryFP32 {
-    float fp;
-    u_int32_t binary;
-};
-
 // store the 3 vertices of a 
 struct TriangleVertices {
     u_int16_t v0;
@@ -139,16 +133,8 @@ int main(int argc, char **argv)
     }
     // write vertices (= 3D coordinates)
     size_t start_index_vertices = 2*3*box.facets.nb();
-    BinaryFP32 x, y, z;
     FOR(v,box.vertices.nb()) { // for each vertex index
-        // write fp32 coordinate into the union to access the binary representation
-        x.fp = box.vertices.single_precision_point_ptr(v)[0];
-        y.fp = box.vertices.single_precision_point_ptr(v)[1];
-        z.fp = box.vertices.single_precision_point_ptr(v)[2];
-        // write into the buffer
-        memcpy(buffer.data.data()+start_index_vertices+v*12+0,&x.binary,4);
-        memcpy(buffer.data.data()+start_index_vertices+v*12+4,&y.binary,4);
-        memcpy(buffer.data.data()+start_index_vertices+v*12+8,&z.binary,4);
+        memcpy(buffer.data.data()+start_index_vertices+v*12+0,static_cast<void*>(box.vertices.single_precision_point_ptr(v)),12); // write x,y,z from float* getter
     }
 
     // 1st chunk of the buffer : triangles = vertex indices (type ELEMENT_ARRAY_BUFFER)
