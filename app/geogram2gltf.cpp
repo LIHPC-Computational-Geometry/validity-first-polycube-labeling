@@ -204,11 +204,11 @@ int main(int argc, char **argv)
 
     // Save it to a file
     tinygltf::TinyGLTF gltf;
-    gltf.WriteGltfSceneToFile(&m, "box.gltf",
+    gltf.WriteGltfSceneToFile(&m, "box.glb",
                             true, // embedImages
                             true, // embedBuffers
                             true, // pretty print
-                            false); // write binary
+                            true); // write binary
   
   exit(0);
 }
