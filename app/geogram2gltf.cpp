@@ -7,17 +7,18 @@
 
 #include <geogram/basic/command_line_args.h>    // for import_arg_group()
 #include <geogram/basic/geometry.h>             // for vec3
+#include <geogram/basic/logger.h>               // for Logger
 #include <geogram/mesh/mesh.h>                  // for Mesh
 #include <geogram/mesh/mesh_io.h>               // for mesh_save()
 
+#include <fmt/core.h>
+#include <fmt/ostream.h>
+
 using GEO::index_t; // to use the FOR() macro of Geogram
 
-// store the 3 vertices of a 
-struct TriangleVertices {
-    u_int16_t v0;
-    u_int16_t v1;
-    u_int16_t v2;
-};
+inline index_t* facet_vertex_index_ptr(GEO::Mesh& M, index_t f, index_t lv) {
+    return M.facet_corners.vertex_index_ptr(M.facets.corner(f,lv));
+}
 
 int main(int argc, char **argv)
 {
@@ -29,6 +30,13 @@ int main(int argc, char **argv)
 
     GEO::initialize();
     GEO::CmdLine::import_arg_group("sys"); // declares sys:compression_level, needed by mesh_save() for .geogram files
+
+    #ifdef GARGANTUA
+        fmt::println(Logger::err("I/O"),"Cannot export to glTF in GARGANTUA mode, indices must have 32 bits"); Logger::err("I/O").flush();
+        return 1;
+    #endif
+
+    geo_assert(sizeof(index_t)==4); // 4 bytes = 32 bits
 
     // create a simple Geogram mesh (a box)
 
@@ -111,30 +119,23 @@ int main(int argc, char **argv)
     tinygltf::Accessor accessor2;
     tinygltf::Asset asset;
 
-    // resize `buffer` to 2 bytes * 3 indices * #triangles
+    // resize `buffer` to 4 bytes * 3 indices * #triangles
     //                  + 4 bytes * 3 floating points * #vertices
     size_t buffer_indices_start = 0; // byte index
-    size_t buffer_indices_length = 2*3*box.facets.nb(); // number of bytes
+    size_t buffer_indices_length = 4*3*box.facets.nb(); // number of bytes
     size_t buffer_coordinates_start = buffer_indices_length; // byte index. just after the indices chunk, no padding
     size_t buffer_coordinates_length = 4*3*box.vertices.nb(); // number of bytes
     buffer.data.resize(buffer_indices_length+buffer_coordinates_length);
 
     // write triangles (= vertex indices)
-    TriangleVertices triangle;
     FOR(f,box.facets.nb()) { // for each facet (triangle) index
-        // convert vertex indices from `GEO::index_t` to `u_int16_t`
-        triangle.v0 = (u_int16_t) box.facets.vertex(f,0);
-        triangle.v1 = (u_int16_t) box.facets.vertex(f,1);
-        triangle.v2 = (u_int16_t) box.facets.vertex(f,2);
-        // write into the buffer
-        memcpy(buffer.data.data()+f*6+0,&triangle.v0,2);
-        memcpy(buffer.data.data()+f*6+2,&triangle.v1,2);
-        memcpy(buffer.data.data()+f*6+4,&triangle.v2,2);
+        memcpy(buffer.data.data() + f*12 + 0, facet_vertex_index_ptr(box,f,0),4);
+        memcpy(buffer.data.data() + f*12 + 4, facet_vertex_index_ptr(box,f,1),4);
+        memcpy(buffer.data.data() + f*12 + 8, facet_vertex_index_ptr(box,f,2),4);
     }
     // write vertices (= 3D coordinates)
-    size_t start_index_vertices = 2*3*box.facets.nb();
     FOR(v,box.vertices.nb()) { // for each vertex index
-        memcpy(buffer.data.data()+start_index_vertices+v*12+0,static_cast<void*>(box.vertices.single_precision_point_ptr(v)),12); // write x,y,z from float* getter
+        memcpy(buffer.data.data()+buffer_coordinates_start+v*12+0,static_cast<void*>(box.vertices.single_precision_point_ptr(v)),12); // write x,y,z from float* getter
     }
 
     // 1st chunk of the buffer : triangles = vertex indices (type ELEMENT_ARRAY_BUFFER)
@@ -152,7 +153,7 @@ int main(int argc, char **argv)
     // layout description of bufferView1
     accessor1.bufferView = 0;
     accessor1.byteOffset = 0;
-    accessor1.componentType = TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT;
+    accessor1.componentType = TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT; // 32 bits per index
     accessor1.count = box.facets.nb()*3; // how many indices
     accessor1.type = TINYGLTF_TYPE_SCALAR;
     // range of indices : [ 0 : box.facets.nb()*3-1 ]
