@@ -11,3 +11,6 @@
 [submodule "ext/dbg-macro"]
 	path = ext/dbg-macro
 	url = git@github.com:sharkdp/dbg-macro.git
+[submodule "ext/tinygltf"]
+	path = ext/tinygltf
+	url = git@github.com:syoyo/tinygltf.git
