@@ -14,6 +14,7 @@
 
 #include "geometry.h"
 #include "CustomMeshHalfedges.h"
+#include "LabelingGraph.h"
 
 void per_facet_distance(const Mesh& mesh, std::map<index_t,unsigned int>& distance) {
     // thank you Trizalio https://stackoverflow.com/a/72437022
@@ -382,4 +383,18 @@ MeshHalfedges::Halfedge get_most_aligned_halfedge_around_vertex(const MeshHalfed
     geo_assert(most_aligned_halfedge.facet != NO_FACET);
     geo_assert(most_aligned_halfedge.corner != NO_CORNER);
     return most_aligned_halfedge;
+}
+
+void get_adjacent_facets_conditional(const Mesh& mesh, index_t facet_index, index_t which_chart, const std::vector<index_t>& facet2chart, std::set<index_t>& out) {
+    index_t neighbor_facet = index_t(-1);
+    FOR(le,3) { // for each local edge of the facet
+        neighbor_facet = mesh.facets.adjacent(facet_index,le);
+        if(out.contains(neighbor_facet)) { // `neighbor_facet` found by another facet
+            continue;
+        }
+        if(facet2chart.at(neighbor_facet) != which_chart) {
+            continue;
+        }
+        out.insert(neighbor_facet);
+    }
 }

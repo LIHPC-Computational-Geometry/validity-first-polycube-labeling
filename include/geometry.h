@@ -106,3 +106,5 @@ void rotate_mesh_according_to_principal_axes(Mesh& mesh);
 
 // the vertex around which halfedges will be tested is the origin vertex of `init_halfedge` 
 MeshHalfedges::Halfedge get_most_aligned_halfedge_around_vertex(const MeshHalfedges::Halfedge& init_halfedge, const CustomMeshHalfedges& mesh_he, const vec3& reference);
+
+void get_adjacent_facets_conditional(const Mesh& mesh, index_t facet_index, index_t which_chart, const std::vector<index_t>& facet2chart, std::set<index_t>& out);

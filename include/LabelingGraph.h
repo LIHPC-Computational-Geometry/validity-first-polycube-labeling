@@ -221,7 +221,7 @@ struct Boundary {
 
     vec3 average_vector_between_corners(const Mesh& mesh, const std::vector<Corner>& corners) const;
 
-    void get_adjacent_facets(const Mesh& mesh, std::set<index_t>& adjacent_facets, BoundaryNeighborhoodExplorationMode mode) const;
+    void get_adjacent_facets(const Mesh& mesh, std::set<index_t>& adjacent_facets, BoundaryNeighborhoodExplorationMode mode, const std::vector<index_t>& facet2chart, size_t max_dist = 0) const;
 };
 
 std::ostream& operator<< (std::ostream &out, const Boundary& data);
