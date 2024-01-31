@@ -239,7 +239,7 @@ unsigned int remove_surrounded_charts(GEO::Mesh& mesh, const char* attribute_nam
     return modified_charts_count;
 }
 
-unsigned int fix_invalid_boundaries(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg) {
+unsigned int fix_invalid_boundaries(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg, const std::vector<vec3>& facet_normals) {
     Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // get labeling attribute
     CustomMeshHalfedges mesh_half_edges_(mesh); // create an halfedges interface for this mesh
 
@@ -249,14 +249,44 @@ unsigned int fix_invalid_boundaries(GEO::Mesh& mesh, const char* attribute_name,
 
     unsigned int new_charts_count = 0;
     index_t new_label;
+    vec3 new_label_as_vector;
     MeshHalfedges::Halfedge current_halfedge;
     for(index_t boundary_index : slg.invalid_boundaries) { // for each invalid boundary
         const Boundary& current_boundary = slg.boundaries[boundary_index];
         new_label = nearest_label(current_boundary.average_normal);
-        std::set<index_t> adjacent_facets;
-        current_boundary.get_adjacent_facets(mesh,adjacent_facets,LeftAndRight,slg.facet2chart,1);
-        for(auto f : adjacent_facets) {
-            label[f] = new_label;
+        new_label_as_vector = label2vector[new_label];
+        std::set<index_t> left_facets;
+        std::set<index_t> right_facets;
+        current_boundary.get_adjacent_facets(mesh,left_facets,OnlyLeft,slg.facet2chart,1); // get triangles at left and at distance 0 or 1 from the boundary
+        current_boundary.get_adjacent_facets(mesh,right_facets,OnlyLeft,slg.facet2chart,1); // get triangles at right and at distance 0 or 1 from the boundary
+        double average_dot_product_left = 0.0;
+        double average_dot_product_right = 0.0;
+        for(auto f : left_facets) {
+            average_dot_product_left += dot(new_label_as_vector,facet_normals[f]); // both operands are already normalized
+        }
+        average_dot_product_left /= (double) left_facets.size();
+        for(auto f : right_facets) {
+            average_dot_product_right += dot(new_label_as_vector,facet_normals[f]); // both operands are already normalized
+        }
+        average_dot_product_right /= (double) right_facets.size();
+        if (std::abs(average_dot_product_left - average_dot_product_right) < 10e-3) {
+            // put a new chart that goes on both sides
+            for(auto f : left_facets) {
+                label[f] = new_label;
+            }
+            for(auto f : right_facets) {
+                label[f] = new_label;
+            }
+        }
+        else if (average_dot_product_left < average_dot_product_right) { // on average, the left side is a better place to put the new chart
+            for(auto f : left_facets) {
+                label[f] = new_label;
+            }
+        }
+        else { // on average, the right side is a better place to put the new chart
+            for(auto f : right_facets) {
+                label[f] = new_label;
+            }
         }
     }
 
