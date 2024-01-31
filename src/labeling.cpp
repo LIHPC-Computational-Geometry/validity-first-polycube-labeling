@@ -253,35 +253,11 @@ unsigned int fix_invalid_boundaries(GEO::Mesh& mesh, const char* attribute_name,
     for(index_t boundary_index : slg.invalid_boundaries) { // for each invalid boundary
         const Boundary& current_boundary = slg.boundaries[boundary_index];
         new_label = nearest_label(current_boundary.average_normal);
-
-        // Change the labels around the start/end corner, but only in place of the 2 charts next to the boundary
-        for(auto current_corner : std::initializer_list<index_t>({current_boundary.start_corner,current_boundary.end_corner})) {
-            geo_assert(current_corner != index_t(-1));
-            for(auto& vr : slg.corners[current_corner].vertex_rings_with_boundaries) { // for each vertex ring
-                for(auto& be : vr.boundary_edges) { // for each boundary edge
-                    if(
-                    (slg.facet2chart[be.facet] == current_boundary.left_chart) || 
-                    (slg.facet2chart[be.facet] == current_boundary.right_chart) ) {
-                        // so be.facet is on one of the charts to shrink
-                        label[be.facet] = new_label;
-                    }
-                }
-            }
+        std::set<index_t> adjacent_facets;
+        current_boundary.get_adjacent_facets(mesh,adjacent_facets,LeftAndRight,slg.facet2chart,1);
+        for(auto f : adjacent_facets) {
+            label[f] = new_label;
         }
-
-        // Change the labels around the vertices between the two corners
-        auto boundary_halfedge = current_boundary.halfedges.cbegin();
-        boundary_halfedge++;
-        for(; boundary_halfedge != current_boundary.halfedges.cend(); ++boundary_halfedge) { // walk along the boundary
-            current_halfedge = (*boundary_halfedge); // copy the boundary halfedge into a mutable variable
-            // modify the labels around this vertex
-            do {
-                label[current_halfedge.facet] = new_label;
-                mesh_half_edges_.move_counterclockwise_around_vertex(current_halfedge,true);
-            } while (current_halfedge != *boundary_halfedge); // go around the vertex, until we are back on the initial boundary edge
-        }
-
-        new_charts_count++;
     }
 
     return new_charts_count; // should be == to slg.invalid_boundaries.size()
