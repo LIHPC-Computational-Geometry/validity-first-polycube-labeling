@@ -110,22 +110,40 @@ int main(int argc, char **argv)
     tinygltf::Model m;
     tinygltf::Scene scene;
     tinygltf::Mesh mesh;
-    tinygltf::Primitive primitive;
+    tinygltf::Primitive primitive_triangles;
+    tinygltf::Primitive primitive_edges;
     tinygltf::Node node;
     tinygltf::Buffer buffer; // the raw data buffer storing points & triangles
     tinygltf::BufferView bufferView1;
     tinygltf::BufferView bufferView2;
+    tinygltf::BufferView bufferView3;
     tinygltf::Accessor accessor1;
     tinygltf::Accessor accessor2;
+    tinygltf::Accessor accessor3;
     tinygltf::Asset asset;
+
+    // Materials
+
+    tinygltf::Material material_red;
+    material_red.pbrMetallicRoughness.baseColorFactor = {1.0f, 0.9f, 0.9f, 1.0f};
+    material_red.doubleSided = true;
+    m.materials.push_back(material_red); // index 0
+
+    tinygltf::Material material_black;
+    material_black.pbrMetallicRoughness.baseColorFactor = {0.0f, 0.0f, 0.0f, 1.0f};
+    material_black.doubleSided = true;
+    m.materials.push_back(material_black); // index 1
 
     // resize `buffer` to 4 bytes * 3 indices * #triangles
     //                  + 4 bytes * 3 floating points * #vertices
+    //                  + 4 bytes * 2 indices * 1 edge (vertex 0 to vertex v1)
     size_t buffer_indices_start = 0; // byte index
     size_t buffer_indices_length = 4*3*box.facets.nb(); // number of bytes
     size_t buffer_coordinates_start = buffer_indices_length; // byte index. just after the indices chunk, no padding
     size_t buffer_coordinates_length = 4*3*box.vertices.nb(); // number of bytes
-    buffer.data.resize(buffer_indices_length+buffer_coordinates_length);
+    size_t buffer_edges_start = buffer_coordinates_start+buffer_coordinates_length; // byte index
+    size_t buffer_edges_length = 4*2; // number of bytes
+    buffer.data.resize(buffer_indices_length+buffer_coordinates_length+buffer_edges_length);
 
     // write triangles (= vertex indices)
     FOR(f,box.facets.nb()) { // for each facet (triangle) index
@@ -137,6 +155,11 @@ int main(int argc, char **argv)
     FOR(v,box.vertices.nb()) { // for each vertex index
         memcpy(buffer.data.data()+buffer_coordinates_start+v*12+0,static_cast<void*>(box.vertices.single_precision_point_ptr(v)),12); // write x,y,z from float* getter
     }
+    // write edge vertices
+    index_t edge_v0 = 0;
+    index_t edge_v1 = 1;
+    memcpy(buffer.data.data()+buffer_edges_start+0,&edge_v0,4);
+    memcpy(buffer.data.data()+buffer_edges_start+4,&edge_v1,4);
 
     // 1st chunk of the buffer : triangles = vertex indices (type ELEMENT_ARRAY_BUFFER)
     bufferView1.buffer = 0;
@@ -149,6 +172,12 @@ int main(int argc, char **argv)
     bufferView2.byteOffset=buffer_coordinates_start;
     bufferView2.byteLength=buffer_coordinates_length;
     bufferView2.target = TINYGLTF_TARGET_ARRAY_BUFFER;
+
+    // 3rd chunk of the buffer : indices of edge vertices (type ELEMENT_ARRAY_BUFFER)
+    bufferView3.buffer = 0;
+    bufferView3.byteOffset=buffer_edges_start;
+    bufferView3.byteLength=buffer_edges_length;
+    bufferView3.target = TINYGLTF_TARGET_ELEMENT_ARRAY_BUFFER;
 
     // layout description of bufferView1
     accessor1.bufferView = 0;
@@ -170,12 +199,28 @@ int main(int argc, char **argv)
     accessor2.maxValues = { 0.5,  0.5,  0.5};
     accessor2.minValues = {-0.5, -0.5, -0.5};
 
+    // layout description of bufferView3
+    accessor3.bufferView = 2;
+    accessor3.byteOffset = 0;
+    accessor3.componentType = TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT; // 32 bits per index
+    accessor3.count = 2; // how many indices
+    accessor3.type = TINYGLTF_TYPE_SCALAR;
+    // range of indices : [ 0 : 1 ]
+    accessor3.maxValues.push_back(1);
+    accessor3.minValues.push_back(0);
+
     // Build the mesh primitive and add it to the mesh
-    primitive.indices = 0;                 // The index of the accessor for the vertex indices (`accessor1`)
-    primitive.attributes["POSITION"] = 1;  // The index of the accessor for positions (`accessor2`)
-    primitive.material = 0;
-    primitive.mode = TINYGLTF_MODE_TRIANGLES;
-    mesh.primitives.push_back(primitive);
+    primitive_triangles.indices = 0;                 // The index of the accessor for the vertex indices (`accessor1`)
+    primitive_triangles.attributes["POSITION"] = 1;  // The index of the accessor for positions (`accessor2`)
+    primitive_triangles.material = 0;
+    primitive_triangles.mode = TINYGLTF_MODE_TRIANGLES;
+    mesh.primitives.push_back(primitive_triangles);
+
+    primitive_edges.indices = 2; // The index of the accessor for the vertex indices (`accessor3`)
+    primitive_edges.attributes["POSITION"] = 1; // `accessor2`
+    primitive_edges.material = 1; // black
+    primitive_edges.mode = TINYGLTF_MODE_LINE;
+    mesh.primitives.push_back(primitive_edges);
 
     // Other tie ups
     node.mesh = 0;
@@ -193,15 +238,11 @@ int main(int argc, char **argv)
     m.buffers.push_back(buffer);
     m.bufferViews.push_back(bufferView1);
     m.bufferViews.push_back(bufferView2);
+    m.bufferViews.push_back(bufferView3);
     m.accessors.push_back(accessor1);
     m.accessors.push_back(accessor2);
+    m.accessors.push_back(accessor3);
     m.asset = asset;
-
-    // Create a simple material
-    tinygltf::Material mat;
-    mat.pbrMetallicRoughness.baseColorFactor = {1.0f, 0.9f, 0.9f, 1.0f};  
-    mat.doubleSided = true;
-    m.materials.push_back(mat);
 
     // Save it to a file
     tinygltf::TinyGLTF gltf;
