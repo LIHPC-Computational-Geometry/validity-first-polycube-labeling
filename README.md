@@ -37,10 +37,11 @@ Then:
 # from automatic_polycube/
 mkdir build_Release
 cd build_Release
-# add -DAUTOMATIC_POLYCUBE_BUILD_TESTS=ON to the next line for the tests
-cmake .. -DCMAKE_BUILD_TYPE=Release
-make automatic_polycube
+cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release
+ninja automatic_polycube
 ```
+
+Remove `-G Ninja` to use Make instead, if you don't have Ninja.
 
 ## Run `automatic_polycube` app
 

@@ -57,10 +57,17 @@ set(
 )
 
 #################
-# COMPILE DEFINITIONS
+# COMPILE OPTIONS
 #################
 
 add_compile_definitions(WINDOW_SIZE="3840x2160") # bigger window size for Geogram-based applications
+# colored output with Ninja
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    add_compile_options(-fcolor-diagnostics)
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    add_compile_options(-fdiagnostics-color)
+endif()
+
 
 #################
 # LIBRARY
