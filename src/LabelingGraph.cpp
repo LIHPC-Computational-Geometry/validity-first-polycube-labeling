@@ -595,21 +595,21 @@ vec3 Boundary::average_vector_between_corners(const Mesh& mesh, const std::vecto
     return vector_between_corners(mesh,corners) / (double) halfedges.size();
 }
 
-void Boundary::get_adjacent_facets(const Mesh& mesh, std::set<index_t>& adjacent_facets, BoundaryNeighborhoodExplorationMode mode, const std::vector<index_t>& facet2chart, size_t max_dist) const {
+void Boundary::get_adjacent_facets(const Mesh& mesh, std::set<index_t>& adjacent_facets, BoundarySide boundary_side_to_explore, const std::vector<index_t>& facet2chart, size_t max_dist) const {
     if(max_dist > 1) {
         fmt::println("Not implemented");
         geo_assert_not_reached;
     }
     index_t adjacent_facet = index_t(-1);
     for(const auto& current_halfedge : halfedges) {
-        if( (mode == LeftAndRight) || (mode == OnlyLeft) ) {
+        if( (boundary_side_to_explore == LeftAndRight) || (boundary_side_to_explore == OnlyLeft) ) {
             adjacent_facet = halfedge_facet_left(mesh,current_halfedge);
             adjacent_facets.insert(adjacent_facet);
             if(max_dist == 1) {
                 get_adjacent_facets_conditional(mesh,adjacent_facet,left_chart,facet2chart,adjacent_facets);
             }
         }
-        if( (mode == LeftAndRight) || (mode == OnlyRight) ) {
+        if( (boundary_side_to_explore == LeftAndRight) || (boundary_side_to_explore == OnlyRight) ) {
             adjacent_facet = halfedge_facet_right(mesh,current_halfedge);
             adjacent_facets.insert(adjacent_facet);
             if(max_dist == 1) {

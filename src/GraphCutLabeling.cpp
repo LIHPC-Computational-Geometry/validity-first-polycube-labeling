@@ -130,7 +130,7 @@ GraphCutLabeling::GraphCutLabeling(const Mesh& mesh, const std::vector<vec3>& no
 //      X --> X = facet2siteID_ (which is a map)
 //      X <-- X = not needed
 
-GraphCutLabeling::GraphCutLabeling(const Mesh& mesh, const std::vector<vec3>& normals, index_t nb_facets, std::initializer_list<index_t> labels)
+GraphCutLabeling::GraphCutLabeling(const Mesh& mesh, const std::vector<vec3>& normals, index_t nb_facets, std::vector<index_t> labels)
       : mesh_(mesh),
         normals_(normals),
         nb_facets_(nb_facets),

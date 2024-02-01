@@ -158,7 +158,7 @@ std::ostream& operator<< (std::ostream &out, const TurningPoint& data);
 // https://fmt.dev/latest/api.html#std-ostream-support
 template <> struct fmt::formatter<TurningPoint> : ostream_formatter {};
 
-enum BoundaryNeighborhoodExplorationMode {
+enum BoundarySide {
     LeftAndRight,
     OnlyLeft,
     OnlyRight
@@ -221,7 +221,7 @@ struct Boundary {
 
     vec3 average_vector_between_corners(const Mesh& mesh, const std::vector<Corner>& corners) const;
 
-    void get_adjacent_facets(const Mesh& mesh, std::set<index_t>& adjacent_facets, BoundaryNeighborhoodExplorationMode mode, const std::vector<index_t>& facet2chart, size_t max_dist = 0) const;
+    void get_adjacent_facets(const Mesh& mesh, std::set<index_t>& adjacent_facets, BoundarySide boundary_side_to_explore, const std::vector<index_t>& facet2chart, size_t max_dist = 0) const;
 };
 
 std::ostream& operator<< (std::ostream &out, const Boundary& data);

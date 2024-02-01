@@ -14,7 +14,6 @@
 #include <array>
 #include <map>
 #include <utility>      // for std::pair
-#include <initializer_list>
 
 using namespace GEO;
 
@@ -62,7 +61,7 @@ public:
      */
     GraphCutLabeling(const Mesh& mesh, const std::vector<vec3>& normals);
 
-    GraphCutLabeling(const Mesh& mesh, const std::vector<vec3>& normals, index_t nb_facets, std::initializer_list<index_t> labels); // if graph-cut on a subset of the surface and/or a subset of the labels
+    GraphCutLabeling(const Mesh& mesh, const std::vector<vec3>& normals, index_t nb_facets, std::vector<index_t> labels); // if graph-cut on a subset of the surface and/or a subset of the labels
 
     //// Facets definition //////////////////
 

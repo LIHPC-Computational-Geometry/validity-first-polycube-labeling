@@ -252,42 +252,107 @@ unsigned int fix_invalid_boundaries(GEO::Mesh& mesh, const char* attribute_name,
     vec3 new_label_as_vector;
     MeshHalfedges::Halfedge current_halfedge;
     for(index_t boundary_index : slg.invalid_boundaries) { // for each invalid boundary
+
+        // get ref to boundary object and retreive geometry and neighborhood info
+
         const Boundary& current_boundary = slg.boundaries[boundary_index];
         new_label = nearest_label(current_boundary.average_normal);
         new_label_as_vector = label2vector[new_label];
-        std::set<index_t> left_facets;
-        std::set<index_t> right_facets;
-        current_boundary.get_adjacent_facets(mesh,left_facets,OnlyLeft,slg.facet2chart,1); // get triangles at left and at distance 0 or 1 from the boundary
-        current_boundary.get_adjacent_facets(mesh,right_facets,OnlyLeft,slg.facet2chart,1); // get triangles at right and at distance 0 or 1 from the boundary
+        const Chart& left_chart = slg.charts[current_boundary.left_chart];
+        const Chart& right_chart = slg.charts[current_boundary.right_chart];
+        std::set<index_t> left_facets_along_boundary;
+        std::set<index_t> right_facets_along_boundary;
+        current_boundary.get_adjacent_facets(mesh,left_facets_along_boundary,OnlyLeft,slg.facet2chart,1); // get triangles at left and at distance 0 or 1 from the boundary
+        current_boundary.get_adjacent_facets(mesh,right_facets_along_boundary,OnlyLeft,slg.facet2chart,1); // get triangles at right and at distance 0 or 1 from the boundary
+        
+        // find out if the chart to insert on the boundary is better suited on the left side, right side, or both
+        
         double average_dot_product_left = 0.0;
         double average_dot_product_right = 0.0;
-        for(auto f : left_facets) {
+        BoundarySide on_which_side_to_place_new_chart = LeftAndRight;
+        index_t nb_facets_for_GCO = index_t(-1);
+        std::vector<index_t> labels_for_GCO;
+        // compute cost of assigning `new_label` on `left_facets_along_boundary`
+        for(auto f : left_facets_along_boundary) {
             average_dot_product_left += dot(new_label_as_vector,facet_normals[f]); // both operands are already normalized
         }
-        average_dot_product_left /= (double) left_facets.size();
-        for(auto f : right_facets) {
+        average_dot_product_left /= (double) left_facets_along_boundary.size();
+        // compute cost of assigning `new_label` on `right_facets_along_boundary`
+        for(auto f : right_facets_along_boundary) {
             average_dot_product_right += dot(new_label_as_vector,facet_normals[f]); // both operands are already normalized
         }
-        average_dot_product_right /= (double) right_facets.size();
+        average_dot_product_right /= (double) right_facets_along_boundary.size();
+        // comparison
         if (std::abs(average_dot_product_left - average_dot_product_right) < 10e-3) {
-            // put a new chart that goes on both sides
-            for(auto f : left_facets) {
-                label[f] = new_label;
-            }
-            for(auto f : right_facets) {
-                label[f] = new_label;
-            }
+            on_which_side_to_place_new_chart = LeftAndRight;
+            nb_facets_for_GCO = (index_t) left_chart.facets.size() + (index_t) right_chart.facets.size();
+            labels_for_GCO = {new_label,left_chart.label,right_chart.label};
         }
         else if (average_dot_product_left < average_dot_product_right) { // on average, the left side is a better place to put the new chart
-            for(auto f : left_facets) {
-                label[f] = new_label;
-            }
+            on_which_side_to_place_new_chart = OnlyLeft;
+            nb_facets_for_GCO = (index_t) left_chart.facets.size();
+            labels_for_GCO = {new_label,left_chart.label};
         }
         else { // on average, the right side is a better place to put the new chart
-            for(auto f : right_facets) {
-                label[f] = new_label;
+            on_which_side_to_place_new_chart = OnlyRight;
+            nb_facets_for_GCO = (index_t) right_chart.facets.size();
+            labels_for_GCO = {new_label,right_chart.label};
+        }
+
+        // prepare Graph-Cut optimization
+
+        GraphCutLabeling gcl(mesh,facet_normals,nb_facets_for_GCO,labels_for_GCO);
+
+        // declare facets
+
+        switch (on_which_side_to_place_new_chart) {
+            case LeftAndRight:
+                for(index_t f : left_chart.facets) {
+                    gcl.add_facet(f);
+                }
+                for(index_t f : right_chart.facets) {
+                    gcl.add_facet(f);
+                }
+                break;
+            case OnlyLeft:
+                for(index_t f : left_chart.facets) {
+                    gcl.add_facet(f);
+                }
+                break;
+            case OnlyRight:
+                for(index_t f : right_chart.facets) {
+                    gcl.add_facet(f);
+                }
+                break;
+            default:
+                geo_assert_not_reached;
+        }
+
+        // define data cost. impose the `new_label` along the boundary and elsewhere, cost proportional to the fidelity 
+
+        gcl.data_cost__set__fidelity_based(1);
+        if( (on_which_side_to_place_new_chart == LeftAndRight) || (on_which_side_to_place_new_chart == OnlyLeft) ) {
+            for(index_t f : left_facets_along_boundary) {
+                gcl.data_cost__change_to__locked_polycube_label(f,new_label);
             }
         }
+        if( (on_which_side_to_place_new_chart == LeftAndRight) || (on_which_side_to_place_new_chart == OnlyRight) ) {
+            for(index_t f : right_facets_along_boundary) {
+                gcl.data_cost__change_to__locked_polycube_label(f,new_label);
+            }
+        }
+
+        // define smooth cost
+
+        gcl.smooth_cost__set__prevent_opposite_neighbors();
+        
+        // define neighbor cost
+
+        gcl.neighbors__set__compactness_based(1);
+
+        // launch optimizer & update the facet attribute
+
+        gcl.compute_solution(label);
     }
 
     return new_charts_count; // should be == to slg.invalid_boundaries.size()
