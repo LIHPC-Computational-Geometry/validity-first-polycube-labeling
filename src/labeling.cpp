@@ -263,7 +263,7 @@ unsigned int fix_invalid_boundaries(GEO::Mesh& mesh, const char* attribute_name,
         std::set<index_t> left_facets_along_boundary;
         std::set<index_t> right_facets_along_boundary;
         current_boundary.get_adjacent_facets(mesh,left_facets_along_boundary,OnlyLeft,slg.facet2chart,1); // get triangles at left and at distance 0 or 1 from the boundary
-        current_boundary.get_adjacent_facets(mesh,right_facets_along_boundary,OnlyLeft,slg.facet2chart,1); // get triangles at right and at distance 0 or 1 from the boundary
+        current_boundary.get_adjacent_facets(mesh,right_facets_along_boundary,OnlyRight,slg.facet2chart,1); // get triangles at right and at distance 0 or 1 from the boundary
         
         // find out if the chart to insert on the boundary is better suited on the left side, right side, or both
         
@@ -274,16 +274,16 @@ unsigned int fix_invalid_boundaries(GEO::Mesh& mesh, const char* attribute_name,
         std::vector<index_t> labels_for_GCO;
         // compute cost of assigning `new_label` on `left_facets_along_boundary`
         for(auto f : left_facets_along_boundary) {
-            average_dot_product_left += dot(new_label_as_vector,facet_normals[f]); // both operands are already normalized
+            average_dot_product_left += angle(new_label_as_vector,facet_normals[f]); // both operands are already normalized
         }
         average_dot_product_left /= (double) left_facets_along_boundary.size();
         // compute cost of assigning `new_label` on `right_facets_along_boundary`
         for(auto f : right_facets_along_boundary) {
-            average_dot_product_right += dot(new_label_as_vector,facet_normals[f]); // both operands are already normalized
+            average_dot_product_right += angle(new_label_as_vector,facet_normals[f]); // both operands are already normalized
         }
         average_dot_product_right /= (double) right_facets_along_boundary.size();
         // comparison
-        if (std::abs(average_dot_product_left - average_dot_product_right) < 10e-3) {
+        if (std::abs(average_dot_product_left - average_dot_product_right) < 0.1) {
             on_which_side_to_place_new_chart = LeftAndRight;
             nb_facets_for_GCO = (index_t) left_chart.facets.size() + (index_t) right_chart.facets.size();
             labels_for_GCO = {new_label,left_chart.label,right_chart.label};
