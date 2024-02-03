@@ -230,7 +230,7 @@ int main(int argc, char **argv)
     accessor_0_triangles_vertices.count = box.facets.nb()*3; // how many indices
     accessor_0_triangles_vertices.type = TINYGLTF_TYPE_SCALAR;
     // range of indices : [ 0 : box.facets.nb()*3-1 ]
-    accessor_0_triangles_vertices.maxValues.push_back(box.facets.nb()*3-1);
+    accessor_0_triangles_vertices.maxValues.push_back(box.vertices.nb()-1); // max value of all indices in the buffer view
     accessor_0_triangles_vertices.minValues.push_back(0);
 
     // layout description of buffer view 1
@@ -247,10 +247,10 @@ int main(int argc, char **argv)
     accessor_2_edges_vertices.bufferView = BUFFERVIEW_2_EDGES_VERTICES;
     accessor_2_edges_vertices.byteOffset = 0;
     accessor_2_edges_vertices.componentType = TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT; // 32 bits per index
-    accessor_2_edges_vertices.count = box.edges.nb(); // how many indices
+    accessor_2_edges_vertices.count = box.edges.nb()*2; // how many indices
     accessor_2_edges_vertices.type = TINYGLTF_TYPE_SCALAR;
     // range of indices : [ 0 : 1 ]
-    accessor_2_edges_vertices.maxValues.push_back(box.edges.nb()-1);
+    accessor_2_edges_vertices.maxValues.push_back(box.vertices.nb()-1); // max value of all indices in the buffer view
     accessor_2_edges_vertices.minValues.push_back(0);
 
     ////////////////////////////////////
