@@ -22,6 +22,7 @@ set(
   src/hex_mesh.cpp
   src/labeling.cpp
   src/LabelingGraph.cpp
+  src/glTF.cpp
 )
 
 #################
