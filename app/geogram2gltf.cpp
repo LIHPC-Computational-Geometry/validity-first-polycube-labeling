@@ -105,146 +105,188 @@ int main(int argc, char **argv)
 
     GEO::mesh_save(box,"box.geogram");
 
-    // Create a glTF model with a single mesh and save it as a gltf file
+    ////////////////////////
+    // Create a glTF model
+    ////////////////////////
 
     tinygltf::Model m;
-    tinygltf::Scene scene;
-    tinygltf::Mesh mesh;
-    tinygltf::Primitive primitive_triangles;
-    tinygltf::Primitive primitive_edges;
-    tinygltf::Node node;
-    tinygltf::Buffer buffer; // the raw data buffer storing points & triangles
-    tinygltf::BufferView bufferView1;
-    tinygltf::BufferView bufferView2;
-    tinygltf::BufferView bufferView3;
-    tinygltf::Accessor accessor1;
-    tinygltf::Accessor accessor2;
-    tinygltf::Accessor accessor3;
-    tinygltf::Asset asset;
 
-    // Materials
+    ///////////////////////
+    // Create 2 materials
+    ///////////////////////
 
-    tinygltf::Material material_red;
-    material_red.pbrMetallicRoughness.baseColorFactor = {1.0f, 0.9f, 0.9f, 1.0f};
-    material_red.doubleSided = true;
-    m.materials.push_back(material_red); // index 0
+    m.materials.resize(2);
+    const size_t MATERIAL_0_RED = 0;
+    const size_t MATERIAL_1_BLACK = 1;
+    tinygltf::Material& material_0_red = m.materials[MATERIAL_0_RED];
+    tinygltf::Material& material_1_black = m.materials[MATERIAL_1_BLACK];
 
-    tinygltf::Material material_black;
-    material_black.pbrMetallicRoughness.baseColorFactor = {0.0f, 0.0f, 0.0f, 1.0f};
-    material_black.doubleSided = true;
-    m.materials.push_back(material_black); // index 1
+    material_0_red.pbrMetallicRoughness.baseColorFactor = {1.0f, 0.9f, 0.9f, 1.0f};
+    material_0_red.doubleSided = true;
 
-    // resize `buffer` to 4 bytes * 3 indices * #triangles
-    //                  + 4 bytes * 3 floating points * #vertices
-    //                  + 4 bytes * 2 indices * 1 edge (vertex 0 to vertex v1)
+    material_1_black.pbrMetallicRoughness.baseColorFactor = {0.0f, 0.0f, 0.0f, 1.0f};
+    material_1_black.doubleSided = true;
+
+    ////////////////////
+    // Create a buffer
+    ////////////////////
+
+    m.buffers.resize(1);
+    const size_t BUFFER_0 = 0;
+    tinygltf::Buffer& buffer_0 = m.buffers[BUFFER_0];
+
+    // resize buffer to 4 bytes * 3 indices * #triangles
+    //                + 4 bytes * 3 floating points * #vertices
+    //                + 4 bytes * 2 indices * 1 edge (vertex 0 to vertex 1)
     size_t buffer_indices_start = 0; // byte index
     size_t buffer_indices_length = 4*3*box.facets.nb(); // number of bytes
     size_t buffer_coordinates_start = buffer_indices_length; // byte index. just after the indices chunk, no padding
     size_t buffer_coordinates_length = 4*3*box.vertices.nb(); // number of bytes
     size_t buffer_edges_start = buffer_coordinates_start+buffer_coordinates_length; // byte index
     size_t buffer_edges_length = 4*2; // number of bytes
-    buffer.data.resize(buffer_indices_length+buffer_coordinates_length+buffer_edges_length);
+    buffer_0.data.resize(buffer_indices_length+buffer_coordinates_length+buffer_edges_length);
 
     // write triangles (= vertex indices)
     FOR(f,box.facets.nb()) { // for each facet (triangle) index
-        memcpy(buffer.data.data() + f*12 + 0, facet_vertex_index_ptr(box,f,0),4);
-        memcpy(buffer.data.data() + f*12 + 4, facet_vertex_index_ptr(box,f,1),4);
-        memcpy(buffer.data.data() + f*12 + 8, facet_vertex_index_ptr(box,f,2),4);
+        memcpy(buffer_0.data.data() + f*12 + 0, facet_vertex_index_ptr(box,f,0),4);
+        memcpy(buffer_0.data.data() + f*12 + 4, facet_vertex_index_ptr(box,f,1),4);
+        memcpy(buffer_0.data.data() + f*12 + 8, facet_vertex_index_ptr(box,f,2),4);
     }
     // write vertices (= 3D coordinates)
     FOR(v,box.vertices.nb()) { // for each vertex index
-        memcpy(buffer.data.data()+buffer_coordinates_start+v*12+0,static_cast<void*>(box.vertices.single_precision_point_ptr(v)),12); // write x,y,z from float* getter
+        memcpy(buffer_0.data.data()+buffer_coordinates_start+v*12+0,static_cast<void*>(box.vertices.single_precision_point_ptr(v)),12); // write x,y,z from float* getter
     }
     // write edge vertices
     index_t edge_v0 = 0;
     index_t edge_v1 = 1;
-    memcpy(buffer.data.data()+buffer_edges_start+0,&edge_v0,4);
-    memcpy(buffer.data.data()+buffer_edges_start+4,&edge_v1,4);
+    memcpy(buffer_0.data.data()+buffer_edges_start+0,&edge_v0,4);
+    memcpy(buffer_0.data.data()+buffer_edges_start+4,&edge_v1,4);
 
-    // 1st chunk of the buffer : triangles = vertex indices (type ELEMENT_ARRAY_BUFFER)
-    bufferView1.buffer = 0;
-    bufferView1.byteOffset=buffer_indices_start;
-    bufferView1.byteLength=buffer_indices_length;
-    bufferView1.target = TINYGLTF_TARGET_ELEMENT_ARRAY_BUFFER;
+    //////////////////////////
+    // Create 3 buffer views
+    //////////////////////////
 
-    // 2nd chunk of the bufffer : points = 3D coordinates (type ARRAY_BUFFER)
-    bufferView2.buffer = 0;
-    bufferView2.byteOffset=buffer_coordinates_start;
-    bufferView2.byteLength=buffer_coordinates_length;
-    bufferView2.target = TINYGLTF_TARGET_ARRAY_BUFFER;
+    m.bufferViews.resize(3);
+    const size_t BUFFERVIEW_0_TRIANGLES_VERTICES = 0;
+    const size_t BUFFERVIEW_1_VERTICES_COORDINATES = 1;
+    const size_t BUFFERVIEW_2_EDGES_VERTICES = 2;
+    tinygltf::BufferView& bufferview_0_triangles_vertices = m.bufferViews[BUFFERVIEW_0_TRIANGLES_VERTICES];
+    tinygltf::BufferView& bufferview_1_vertices_coordinates = m.bufferViews[BUFFERVIEW_1_VERTICES_COORDINATES];
+    tinygltf::BufferView& bufferview_2_edges_vertices = m.bufferViews[BUFFERVIEW_2_EDGES_VERTICES];
 
-    // 3rd chunk of the buffer : indices of edge vertices (type ELEMENT_ARRAY_BUFFER)
-    bufferView3.buffer = 0;
-    bufferView3.byteOffset=buffer_edges_start;
-    bufferView3.byteLength=buffer_edges_length;
-    bufferView3.target = TINYGLTF_TARGET_ELEMENT_ARRAY_BUFFER;
+    // 1st chunk of the buffer 0 : triangles = vertex indices (type ELEMENT_ARRAY_BUFFER)
+    bufferview_0_triangles_vertices.buffer = BUFFER_0;
+    bufferview_0_triangles_vertices.byteOffset = buffer_indices_start;
+    bufferview_0_triangles_vertices.byteLength = buffer_indices_length;
+    bufferview_0_triangles_vertices.target = TINYGLTF_TARGET_ELEMENT_ARRAY_BUFFER;
 
-    // layout description of bufferView1
-    accessor1.bufferView = 0;
-    accessor1.byteOffset = 0;
-    accessor1.componentType = TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT; // 32 bits per index
-    accessor1.count = box.facets.nb()*3; // how many indices
-    accessor1.type = TINYGLTF_TYPE_SCALAR;
+    // 2nd chunk of the bufffer 0 : points = 3D coordinates (type ARRAY_BUFFER)
+    bufferview_1_vertices_coordinates.buffer = BUFFER_0;
+    bufferview_1_vertices_coordinates.byteOffset = buffer_coordinates_start;
+    bufferview_1_vertices_coordinates.byteLength = buffer_coordinates_length;
+    bufferview_1_vertices_coordinates.target = TINYGLTF_TARGET_ARRAY_BUFFER;
+
+    // 3rd chunk of the buffer 0 : indices of edge vertices (type ELEMENT_ARRAY_BUFFER)
+    bufferview_2_edges_vertices.buffer = BUFFER_0;
+    bufferview_2_edges_vertices.byteOffset = buffer_edges_start;
+    bufferview_2_edges_vertices.byteLength = buffer_edges_length;
+    bufferview_2_edges_vertices.target = TINYGLTF_TARGET_ELEMENT_ARRAY_BUFFER;
+
+    ///////////////////////
+    // Create 3 accessors
+    ///////////////////////
+
+    m.accessors.resize(3);
+    const size_t ACCESSOR_0_TRIANGLES_VERTICES = 0;
+    const size_t ACCESSOR_1_VERTICES_COORDINATES = 1;
+    const size_t ACCESSOR_2_EDGES_VERTICES = 2;
+    tinygltf::Accessor& accessor_0_triangles_vertices = m.accessors[ACCESSOR_0_TRIANGLES_VERTICES];
+    tinygltf::Accessor& accessor_1_vertices_coordinates = m.accessors[ACCESSOR_1_VERTICES_COORDINATES];
+    tinygltf::Accessor& accessor_2_edges_vertices = m.accessors[ACCESSOR_2_EDGES_VERTICES];
+
+    // layout description of buffer view 0
+    accessor_0_triangles_vertices.bufferView = BUFFERVIEW_0_TRIANGLES_VERTICES;
+    accessor_0_triangles_vertices.byteOffset = 0;
+    accessor_0_triangles_vertices.componentType = TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT; // 32 bits per index
+    accessor_0_triangles_vertices.count = box.facets.nb()*3; // how many indices
+    accessor_0_triangles_vertices.type = TINYGLTF_TYPE_SCALAR;
     // range of indices : [ 0 : box.facets.nb()*3-1 ]
-    accessor1.maxValues.push_back(box.facets.nb()*3-1);
-    accessor1.minValues.push_back(0);
+    accessor_0_triangles_vertices.maxValues.push_back(box.facets.nb()*3-1);
+    accessor_0_triangles_vertices.minValues.push_back(0);
 
-    // layout description of bufferView2
-    accessor2.bufferView = 1;
-    accessor2.byteOffset = 0;
-    accessor2.componentType = TINYGLTF_COMPONENT_TYPE_FLOAT;
-    accessor2.count = box.vertices.nb(); // how many points
-    accessor2.type = TINYGLTF_TYPE_VEC3;
+    // layout description of buffer view 1
+    accessor_1_vertices_coordinates.bufferView = BUFFERVIEW_1_VERTICES_COORDINATES;
+    accessor_1_vertices_coordinates.byteOffset = 0;
+    accessor_1_vertices_coordinates.componentType = TINYGLTF_COMPONENT_TYPE_FLOAT;
+    accessor_1_vertices_coordinates.count = box.vertices.nb(); // how many points
+    accessor_1_vertices_coordinates.type = TINYGLTF_TYPE_VEC3;
     // range of coordinate values
-    accessor2.maxValues = { 0.5,  0.5,  0.5};
-    accessor2.minValues = {-0.5, -0.5, -0.5};
+    accessor_1_vertices_coordinates.maxValues = { 0.5,  0.5,  0.5};
+    accessor_1_vertices_coordinates.minValues = {-0.5, -0.5, -0.5};
 
-    // layout description of bufferView3
-    accessor3.bufferView = 2;
-    accessor3.byteOffset = 0;
-    accessor3.componentType = TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT; // 32 bits per index
-    accessor3.count = 2; // how many indices
-    accessor3.type = TINYGLTF_TYPE_SCALAR;
+    // layout description of buffer view 2
+    accessor_2_edges_vertices.bufferView = BUFFERVIEW_2_EDGES_VERTICES;
+    accessor_2_edges_vertices.byteOffset = 0;
+    accessor_2_edges_vertices.componentType = TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT; // 32 bits per index
+    accessor_2_edges_vertices.count = 2; // how many indices
+    accessor_2_edges_vertices.type = TINYGLTF_TYPE_SCALAR;
     // range of indices : [ 0 : 1 ]
-    accessor3.maxValues.push_back(1);
-    accessor3.minValues.push_back(0);
+    accessor_2_edges_vertices.maxValues.push_back(1);
+    accessor_2_edges_vertices.minValues.push_back(0);
 
-    // Build the mesh primitive and add it to the mesh
-    primitive_triangles.indices = 0;                 // The index of the accessor for the vertex indices (`accessor1`)
-    primitive_triangles.attributes["POSITION"] = 1;  // The index of the accessor for positions (`accessor2`)
-    primitive_triangles.material = 0;
-    primitive_triangles.mode = TINYGLTF_MODE_TRIANGLES;
-    mesh.primitives.push_back(primitive_triangles);
+    ////////////////////////////////////
+    // Create a mesh with 2 primitives
+    ////////////////////////////////////
 
-    primitive_edges.indices = 2; // The index of the accessor for the vertex indices (`accessor3`)
-    primitive_edges.attributes["POSITION"] = 1; // `accessor2`
-    primitive_edges.material = 1; // black
-    primitive_edges.mode = TINYGLTF_MODE_LINE;
-    mesh.primitives.push_back(primitive_edges);
+    m.meshes.resize(1);
+    const size_t MESH_0 = 0;
+    tinygltf::Mesh& mesh_0 = m.meshes[MESH_0];
 
-    // Other tie ups
-    node.mesh = 0;
-    scene.nodes.push_back(0); // Default scene
+    mesh_0.primitives.resize(2);
+    const size_t PRIMITIVE_0_TRIANGLES = 0;
+    const size_t PRIMITIVE_1_EDGES = 1;
+    tinygltf::Primitive& primitive_0_triangles = mesh_0.primitives[PRIMITIVE_0_TRIANGLES];
+    tinygltf::Primitive& primitive_1_edges = mesh_0.primitives[PRIMITIVE_1_EDGES];
 
-    // Define the asset. The version is required
-    asset.version = "2.0";
-    asset.generator = "tinygltf";
+    primitive_0_triangles.indices = ACCESSOR_0_TRIANGLES_VERTICES;
+    primitive_0_triangles.attributes["POSITION"] = ACCESSOR_1_VERTICES_COORDINATES;
+    primitive_0_triangles.material = MATERIAL_0_RED;
+    primitive_0_triangles.mode = TINYGLTF_MODE_TRIANGLES;
 
-    // Now all that remains is to tie back all the loose objects into the
-    // our single model.
-    m.scenes.push_back(scene);
-    m.meshes.push_back(mesh);
-    m.nodes.push_back(node);
-    m.buffers.push_back(buffer);
-    m.bufferViews.push_back(bufferView1);
-    m.bufferViews.push_back(bufferView2);
-    m.bufferViews.push_back(bufferView3);
-    m.accessors.push_back(accessor1);
-    m.accessors.push_back(accessor2);
-    m.accessors.push_back(accessor3);
-    m.asset = asset;
+    primitive_1_edges.indices = ACCESSOR_2_EDGES_VERTICES;
+    primitive_1_edges.attributes["POSITION"] = ACCESSOR_1_VERTICES_COORDINATES;
+    primitive_1_edges.material = MATERIAL_1_BLACK;
+    primitive_1_edges.mode = TINYGLTF_MODE_LINE;
 
-    // Save it to a file
+    //////////////////
+    // Create a node
+    //////////////////
+    
+    m.nodes.resize(1);
+    const size_t NODE_0 = 0;
+
+    m.nodes[NODE_0].mesh = MESH_0; // link NODE_0 to MESH_0
+
+    ///////////////////
+    // Create a scene
+    ///////////////////
+
+    m.scenes.resize(1);
+    const size_t SCENE_0 = 0;
+
+    m.scenes[SCENE_0].nodes.push_back(NODE_0); // link SCENE_0 to NODE_0
+
+    ///////////////////////
+    // Describe the asset
+    ///////////////////////
+
+    m.asset.version = "2.0"; // required
+    m.asset.generator = "tinygltf";
+    
+    ///////////////////////
+    // Save model to file
+    ///////////////////////
+
     tinygltf::TinyGLTF gltf;
     gltf.WriteGltfSceneToFile(&m, "box.glb",
                             true, // embedImages
