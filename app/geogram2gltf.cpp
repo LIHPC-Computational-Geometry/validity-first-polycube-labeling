@@ -135,13 +135,13 @@ int main(int argc, char **argv)
     ///////////////////////
 
     m.materials.resize(2);
-    const size_t MATERIAL_0_RED = 0;
+    const size_t MATERIAL_0_GREY = 0;
     const size_t MATERIAL_1_BLACK = 1;
-    tinygltf::Material& material_0_red = m.materials[MATERIAL_0_RED];
+    tinygltf::Material& material_0_grey = m.materials[MATERIAL_0_GREY];
     tinygltf::Material& material_1_black = m.materials[MATERIAL_1_BLACK];
 
-    material_0_red.pbrMetallicRoughness.baseColorFactor = {1.0f, 0.9f, 0.9f, 1.0f};
-    material_0_red.doubleSided = true;
+    material_0_grey.pbrMetallicRoughness.baseColorFactor = {0.8f, 0.8f, 0.8f, 1.0f};
+    material_0_grey.doubleSided = true;
 
     material_1_black.pbrMetallicRoughness.baseColorFactor = {0.0f, 0.0f, 0.0f, 1.0f};
     material_1_black.doubleSided = true;
@@ -269,7 +269,7 @@ int main(int argc, char **argv)
 
     primitive_0_triangles.indices = ACCESSOR_0_TRIANGLES_VERTICES;
     primitive_0_triangles.attributes["POSITION"] = ACCESSOR_1_VERTICES_COORDINATES;
-    primitive_0_triangles.material = MATERIAL_0_RED;
+    primitive_0_triangles.material = MATERIAL_0_GREY;
     primitive_0_triangles.mode = TINYGLTF_MODE_TRIANGLES;
 
     primitive_1_edges.indices = ACCESSOR_2_EDGES_VERTICES;
