@@ -13,7 +13,7 @@
                           (label==5) ? "-Z" :   \
                           "undef."))))))
 
-#define NAIVE_LABELING_TWEAK_SENSITIVITY 0.3 // min difference between the 2 closest labels before the rotation tweak
+#define NAIVE_LABELING_TWEAK_SENSITIVITY 0.1 // min difference between the 2 closest labels before the rotation tweak
 #define NAIVE_LABELING_TWEAK_ANGLE 0.1 // angle of rotation of the normal when we cannot choose between 2 or 3 labels
 const double COS_TILT_ANGLE = cos(NAIVE_LABELING_TWEAK_ANGLE);
 const double SIN_TILT_ANGLE = sin(NAIVE_LABELING_TWEAK_ANGLE);
