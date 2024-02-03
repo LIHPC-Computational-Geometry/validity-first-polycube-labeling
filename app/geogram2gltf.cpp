@@ -11,6 +11,7 @@
 #include <geogram/mesh/mesh.h>                  // for Mesh
 #include <geogram/mesh/mesh_io.h>               // for mesh_save()
 #include <geogram/mesh/mesh_halfedges.h>        // for Halfedge
+#include <geogram/mesh/mesh_geometry.h>         // for get_bbox()
 
 #include <fmt/core.h>
 #include <fmt/ostream.h>
@@ -53,7 +54,6 @@ int main(int argc, char **argv)
     box.vertices.point(5) = GEO::vec3(-0.5, -0.5, -0.5);
     box.vertices.point(6) = GEO::vec3( 0.5,  0.5, -0.5);
     box.vertices.point(7) = GEO::vec3(-0.5,  0.5, -0.5);
-    box.vertices.set_single_precision();
     box.facets.create_triangles(12);
     // triangle 0
     box.facets.set_vertex(0,0,0);
@@ -121,6 +121,12 @@ int main(int argc, char **argv)
             }
         }
     }
+    // compute bounding box
+    // /!\ warning: vertices coordinates must be double precision
+    std::vector<double> bounding_box_min(3,0.0), bounding_box_max(3,0.0);
+    GEO::get_bbox(box, bounding_box_min.data(), bounding_box_max.data());
+    // double -> float for vertices coordinates
+    box.vertices.set_single_precision();
 
     GEO::mesh_save(box,"box.geogram");
 
@@ -240,8 +246,8 @@ int main(int argc, char **argv)
     accessor_1_vertices_coordinates.count = box.vertices.nb(); // how many points
     accessor_1_vertices_coordinates.type = TINYGLTF_TYPE_VEC3;
     // range of coordinate values
-    accessor_1_vertices_coordinates.maxValues = { 0.5,  0.5,  0.5};
-    accessor_1_vertices_coordinates.minValues = {-0.5, -0.5, -0.5};
+    accessor_1_vertices_coordinates.maxValues = bounding_box_max;
+    accessor_1_vertices_coordinates.minValues = bounding_box_min;
 
     // layout description of buffer view 2
     accessor_2_edges_vertices.bufferView = BUFFERVIEW_2_EDGES_VERTICES;
