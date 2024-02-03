@@ -10,9 +10,12 @@
 #include <geogram/basic/logger.h>               // for Logger
 #include <geogram/mesh/mesh.h>                  // for Mesh
 #include <geogram/mesh/mesh_io.h>               // for mesh_save()
+#include <geogram/mesh/mesh_halfedges.h>        // for Halfedge
 
 #include <fmt/core.h>
 #include <fmt/ostream.h>
+
+#include "CustomMeshHalfedges.h"    // for CustomMeshHalfedges
 
 using GEO::index_t; // to use the FOR() macro of Geogram
 
@@ -102,6 +105,22 @@ int main(int argc, char **argv)
     box.facets.set_vertex(11,2,7);
     // compute facets adjacency
     box.facets.connect();
+    // fill edges. for unicity, only add halfedges H where v0 < v1
+    GEO::CustomMeshHalfedges mesh_he(box);
+    GEO::MeshHalfedges::Halfedge H;
+    index_t H_v0 = index_t(-1);
+    index_t H_v1 = index_t(-1);
+    FOR(f,box.facets.nb()) { // for each facet
+        H.facet = f;
+        FOR(lv,3) { // for each local vertex of f
+            H.corner = box.facets.corner(f,lv);
+            H_v0 = halfedge_vertex_index_from(box,H);
+            H_v1 = halfedge_vertex_index_to(box,H);
+            if(H_v0 < H_v1) {
+                box.edges.create_edge(H_v0,H_v1);
+            }
+        }
+    }
 
     GEO::mesh_save(box,"box.geogram");
 
@@ -137,13 +156,13 @@ int main(int argc, char **argv)
 
     // resize buffer to 4 bytes * 3 indices * #triangles
     //                + 4 bytes * 3 floating points * #vertices
-    //                + 4 bytes * 2 indices * 1 edge (vertex 0 to vertex 1)
+    //                + 4 bytes * 2 indices * #edges
     size_t buffer_indices_start = 0; // byte index
     size_t buffer_indices_length = 4*3*box.facets.nb(); // number of bytes
     size_t buffer_coordinates_start = buffer_indices_length; // byte index. just after the indices chunk, no padding
     size_t buffer_coordinates_length = 4*3*box.vertices.nb(); // number of bytes
     size_t buffer_edges_start = buffer_coordinates_start+buffer_coordinates_length; // byte index
-    size_t buffer_edges_length = 4*2; // number of bytes
+    size_t buffer_edges_length = 4*2*box.edges.nb(); // number of bytes
     buffer_0.data.resize(buffer_indices_length+buffer_coordinates_length+buffer_edges_length);
 
     // write triangles (= vertex indices)
@@ -156,11 +175,11 @@ int main(int argc, char **argv)
     FOR(v,box.vertices.nb()) { // for each vertex index
         memcpy(buffer_0.data.data()+buffer_coordinates_start+v*12+0,static_cast<void*>(box.vertices.single_precision_point_ptr(v)),12); // write x,y,z from float* getter
     }
-    // write edge vertices
-    index_t edge_v0 = 0;
-    index_t edge_v1 = 1;
-    memcpy(buffer_0.data.data()+buffer_edges_start+0,&edge_v0,4);
-    memcpy(buffer_0.data.data()+buffer_edges_start+4,&edge_v1,4);
+    // write edges (= vertex indices)
+    FOR(e,box.edges.nb()) {
+        memcpy(buffer_0.data.data()+buffer_edges_start + 8*e + 0, box.edges.vertex_index_ptr(2*e+0), 4);
+        memcpy(buffer_0.data.data()+buffer_edges_start + 8*e + 4, box.edges.vertex_index_ptr(2*e+1), 4);
+    }    
 
     //////////////////////////
     // Create 3 buffer views
@@ -228,10 +247,10 @@ int main(int argc, char **argv)
     accessor_2_edges_vertices.bufferView = BUFFERVIEW_2_EDGES_VERTICES;
     accessor_2_edges_vertices.byteOffset = 0;
     accessor_2_edges_vertices.componentType = TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT; // 32 bits per index
-    accessor_2_edges_vertices.count = 2; // how many indices
+    accessor_2_edges_vertices.count = box.edges.nb(); // how many indices
     accessor_2_edges_vertices.type = TINYGLTF_TYPE_SCALAR;
     // range of indices : [ 0 : 1 ]
-    accessor_2_edges_vertices.maxValues.push_back(1);
+    accessor_2_edges_vertices.maxValues.push_back(box.edges.nb()-1);
     accessor_2_edges_vertices.minValues.push_back(0);
 
     ////////////////////////////////////
