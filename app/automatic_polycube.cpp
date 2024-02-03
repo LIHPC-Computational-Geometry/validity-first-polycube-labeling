@@ -177,9 +177,13 @@ protected:
 					// The fist boundary edges should not move after a call of straighten_boundary()...
 					std::deque<MeshHalfedges::Halfedge> boundary_edges_to_process;
 					boundary_edges_to_process.resize(static_labeling_graph_.nb_boundaries()); // preallocation
-					for(const auto& boundary : static_labeling_graph_.boundaries) {
-						geo_assert(!boundary.halfedges.empty());
-						boundary_edges_to_process.push_back(boundary.halfedges[0]);
+					FOR(b,static_labeling_graph_.boundaries.size()) {
+						if (static_labeling_graph_.boundaries[b].on_feature_edge) {
+							fmt::println(Logger::out("monotonicity"),"Boundary {} skipped for straighten_boundary() because it is on a feature edge",b); Logger::out("monotonicity").flush();
+							continue; // do not straighten boundaries surrounded by feature edges
+						}
+						geo_assert(!static_labeling_graph_.boundaries[b].halfedges.empty());
+						boundary_edges_to_process.push_back(static_labeling_graph_.boundaries[b].halfedges[0]);
 					}
 					MeshHalfedges::Halfedge current_boundary_edge;
 					index_t boundary_index = index_t(-1);
