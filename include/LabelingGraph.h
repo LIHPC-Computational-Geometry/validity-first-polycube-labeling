@@ -75,7 +75,7 @@ struct VertexRingWithBoundaries {
 
     //// Underlying geometry //////////////////
 
-    std::vector<MeshHalfedges::Halfedge> boundary_edges;
+    std::vector<MeshHalfedges::Halfedge> boundary_edges; // outgoing boundary edges
 
     //// Methods //////////////////
 
@@ -102,6 +102,8 @@ std::ostream& operator<< (std::ostream &out, const VertexRingWithBoundaries& dat
 // https://fmt.dev/latest/api.html#std-ostream-support
 template <> struct fmt::formatter<VertexRingWithBoundaries> : ostream_formatter {};
 
+struct StaticLabelingGraph; // defined later
+
 // A vertex where 3 or more boundaries are meeting
 // based on https://github.com/LIHPC-Computational-Geometry/genomesh/blob/main/include/flagging.h#L126
 struct Corner {
@@ -125,6 +127,11 @@ struct Corner {
     bool halfedge_is_in_boundary_edges(const MeshHalfedges::Halfedge& halfedge) const;
 
     bool compute_validity(bool allow_boundaries_between_opposite_labels, const std::vector<Boundary>& boundaries, const std::map<MeshHalfedges::Halfedge,std::pair<index_t,bool>,HalfedgeCompare>& halfedge2boundary);
+
+    bool all_adjacent_boundary_edges_are_on_feature_edges(const Mesh& mesh, const std::set<std::pair<index_t,index_t>>& feature_edges) const;
+
+    // retreive near vertices along adjacent boundaries and compute the average coordinate
+    vec3 average_coordinates_of_neighborhood(const Mesh& mesh, const StaticLabelingGraph& slg, bool include_itself, size_t max_dist) const;
 };
 
 std::ostream& operator<< (std::ostream &out, const Corner& data);
@@ -285,6 +292,7 @@ struct StaticLabelingGraph {
     //// Other getters //////////////////
 
     bool vertex_is_only_surrounded_by(index_t vertex_index, std::vector<index_t> expected_charts, const std::vector<std::vector<index_t>>& vertex_to_adj_facets) const;
+    void get_adjacent_charts_of_vertex(index_t vertex_index, const std::vector<std::vector<index_t>>& vertex_to_adj_facets, std::set<index_t>& adjacent_charts) const;
 
     //// Export //////////////////
 

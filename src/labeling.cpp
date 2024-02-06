@@ -3,6 +3,7 @@
 #include <geogram/basic/numeric.h>      // for min_float64()
 #include <geogram/basic/vecg.h>     // for vec3
 #include <geogram/basic/matrix.h>   // for mat3
+#include <geogram/basic/logger.h>   // for Logger::*
 
 #include <fmt/core.h>
 #include <fmt/ostream.h>
@@ -269,7 +270,7 @@ unsigned int fix_invalid_boundaries(GEO::Mesh& mesh, const char* attribute_name,
             fmt::println(Logger::out("fix validity"),"Cannot fix boundary {}, new label computed is one of the adjacent labels",boundary_index); Logger::out("fix validity").flush();
             continue; // ignore this boundary
         }
-        
+
         // find out if the chart to insert on the boundary is better suited on the left side, right side, or both
         
         double average_dot_product_left = 0.0;
@@ -792,6 +793,82 @@ bool straighten_boundary(GEO::Mesh& mesh, const char* attribute_name, const Stat
     }
 
     return true;
+}
+
+void move_corners(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<std::vector<index_t>>& adj_facets) {
+    Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // get labeling attribute
+    CustomMeshHalfedges mesh_he(mesh);
+    mesh_he.set_use_facet_region(attribute_name);
+    std::set<index_t> adjacent_charts_of_corner; // indices of adjacent charts
+    std::set<index_t> adjacent_charts_of_new_vertex;
+    vec3 average_coordinates;
+    index_t nearest_vertex_of_average_coordinates = index_t(-1);
+    MeshHalfedges::Halfedge displacement_halfedge;
+    unsigned int nb_corner_moved = 0;
+
+    // we can process all corners at once, because moving one will not interfere with others
+    FOR(c,slg.corners.size()) { // for each corner 
+        // 1. Check if all boundary edges adjacent to this corner are on feature edges. If so, skip (continue with next corner)
+        // 2. Store set of adjacent charts
+        // 3. Compute average coordinates of the next vertex along each boundary. Maybe also take into account 2nd vertices.
+        // 4. Find the nearest vertex of these average coordinates. If still the same vertex, skip (continue with next corner)
+        // 5. Store set of adjacent charts of the nearest vertex. If different charts, skip (continue with next corner), because the new corner position will break validity
+        // 6. Adjust labeling around the vertex found, so that the next call of StaticLabelingGraph::fill_from() will move the corner and neighboring boundary edges
+
+        const Corner& current_corner = slg.corners[c];
+
+        // 1.
+
+        if(current_corner.all_adjacent_boundary_edges_are_on_feature_edges(mesh,feature_edges)) {
+            fmt::println(Logger::out("monotonicity"),"Corner {} ignored because surrounded by feature edges",c); Logger::out("monotonicity").flush();
+            continue; // do not move this corner
+        }
+        // TODO if some adjacent boundary edges are on feature edges but not all,
+        // constraint the new position of the corner to be on a feature edge
+
+        // 2.
+
+        slg.get_adjacent_charts_of_vertex(current_corner.vertex,adj_facets,adjacent_charts_of_corner);
+
+        // 3.
+
+        average_coordinates = current_corner.average_coordinates_of_neighborhood(mesh,slg,false,1);
+
+        // 4.
+
+        nearest_vertex_of_average_coordinates = get_nearest_vertex_of_coordinates(mesh_he,adj_facets,average_coordinates,current_corner.vertex,1);
+        if(nearest_vertex_of_average_coordinates == current_corner.vertex) {
+            fmt::println(Logger::out("monotonicity"),"Corner {} ignored because new position is on the same vertex",c); Logger::out("monotonicity").flush();
+            continue;
+        }
+
+        // 5.
+        
+        slg.get_adjacent_charts_of_vertex(nearest_vertex_of_average_coordinates,adj_facets,adjacent_charts_of_new_vertex);
+        if(adjacent_charts_of_new_vertex != adjacent_charts_of_corner) {
+            fmt::println(Logger::out("monotonicity"),"Corner {} ignored because new position will break validity",c); Logger::out("monotonicity").flush();
+            continue;
+        }
+
+        // 6.
+
+        // Because we impose a max distance of 1 for `get_nearest_vertex_of_coordinates()`,
+        // and beacause `nearest_vertex_of_average_coordinates` != `current_corner.vertex`,
+        // we know there is only one edge between `nearest_vertex_of_average_coordinates` and `current_corner.vertex`
+        displacement_halfedge = get_halfedge_between_two_vertices(mesh_he,adj_facets,current_corner.vertex,nearest_vertex_of_average_coordinates);
+        geo_assert(halfedge_vertex_index_from(mesh,displacement_halfedge) == current_corner.vertex);
+        geo_assert(halfedge_vertex_index_to(mesh,displacement_halfedge) == nearest_vertex_of_average_coordinates);
+
+        mesh_he.move_clockwise_around_vertex(displacement_halfedge,true);
+        label[halfedge_facet_left(mesh,displacement_halfedge)] = label[halfedge_facet_right(mesh,displacement_halfedge)]; // copy label
+        mesh_he.move_counterclockwise_around_vertex(displacement_halfedge,true);
+        mesh_he.move_counterclockwise_around_vertex(displacement_halfedge,true);
+        label[halfedge_facet_right(mesh,displacement_halfedge)] = label[halfedge_facet_left(mesh,displacement_halfedge)]; // copy label
+
+        nb_corner_moved++;
+    }
+
+    fmt::println(Logger::out("monotonicity"),"{} corners moved",nb_corner_moved); Logger::out("monotonicity").flush();
 }
 
 void pull_closest_corner(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg, index_t non_monotone_boundary_index) {

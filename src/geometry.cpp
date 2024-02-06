@@ -366,6 +366,33 @@ void rotate_mesh_according_to_principal_axes(Mesh& mesh) {
 
 }
 
+MeshHalfedges::Halfedge get_an_outgoing_halfedge_of_vertex(const Mesh& mesh, const std::vector<std::vector<index_t>>& adj_facets, index_t vertex_index) {
+    MeshHalfedges::Halfedge output;
+    output.facet = adj_facets[vertex_index][0];
+    for(index_t facet_corner : mesh.facets.corners(output.facet)) { // for each facet corner of `output.facet`
+        output.corner = facet_corner;
+        if(halfedge_vertex_index_from(mesh,output) == vertex_index) {
+            return output;
+        }
+    }
+    geo_assert_not_reached;
+}
+
+MeshHalfedges::Halfedge get_halfedge_between_two_vertices(const CustomMeshHalfedges& mesh_he, const std::vector<std::vector<index_t>>& adj_facets, index_t origin_vertex, index_t extremity_vertex) {
+    MeshHalfedges::Halfedge init_halfedge = get_an_outgoing_halfedge_of_vertex(mesh_he.mesh(),adj_facets,origin_vertex);
+    MeshHalfedges::Halfedge current_halfedge = init_halfedge;
+    index_t current_extremity_vertex = index_t(-1);
+
+    do {
+        current_extremity_vertex = halfedge_vertex_index_to(mesh_he.mesh(),current_halfedge);
+        if(current_extremity_vertex == extremity_vertex) {
+            return current_halfedge;
+        }
+        mesh_he.move_counterclockwise_around_vertex(current_halfedge,true); // ignore borders
+    } while(current_halfedge != init_halfedge);
+    geo_assert_not_reached;
+}
+
 MeshHalfedges::Halfedge get_most_aligned_halfedge_around_vertex(const MeshHalfedges::Halfedge& init_halfedge, const CustomMeshHalfedges& mesh_he, const vec3& reference) {
     vec3 normalized_reference = normalize(reference);
     MeshHalfedges::Halfedge current_halfedge = init_halfedge;
@@ -397,4 +424,34 @@ void get_adjacent_facets_conditional(const Mesh& mesh, index_t facet_index, inde
         }
         out.insert(neighbor_facet);
     }
+}
+
+index_t get_nearest_vertex_of_coordinates(const CustomMeshHalfedges& mesh_he, const std::vector<std::vector<index_t>>& adj_facets, vec3 target_coordinates, index_t start_vertex, size_t max_dist) {
+    const Mesh& mesh = mesh_he.mesh();
+    geo_assert(mesh.vertices.double_precision());
+    geo_assert(max_dist >= 1); // if max_dist==0, only `start_vertex` can be returned...
+
+    index_t previous_vertex = index_t(-1);
+    MeshHalfedges::Halfedge previous_halfedge;
+    double previous_distance = nanf64("");
+    index_t current_vertex = start_vertex;
+    MeshHalfedges::Halfedge current_halfedge = get_an_outgoing_halfedge_of_vertex(mesh,adj_facets,start_vertex);
+    double current_distance = distance(mesh.vertices.point(start_vertex),target_coordinates);
+    size_t dist = 0;
+
+    do {
+        previous_halfedge = current_halfedge;
+        previous_vertex = current_vertex;
+        previous_distance = current_distance;
+        dist++;
+        current_halfedge = get_most_aligned_halfedge_around_vertex(previous_halfedge,mesh_he,target_coordinates-mesh.vertices.point(previous_vertex));
+        mesh_he.move_to_opposite(current_halfedge);
+        current_vertex = halfedge_vertex_index_from(mesh,current_halfedge);
+        current_distance = distance(mesh.vertices.point(current_vertex),target_coordinates);
+    } while ((previous_distance > current_distance) && (dist < max_dist));
+
+    // now we are too far from the `target_coordinates`,
+    // `previous_vertex` was closer than `current_vertex`
+    // -> `previous_vertex` is the nearest vertex
+    return previous_vertex;
 }

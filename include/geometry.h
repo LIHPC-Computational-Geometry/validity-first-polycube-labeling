@@ -104,7 +104,18 @@ bool halfedge_is_on_feature_edge(const Mesh& mesh, const MeshHalfedges::Halfedge
 
 void rotate_mesh_according_to_principal_axes(Mesh& mesh);
 
+// Return an outgoing halfedge,
+// specifically the one for which H.facet == adj_facets[vertex_index],
+// but you should use this function when you don't care about the specific halfedge returned,
+// as long as `vertex_index` is at its origin
+MeshHalfedges::Halfedge get_an_outgoing_halfedge_of_vertex(const Mesh& mesh, const std::vector<std::vector<index_t>>& adj_facets, index_t vertex_index);
+
+MeshHalfedges::Halfedge get_halfedge_between_two_vertices(const CustomMeshHalfedges& mesh_he, const std::vector<std::vector<index_t>>& adj_facets, index_t origin_vertex, index_t extremity_vertex);
+
 // the vertex around which halfedges will be tested is the origin vertex of `init_halfedge` 
 MeshHalfedges::Halfedge get_most_aligned_halfedge_around_vertex(const MeshHalfedges::Halfedge& init_halfedge, const CustomMeshHalfedges& mesh_he, const vec3& reference);
 
 void get_adjacent_facets_conditional(const Mesh& mesh, index_t facet_index, index_t which_chart, const std::vector<index_t>& facet2chart, std::set<index_t>& out);
+
+// for given 3D coodinates and a start vertex not too far, find the nearest vertex
+index_t get_nearest_vertex_of_coordinates(const CustomMeshHalfedges& mesh_he, const std::vector<std::vector<index_t>>& adj_facets, vec3 target_coordinates, index_t start_vertex, size_t max_dist);

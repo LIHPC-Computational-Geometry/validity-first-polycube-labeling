@@ -191,6 +191,65 @@ bool Corner::compute_validity(bool allow_boundaries_between_opposite_labels, con
     return is_valid;
 }
 
+bool Corner::all_adjacent_boundary_edges_are_on_feature_edges(const Mesh& mesh, const std::set<std::pair<index_t,index_t>>& feature_edges) const {
+    for(const auto& vr : vertex_rings_with_boundaries) {
+        for(const auto& boundary_edge : vr.boundary_edges) {
+            if(!halfedge_is_on_feature_edge(mesh,boundary_edge,feature_edges)) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+vec3 Corner::average_coordinates_of_neighborhood(const Mesh& mesh, const StaticLabelingGraph& slg, bool include_itself, size_t max_dist) const {
+    geo_assert(vertex != index_t(-1));
+    geo_assert(max_dist >= 1);
+    geo_assert(mesh.vertices.double_precision());
+
+    vec3 sum(0.0,0.0,0.0);
+    size_t count_vertices_in_sum = 0;
+    index_t boundary_index = index_t(-1);
+    bool same_direction = false;
+    size_t dist = 0;
+
+    if(include_itself) {
+        // equivalent to a distance of 0
+        sum += mesh.vertices.point(vertex);
+        count_vertices_in_sum++;
+    }
+
+    for(const auto& vr : vertex_rings_with_boundaries) {
+        for(auto first_boundary_halfedge : vr.boundary_edges) {
+            std::tie(boundary_index,same_direction) = slg.halfedge2boundary.at(first_boundary_halfedge);
+            const Boundary& boundary = slg.boundaries.at(boundary_index);
+            if(same_direction) { // the corner is the start_corner of `boundary`
+                dist = 1;
+                for(auto boundary_halfedge : boundary.halfedges) { // go accross the boundary
+                    sum += halfedge_vertex_to(mesh,boundary_halfedge) /* / (double) dist */; // the further the vertex is from the corner, the lesser its contribution to the sum
+                    count_vertices_in_sum++;
+                    dist++;
+                    if(dist > max_dist) {
+                        break;
+                    }
+                }
+            }
+            else { // the corner is the end_corner of `boundary`
+                dist = 1;
+                for(auto boundary_halfedge = boundary.halfedges.rbegin(); boundary_halfedge != boundary.halfedges.rend(); boundary_halfedge++) { // go accross the boundary in reverse order of halfedges
+                    sum += halfedge_vertex_from(mesh,*boundary_halfedge) /* / (double) dist */; // the further the vertex is from the corner, the lesser its contribution to the sum
+                    count_vertices_in_sum++;
+                    dist++;
+                    if(dist > max_dist) {
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    return sum / (double) count_vertices_in_sum;
+}
+
 std::ostream& operator<< (std::ostream &out, const Corner& data) {
     fmt::println(out,"\tvertex : {}",data.vertex);
     fmt::println(out,"\tis_valid : {}",data.is_valid);
@@ -307,7 +366,7 @@ void Boundary::explore(const MeshHalfedges::Halfedge& initial_halfedge,
     // fill right_chart field
     right_chart = facet2chart[Geom::halfedge_facet_right(mesh,initial_halfedge)]; // link the current boundary to the chart at its right
     charts[right_chart].boundaries.emplace(index_of_self); // link the left chart to the current boundary
-    
+
     // fill axis field
     axis = other_axis(
         label2axis(charts[left_chart].label),
@@ -887,6 +946,15 @@ bool StaticLabelingGraph::vertex_is_only_surrounded_by(index_t vertex_index, std
         }
     }
     return true;
+}
+
+void StaticLabelingGraph::get_adjacent_charts_of_vertex(index_t vertex_index, const std::vector<std::vector<index_t>>& vertex_to_adj_facets, std::set<index_t>& adjacent_charts) const {
+    geo_assert(vertex_index < vertex_to_adj_facets.size());
+    adjacent_charts.clear();
+    for(index_t adj_facet : vertex_to_adj_facets[vertex_index]) {
+        geo_assert(adj_facet < facet2chart.size());
+        adjacent_charts.insert(facet2chart[adj_facet]);
+    }
 }
 
 void StaticLabelingGraph::dump_to_text_file(const char* filename, Mesh& mesh) {

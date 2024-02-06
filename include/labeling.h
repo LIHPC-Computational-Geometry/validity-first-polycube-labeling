@@ -83,6 +83,10 @@ void straighten_boundary_with_GCO(GEO::Mesh& mesh, const std::vector<vec3>& norm
 // return true if successful
 bool straighten_boundary(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg, index_t boundary_index, const std::vector<std::vector<index_t>>& adj_facets);
 
+// Typically called after straighten_boundary()
+// Adjust postion of corners so that they are more aligned with adjacent boundaries
+void move_corners(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<std::vector<index_t>>& adj_facets);
+
 void pull_closest_corner(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg, index_t non_monotone_boundary_index);
 
 void trace_contour(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, StaticLabelingGraph& slg, const std::set<std::pair<index_t,index_t>>& feature_edges);

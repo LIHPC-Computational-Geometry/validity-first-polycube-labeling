@@ -214,6 +214,15 @@ protected:
 			ImGui::TextDisabled("(?)");
 			ImGui::SetItemTooltip("Re-draw boundaries so that they are straighter");
 
+			if(ImGui::Button("Move corners")) {
+				// compute vertex-to-facet adjacency if not already done
+				if(adj_facets_.empty()) {
+					compute_adjacent_facets_of_vertices(mesh_,adj_facets_);
+				}
+				move_corners(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,feature_edges_,adj_facets_);
+				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+			}
+
 			if(ImGui::Button("Merge a turning-point with closest corner")) {
 				if(static_labeling_graph_.non_monotone_boundaries.empty()) {
 					fmt::println(Logger::out("monotonicity"),"All boundaries are monotones, operation canceled"); Logger::out("monotonicity").flush();
@@ -381,7 +390,7 @@ public:
 					slg.nb_turning_points()
 				};
 
-				if(VECTOR_CONTAINS(set_of_labeling_features_combinations_encountered,features_combination)) { // wa can use VECTOR_CONTAINS() on sets because they also have find(), cbegin() and cend()
+				if(VECTOR_CONTAINS(set_of_labeling_features_combinations_encountered,features_combination)) { // we can use VECTOR_CONTAINS() on sets because they also have find(), cbegin() and cend()
 					// we backtracked
 					// There is probably small charts that we can remove to help the fixing routine
 					remove_charts_around_invalid_boundaries(mesh,normals,LABELING_ATTRIBUTE_NAME,slg);
