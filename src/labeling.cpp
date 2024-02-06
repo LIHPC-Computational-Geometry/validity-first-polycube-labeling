@@ -265,6 +265,11 @@ unsigned int fix_invalid_boundaries(GEO::Mesh& mesh, const char* attribute_name,
         current_boundary.get_adjacent_facets(mesh,left_facets_along_boundary,OnlyLeft,slg.facet2chart,1); // get triangles at left and at distance 0 or 1 from the boundary
         current_boundary.get_adjacent_facets(mesh,right_facets_along_boundary,OnlyRight,slg.facet2chart,1); // get triangles at right and at distance 0 or 1 from the boundary
         
+        if( (new_label == left_chart.label) || (new_label == right_chart.label) ) {
+            fmt::println(Logger::out("fix validity"),"Cannot fix boundary {}, new label computed is one of the adjacent labels",boundary_index); Logger::out("fix validity").flush();
+            continue; // ignore this boundary
+        }
+        
         // find out if the chart to insert on the boundary is better suited on the left side, right side, or both
         
         double average_dot_product_left = 0.0;
@@ -298,6 +303,7 @@ unsigned int fix_invalid_boundaries(GEO::Mesh& mesh, const char* attribute_name,
             nb_facets_for_GCO = (index_t) right_chart.facets.size();
             labels_for_GCO = {new_label,right_chart.label};
         }
+        geo_assert(!has_duplicates(labels_for_GCO));
 
         // prepare Graph-Cut optimization
 
@@ -353,9 +359,11 @@ unsigned int fix_invalid_boundaries(GEO::Mesh& mesh, const char* attribute_name,
         // launch optimizer & update the facet attribute
 
         gcl.compute_solution(label);
+
+        new_charts_count++;
     }
 
-    return new_charts_count; // should be == to slg.invalid_boundaries.size()
+    return new_charts_count;
 }
 
 unsigned int fix_invalid_corners(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, const StaticLabelingGraph& slg) {
