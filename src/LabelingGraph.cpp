@@ -303,12 +303,10 @@ void Boundary::explore(const MeshHalfedges::Halfedge& initial_halfedge,
     // fill left_chart field
     left_chart = facet2chart[Geom::halfedge_facet_left(mesh,initial_halfedge)]; // link the current boundary to the chart at its left
     charts[left_chart].boundaries.emplace(index_of_self); // link the left chart to the current boundary
-    halfedge2boundary[initial_halfedge] = {index_of_self,true}; // mark this halfedge, link it to the current boundary
 
     // fill right_chart field
     right_chart = facet2chart[Geom::halfedge_facet_right(mesh,initial_halfedge)]; // link the current boundary to the chart at its right
     charts[right_chart].boundaries.emplace(index_of_self); // link the left chart to the current boundary
-    halfedge2boundary[current_halfedge] = {index_of_self,false}; // mark this halfedge, link it to the current boundary (opposite orientation)
     
     // fill axis field
     axis = other_axis(
