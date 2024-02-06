@@ -18,13 +18,19 @@ using namespace GEO;
 
 // 0D
 
-bool dump_vertex(std::string filename, const Mesh& mesh, index_t vertex_index);
+bool dump_vertex(std::string filename, vec3 coordinates);
+
+inline bool dump_vertex(std::string filename, const Mesh& mesh, index_t vertex_index) {
+    return dump_vertex(filename,mesh.vertices.point(vertex_index));
+}
 
 // 1D
 
 bool dump_vector(std::string filename, const vec3& origin, const vec3& vector);
 
-bool dump_vector(std::string filename, const Mesh& mesh, index_t origin_vertex, const vec3& vector);
+inline bool dump_vector(std::string filename, const Mesh& mesh, index_t origin_vertex, const vec3& vector) {
+    return dump_vector(filename,mesh_vertex(mesh,origin_vertex),vector);
+}
 
 bool dump_edge(std::string filename, const Mesh& mesh, MeshHalfedges::Halfedge& halfedge);
 

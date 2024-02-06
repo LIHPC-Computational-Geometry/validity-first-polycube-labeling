@@ -9,10 +9,10 @@
 #include "LabelingGraph.h"          // for Boundary
 #include "CustomMeshHalfedges.h"    // for CustomMeshHalfedges
 
-bool dump_vertex(std::string filename, const Mesh& mesh, index_t vertex_index) {
+bool dump_vertex(std::string filename, vec3 coordinates) {
     Mesh out;
     out.vertices.create_vertices(1);
-    out.vertices.point(0) = mesh.vertices.point(vertex_index);
+    out.vertices.point(0) = coordinates;
     return mesh_save(out,filename + ".geogram");
 }
 
@@ -28,10 +28,6 @@ bool dump_vector(std::string filename, const vec3& origin, const vec3& vector) {
     attr_index[v0] = 0; // 0 = origin vertex
     attr_index[v1] = 1; // 1 = extremity vertex
     return mesh_save(out,filename + ".geogram");
-}
-
-bool dump_vector(std::string filename, const Mesh& mesh, index_t origin_vertex, const vec3& vector) {
-    return dump_vector(filename,mesh_vertex(mesh,origin_vertex),vector);
 }
 
 bool dump_edge(std::string filename, const Mesh& mesh, MeshHalfedges::Halfedge& halfedge) {
