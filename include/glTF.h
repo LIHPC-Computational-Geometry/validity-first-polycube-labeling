@@ -30,4 +30,4 @@ inline index_t* facet_vertex_index_ptr(GEO::Mesh& M, index_t f, index_t lv) {
     return M.facet_corners.vertex_index_ptr(M.facets.corner(f,lv));
 }
 
-void write_glTF__triangle_mesh(std::string filename, GEO::Mesh& M);
+void write_glTF__triangle_mesh(std::string filename, GEO::Mesh& M, bool with_wireframe);

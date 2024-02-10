@@ -92,6 +92,6 @@ int main(int argc, char **argv)
         M.facets.connect();
     }
 
-    write_glTF__triangle_mesh(filenames[0],M);
+    write_glTF__triangle_mesh(filenames[0],M,false);
     return 0;
 }
