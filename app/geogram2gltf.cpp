@@ -24,6 +24,10 @@ int main(int argc, char **argv)
 	}
 
     GEO::Mesh M;
+
+    write_glTF__labeled_triangle_mesh("no_input",M,"label");
+    return 0;
+
     if(!filenames.empty()) { // if <input_mesh> is provided
         mesh_load(filenames[0],M);
     }

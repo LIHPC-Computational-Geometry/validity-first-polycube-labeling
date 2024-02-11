@@ -31,3 +31,5 @@ inline index_t* facet_vertex_index_ptr(GEO::Mesh& M, index_t f, index_t lv) {
 }
 
 void write_glTF__triangle_mesh(std::string filename, GEO::Mesh& M, bool with_wireframe);
+
+void write_glTF__labeled_triangle_mesh(std::string filename, GEO::Mesh& M, const char* attribute_name);

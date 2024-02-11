@@ -269,3 +269,185 @@ void write_glTF__triangle_mesh(std::string filename, GEO::Mesh& M, bool with_wir
                             true); // write binary
 
 }
+
+void write_glTF__labeled_triangle_mesh(std::string filename, GEO::Mesh& M, const char* attribute_name) {
+
+    // for now, only write a simple texture
+    // https://github.com/KhronosGroup/glTF-Tutorials/blob/main/gltfTutorial/gltfTutorial_013_SimpleTexture.md
+
+    ////////////////////////
+    // Create a glTF model
+    ////////////////////////
+
+    tinygltf::Model m;
+
+    ////////////////////
+    // Create an image
+    ////////////////////
+
+    m.images.resize(1);
+    const size_t IMAGE_0 = 0;
+    tinygltf::Image& image_0 = m.images[IMAGE_0];
+
+    image_0.uri = "testTexture.png";
+    image_0.mimeType = "image/png"; // should not be required if uri is specified
+
+    /////////////////////
+    // Create a sampler
+    /////////////////////
+
+    m.samplers.resize(1);
+    const size_t SAMPLER_0 = 0;
+    tinygltf::Sampler& sampler_0 = m.samplers[SAMPLER_0];
+
+    sampler_0.magFilter = 9729; // ?
+    sampler_0.minFilter = 9987; // ?
+    sampler_0.wrapS = 33648; // ?
+    sampler_0.wrapT = 33648; // ?
+
+    /////////////////////
+    // Create a texture
+    /////////////////////
+
+    m.textures.resize(1);
+    const size_t TEXTURE_0 = 0;
+    tinygltf::Texture& texture_0 = m.textures[TEXTURE_0];
+
+    texture_0.sampler = SAMPLER_0;
+    texture_0.source = 0; // IMAGE_0 ?
+
+    //////////////////////
+    // Create 1 material 
+    //////////////////////
+
+    m.materials.resize(1);
+    const size_t MATERIAL_0 = 0;
+    tinygltf::Material& material_0 = m.materials[MATERIAL_0];
+    
+    material_0.pbrMetallicRoughness.baseColorTexture.index = TEXTURE_0;
+    material_0.pbrMetallicRoughness.metallicFactor = 0.0;
+    material_0.pbrMetallicRoughness.roughnessFactor = 1.0;
+
+    ////////////////////
+    // Create a buffer
+    ////////////////////
+
+    m.buffers.resize(1);
+    const size_t BUFFER_0 = 0;
+    tinygltf::Buffer& buffer_0 = m.buffers[BUFFER_0];
+    // TODO flatten to bytes. value is not written in this form
+    buffer_0.uri = "data:application/gltf-buffer;base64,AAABAAIAAQADAAIAAAAAAAAAAAAAAAAAAACAPwAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAgD8AAAAAAAAAAAAAgD8AAAAAAACAPwAAgD8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAAAA";
+    // buffer_0.byteLength = 108;
+
+    //////////////////////////
+    // Create 2 buffer views
+    //////////////////////////
+
+    m.bufferViews.resize(2);
+    const size_t BUFFERVIEW_0 = 0;
+    const size_t BUFFERVIEW_1 = 1;
+    tinygltf::BufferView& bufferview_0 = m.bufferViews[BUFFERVIEW_0];
+    tinygltf::BufferView& bufferview_1 = m.bufferViews[BUFFERVIEW_1];
+    
+    bufferview_0.buffer = BUFFER_0;
+    bufferview_0.byteOffset = 0;
+    bufferview_0.byteLength = 12;
+    bufferview_0.target = TINYGLTF_TARGET_ELEMENT_ARRAY_BUFFER;
+
+    bufferview_1.buffer = BUFFER_0;
+    bufferview_1.byteOffset = 12;
+    bufferview_1.byteLength = 96;
+    bufferview_1.byteStride = 12;
+    bufferview_1.target = TINYGLTF_TARGET_ARRAY_BUFFER;
+
+    ///////////////////////
+    // Create 3 accessors 
+    ///////////////////////
+
+    m.accessors.resize(3);
+    const size_t ACCESSOR_0 = 0;
+    const size_t ACCESSOR_1 = 1;
+    const size_t ACCESSOR_2 = 2;
+    tinygltf::Accessor& accessor_0 = m.accessors[ACCESSOR_0];
+    tinygltf::Accessor& accessor_1 = m.accessors[ACCESSOR_1];
+    tinygltf::Accessor& accessor_2 = m.accessors[ACCESSOR_2];
+
+    accessor_0.bufferView = BUFFERVIEW_0;
+    accessor_0.byteOffset = 0;
+    accessor_0.componentType = TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT;
+    accessor_0.count = 6;
+    accessor_0.type = TINYGLTF_TYPE_SCALAR;
+    accessor_0.maxValues = {3};
+    accessor_0.minValues = {0};
+
+    accessor_1.bufferView = BUFFERVIEW_1;
+    accessor_1.byteOffset = 0;
+    accessor_1.componentType = TINYGLTF_COMPONENT_TYPE_FLOAT;
+    accessor_1.count = 4;
+    accessor_1.type = TINYGLTF_TYPE_VEC3;
+    accessor_1.maxValues = {1.0, 1.0, 0.0};
+    accessor_1.minValues = {0.0, 0.0, 0.0};
+
+    accessor_2.bufferView = BUFFERVIEW_1;
+    accessor_2.byteOffset = 48;
+    accessor_2.componentType = TINYGLTF_COMPONENT_TYPE_FLOAT;
+    accessor_2.count = 4;
+    accessor_2.type = TINYGLTF_TYPE_VEC2;
+    accessor_2.maxValues = {1.0, 1.0};
+    accessor_2.minValues = {0.0, 0.0};
+
+    ///////////////////////////////////
+    // Create a mesh with 1 primitive
+    ///////////////////////////////////
+
+    m.meshes.resize(1);
+    const size_t MESH_0 = 0;
+    tinygltf::Mesh& mesh_0 = m.meshes[MESH_0];
+
+    mesh_0.primitives.resize(1);
+    const size_t PRIMITIVE_0 = 0;
+    tinygltf::Primitive& primitive_0 = mesh_0.primitives[PRIMITIVE_0];
+
+    primitive_0.indices = ACCESSOR_0;
+    primitive_0.attributes["POSITION"] = ACCESSOR_1;
+    primitive_0.attributes["TEXCOORD_0"] = ACCESSOR_2;
+    primitive_0.material = MATERIAL_0;
+    primitive_0.mode = TINYGLTF_MODE_TRIANGLES; // default value in spec, but tinygltf writes -1 if not specified
+
+    //////////////////
+    // Create a node
+    //////////////////
+    
+    m.nodes.resize(1);
+    const size_t NODE_0 = 0;
+
+    m.nodes[NODE_0].mesh = MESH_0; // link NODE_0 to MESH_0
+
+    ///////////////////
+    // Create a scene
+    ///////////////////
+
+    m.scenes.resize(1);
+    const size_t SCENE_0 = 0;
+
+    m.scenes[SCENE_0].nodes.push_back(NODE_0); // link SCENE_0 to NODE_0
+
+    ///////////////////////
+    // Describe the asset
+    ///////////////////////
+
+    m.asset.version = "2.0"; // required
+    m.asset.generator = "tinygltf";
+    
+    ///////////////////////
+    // Save model to file
+    ///////////////////////
+
+    tinygltf::TinyGLTF gltf;
+    fmt::println(Logger::out("glTF"),"Writing SimpleTexture.gltf..."); Logger::out("glTF").flush();
+    gltf.WriteGltfSceneToFile(&m, "SimpleTexture.gltf",
+                            true, // embedImages
+                            true, // embedBuffers
+                            true, // pretty print
+                            false); // write binary
+}
