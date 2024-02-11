@@ -300,10 +300,10 @@ void write_glTF__labeled_triangle_mesh(std::string filename, GEO::Mesh& M, const
     const size_t SAMPLER_0 = 0;
     tinygltf::Sampler& sampler_0 = m.samplers[SAMPLER_0];
 
-    sampler_0.magFilter = 9729; // ?
-    sampler_0.minFilter = 9987; // ?
-    sampler_0.wrapS = 33648; // ?
-    sampler_0.wrapT = 33648; // ?
+    sampler_0.magFilter = TINYGLTF_TEXTURE_FILTER_LINEAR;               // magnification filter
+    sampler_0.minFilter = TINYGLTF_TEXTURE_FILTER_LINEAR_MIPMAP_LINEAR; // minification filter
+    sampler_0.wrapS = TINYGLTF_TEXTURE_WRAP_MIRRORED_REPEAT;            // s wrapping mode
+    sampler_0.wrapT = TINYGLTF_TEXTURE_WRAP_MIRRORED_REPEAT;            // t wrapping mode
 
     /////////////////////
     // Create a texture
