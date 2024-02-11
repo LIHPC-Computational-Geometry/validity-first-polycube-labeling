@@ -335,7 +335,42 @@ void write_glTF__labeled_triangle_mesh(std::string filename, GEO::Mesh& M, const
     m.buffers.resize(1);
     const size_t BUFFER_0 = 0;
     tinygltf::Buffer& buffer_0 = m.buffers[BUFFER_0];
-    // TODO flatten to bytes. value is not written in this form
+    //
+    //       base64 : AAABAAIAAQADAAIAAAAAAAAAAAAAAAAAAACAPwAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAgD8AAAAAAAAAAAAAgD8AAAAAAACAPwAAgD8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAAAA (from gltfTutorial_013)
+    // base16 (hex) : 0000010002000100030002000000000000000000000000000000803F0000000000000000000000000000803F000000000000803F0000803F00000000000000000000803F000000000000803F0000803F000000000000000000000000000000000000803F0000000000000000
+    //
+    // BUFFERVIEW_0 -> first 12 bytes
+    // 000001000200010003000200
+    // BUFFERVIEW_1 -> next 96 bytes
+    // with a byteStride of 12 https://github.com/KhronosGroup/glTF-Tutorials/blob/main/gltfTutorial/gltfTutorial_005_BuffersBufferViewsAccessors.md#data-interleaving
+    // 0000000000000000000000000000803F0000000000000000000000000000803F000000000000803F0000803F00000000000000000000803F000000000000803F0000803F000000000000000000000000000000000000803F0000000000000000
+    // 
+    // ACCESSOR_0 -> triangles = vertex indices
+    //   triangle 0 (f0) : 00 00 01 00 02 00 -> vertices 0x0000, 0x0001 and 0x0002
+    //   triangle 1 (f1) : 01 00 03 00 02 00 -> vertices 0x0001, 0x0003 and 0x0002
+    // ACCESSOR_1 -> vertices = 3D coordinates = 3 float per vertex = 12 bytes per vertex
+    //     00 00 00 00 00 00 00 00 00 00 00 00 -> v0 position : 0x00000000, 0x00000000, 0x00000000 -> {0.0f, 0.0f, 0.0f}
+    //     00 00 80 3f 00 00 00 00 00 00 00 00 -> v1 position : 0x3f800000, 0x00000000, 0x00000000 -> {1.0f, 0.0f, 0.0f}
+    //     00 00 00 00 00 00 80 3f 00 00 00 00 -> v2 position : 0x00000000, 0x3f800000, 0x00000000 -> {0.0f, 1.0f, 0.0f}
+    //     00 00 80 3f 00 00 80 3f 00 00 00 00 -> v3 position : 0x3f800000, 0x3f800000, 0x00000000 -> {1.0f, 1.0f, 0.0f}
+    // ACCESSOR_2 -> vertices texture = 2D coordinates. byteStride of 12 in BUFFERVIEW_1 -> a texture coordinate every 12 bytes, even if 2 floats have only 8 bytes
+    //     00 00 00 00 00 00 80 3f 00 00 00 00 -> v0 texture coord. : 0x00000000, 0x3f800000, 0x00000000 -> {0.0f, 1.0f} + padding
+    //     00 00 80 3f 00 00 80 3f 00 00 00 00 -> v1 texture coord. : 0x3f800000, 0x3f800000, 0x00000000 -> {1.0f, 1.0f} + padding
+    //     00 00 00 00 00 00 00 00 00 00 00 00 -> v2 texture coord. : 0x00000000, 0x00000000, 0x00000000 -> {0.0f, 0.0f} + padding
+    //     00 00 80 3f 00 00 00 00 00 00 00 00 -> v3 texture coord. : 0x3f800000, 0x00000000, 0x00000000 -> {1.0f, 0.0f} + padding
+    //
+    //       v2          v3                            0,0          1,0 
+    //       +------------+                             +------------+
+    //       | \\         |                             |            |
+    //       |   \\   f1  |                             |            |
+    //       |     \\     |      texture coordinates :  |            |
+    //       |  f0   \\   |                             |            |
+    // Y     |         \\ |                             |            |
+    //       +------------+                             +------------+
+    // ^     v0          v1                            0,1          1,1
+    // |
+    // o-- >  X
+
     buffer_0.uri = "data:application/gltf-buffer;base64,AAABAAIAAQADAAIAAAAAAAAAAAAAAAAAAACAPwAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAgD8AAAAAAAAAAAAAgD8AAAAAAACAPwAAgD8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAAAA";
     // buffer_0.byteLength = 108;
 
