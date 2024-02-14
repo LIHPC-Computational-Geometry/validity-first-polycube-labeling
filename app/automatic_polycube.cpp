@@ -203,7 +203,7 @@ protected:
 			ImGui::PushStyleColor(ImGuiCol_ButtonHovered,	ImVec4(0.3f, 0.8f, 0.3f, 1.0f)); // darker green
 			ImGui::PushStyleColor(ImGuiCol_ButtonActive,	ImVec4(0.0f, 0.8f, 0.0f, 1.0f));
 			if(ImGui::Button("Auto fix monotonicity")) {
-				auto_fix_monotonicity(mesh_,static_labeling_graph_,500,feature_edges_);
+				auto_fix_monotonicity(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,500,feature_edges_);
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 			ImGui::PopStyleColor(3);
@@ -279,27 +279,6 @@ protected:
 		else {
 			LabelingViewerApp::mouse_button_callback(button,action,mods,source);
 		}
-	}
-
-public:
-
-	static bool auto_fix_monotonicity(Mesh& mesh, StaticLabelingGraph& slg, unsigned int max_nb_steps, const std::set<std::pair<index_t,index_t>>& feature_edges) {
-		unsigned int nb_steps = 0;
-		while(!slg.non_monotone_boundaries.empty() && nb_steps <= max_nb_steps) {
-			move_boundaries_near_turning_points(mesh,LABELING_ATTRIBUTE_NAME,slg);
-			// update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
-			slg.fill_from(mesh,LABELING_ATTRIBUTE_NAME,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
-			remove_surrounded_charts(mesh,LABELING_ATTRIBUTE_NAME,slg);
-			// update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
-			slg.fill_from(mesh,LABELING_ATTRIBUTE_NAME,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
-		}
-
-		if(!slg.non_monotone_boundaries.empty()) {
-			fmt::println(Logger::out("fix_labeling"),"auto fix monotonicity stopped (max nb steps reached), it remains non-monotone boundaries"); Logger::out("fix_labeling").flush();
-			return false;
-		}
-
-		return true;
 	}
 
 protected:
@@ -409,7 +388,7 @@ int main(int argc, char** argv) {
 
 	if(auto_fix_validity(M,normals,LABELING_ATTRIBUTE_NAME,slg,100,feature_edges,normals)) {
 		// auto-fix the monotonicity only if the validity was fixed
-		AutomaticPolycubeApp::auto_fix_monotonicity(M,slg,500,feature_edges);
+		auto_fix_monotonicity(M,LABELING_ATTRIBUTE_NAME,slg,500,feature_edges);
 	}
 
 	//////////////////////////////////////////////////

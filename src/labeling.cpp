@@ -1121,6 +1121,28 @@ void pull_closest_corner(GEO::Mesh& mesh, const char* attribute_name, const Stat
     }
 }
 
+bool auto_fix_monotonicity(Mesh& mesh, const char* attribute_name, StaticLabelingGraph& slg, unsigned int max_nb_steps, const std::set<std::pair<index_t,index_t>>& feature_edges) {
+    
+    if (slg.non_monotone_boundaries.empty()) {
+        return true;
+    }
+    
+    unsigned int nb_steps = 0;
+    while(!slg.non_monotone_boundaries.empty() && nb_steps <= max_nb_steps) {
+        move_boundaries_near_turning_points(mesh,attribute_name,slg);
+        slg.fill_from(mesh,attribute_name,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
+        remove_surrounded_charts(mesh,attribute_name,slg);
+        slg.fill_from(mesh,attribute_name,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
+    }
+
+    if(!slg.non_monotone_boundaries.empty()) {
+        fmt::println(Logger::out("fix_labeling"),"auto fix monotonicity stopped (max nb steps reached), it remains non-monotone boundaries"); Logger::out("fix_labeling").flush();
+        return false;
+    }
+
+    return true;
+}
+
 void trace_contour(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, StaticLabelingGraph& slg, const std::set<std::pair<index_t,index_t>>& feature_edges) {
     Attribute<index_t> label(mesh.facets.attributes(), attribute_name);
     Attribute<double> per_facet_fidelity(mesh.facets.attributes(), "fidelity");

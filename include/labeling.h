@@ -94,4 +94,7 @@ void move_corners(GEO::Mesh& mesh, const char* attribute_name, const StaticLabel
 
 void pull_closest_corner(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg, index_t non_monotone_boundary_index);
 
+// true if we reached 0 turning-point
+bool auto_fix_monotonicity(Mesh& mesh, const char* attribute_name, StaticLabelingGraph& slg, unsigned int max_nb_steps, const std::set<std::pair<index_t,index_t>>& feature_edges);
+
 void trace_contour(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, StaticLabelingGraph& slg, const std::set<std::pair<index_t,index_t>>& feature_edges);
