@@ -152,7 +152,7 @@ protected:
 			ImGui::PushStyleColor(ImGuiCol_ButtonHovered,	ImVec4(0.3f, 0.8f, 0.3f, 1.0f)); // darker green
 			ImGui::PushStyleColor(ImGuiCol_ButtonActive,	ImVec4(0.0f, 0.8f, 0.0f, 1.0f));
 			if(ImGui::Button("Auto fix validity")) {
-				auto_fix_validity(mesh_,normals_,static_labeling_graph_,100,feature_edges_,normals_);
+				auto_fix_validity(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,100,feature_edges_,normals_);
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 			ImGui::PopStyleColor(3);
@@ -283,98 +283,6 @@ protected:
 
 public:
 
-	// return true if successfully found a valid labeling
-	static bool auto_fix_validity(Mesh& mesh, std::vector<vec3>& normals, StaticLabelingGraph& slg, unsigned int max_nb_loop, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<vec3>& facet_normals) {
-		unsigned int nb_loops = 0;
-		unsigned int nb_fixed_features = 0;
-		std::set<std::array<std::size_t,7>> set_of_labeling_features_combinations_encountered;
-		while(!slg.is_valid() && nb_loops <= max_nb_loop) { // until valid labeling OR too much steps
-			nb_loops++;
-
-			// as much as possible, remove isolated (surrounded) charts
-			do {
-				nb_fixed_features = remove_surrounded_charts(mesh,LABELING_ATTRIBUTE_NAME,slg);
-				// update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
-				slg.fill_from(mesh,LABELING_ATTRIBUTE_NAME,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
-			} while(nb_fixed_features != 0);
-
-			if(slg.is_valid())
-				return true;
-
-			fix_invalid_boundaries(mesh,LABELING_ATTRIBUTE_NAME,slg,facet_normals);
-			// update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
-			slg.fill_from(mesh,LABELING_ATTRIBUTE_NAME,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
-
-			if(slg.is_valid())
-				return true;
-
-			fix_invalid_corners(mesh,normals,LABELING_ATTRIBUTE_NAME,slg);
-			// update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
-			slg.fill_from(mesh,LABELING_ATTRIBUTE_NAME,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
-
-			if(slg.is_valid())
-				return true;
-
-			set_of_labeling_features_combinations_encountered.clear();
-			set_of_labeling_features_combinations_encountered.insert({
-				slg.nb_charts(),
-				slg.nb_boundaries(),
-				slg.nb_corners(),
-				slg.nb_invalid_charts(),
-				slg.nb_invalid_boundaries(),
-				slg.nb_invalid_corners(),
-				slg.nb_turning_points()
-			});
-
-			while(1) {
-				if(remove_invalid_charts(mesh,normals,LABELING_ATTRIBUTE_NAME,slg)) {
-					// all invalid charts cannot be removed because of feature edges
-					// No need to update the labeling graph because the labeling didn't change
-					if((slg.nb_invalid_boundaries() == 0) && (slg.nb_invalid_corners() == 0)) {
-						// these charts are the only invalid parts of the labeling graph
-						fmt::println(Logger::err("fix_labeling"),"the labeling validity cannot be reached because remaining invalid charts are surrounded by feature edges. TODO new operator to fix them"); Logger::err("fix_labeling").flush();
-						return false;
-					}
-					// else : continue and expect the other operators to fix invalid boundaries and corners
-				}
-				// update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
-				slg.fill_from(mesh,LABELING_ATTRIBUTE_NAME,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
-
-				if(slg.is_valid())
-					return true;
-
-				std::array<std::size_t,7> features_combination = {
-					slg.nb_charts(),
-					slg.nb_boundaries(),
-					slg.nb_corners(),
-					slg.nb_invalid_charts(),
-					slg.nb_invalid_boundaries(),
-					slg.nb_invalid_corners(),
-					slg.nb_turning_points()
-				};
-
-				if(VECTOR_CONTAINS(set_of_labeling_features_combinations_encountered,features_combination)) { // we can use VECTOR_CONTAINS() on sets because they also have find(), cbegin() and cend()
-					// we backtracked
-					// There is probably small charts that we can remove to help the fixing routine
-					remove_charts_around_invalid_boundaries(mesh,normals,LABELING_ATTRIBUTE_NAME,slg);
-					slg.fill_from(mesh,LABELING_ATTRIBUTE_NAME,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
-					break; // go back to the beginning of the loop, with other fix operators
-				}
-				else {
-					set_of_labeling_features_combinations_encountered.insert(features_combination); // store the current combination of number of features
-				}
-			}
-			
-		}
-
-		if(!slg.is_valid()) {
-			fmt::println(Logger::out("fix_labeling"),"auto fix validity stopped (max nb loops reached), no valid labeling found"); Logger::out("fix_labeling").flush();
-			return false;
-		}
-		
-		return true;
-	}
-
 	static bool auto_fix_monotonicity(Mesh& mesh, StaticLabelingGraph& slg, unsigned int max_nb_steps, const std::set<std::pair<index_t,index_t>>& feature_edges) {
 		unsigned int nb_steps = 0;
 		while(!slg.non_monotone_boundaries.empty() && nb_steps <= max_nb_steps) {
@@ -499,7 +407,7 @@ int main(int argc, char** argv) {
 	// Validity & monotonicity correction
 	//////////////////////////////////////////////////
 
-	if(AutomaticPolycubeApp::auto_fix_validity(M,normals,slg,100,feature_edges,normals)) {
+	if(auto_fix_validity(M,normals,LABELING_ATTRIBUTE_NAME,slg,100,feature_edges,normals)) {
 		// auto-fix the monotonicity only if the validity was fixed
 		AutomaticPolycubeApp::auto_fix_monotonicity(M,slg,500,feature_edges);
 	}
