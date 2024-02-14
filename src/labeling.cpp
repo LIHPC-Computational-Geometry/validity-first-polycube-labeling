@@ -795,6 +795,49 @@ bool straighten_boundary(GEO::Mesh& mesh, const char* attribute_name, const Stat
     return true;
 }
 
+void straighten_boundaries(GEO::Mesh& mesh, const char* attribute_name, StaticLabelingGraph& slg, const std::vector<std::vector<index_t>>& adj_facets, const std::set<std::pair<index_t,index_t>>& feature_edges) {
+    if(slg.boundaries.empty()) {
+        fmt::println(Logger::out("monotonicity"),"No boundaries, operation canceled"); Logger::out("monotonicity").flush();
+        return;
+    }
+
+    geo_assert(!adj_facets.empty())
+
+    // Because the boundaries may not have the same index before and after slg.fill_from()
+    // and because we need to call slg.fill_from() after that one boundary is processed to update charts,
+    // we first gather the first boundary edge of all boundaries, so at each step we can get the current index of the
+    // associated boundary with slg.halfedge2boundary
+    // The fist boundary edges should not move after a call of straighten_boundary()...
+    std::deque<MeshHalfedges::Halfedge> boundary_edges_to_process;
+    boundary_edges_to_process.resize(slg.nb_boundaries()); // preallocation
+    FOR(b,slg.boundaries.size()) {
+        if (slg.boundaries[b].on_feature_edge) {
+            fmt::println(Logger::out("monotonicity"),"Boundary {} skipped for straighten_boundary() because it is on a feature edge",b); Logger::out("monotonicity").flush();
+            continue; // do not straighten boundaries surrounded by feature edges
+        }
+        geo_assert(!slg.boundaries[b].halfedges.empty());
+        boundary_edges_to_process.push_back(slg.boundaries[b].halfedges[0]);
+    }
+    MeshHalfedges::Halfedge current_boundary_edge;
+    index_t boundary_index = index_t(-1);
+    bool boundary_in_same_direction = false;
+    while (!boundary_edges_to_process.empty()) {
+        current_boundary_edge = boundary_edges_to_process.back();
+        boundary_edges_to_process.pop_back();
+        std::tie(boundary_index,boundary_in_same_direction) = slg.halfedge2boundary[current_boundary_edge];
+        geo_assert(boundary_index != index_t(-1));
+        if(straighten_boundary(mesh,attribute_name,slg,boundary_index,adj_facets)) 
+        {
+            slg.fill_from(mesh,attribute_name,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
+        }
+        else {
+            boundary_edges_to_process.push_front(current_boundary_edge); // re-process this boundary edge later
+            // /!\ WARNING : if straighten_boundary() failed because backtracking and not because we encountered another boundary,
+            // we could end up in an infinite loop where we process again and again a boundary for which we cannot reach the end corner...
+        }
+    }
+}
+
 void move_corners(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<std::vector<index_t>>& adj_facets) {
     Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // get labeling attribute
     CustomMeshHalfedges mesh_he(mesh);
