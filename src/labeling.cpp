@@ -26,6 +26,8 @@
 #include "basic_stats.h"
 #include "dump_mesh.h"
 
+#include <dbg.h>
+
 bool load_labeling(const std::string& filename, Mesh& mesh, const char* attribute_name) {
 
     //open the file
@@ -1005,43 +1007,79 @@ void move_corners(GEO::Mesh& mesh, const char* attribute_name, const StaticLabel
     fmt::println(Logger::out("monotonicity"),"{} corners moved",nb_corner_moved); Logger::out("monotonicity").flush();
 }
 
-void pull_closest_corner(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg, index_t non_monotone_boundary_index) {
+bool merge_a_turning_point_and_a_corner_on_non_monotone_boundary(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg, const std::set<std::pair<index_t,index_t>>& feature_edges, index_t non_monotone_boundary_index) {
     
-    // get the non-monotone boundary from its index
+    // 1. Get the Boundary object
+    // 2. Parse turning-points and count how many are on feature edges
+    //     Didn't find one -> return false
+    //     Found at least one -> store total number and continue with the first one
+    // 3. Find which of the two corners of the boundary is the closest to the turning point
+    // 4. From the turning point "orientation" (toward left or right),
+    //    find which boundary to move among the ones around the closest corner
+    // 5. Find which label to apply between the new boundary and the boundary to move
+    // 6. Move edge by edge from the turning point following the same direction as the boundary to move,
+    //    and store facets at left/right of this path
+    // 7. Facet by facet, change the labels on one side of the path, effectively moving the boundary
+
+    // 1. get the non-monotone boundary from its index
 
     const Boundary& non_monotone_boundary = slg.boundaries[slg.non_monotone_boundaries[non_monotone_boundary_index]];
     #ifndef NDEBUG
         dump_boundary_with_halfedges_indices("non-monotone_boundary",mesh,non_monotone_boundary);
     #endif
+    dbg(fmt::format("Working on non-monotone boundary between corners at vertices {} and {}",slg.corners[non_monotone_boundary.start_corner].vertex,slg.corners[non_monotone_boundary.end_corner].vertex));
 
-    // get its only turning point
+    // 2. count turning-points which are on feature edges
 
-    if(non_monotone_boundary.turning_points.size() != 1) {
-        fmt::println(Logger::out("monotonicity"),"Cannot apply pull_closest_corner() on boundary {} which has {} turning-points instead of 1",slg.non_monotone_boundaries[non_monotone_boundary_index],non_monotone_boundary.turning_points.size()); Logger::out("monotonicity").flush();
-        return;
+    unsigned int nb_turning_points_on_feature_edges = 0;
+    TurningPoint first_turning_point_on_feature_edge = non_monotone_boundary.turning_points[0]; // create a mutable copy. value must be ignored if nb_turning_points_on_feature_edges==0
+    index_t ingoing_local_halfedge_index = index_t(-1);
+    index_t outgoing_local_halfedge_index = index_t(-1);
+    MeshHalfedges::Halfedge ingoing_local_halfedge;
+    MeshHalfedges::Halfedge outgoing_local_halfedge;
+    for(const TurningPoint& turning_point : non_monotone_boundary.turning_points) {
+        outgoing_local_halfedge_index = turning_point.outgoing_local_halfedge_index();
+        ingoing_local_halfedge_index = outgoing_local_halfedge_index-1;
+        ingoing_local_halfedge = non_monotone_boundary.halfedges[ingoing_local_halfedge_index];
+        outgoing_local_halfedge = non_monotone_boundary.halfedges[outgoing_local_halfedge_index];
+        if(halfedge_is_on_feature_edge(mesh,ingoing_local_halfedge,feature_edges) || halfedge_is_on_feature_edge(mesh,outgoing_local_halfedge,feature_edges)) {
+            nb_turning_points_on_feature_edges++;
+            if(nb_turning_points_on_feature_edges == 1) {
+                first_turning_point_on_feature_edge = turning_point;
+            }
+        }
     }
-    const TurningPoint& tp = non_monotone_boundary.turning_points[0];
-    
-    // get labeling attribute and instanciate the halfedges API
+    dbg(nb_turning_points_on_feature_edges);
+    dbg(non_monotone_boundary.turning_points.size());
 
+    if(nb_turning_points_on_feature_edges == 0) {
+        // all turning-points are on smooth edges
+        dbg("all turning-points are on smooth edges");
+        return false;
+    }
+
+    // some initialization
+
+    // get labeling attribute and instanciate the halfedges API
     Attribute<index_t> label(mesh.facets.attributes(), attribute_name);
     CustomMeshHalfedges mesh_he(mesh);
     mesh_he.set_use_facet_region(attribute_name);
-    #ifndef NDEBUG
-        dump_vertex("current_tp",mesh_he.mesh(),tp.vertex(non_monotone_boundary,mesh_he.mesh()));
-    #endif
 
-    // find which corner of `non_monotone_boundary` is the closest of `tp`
+    // 3. Only process `first_turning_point_on_feature_edge`. Find which corner of `non_monotone_boundary` is the closest.
+
+    #ifndef NDEBUG
+        dump_vertex("current_tp",mesh_he.mesh(),first_turning_point_on_feature_edge.vertex(non_monotone_boundary,mesh_he.mesh()));
+    #endif
     
-    index_t closest_corner = tp.get_closest_corner(non_monotone_boundary,mesh_he);
+    index_t closest_corner = first_turning_point_on_feature_edge.get_closest_corner(non_monotone_boundary,mesh_he);
     #ifndef NDEBUG
         dump_vertex("closest_corner",mesh,slg.corners[closest_corner].vertex);
     #endif
 
-    // Find which boundary around `closest_corner` is closest to `tp`, excluding `non_monotone_boundary`
-    // Also compute the vector between its corners
+    // 4. Find which boundary around `closest_corner` is closest to `first_turning_point_on_feature_edge`, excluding `non_monotone_boundary`
+    //    Also compute the vector between its corners
 
-    const Boundary& boundary_to_move = slg.boundaries[non_monotone_boundary.get_closest_boundary_of_turning_point(tp,closest_corner,mesh_he,slg.halfedge2boundary,slg.corners)];
+    const Boundary& boundary_to_move = slg.boundaries[non_monotone_boundary.get_closest_boundary_of_turning_point(first_turning_point_on_feature_edge,closest_corner,mesh_he,slg.halfedge2boundary,slg.corners)];
     #ifndef NDEBUG
         dump_boundary("boundary_to_move",mesh,boundary_to_move);
     #endif
@@ -1052,14 +1090,14 @@ void pull_closest_corner(GEO::Mesh& mesh, const char* attribute_name, const Stat
         boundary_to_move_vector *= -1.0;
     }
     #ifndef NDEBUG
-        dump_vector("direction_for_new_boundary",mesh,tp.vertex(non_monotone_boundary,mesh_he.mesh()),boundary_to_move_vector*2.0);
+        dump_vector("direction_for_new_boundary",mesh,first_turning_point_on_feature_edge.vertex(non_monotone_boundary,mesh_he.mesh()),boundary_to_move_vector*2.0);
     #endif
 
-    // find which label to assign between `boundary_to_move` and its "parallel" passing by the turning point
+    // 5. find which label to assign between `boundary_to_move` and its "parallel" passing by the turning point
     
     index_t new_label = index_t(-1);
     index_t chart_on_which_the_new_boundary_will_be = index_t(-1);
-    if(tp.is_towards_right()) {
+    if(first_turning_point_on_feature_edge.is_towards_right()) {
         chart_on_which_the_new_boundary_will_be = boundary_to_move.right_chart;
         new_label = slg.charts[boundary_to_move.left_chart].label;
     }
@@ -1067,17 +1105,22 @@ void pull_closest_corner(GEO::Mesh& mesh, const char* attribute_name, const Stat
         chart_on_which_the_new_boundary_will_be = boundary_to_move.left_chart;
         new_label = slg.charts[boundary_to_move.right_chart].label;
     }
-    const std::set<index_t>& facet_of_the_chart_on_which_the_new_boundary_will_be = slg.charts[chart_on_which_the_new_boundary_will_be].facets;
+    const std::set<index_t>& facets_of_the_chart_on_which_the_new_boundary_will_be = slg.charts[chart_on_which_the_new_boundary_will_be].facets;
+    #ifndef NDEBUG
+        dump_facets("facets_of_the_chart_on_which_the_new_boundary_will_be",mesh,facets_of_the_chart_on_which_the_new_boundary_will_be);
+    #endif
 
-    // Start from the turning-point, move edge by edge in the direction of `boundary_to_move_vector`
-    // To not drift away from this direction, at each step we recompute the difference between `boundary_to_move_vector` and the current vector of the new boundary,
-    // that is, the vector going from the current vertex to where would be the end corner if the new boundary has the same vector_between_corners() than `boundary_to_move`
+    // 6. Start from the turning-point, move edge by edge in the direction of `boundary_to_move_vector`
+    //    To not drift away from this direction, at each step we recompute the difference between `boundary_to_move_vector` and the current vector of the new boundary,
+    //    that is, the vector going from the current vertex to where would be the end corner if the new boundary has the same vector_between_corners() than `boundary_to_move`
     // /!\ WARNING : This will not work if the path of the new boundary has to be longer than the `boundary_to_move`
 
-    MeshHalfedges::Halfedge current_halfedge = non_monotone_boundary.halfedges[tp.outgoing_local_halfedge_index()],
+    MeshHalfedges::Halfedge current_halfedge = non_monotone_boundary.halfedges[first_turning_point_on_feature_edge.outgoing_local_halfedge_index()],
                             next_halfedge;
     std::set<index_t> facets_at_left, facets_at_right;
     next_halfedge = get_most_aligned_halfedge_around_vertex(current_halfedge,mesh_he,boundary_to_move_vector);
+    size_t count_halfedges_in_path = 1;
+    dump_edge(fmt::format("path_halfedge_{}",count_halfedges_in_path),mesh,next_halfedge);
     vec3 new_boundary_average_vector(0.0,0.0,0.0);
     do {
         current_halfedge = next_halfedge;
@@ -1087,16 +1130,27 @@ void pull_closest_corner(GEO::Mesh& mesh, const char* attribute_name, const Stat
         mesh_he.move_to_opposite(current_halfedge); // flip `current_halfedge` so that its origin vertex is the origin vertex of the next halfedge
         next_halfedge = get_most_aligned_halfedge_around_vertex(current_halfedge,mesh_he,boundary_to_move_vector - new_boundary_average_vector);
         geo_assert(next_halfedge != current_halfedge); // assert the previous halfedge is not the one the best aligned. else we are backtracking
+        count_halfedges_in_path++;
+        dump_edge(fmt::format("path_halfedge_{}",count_halfedges_in_path),mesh,next_halfedge);
     } while(
         label[Geom::halfedge_facet_left(mesh,next_halfedge)] == slg.charts[chart_on_which_the_new_boundary_will_be].label &&
         label[Geom::halfedge_facet_right(mesh,next_halfedge)] == slg.charts[chart_on_which_the_new_boundary_will_be].label
     );
+    geo_assert(!facets_at_left.empty());
+    geo_assert(!facets_at_right.empty());
+    #ifndef NDEBUG
+        dump_facets("facets_at_left",mesh,facets_at_left);
+        dump_facets("facets_at_right",mesh,facets_at_right);
+    #endif
 
-    bool the_wall_is_left_facets = (tp.is_towards_left() && closest_corner == non_monotone_boundary.end_corner) || 
-                                   (tp.is_towards_right() && closest_corner == non_monotone_boundary.start_corner);
+    // 7. change the labeling on one side of the just-traced path
+
+    bool the_wall_is_left_facets = (first_turning_point_on_feature_edge.is_towards_left() && closest_corner == non_monotone_boundary.end_corner) || 
+                                   (first_turning_point_on_feature_edge.is_towards_right() && closest_corner == non_monotone_boundary.start_corner);
     const std::set<index_t>& wall = the_wall_is_left_facets ? facets_at_left : facets_at_right;
     const std::set<index_t>& to_process_as_set = the_wall_is_left_facets ? facets_at_right : facets_at_left;
     std::vector<index_t> to_process(to_process_as_set.begin(),to_process_as_set.end()); // set to vector
+    geo_assert(!to_process.empty());
 
     index_t current_facet = index_t(-1),
             adjacent_facet = index_t(-1);
@@ -1108,17 +1162,60 @@ void pull_closest_corner(GEO::Mesh& mesh, const char* attribute_name, const Stat
             continue;
         }
         label[current_facet] = new_label;
+        dbg(current_facet);
         FOR(le,3) { // process adjacent triangles
             adjacent_facet = mesh.facets.adjacent(current_facet,le);
             if(wall.contains(adjacent_facet)) {
                 continue;
             }
-            if(!facet_of_the_chart_on_which_the_new_boundary_will_be.contains(adjacent_facet)) {
+            if(!facets_of_the_chart_on_which_the_new_boundary_will_be.contains(adjacent_facet)) {
                 continue;
             }
             to_process.push_back(adjacent_facet);
         }
     }
+
+    return true;
+}
+
+void merge_turning_points_and_corners(GEO::Mesh& mesh, const char* attribute_name, StaticLabelingGraph& slg, const std::set<std::pair<index_t,index_t>>& feature_edges) {
+    // Parse non-monotone boundary, apply merge_a_turning_point_and_a_corner_on_non_monotone_boundary() on each of them
+    // If return false, directly continue with the next non-monotone boundary
+    // If return true, update the labeling graph and parse the new list of  non-monotone boundaries
+
+    if(slg.non_monotone_boundaries.empty()) {
+        fmt::println(Logger::out("monotonicity"),"All boundaries are monotones, merge_turning_points_and_corners() canceled"); Logger::out("monotonicity").flush();
+        return; // no turning-points in the labeling
+    }
+
+    index_t current_non_monotone_boundary = 0;
+    dbg(slg.non_monotone_boundaries.size());
+    std::size_t previous_number_of_turning_points = slg.nb_turning_points();
+
+    do {
+        dbg(current_non_monotone_boundary);
+        dbg(slg.nb_turning_points());
+        previous_number_of_turning_points = slg.nb_turning_points();
+        if(merge_a_turning_point_and_a_corner_on_non_monotone_boundary(mesh,attribute_name,slg,feature_edges,current_non_monotone_boundary)) {
+            dbg("a turning-point and a corner just merged");
+            // a turning-point was merge with a corner, we need to update the labeling graph
+            slg.fill_from(mesh,attribute_name,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
+            // and then, re-process this boundary that can have another turning-point on a feature edge
+            dbg(slg.non_monotone_boundaries.size());
+            if (slg.nb_turning_points() == previous_number_of_turning_points) {
+                // geo_abort();
+                fmt::println(Logger::out("monotonicity"),"merge_turning_points_and_corners() in an infinite loop"); Logger::out("monotonicity").flush();
+                dump_boundary("non-monotone_boundary_0",mesh,slg.boundaries[slg.non_monotone_boundaries[0]]);
+                return;
+            }
+        }
+        else {
+            dbg("no merge");
+            current_non_monotone_boundary++;
+        }
+    } while (current_non_monotone_boundary < slg.non_monotone_boundaries.size()); // must happen when 
+
+    geo_assert(slg.non_monotone_boundaries.empty());
 }
 
 bool auto_fix_monotonicity(Mesh& mesh, const char* attribute_name, StaticLabelingGraph& slg, unsigned int max_nb_steps, const std::set<std::pair<index_t,index_t>>& feature_edges) {

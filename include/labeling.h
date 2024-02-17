@@ -92,7 +92,13 @@ void straighten_boundaries(GEO::Mesh& mesh, const char* attribute_name, StaticLa
 // Adjust postion of corners so that they are more aligned with adjacent boundaries
 void move_corners(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<std::vector<index_t>>& adj_facets);
 
-void pull_closest_corner(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg, index_t non_monotone_boundary_index);
+// only for turning-points on feature edges
+// on a non-monotone boundary, find turning-points on feature edges, and for each of them, move the closest corner to the same vertex
+// return bool if a turning point was merge with a corner, else false
+bool merge_a_turning_point_and_a_corner_on_non_monotone_boundary(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg, const std::set<std::pair<index_t,index_t>>& feature_edges, index_t non_monotone_boundary_index);
+
+// only for turning-points on feature edges
+void merge_turning_points_and_corners(GEO::Mesh& mesh, const char* attribute_name, StaticLabelingGraph& slg, const std::set<std::pair<index_t,index_t>>& feature_edges);
 
 // true if we reached 0 turning-point
 bool auto_fix_monotonicity(Mesh& mesh, const char* attribute_name, StaticLabelingGraph& slg, unsigned int max_nb_steps, const std::set<std::pair<index_t,index_t>>& feature_edges);

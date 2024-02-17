@@ -186,18 +186,29 @@ protected:
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 
-			if(ImGui::Button("Merge a turning-point with closest corner")) {
-				if(static_labeling_graph_.non_monotone_boundaries.empty()) {
-					fmt::println(Logger::out("monotonicity"),"All boundaries are monotones, operation canceled"); Logger::out("monotonicity").flush();
+			if(ImGui::Button("Merge turning-points and corners on first non-monotone boundary")) {
+				// merge_turning_points_and_corners(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,feature_edges_);
+				if (static_labeling_graph_.non_monotone_boundaries.empty()) {
+					fmt::println(Logger::out("monotonicity"),"Nothing to do, all-monotone boundaries"); Logger::out("monotonicity").flush();
 				}
 				else {
-					pull_closest_corner(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,0);
+					if(merge_a_turning_point_and_a_corner_on_non_monotone_boundary(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,feature_edges_,0)) {
+						fmt::println(Logger::out("monotonicity"),"Returned true"); Logger::out("monotonicity").flush();
+					}
+					else {
+						fmt::println(Logger::out("monotonicity"),"Returned false"); Logger::out("monotonicity").flush();
+					}
 					update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 				}
 			}
 			ImGui::SameLine();
 			ImGui::TextDisabled("(?)");
-			ImGui::SetItemTooltip("Select the first non-monotone boundary, and if it has only 1 turning-point, try to pull the closest corner so that they coincide");
+			ImGui::SetItemTooltip("Select the first non-monotone boundary, and if it has a turning-point on a feature edge, try to pull the closest corner so that they coincide");
+
+			if(ImGui::Button("Merge turning points and corners")) {
+				merge_turning_points_and_corners(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,feature_edges_);
+				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+			}
 
 			ImGui::PushStyleColor(ImGuiCol_Button, 			ImVec4(0.6f, 0.9f, 0.6f, 1.0f)); // green
 			ImGui::PushStyleColor(ImGuiCol_ButtonHovered,	ImVec4(0.3f, 0.8f, 0.3f, 1.0f)); // darker green
