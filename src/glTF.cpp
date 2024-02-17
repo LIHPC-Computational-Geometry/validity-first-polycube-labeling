@@ -272,9 +272,6 @@ void write_glTF__triangle_mesh(std::string filename, GEO::Mesh& M, bool with_wir
 
 void write_glTF__labeled_triangle_mesh(std::string filename, GEO::Mesh& M, const char* attribute_name) {
 
-    // for now, only write a simple texture
-    // https://github.com/KhronosGroup/glTF-Tutorials/blob/main/gltfTutorial/gltfTutorial_013_SimpleTexture.md
-
     /////////////////////////////////////
     // Create a square with 2 triangles
     /////////////////////////////////////
@@ -309,6 +306,37 @@ void write_glTF__labeled_triangle_mesh(std::string filename, GEO::Mesh& M, const
     // |
     // o-- >  X
 
+    //////////////////////////////////////////////////////////
+    // Define the texture coordinates of the square vertices
+    //////////////////////////////////////////////////////////
+
+    Attribute<float> per_vertex_texture_coordinates;
+    per_vertex_texture_coordinates.create_vector_attribute(square.vertices.attributes(),"texture_coordinates",2); // 2 floats per vertex
+    // vertex 0 : white = +Y = 2
+    per_vertex_texture_coordinates[2*0+0] = LABELING_TO_TEXTURE_COORDINATES[2][0];
+    per_vertex_texture_coordinates[2*0+1] = LABELING_TO_TEXTURE_COORDINATES[2][1];
+    // vertex 1 : blue = +Z = 4
+    per_vertex_texture_coordinates[2*1+0] = LABELING_TO_TEXTURE_COORDINATES[4][0];
+    per_vertex_texture_coordinates[2*1+1] = LABELING_TO_TEXTURE_COORDINATES[4][1];
+    // vertex 2 : red = +X = 0
+    per_vertex_texture_coordinates[2*2+0] = LABELING_TO_TEXTURE_COORDINATES[0][0];
+    per_vertex_texture_coordinates[2*2+1] = LABELING_TO_TEXTURE_COORDINATES[0][1];
+    // vertex 3 : dark red = -X = 1
+    per_vertex_texture_coordinates[2*3+0] = LABELING_TO_TEXTURE_COORDINATES[1][0];
+    per_vertex_texture_coordinates[2*3+1] = LABELING_TO_TEXTURE_COORDINATES[1][1];
+
+    //      v2:red       v3:dark_red
+    //       +------------+
+    //       |            |
+    //       |            |
+    //       |            |
+    //       |            |
+    // Y     |            |
+    //       +------------+
+    // ^    v0:white     v1:blue
+    // |
+    // o-- >  X
+
     ////////////////////////
     // Create a glTF model
     ////////////////////////
@@ -323,62 +351,7 @@ void write_glTF__labeled_triangle_mesh(std::string filename, GEO::Mesh& M, const
     const size_t IMAGE_0 = 0;
     tinygltf::Image& image_0 = m.images[IMAGE_0];
 
-    // "labeling_texture.png" is a 6x1 pixels image with colors :
-    // pixel 0,0 : 1.0, 0.0, 0.0 (red)
-    // pixel 1,0 : 0.6, 0.0, 0.0 (dark red)
-    // pixel 2,0 : 1.0, 1.0, 1.0 (white)
-    // pixel 3,0 : 0.6, 0.6, 0.6 (grey)
-    // pixel 4,0 : 0.0, 0.0, 1.0 (blue)
-    // pixel 5,0 : 0.0, 0.0, 0.6 (dark blue)
-    // 
-    // Texture coordinates :
-    //
-    //   0,0                    0.5,0                    1,0
-    //    +-------+-------+-------+-------+-------+-------+
-    //    |       | dark  |       |       |       | dark  |
-    //    |  red  |       | white | grey  | blue  |       |
-    //    |       |  red  |       |       |       |  blue |
-    //    +-------+-------+-------+-------+-------+-------+
-    //   0,1                    0.5,1                    1,1
-    //
-    const vec2f TEXTURE_COORDINATES_RED          = {0.084f, 0.5f}; // = 0/6 + 1/12, 1/2
-    const vec2f TEXTURE_COORDINATES_DARK_RED     = {0.250f, 0.5f}; // = 1/6 + 1/12, 1/2
-    const vec2f TEXTURE_COORDINATES_WHITE        = {0.417f, 0.5f}; // = 2/6 + 1/12, 1/2
-    const vec2f TEXTURE_COORDINATES_GREY         = {0.534f, 0.5f}; // = 3/6 + 1/12, 1/2
-    const vec2f TEXTURE_COORDINATES_BLUE         = {0.750f, 0.5f}; // = 4/6 + 1/12, 1/2
-    const vec2f TEXTURE_COORDINATES_DARK_BLUE    = {0.917f, 0.5f}; // = 5/6 + 1/12, 1/2
-    image_0.uri = "labeling_texture.png";
-
-    //////////////////////////////////////////////////////////
-    // Define the texture coordinates of the square vertices
-    //////////////////////////////////////////////////////////
-
-    Attribute<float> per_vertex_texture_coordinates;
-    per_vertex_texture_coordinates.create_vector_attribute(square.vertices.attributes(),"texture_coordinates",2); // 2 floats per vertex
-    // vertex 0 : white
-    per_vertex_texture_coordinates[2*0+0] = TEXTURE_COORDINATES_WHITE[0];
-    per_vertex_texture_coordinates[2*0+1] = TEXTURE_COORDINATES_WHITE[1];
-    // vertex 1 : blue
-    per_vertex_texture_coordinates[2*1+0] = TEXTURE_COORDINATES_BLUE[0];
-    per_vertex_texture_coordinates[2*1+1] = TEXTURE_COORDINATES_BLUE[1];
-    // vertex 2 : red
-    per_vertex_texture_coordinates[2*2+0] = TEXTURE_COORDINATES_RED[0];
-    per_vertex_texture_coordinates[2*2+1] = TEXTURE_COORDINATES_RED[1];
-    // vertex 3 : dark red
-    per_vertex_texture_coordinates[2*3+0] = TEXTURE_COORDINATES_DARK_RED[0];
-    per_vertex_texture_coordinates[2*3+1] = TEXTURE_COORDINATES_DARK_RED[1];
-
-    //      v2:red       v3:dark_red
-    //       +------------+
-    //       |            |
-    //       |            |
-    //       |            |
-    //       |            |
-    // Y     |            |
-    //       +------------+
-    // ^    v0:white     v1:blue
-    // |
-    // o-- >  X
+    image_0.uri = labeling_texture_image_PNG;
 
     /////////////////////
     // Create a sampler
@@ -405,7 +378,7 @@ void write_glTF__labeled_triangle_mesh(std::string filename, GEO::Mesh& M, const
     texture_0.source = IMAGE_0;
 
     //////////////////////
-    // Create 1 material 
+    // Create a material 
     //////////////////////
 
     m.materials.resize(1);
@@ -433,7 +406,6 @@ void write_glTF__labeled_triangle_mesh(std::string filename, GEO::Mesh& M, const
     size_t buffer_vertices_coordinates_length   = 4*3*square.vertices.nb();                                             // number of bytes
     size_t buffer_texture_coordinates_start     = buffer_vertices_coordinates_start+buffer_vertices_coordinates_length; // byte index
     size_t buffer_texture_coordinates_length    = 4*3*square.vertices.nb();                                             // number of bytes
-    geo_assert((buffer_triangles_length+buffer_vertices_coordinates_length+buffer_texture_coordinates_length) == 108+2*3*square.facets.nb()); // for the square exemple asset of the tutorial
     buffer_0.data.resize(buffer_triangles_length+buffer_vertices_coordinates_length+buffer_texture_coordinates_length);
 
     // write triangles (= vertex indices)
