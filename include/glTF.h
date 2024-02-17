@@ -17,6 +17,7 @@
 #include <string>
 
 #include "CustomMeshHalfedges.h"    // for CustomMeshHalfedges
+#include "geometry.h"               // for AdjacentFacetOfVertex
 
 #ifdef GARGANTUA
     #define ASSERT_GARGANTUA_OFF (fmt::println("Cannot export to glTF in GARGANTUA mode, indices must have 32 bits"); geo_assert_not_reached;)
@@ -59,6 +60,15 @@ const vec2f LABELING_TO_TEXTURE_COORDINATES[6] = {{0.084f, 0.5f},  // = 0/6 + 1/
 // https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URLs
 const std::string labeling_texture_image_PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAYAAAABCAIAAAByq0inAAABhGlDQ1BJQ0MgcHJvZmlsZQAAKJF9kT1Iw1AUhU9TRZEWETuIOGSoTlZERRy1CkWoEGqFVh1MXvoHTRqSFBdHwbXg4M9i1cHFWVcHV0EQ/AFxdnBSdJES70sKLWK88Hgf591zeO8+QKiXmWZ1jAOabpupRFzMZFfFrlcI6EMYAYzJzDLmJCkJ3/q6pz6quxjP8u/7s8JqzmJAQCSeZYZpE28QT2/aBud94ggryirxOfGoSRckfuS64vEb54LLAs+MmOnUPHGEWCy0sdLGrGhqxFPEUVXTKV/IeKxy3uKslauseU/+wlBOX1nmOq0hJLCIJUgQoaCKEsqwEaNdJ8VCis7jPv5B1y+RSyFXCYwcC6hAg+z6wf/g92yt/OSElxSKA50vjvMxDHTtAo2a43wfO07jBAg+A1d6y1+pAzOfpNdaWvQI6N0GLq5bmrIHXO4AA0+GbMquFKQl5PPA+xl9UxbovwV61ry5Nc9x+gCkaVbJG+DgEBgpUPa6z7u72+f2b09zfj85enKQ1aMGywAAAAlwSFlzAAAuIwAALiMBeKU/dgAAAAd0SU1FB+gCEQ0GMNz9VKwAAAAZdEVYdENvbW1lbnQAQ3JlYXRlZCB3aXRoIEdJTVBXgQ4XAAAAGUlEQVQI1wXBAQEAAACCIP4/cG2BEdsqRgdOxAf5SBcyAQAAAABJRU5ErkJggg==";
 
+//////////////////////////////////////
+// Geogram vs glTF mesh vertices map
+//////////////////////////////////////
+
+struct glTF_vertex {
+    index_t Geogram_vertex;
+    index_t label;
+};
+
 //////////////
 // Functions
 //////////////
@@ -69,4 +79,4 @@ inline index_t* facet_vertex_index_ptr(GEO::Mesh& M, index_t f, index_t lv) {
 
 void write_glTF__triangle_mesh(std::string filename, GEO::Mesh& M, bool with_wireframe);
 
-void write_glTF__labeled_triangle_mesh(std::string filename, GEO::Mesh& M, const char* attribute_name);
+void write_glTF__labeled_triangle_mesh(std::string filename, GEO::Mesh& M, const char* attribute_name, const std::vector<std::vector<AdjacentFacetOfVertex>>& per_vertex_adj_facets);

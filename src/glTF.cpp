@@ -16,6 +16,10 @@
 
 #include "glTF.h"
 #include "CustomMeshHalfedges.h"    // for CustomMeshHalfedges
+#include "containers.h"             // for index_of_last()
+#include "geometry.h"               // for AdjacentFacetOfVertex
+
+#include <dbg.h>
 
 void write_glTF__triangle_mesh(std::string filename, GEO::Mesh& M, bool with_wireframe) {
     ASSERT_GARGANTUA_OFF;
@@ -270,73 +274,72 @@ void write_glTF__triangle_mesh(std::string filename, GEO::Mesh& M, bool with_wir
 
 }
 
-void write_glTF__labeled_triangle_mesh(std::string filename, GEO::Mesh& M, const char* attribute_name) {
+void write_glTF__labeled_triangle_mesh(std::string filename, GEO::Mesh& M, const char* attribute_name, const std::vector<std::vector<AdjacentFacetOfVertex>>& per_vertex_adj_facets) {
     ASSERT_GARGANTUA_OFF;
+    geo_assert(per_vertex_adj_facets.size() == M.vertices.nb());
 
-    /////////////////////////////////////
-    // Create a square with 2 triangles
-    /////////////////////////////////////
+    // retreive per facet label
+    GEO::Attribute<index_t> label(M.facets.attributes(),attribute_name);
+    // create a vector that will enumerate vertices in the glTF mesh
+    std::vector<glTF_vertex> glTF_vertices; // for each vertex in the glTF mesh, store the corresponding vertex in M and the label (future texture coordinate) of this glTF vertex
+    // create per facet corner attribute to store the glTF mesh vertex index (can be different of the index in M)
+    GEO::Attribute<index_t> facet_corner_to_glTF_vertex(M.facet_corners.attributes(),"glTF_vertex");
+    
+    std::vector<AdjacentFacetOfVertex>::const_iterator it;
+    index_t label_around_vertex = index_t(-1);
+    bool same_label_all_around_vertex = true;
+    index_t facet_corner = index_t(-1);
+    FOR(v,M.vertices.nb()) { // for each vertex of M
+        same_label_all_around_vertex = true;
+        // get label of first facet around vertex v
+        label_around_vertex = label[per_vertex_adj_facets[v][0].facet_index];
+        // parse remaining facets around v
+        it = per_vertex_adj_facets[v].begin();
+        it++; // start with facet at index 1 (we already have the label of facet 0)
+        do {
+            if(label[it->facet_index] != label_around_vertex) {
+                // facets around vertex v don't have the same label
+                same_label_all_around_vertex = false;
+                break;
+            }
+            it++;
+        } while (it != per_vertex_adj_facets[v].end());
 
-    Mesh square;
-    square.vertices.create_vertices(4);
-    square.vertices.point(0) = vec3(0.0, 0.0, 0.0);
-    square.vertices.point(1) = vec3(1.0, 0.0, 0.0);
-    square.vertices.point(2) = vec3(0.0, 1.0, 0.0);
-    square.vertices.point(3) = vec3(1.0, 1.0, 0.0);
-    square.vertices.set_single_precision();
-    square.facets.create_triangles(2);
-    // triangle 0 : vertices 0,1 and 2
-    square.facets.set_vertex(0,0,0);
-    square.facets.set_vertex(0,1,1);
-    square.facets.set_vertex(0,2,2);
-    // triangle 1 : vertices 1,3 and 2
-    square.facets.set_vertex(1,0,1);
-    square.facets.set_vertex(1,1,3);
-    square.facets.set_vertex(1,2,2);
-    square.facets.connect();
+        if(same_label_all_around_vertex) {
+            // only one vertex in the glTF mesh in necessary to represent v^th vertex of M
+            // create new glTF vertex and link it to M vertex
+            glTF_vertices.push_back(glTF_vertex{v,label_around_vertex});
+            // link M facet corners to glTF vertex
+            for(const auto& adj_facets : per_vertex_adj_facets[v]) {
+                facet_corner = M.facets.corner(adj_facets.facet_index,adj_facets.local_vertex);
+                facet_corner_to_glTF_vertex[facet_corner] = (index_t) index_of_last(glTF_vertices);
+            }
+        }
+        else {
+            // split this vertex in as many vertices as there are adjacent facets
+            for(const auto& adj_facets : per_vertex_adj_facets[v]) {
+                // create new glTF vertex and link it to M vertex
+                glTF_vertices.push_back(glTF_vertex{v,label[adj_facets.facet_index]});
+                // link M facet corners to glTF vertex
+                facet_corner = M.facets.corner(adj_facets.facet_index,adj_facets.local_vertex);
+                facet_corner_to_glTF_vertex[facet_corner] = (index_t) index_of_last(glTF_vertices);
+            }
+        }
+    }
 
-    //       v2          v3
-    //       +------------+
-    //       | \\         |
-    //       |   \\   f1  |
-    //       |     \\     |
-    //       |  f0   \\   |
-    // Y     |         \\ |
-    //       +------------+
-    // ^     v0          v1
-    // |
-    // o-- >  X
+    /////////////////////////
+    // Compute bounding box
+    /////////////////////////
 
-    //////////////////////////////////////////////////////////
-    // Define the texture coordinates of the square vertices
-    //////////////////////////////////////////////////////////
+    // /!\ warning: vertices coordinates must be double precision
+    std::vector<double> bounding_box_min(3,0.0), bounding_box_max(3,0.0);
+    GEO::get_bbox(M, bounding_box_min.data(), bounding_box_max.data());
 
-    Attribute<float> per_vertex_texture_coordinates;
-    per_vertex_texture_coordinates.create_vector_attribute(square.vertices.attributes(),"texture_coordinates",2); // 2 floats per vertex
-    // vertex 0 : white = +Y = 2
-    per_vertex_texture_coordinates[2*0+0] = LABELING_TO_TEXTURE_COORDINATES[2][0];
-    per_vertex_texture_coordinates[2*0+1] = LABELING_TO_TEXTURE_COORDINATES[2][1];
-    // vertex 1 : blue = +Z = 4
-    per_vertex_texture_coordinates[2*1+0] = LABELING_TO_TEXTURE_COORDINATES[4][0];
-    per_vertex_texture_coordinates[2*1+1] = LABELING_TO_TEXTURE_COORDINATES[4][1];
-    // vertex 2 : red = +X = 0
-    per_vertex_texture_coordinates[2*2+0] = LABELING_TO_TEXTURE_COORDINATES[0][0];
-    per_vertex_texture_coordinates[2*2+1] = LABELING_TO_TEXTURE_COORDINATES[0][1];
-    // vertex 3 : dark red = -X = 1
-    per_vertex_texture_coordinates[2*3+0] = LABELING_TO_TEXTURE_COORDINATES[1][0];
-    per_vertex_texture_coordinates[2*3+1] = LABELING_TO_TEXTURE_COORDINATES[1][1];
+    //////////////////////////////////////////
+    // Convert vertices coordinates to float
+    //////////////////////////////////////////
 
-    //      v2:red       v3:dark_red
-    //       +------------+
-    //       |            |
-    //       |            |
-    //       |            |
-    //       |            |
-    // Y     |            |
-    //       +------------+
-    // ^    v0:white     v1:blue
-    // |
-    // o-- >  X
+    M.vertices.set_single_precision();
 
     ////////////////////////
     // Create a glTF model
@@ -362,10 +365,10 @@ void write_glTF__labeled_triangle_mesh(std::string filename, GEO::Mesh& M, const
     const size_t SAMPLER_0 = 0;
     tinygltf::Sampler& sampler_0 = m.samplers[SAMPLER_0];
 
-    sampler_0.magFilter = TINYGLTF_TEXTURE_FILTER_LINEAR;               // magnification filter
-    sampler_0.minFilter = TINYGLTF_TEXTURE_FILTER_LINEAR_MIPMAP_LINEAR; // minification filter
-    sampler_0.wrapS = TINYGLTF_TEXTURE_WRAP_MIRRORED_REPEAT;            // s wrapping mode
-    sampler_0.wrapT = TINYGLTF_TEXTURE_WRAP_MIRRORED_REPEAT;            // t wrapping mode
+    sampler_0.magFilter = TINYGLTF_TEXTURE_FILTER_LINEAR;       // magnification filter
+    sampler_0.minFilter = TINYGLTF_TEXTURE_FILTER_LINEAR;       // minification filter
+    sampler_0.wrapS = TINYGLTF_TEXTURE_WRAP_MIRRORED_REPEAT;    // s wrapping mode
+    sampler_0.wrapT = TINYGLTF_TEXTURE_WRAP_MIRRORED_REPEAT;    // t wrapping mode
 
     /////////////////////
     // Create a texture
@@ -389,6 +392,7 @@ void write_glTF__labeled_triangle_mesh(std::string filename, GEO::Mesh& M, const
     material_0.pbrMetallicRoughness.baseColorTexture.index = TEXTURE_0;
     material_0.pbrMetallicRoughness.metallicFactor = 0.0;
     material_0.pbrMetallicRoughness.roughnessFactor = 1.0;
+    material_0.doubleSided = true;
 
     ////////////////////
     // Create a buffer
@@ -402,28 +406,29 @@ void write_glTF__labeled_triangle_mesh(std::string filename, GEO::Mesh& M, const
     //                + 4 bytes * 3 floating points * #vertices
     //                + 4 bytes * 3 floating points * #vertices (2 floating points + 1 of padding, per vertex -> byteStride of 12 bytes)
     size_t buffer_triangles_start               = 0;                                                                    // byte index
-    size_t buffer_triangles_length              = 4*3*square.facets.nb();                                               // number of bytes
+    size_t buffer_triangles_length              = 4*3*M.facets.nb();                                                    // number of bytes
     size_t buffer_vertices_coordinates_start    = buffer_triangles_length;                                              // byte index
-    size_t buffer_vertices_coordinates_length   = 4*3*square.vertices.nb();                                             // number of bytes
+    size_t buffer_vertices_coordinates_length   = 4*3*glTF_vertices.size();                                        // number of bytes
     size_t buffer_texture_coordinates_start     = buffer_vertices_coordinates_start+buffer_vertices_coordinates_length; // byte index
-    size_t buffer_texture_coordinates_length    = 4*3*square.vertices.nb();                                             // number of bytes
+    size_t buffer_texture_coordinates_length    = 4*3*glTF_vertices.size();                                        // number of bytes
     buffer_0.data.resize(buffer_triangles_length+buffer_vertices_coordinates_length+buffer_texture_coordinates_length);
 
     // write triangles (= vertex indices)
-    FOR(f,square.facets.nb()) { // for each facet (triangle) index
-        memcpy(buffer_0.data.data() + f*12 + 0, facet_vertex_index_ptr(square,f,0),4);
-        memcpy(buffer_0.data.data() + f*12 + 4, facet_vertex_index_ptr(square,f,1),4);
-        memcpy(buffer_0.data.data() + f*12 + 8, facet_vertex_index_ptr(square,f,2),4);
+    FOR(f,M.facets.nb()) { // for each facet (triangle) index
+        FOR(lv,3) { // for each local vertex of this facet
+            facet_corner = M.facets.corner(f,lv);
+            memcpy(buffer_0.data.data() + f*12 + 4*lv, &facet_corner_to_glTF_vertex[facet_corner], 4);
+        }
     }
     // write vertices position coordinates (= 3D coordinates)
     // & write vertices texture coordinates (= 2D coordinates aligned on 3D coordiates)
     uint16_t zeros_on_4_bytes = 0x00000000;
-    FOR(v,square.vertices.nb()) { // for each vertex index
+    FOR(glTF_v,glTF_vertices.size()) { // for each vertex index
         // write position
-        memcpy(buffer_0.data.data() + buffer_vertices_coordinates_start + v*12, static_cast<void*>(square.vertices.single_precision_point_ptr(v)), 12); // write x,y,z from float* getter
+        memcpy(buffer_0.data.data() + buffer_vertices_coordinates_start + glTF_v*12, M.vertices.single_precision_point_ptr(glTF_vertices[glTF_v].Geogram_vertex), 12); // write x,y,z from float* getter
         // write texture
-        memcpy(buffer_0.data.data() + buffer_texture_coordinates_start + v*12, per_vertex_texture_coordinates.data()+(2*v), 8);
-        memcpy(buffer_0.data.data() + buffer_texture_coordinates_start + v*12 + 8, &zeros_on_4_bytes, 4); // padding
+        memcpy(buffer_0.data.data() + buffer_texture_coordinates_start + glTF_v*12, LABELING_TO_TEXTURE_COORDINATES[glTF_vertices[glTF_v].label].data(), 8);
+        memcpy(buffer_0.data.data() + buffer_texture_coordinates_start + glTF_v*12 + 8, &zeros_on_4_bytes, 4); // padding
     }
 
     //////////////////////////
@@ -462,26 +467,26 @@ void write_glTF__labeled_triangle_mesh(std::string filename, GEO::Mesh& M, const
     accessor_0.bufferView = BUFFERVIEW_0;
     accessor_0.byteOffset = 0;
     accessor_0.componentType = TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT;
-    accessor_0.count = 6;
+    accessor_0.count = M.facets.nb()*3;
     accessor_0.type = TINYGLTF_TYPE_SCALAR;
-    accessor_0.maxValues = {3};
+    accessor_0.maxValues = {(double) (glTF_vertices.size()-1)};
     accessor_0.minValues = {0};
 
     accessor_1.bufferView = BUFFERVIEW_1;
     accessor_1.byteOffset = 0;
     accessor_1.componentType = TINYGLTF_COMPONENT_TYPE_FLOAT;
-    accessor_1.count = 4;
+    accessor_1.count = glTF_vertices.size();
     accessor_1.type = TINYGLTF_TYPE_VEC3;
-    accessor_1.maxValues = {1.0, 1.0, 0.0};
-    accessor_1.minValues = {0.0, 0.0, 0.0};
+    accessor_1.maxValues = bounding_box_max;
+    accessor_1.minValues = bounding_box_min;
 
     accessor_2.bufferView = BUFFERVIEW_1;
-    accessor_2.byteOffset = buffer_texture_coordinates_start-buffer_vertices_coordinates_start;
+    accessor_2.byteOffset = buffer_texture_coordinates_start-bufferview_1.byteOffset; // byte offset relative to the bufferview
     accessor_2.componentType = TINYGLTF_COMPONENT_TYPE_FLOAT;
-    accessor_2.count = 4;
+    accessor_2.count = glTF_vertices.size();
     accessor_2.type = TINYGLTF_TYPE_VEC2;
-    accessor_2.maxValues = {1.0, 1.0};
-    accessor_2.minValues = {0.0, 0.0};
+    accessor_2.maxValues = {LABELING_TO_TEXTURE_COORDINATES[5][0], 0.5};
+    accessor_2.minValues = {LABELING_TO_TEXTURE_COORDINATES[0][0], 0.5};
 
     ///////////////////////////////////
     // Create a mesh with 1 primitive
@@ -531,8 +536,9 @@ void write_glTF__labeled_triangle_mesh(std::string filename, GEO::Mesh& M, const
     ///////////////////////
 
     tinygltf::TinyGLTF gltf;
-    fmt::println(Logger::out("glTF"),"Writing SimpleTexture.gltf..."); Logger::out("glTF").flush();
-    gltf.WriteGltfSceneToFile(&m, "SimpleTexture.gltf",
+    std::string output_filename = filename + ".gltf";
+    fmt::println(Logger::out("glTF"),"Writing {}...",output_filename); Logger::out("glTF").flush();
+    gltf.WriteGltfSceneToFile(&m, output_filename,
                             true, // embedImages
                             true, // embedBuffers
                             true, // pretty print
