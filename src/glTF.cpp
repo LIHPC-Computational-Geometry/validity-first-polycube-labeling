@@ -271,6 +271,7 @@ void write_glTF__triangle_mesh(std::string filename, GEO::Mesh& M, bool with_wir
 }
 
 void write_glTF__labeled_triangle_mesh(std::string filename, GEO::Mesh& M, const char* attribute_name) {
+    ASSERT_GARGANTUA_OFF;
 
     /////////////////////////////////////
     // Create a square with 2 triangles
