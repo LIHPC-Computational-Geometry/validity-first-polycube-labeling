@@ -275,6 +275,54 @@ void write_glTF__labeled_triangle_mesh(std::string filename, GEO::Mesh& M, const
     // for now, only write a simple texture
     // https://github.com/KhronosGroup/glTF-Tutorials/blob/main/gltfTutorial/gltfTutorial_013_SimpleTexture.md
 
+    /////////////////////////////////////////////
+    // Create a square with texture coordinates
+    /////////////////////////////////////////////
+
+    Mesh square;
+    square.vertices.create_vertices(4);
+    square.vertices.point(0) = vec3(0.0, 0.0, 0.0);
+    square.vertices.point(1) = vec3(1.0, 0.0, 0.0);
+    square.vertices.point(2) = vec3(0.0, 1.0, 0.0);
+    square.vertices.point(3) = vec3(1.0, 1.0, 0.0);
+    square.vertices.set_single_precision();
+    square.facets.create_triangles(2);
+    // triangle 0 : vertices 0,1 and 2
+    square.facets.set_vertex(0,0,0);
+    square.facets.set_vertex(0,1,1);
+    square.facets.set_vertex(0,2,2);
+    // triangle 1 : vertices 1,3 and 2
+    square.facets.set_vertex(1,0,1);
+    square.facets.set_vertex(1,1,3);
+    square.facets.set_vertex(1,2,2);
+    square.facets.connect();
+    Attribute<float> per_vertex_texture_coordinates;
+    per_vertex_texture_coordinates.create_vector_attribute(square.vertices.attributes(),"texture_coordinates",2); // 2 floats per vertex
+    // vertex 0 : texture coordinate {0,1}
+    per_vertex_texture_coordinates[2*0+0] = 0.0f;
+    per_vertex_texture_coordinates[2*0+1] = 1.0f;
+    // vertex 1 : texture coordinate {1,1}
+    per_vertex_texture_coordinates[2*1+0] = 1.0f;
+    per_vertex_texture_coordinates[2*1+1] = 1.0f;
+    // vertex 2 : texture coordinate {0,0}
+    per_vertex_texture_coordinates[2*2+0] = 0.0f;
+    per_vertex_texture_coordinates[2*2+1] = 0.0f;
+    // vertex 3 : texture coordinate {1,0}
+    per_vertex_texture_coordinates[2*3+0] = 1.0f;
+    per_vertex_texture_coordinates[2*3+1] = 0.0f;
+
+    //       v2          v3                            0,0          1,0 
+    //       +------------+                             +------------+
+    //       | \\         |                             |            |
+    //       |   \\   f1  |                             |            |
+    //       |     \\     |      texture coordinates :  |            |
+    //       |  f0   \\   |                             |            |
+    // Y     |         \\ |                             |            |
+    //       +------------+                             +------------+
+    // ^     v0          v1                            0,1          1,1
+    // |
+    // o-- >  X
+
     ////////////////////////
     // Create a glTF model
     ////////////////////////
@@ -289,8 +337,7 @@ void write_glTF__labeled_triangle_mesh(std::string filename, GEO::Mesh& M, const
     const size_t IMAGE_0 = 0;
     tinygltf::Image& image_0 = m.images[IMAGE_0];
 
-    image_0.uri = "testTexture.png";
-    image_0.mimeType = "image/png"; // should not be required if uri is specified
+    image_0.uri = "testTexture.png"; // the 256x256 pixels image of the tutorial
 
     /////////////////////
     // Create a sampler
@@ -314,7 +361,7 @@ void write_glTF__labeled_triangle_mesh(std::string filename, GEO::Mesh& M, const
     tinygltf::Texture& texture_0 = m.textures[TEXTURE_0];
 
     texture_0.sampler = SAMPLER_0;
-    texture_0.source = 0; // IMAGE_0 ?
+    texture_0.source = IMAGE_0;
 
     //////////////////////
     // Create 1 material 
@@ -335,54 +382,35 @@ void write_glTF__labeled_triangle_mesh(std::string filename, GEO::Mesh& M, const
     m.buffers.resize(1);
     const size_t BUFFER_0 = 0;
     tinygltf::Buffer& buffer_0 = m.buffers[BUFFER_0];
-    //
-    //       base64 : AAABAAIAAQADAAIAAAAAAAAAAAAAAAAAAACAPwAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAgD8AAAAAAAAAAAAAgD8AAAAAAACAPwAAgD8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAAAA (from gltfTutorial_013)
-    // base16 (hex) : 0000010002000100030002000000000000000000000000000000803F0000000000000000000000000000803F000000000000803F0000803F00000000000000000000803F000000000000803F0000803F000000000000000000000000000000000000803F0000000000000000
-    //
-    // BUFFERVIEW_0 -> first 12 bytes
-    // 000001000200010003000200
-    // BUFFERVIEW_1 -> next 96 bytes
-    // with a byteStride of 12 https://github.com/KhronosGroup/glTF-Tutorials/blob/main/gltfTutorial/gltfTutorial_005_BuffersBufferViewsAccessors.md#data-interleaving
-    // 0000000000000000000000000000803F0000000000000000000000000000803F000000000000803F0000803F00000000000000000000803F000000000000803F0000803F000000000000000000000000000000000000803F0000000000000000
-    // 
-    // ACCESSOR_0 -> triangles = vertex indices
-    //   triangle 0 (f0) : 00 00 01 00 02 00 -> vertices 0x0000, 0x0001 and 0x0002
-    //   triangle 1 (f1) : 01 00 03 00 02 00 -> vertices 0x0001, 0x0003 and 0x0002
-    // ACCESSOR_1 -> vertices = 3D coordinates = 3 float per vertex = 12 bytes per vertex
-    //     00 00 00 00 00 00 00 00 00 00 00 00 -> v0 position : 0x00000000, 0x00000000, 0x00000000 -> {0.0f, 0.0f, 0.0f}
-    //     00 00 80 3f 00 00 00 00 00 00 00 00 -> v1 position : 0x3f800000, 0x00000000, 0x00000000 -> {1.0f, 0.0f, 0.0f}
-    //     00 00 00 00 00 00 80 3f 00 00 00 00 -> v2 position : 0x00000000, 0x3f800000, 0x00000000 -> {0.0f, 1.0f, 0.0f}
-    //     00 00 80 3f 00 00 80 3f 00 00 00 00 -> v3 position : 0x3f800000, 0x3f800000, 0x00000000 -> {1.0f, 1.0f, 0.0f}
-    // ACCESSOR_2 -> vertices texture = 2D coordinates. byteStride of 12 in BUFFERVIEW_1 -> a texture coordinate every 12 bytes, even if 2 floats have only 8 bytes
-    //     00 00 00 00 00 00 80 3f 00 00 00 00 -> v0 texture coord. : 0x00000000, 0x3f800000, 0x00000000 -> {0.0f, 1.0f} + padding
-    //     00 00 80 3f 00 00 80 3f 00 00 00 00 -> v1 texture coord. : 0x3f800000, 0x3f800000, 0x00000000 -> {1.0f, 1.0f} + padding
-    //     00 00 00 00 00 00 00 00 00 00 00 00 -> v2 texture coord. : 0x00000000, 0x00000000, 0x00000000 -> {0.0f, 0.0f} + padding
-    //     00 00 80 3f 00 00 00 00 00 00 00 00 -> v3 texture coord. : 0x3f800000, 0x00000000, 0x00000000 -> {1.0f, 0.0f} + padding
-    //
-    //       v2          v3                            0,0          1,0 
-    //       +------------+                             +------------+
-    //       | \\         |                             |            |
-    //       |   \\   f1  |                             |            |
-    //       |     \\     |      texture coordinates :  |            |
-    //       |  f0   \\   |                             |            |
-    // Y     |         \\ |                             |            |
-    //       +------------+                             +------------+
-    // ^     v0          v1                            0,1          1,1
-    // |
-    // o-- >  X
 
-    buffer_0.data = {
-        0x00, 0x00, 0x01, 0x00, 0x02, 0x00,
-        0x01, 0x00, 0x03, 0x00, 0x02, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x80, 0x3f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x3f, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x80, 0x3f, 0x00, 0x00, 0x80, 0x3f, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x3f, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x80, 0x3f, 0x00, 0x00, 0x80, 0x3f, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x80, 0x3f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-    };
+    // resize buffer to 4 bytes * 3 indices * #triangles (2*3*#triangles in the tutorial, but GEO::index_t is 4 bytes)
+    //                + 4 bytes * 3 floating points * #vertices
+    //                + 4 bytes * 3 floating points * #vertices (2 floating points + 1 of padding, per vertex -> byteStride of 12 bytes)
+    size_t buffer_triangles_start               = 0;                                                                    // byte index
+    size_t buffer_triangles_length              = 4*3*square.facets.nb();                                               // number of bytes
+    size_t buffer_vertices_coordinates_start    = buffer_triangles_length;                                              // byte index
+    size_t buffer_vertices_coordinates_length   = 4*3*square.vertices.nb();                                             // number of bytes
+    size_t buffer_texture_coordinates_start     = buffer_vertices_coordinates_start+buffer_vertices_coordinates_length; // byte index
+    size_t buffer_texture_coordinates_length    = 4*3*square.vertices.nb();                                             // number of bytes
+    geo_assert((buffer_triangles_length+buffer_vertices_coordinates_length+buffer_texture_coordinates_length) == 108+2*3*square.facets.nb()); // for the square exemple asset of the tutorial
+    buffer_0.data.resize(buffer_triangles_length+buffer_vertices_coordinates_length+buffer_texture_coordinates_length);
+
+    // write triangles (= vertex indices)
+    FOR(f,square.facets.nb()) { // for each facet (triangle) index
+        memcpy(buffer_0.data.data() + f*12 + 0, facet_vertex_index_ptr(square,f,0),4);
+        memcpy(buffer_0.data.data() + f*12 + 4, facet_vertex_index_ptr(square,f,1),4);
+        memcpy(buffer_0.data.data() + f*12 + 8, facet_vertex_index_ptr(square,f,2),4);
+    }
+    // write vertices position coordinates (= 3D coordinates)
+    // & write vertices texture coordinates (= 2D coordinates aligned on 3D coordiates)
+    uint16_t zeros_on_4_bytes = 0x00000000;
+    FOR(v,square.vertices.nb()) { // for each vertex index
+        // write position
+        memcpy(buffer_0.data.data() + buffer_vertices_coordinates_start + v*12, static_cast<void*>(square.vertices.single_precision_point_ptr(v)), 12); // write x,y,z from float* getter
+        // write texture
+        memcpy(buffer_0.data.data() + buffer_texture_coordinates_start + v*12, per_vertex_texture_coordinates.data()+(2*v), 8);
+        memcpy(buffer_0.data.data() + buffer_texture_coordinates_start + v*12 + 8, &zeros_on_4_bytes, 4); // padding
+    }
 
     //////////////////////////
     // Create 2 buffer views
@@ -395,13 +423,13 @@ void write_glTF__labeled_triangle_mesh(std::string filename, GEO::Mesh& M, const
     tinygltf::BufferView& bufferview_1 = m.bufferViews[BUFFERVIEW_1];
     
     bufferview_0.buffer = BUFFER_0;
-    bufferview_0.byteOffset = 0;
-    bufferview_0.byteLength = 12;
+    bufferview_0.byteOffset = buffer_triangles_start;
+    bufferview_0.byteLength = buffer_triangles_length;
     bufferview_0.target = TINYGLTF_TARGET_ELEMENT_ARRAY_BUFFER;
 
     bufferview_1.buffer = BUFFER_0;
-    bufferview_1.byteOffset = 12;
-    bufferview_1.byteLength = 96;
+    bufferview_1.byteOffset = buffer_vertices_coordinates_start;
+    bufferview_1.byteLength = buffer_vertices_coordinates_length+buffer_texture_coordinates_length;
     bufferview_1.byteStride = 12;
     bufferview_1.target = TINYGLTF_TARGET_ARRAY_BUFFER;
 
@@ -419,7 +447,7 @@ void write_glTF__labeled_triangle_mesh(std::string filename, GEO::Mesh& M, const
 
     accessor_0.bufferView = BUFFERVIEW_0;
     accessor_0.byteOffset = 0;
-    accessor_0.componentType = TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT;
+    accessor_0.componentType = TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT;
     accessor_0.count = 6;
     accessor_0.type = TINYGLTF_TYPE_SCALAR;
     accessor_0.maxValues = {3};
@@ -434,7 +462,7 @@ void write_glTF__labeled_triangle_mesh(std::string filename, GEO::Mesh& M, const
     accessor_1.minValues = {0.0, 0.0, 0.0};
 
     accessor_2.bufferView = BUFFERVIEW_1;
-    accessor_2.byteOffset = 48;
+    accessor_2.byteOffset = buffer_texture_coordinates_start-buffer_vertices_coordinates_start;
     accessor_2.componentType = TINYGLTF_COMPONENT_TYPE_FLOAT;
     accessor_2.count = 4;
     accessor_2.type = TINYGLTF_TYPE_VEC2;
