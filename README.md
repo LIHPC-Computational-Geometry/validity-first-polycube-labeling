@@ -45,17 +45,28 @@ Remove `-G Ninja` to use Make instead, if you don't have Ninja.
 
 ## Run `automatic_polycube` app
 
+### With the GUI
+
 ```bash
 # from automatic_polycube/build_Release
-./bin/automatic_polycube -gui ../../data/B0/surface.obj
+./bin/automatic_polycube ../../data/B0/surface.obj gui=true
 ```
+
+You can ommit the file path to drag-and-drop the input file.
 
 1. In the right panel, click on "Compute naive labeling"
 1. If the labeling in invalid*, try "Auto fix validity", which loop over manual operators just over the button
-1. If not all boundaries are monotone*, try "Auto fix monotonicity" and take a coffee. Turning points should now be removed.
+1. If not all boundaries are monotone*, try "Auto fix monotonicity", which loop over some of the operators listed above.
 1. In the menu bar, click on "Save as", choose a location and a filename, and select "txt" as extension to export the per-surface-triangle labeling.
 
 *Not the case with the provided B0 model.
+
+### Without the GUI
+
+```bash
+# from automatic_polycube/build_Release
+./bin/automatic_polycube ../../data/B0/surface.obj ../../data/B0/labeling.txt gui=false
+```
 
 ## Other applications
 

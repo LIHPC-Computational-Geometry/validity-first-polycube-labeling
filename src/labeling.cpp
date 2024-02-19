@@ -1188,6 +1188,11 @@ void merge_turning_points_and_corners(GEO::Mesh& mesh, const char* attribute_nam
         return; // no turning-points in the labeling
     }
 
+    if(feature_edges.empty()) {
+        fmt::println(Logger::out("monotonicity"),"No feature edges, merge_turning_points_and_corners() canceled"); Logger::out("monotonicity").flush();
+        return;
+    }
+
     index_t current_non_monotone_boundary = 0;
     dbg(slg.non_monotone_boundaries.size());
     std::size_t previous_number_of_turning_points = slg.nb_turning_points();
@@ -1218,26 +1223,41 @@ void merge_turning_points_and_corners(GEO::Mesh& mesh, const char* attribute_nam
     geo_assert(slg.non_monotone_boundaries.empty());
 }
 
-bool auto_fix_monotonicity(Mesh& mesh, const char* attribute_name, StaticLabelingGraph& slg, unsigned int max_nb_steps, const std::set<std::pair<index_t,index_t>>& feature_edges) {
+bool auto_fix_monotonicity(Mesh& mesh, const char* attribute_name, StaticLabelingGraph& slg, std::vector<std::vector<index_t>>& adj_facets, const std::set<std::pair<index_t,index_t>>& feature_edges) {
     
     if (slg.non_monotone_boundaries.empty()) {
         return true;
     }
     
-    unsigned int nb_steps = 0;
-    while(!slg.non_monotone_boundaries.empty() && nb_steps <= max_nb_steps) {
-        move_boundaries_near_turning_points(mesh,attribute_name,slg);
-        slg.fill_from(mesh,attribute_name,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
-        remove_surrounded_charts(mesh,attribute_name,slg);
-        slg.fill_from(mesh,attribute_name,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
+    merge_turning_points_and_corners(mesh,attribute_name,slg,feature_edges);
+    // `slg` already updated in straighten_boundaries()
+
+    if (slg.non_monotone_boundaries.empty()) {
+        return true;
     }
 
-    if(!slg.non_monotone_boundaries.empty()) {
-        fmt::println(Logger::out("fix_labeling"),"auto fix monotonicity stopped (max nb steps reached), it remains non-monotone boundaries"); Logger::out("fix_labeling").flush();
-        return false;
+    // compute vertex-to-facet adjacency if not already done
+    // required for straighten_boundaries()
+    if(adj_facets.empty()) {
+        compute_adjacent_facets_of_vertices(mesh,adj_facets);
     }
 
-    return true;
+    straighten_boundaries(mesh,attribute_name,slg,adj_facets,feature_edges);
+    // `slg` already updated in straighten_boundaries()
+
+    if (slg.non_monotone_boundaries.empty()) {
+        return true;
+    }
+
+    move_boundaries_near_turning_points(mesh,attribute_name,slg);
+    slg.fill_from(mesh,attribute_name,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
+
+    if (slg.non_monotone_boundaries.empty()) {
+        return true;
+    }
+
+    fmt::println(Logger::out("monotonicity"),"auto fix monotonicity stopped didn't reach all-monotone boundaries"); Logger::out("monotonicity").flush();
+    return false;
 }
 
 void trace_contour(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, StaticLabelingGraph& slg, const std::set<std::pair<index_t,index_t>>& feature_edges) {
