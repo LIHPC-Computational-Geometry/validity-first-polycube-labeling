@@ -1458,3 +1458,40 @@ void trace_contour(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char
     // counterclockwise : right, back then left
     // the top chart must have the same label as the initial chart
 }
+
+unsigned int count_lost_feature_edges(const CustomMeshHalfedges& mesh_he, const std::set<std::pair<index_t,index_t>>& feature_edges) {
+    // parse all facet
+    // parse all local vertex for each facet (= facet corners)
+    // get halfedge
+    // ignore if v1 < v0 (they are 2 halfeges for a given edge, keep the one where v0 < v1)
+    // ignore if halfedge not on feature edge
+    // fetch label at left and right
+    // if same labeling, increment counter
+
+    unsigned int nb_lost_feature_edges = 0;
+    geo_assert(mesh_he.is_using_facet_region()); // expecting the labeling to be bounded in `mesh_he`
+    const Mesh& mesh = mesh_he.mesh();
+    MeshHalfedges::Halfedge current_halfedge;
+    FOR(f,mesh.facets.nb()) {
+        FOR(lv,3) { // for each local vertex of the current facet
+            current_halfedge.facet = f;
+            current_halfedge.corner = mesh.facets.corner(f,lv);
+            geo_assert(mesh_he.halfedge_is_valid(current_halfedge));
+            if(halfedge_vertex_index_to(mesh,current_halfedge) < halfedge_vertex_index_from(mesh,current_halfedge)) {
+                continue;
+            }
+            if(!halfedge_is_on_feature_edge(mesh,current_halfedge,feature_edges)) {
+                continue; // not on feature edge
+            }
+            if(!mesh_he.halfedge_is_border(current_halfedge)) {
+                // so our `current_halfedge`
+                // - has v0 < v1 (to count each undirected edge once)
+                // - is on a feature edge
+                // - has the same label at left and right
+                nb_lost_feature_edges++;
+            }
+        }
+    }
+    geo_assert(nb_lost_feature_edges <= feature_edges.size());
+    return nb_lost_feature_edges;
+}
