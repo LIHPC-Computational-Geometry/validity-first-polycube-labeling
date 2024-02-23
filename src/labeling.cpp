@@ -1058,11 +1058,12 @@ bool merge_a_turning_point_and_a_corner_on_non_monotone_boundary(GEO::Mesh& mesh
     Attribute<index_t> label(mesh.facets.attributes(), attribute_name);
     CustomMeshHalfedges mesh_he(mesh);
     mesh_he.set_use_facet_region(attribute_name);
+    vec3 first_turning_point_on_feature_edge_position = mesh_vertex(mesh,first_turning_point_on_feature_edge.vertex(non_monotone_boundary,mesh));
 
     // 3. Only process `first_turning_point_on_feature_edge`. Find which corner of `non_monotone_boundary` is the closest.
 
     #ifndef NDEBUG
-        dump_vertex("current_tp",mesh_he.mesh(),first_turning_point_on_feature_edge.vertex(non_monotone_boundary,mesh_he.mesh()));
+        dump_vertex("current_tp",first_turning_point_on_feature_edge_position);
     #endif
     
     index_t closest_corner = first_turning_point_on_feature_edge.get_closest_corner(non_monotone_boundary,mesh_he);
@@ -1083,8 +1084,9 @@ bool merge_a_turning_point_and_a_corner_on_non_monotone_boundary(GEO::Mesh& mesh
         geo_assert(slg.corners[boundary_to_move.end_corner].vertex == slg.corners[closest_corner].vertex);
         boundary_to_move_vector *= -1.0;
     }
+    vec3 boundary_to_move_normalized_vector = normalize(boundary_to_move_vector);
     #ifndef NDEBUG
-        dump_vector("direction_for_new_boundary",mesh,first_turning_point_on_feature_edge.vertex(non_monotone_boundary,mesh_he.mesh()),boundary_to_move_vector*2.0);
+        dump_vector("direction_for_new_boundary",mesh,first_turning_point_on_feature_edge.vertex(non_monotone_boundary,mesh_he.mesh()),boundary_to_move_vector);
     #endif
 
     // 5. find which label to assign between `boundary_to_move` and its "parallel" passing by the turning point
@@ -1118,16 +1120,16 @@ bool merge_a_turning_point_and_a_corner_on_non_monotone_boundary(GEO::Mesh& mesh
     std::set<index_t> facets_at_left, facets_at_right;
     next_halfedge = get_most_aligned_halfedge_around_vertex(current_halfedge,mesh_he,boundary_to_move_vector);
     size_t count_halfedges_in_path = 1;
-    vec3 new_boundary_average_vector(0.0,0.0,0.0);
+    vec3 target_point = first_turning_point_on_feature_edge_position + boundary_to_move_vector; // target of the path creation : where would be the end corner if the new boundary has the same vector as the boundary to move
     do {
         current_halfedge = next_halfedge;
         facets_at_left.insert(halfedge_facet_left(mesh,current_halfedge));
         facets_at_right.insert(halfedge_facet_right(mesh,current_halfedge));
-        new_boundary_average_vector += halfedge_vector(mesh,current_halfedge);
         mesh_he.move_to_opposite(current_halfedge); // flip `current_halfedge` so that its origin vertex is the origin vertex of the next halfedge
-        next_halfedge = get_most_aligned_halfedge_around_vertex(current_halfedge,mesh_he,boundary_to_move_vector - new_boundary_average_vector);
+        next_halfedge = get_most_aligned_halfedge_around_vertex(current_halfedge,mesh_he,target_point - halfedge_vertex_from(mesh,current_halfedge)); // reference vector = vector toward the `target_point`
         geo_assert(next_halfedge != current_halfedge); // assert the previous halfedge is not the one the best aligned. else we are backtracking
         count_halfedges_in_path++;
+        target_point += boundary_to_move_normalized_vector * length(halfedge_vector(mesh,current_halfedge)); // move the target forward
     } while(
         label[Geom::halfedge_facet_left(mesh,next_halfedge)] == slg.charts[chart_on_which_the_new_boundary_will_be].label &&
         label[Geom::halfedge_facet_right(mesh,next_halfedge)] == slg.charts[chart_on_which_the_new_boundary_will_be].label
