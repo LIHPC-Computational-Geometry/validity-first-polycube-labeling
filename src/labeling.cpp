@@ -912,6 +912,7 @@ void straighten_boundaries(GEO::Mesh& mesh, const char* attribute_name, StaticLa
     MeshHalfedges::Halfedge current_boundary_edge;
     index_t boundary_index = index_t(-1);
     bool boundary_in_same_direction = false;
+    unsigned int count_iterations = 0;
     while (!boundary_edges_to_process.empty()) {
         current_boundary_edge = boundary_edges_to_process.back();
         boundary_edges_to_process.pop_back();
@@ -923,8 +924,13 @@ void straighten_boundaries(GEO::Mesh& mesh, const char* attribute_name, StaticLa
         }
         else {
             boundary_edges_to_process.push_front(current_boundary_edge); // re-process this boundary edge later
-            // /!\ WARNING : if straighten_boundary() failed because backtracking and not because we encountered another boundary,
+        }
+        count_iterations++;
+        if(count_iterations > 100) {
+            // if straighten_boundary() failed because backtracking and not because we encountered another boundary,
             // we could end up in an infinite loop where we process again and again a boundary for which we cannot reach the end corner...
+            fmt::println(Logger::err("monotonicity"),"straighten_boundaries() stopped, reached max nb iter"); Logger::err("monotonicity").flush();
+            break;
         }
     }
 }
