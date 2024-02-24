@@ -538,5 +538,5 @@ void write_glTF__labeled_triangle_mesh(std::string filename, GEO::Mesh& M, const
                             true, // embedImages
                             true, // embedBuffers
                             true, // pretty print
-                            false); // write binary
+                            true); // write binary
 }
