@@ -22,6 +22,7 @@ set(
   src/hex_mesh.cpp
   src/labeling.cpp
   src/LabelingGraph.cpp
+  src/glTF.cpp
 )
 
 #################
@@ -46,6 +47,16 @@ add_subdirectory(ext/json)
 # dbg-macro
 include_directories(ext/dbg-macro)
 
+# TinyGLTF
+set(TINYGLTF_BUILD_LOADER_EXAMPLE OFF)
+set(TINYGLTF_BUILD_GL_EXAMPLES OFF)
+set(TINYGLTF_BUILD_VALIDATOR_EXAMPLE OFF)
+set(TINYGLTF_BUILD_BUILDER_EXAMPLE OFF)
+set(TINYGLTF_HEADER_ONLY OFF)
+set(TINYGLTF_INSTALL OFF)
+add_subdirectory(ext/tinygltf)
+include_directories(ext/tinygltf)
+
 set(
   EXTERNAL_LIBS
   geogram
@@ -54,6 +65,7 @@ set(
   fmt::fmt
   gco
   nlohmann_json
+  tinygltf
 )
 
 #################
@@ -140,6 +152,10 @@ target_link_libraries(flip_normals PRIVATE automatic_polycube_lib ${EXTERNAL_LIB
 add_executable(reorient_mesh app/reorient_mesh.cpp)
 target_include_directories(reorient_mesh PRIVATE include)
 target_link_libraries(reorient_mesh PRIVATE automatic_polycube_lib ${EXTERNAL_LIBS})
+
+add_executable(to_glTF app/to_glTF.cpp)
+target_include_directories(to_glTF PRIVATE include)
+target_link_libraries(to_glTF PRIVATE automatic_polycube_lib ${EXTERNAL_LIBS})
 
 # optional test subdirectory (using googletest)
 option(AUTOMATIC_POLYCUBE_BUILD_TESTS "Build automatic_polycube tests" OFF)

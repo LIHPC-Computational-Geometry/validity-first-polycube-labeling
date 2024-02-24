@@ -4,6 +4,8 @@
 #include <geogram/basic/vecg.h>             // for GEO::vecng
 #include <geogram/mesh/mesh_halfedges.h>    // for MeshHalfedges::Halfedge
 
+#include <utility>  // for std::pair
+
 #include "CustomMeshHalfedges.h"
 
 #define FEATURE_EDGES_MIN_ANGLE	0.5
@@ -86,6 +88,14 @@ void flip_facet_normals(Mesh& mesh);
 void center_mesh(Mesh& mesh, bool normalize);
 
 void compute_adjacent_facets_of_vertices(const Mesh& mesh, std::vector<std::vector<index_t>>& adj_facets);
+
+struct AdjacentFacetOfVertex {
+    index_t facet_index;
+    index_t local_vertex;
+};
+
+// adj_facet_corners has mesh.vertices.nb() elements, each of them is a list of adjacent facet, with 2 components : the facet index, and the local vertex index for this facet
+void compute_adjacent_facets_of_vertices(const Mesh& mesh, std::vector<std::vector<AdjacentFacetOfVertex>>& adj_facet_corners);
 
 // /!\ if adj_facets not empty, adjacency will not be recomputed
 void remove_feature_edges_with_low_dihedral_angle(Mesh& mesh, std::vector<std::vector<index_t>>& adj_facets);
