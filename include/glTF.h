@@ -31,34 +31,41 @@ using GEO::index_t; // to use the FOR() macro of Geogram
 // Labeling texture
 /////////////////////
 
-// An image with 6x1 pixels :
-// pixel 0,0 : 1.0, 0.0, 0.0 (red)
-// pixel 1,0 : 0.6, 0.0, 0.0 (dark red)
-// pixel 2,0 : 1.0, 1.0, 1.0 (white)
-// pixel 3,0 : 0.6, 0.6, 0.6 (grey)
-// pixel 4,0 : 0.0, 0.0, 1.0 (blue)
-// pixel 5,0 : 0.0, 0.0, 0.6 (dark blue)
+// The minimal texture image would have 6 pixels, one for each label in +/-{X,Y,Z}
+// But texture images should have power-of-two dimensions -> 8x2 image
+//
+//                        R    G    B
+// 0 = +X ->       red : 1.0, 0.0, 0.0
+// 1 = -X ->  dark red : 0.6, 0.0, 0.0
+// 2 = +Y ->     white : 1.0, 1.0, 1.0
+// 3 = -Y ->      grey : 0.6, 0.6, 0.6
+// 4 = +Z ->      blue : 0.0, 0.0, 1.0
+// 5 = -Z -> dark blue : 0.0, 0.0, 0.6
 // 
 // Texture coordinates :
 //
-//   0,0                    0.5,0                    1,0
-//    +-------+-------+-------+-------+-------+-------+
-//    |       | dark  |       |       |       | dark  |
-//    |  red  |       | white | grey  | blue  |       |
-//    |       |  red  |       |       |       |  blue |
-//    +-------+-------+-------+-------+-------+-------+
-//   0,1                    0.5,1                    1,1
+//   0,0                            0.5,0                            1,0
+//    +-------+-------+-------+-------+-------+-------+-------+-------+
+//    |               |       |       |       |       |               |
+//    |               |       |       |       |       |               |
+//    |               |       |       |       |       |               |
+//    +       +  red  + dark  + white + grey  + blue  + dark  +       +
+//    |               |  red  |       |       |       |  blue         |
+//    |               |       |       |       |       |               |
+//    |               |       |       |       |       |               |
+//    +-------+-------+-------+-------+-------+-------+-------+-------+
+//   0,1                            0.5,1                            1,1
 //
-const vec2f LABELING_TO_TEXTURE_COORDINATES[6] = {{0.084f, 0.5f},  // = 0/6 + 1/12, 1/2 -> texture coordinate of 0 = +X
-                                                  {0.250f, 0.5f},  // = 1/6 + 1/12, 1/2 -> texture coordinate of 1 = -X
-                                                  {0.417f, 0.5f},  // = 2/6 + 1/12, 1/2 -> texture coordinate of 2 = +Y
-                                                  {0.534f, 0.5f},  // = 3/6 + 1/12, 1/2 -> texture coordinate of 3 = -Y
-                                                  {0.750f, 0.5f},  // = 4/6 + 1/12, 1/2 -> texture coordinate of 4 = +Z
-                                                  {0.917f, 0.5f}}; // = 5/6 + 1/12, 1/2 -> texture coordinate of 5 = -Z
+const vec2f LABELING_TO_TEXTURE_COORDINATES[6] = {{0.188f, 0.5f},  // = 0/8 + 3/16, 1/2 -> texture coordinate of +X
+                                                  {0.312f, 0.5f},  // = 1/8 + 3/16, 1/2 -> texture coordinate of -X
+                                                  {0.438f, 0.5f},  // = 2/8 + 3/16, 1/2 -> texture coordinate of Y
+                                                  {0.563f, 0.5f},  // = 3/8 + 3/16, 1/2 -> texture coordinate of -Y
+                                                  {0.688f, 0.5f},  // = 4/8 + 3/16, 1/2 -> texture coordinate of +Z
+                                                  {0.813f, 0.5f}}; // = 5/8 + 3/16, 1/2 -> texture coordinate of -Z
 
 // Image created with GIMP, saved to PNG, then converted to base64
 // https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URLs
-const std::string labeling_texture_image_PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAYAAAABCAIAAAByq0inAAABhGlDQ1BJQ0MgcHJvZmlsZQAAKJF9kT1Iw1AUhU9TRZEWETuIOGSoTlZERRy1CkWoEGqFVh1MXvoHTRqSFBdHwbXg4M9i1cHFWVcHV0EQ/AFxdnBSdJES70sKLWK88Hgf591zeO8+QKiXmWZ1jAOabpupRFzMZFfFrlcI6EMYAYzJzDLmJCkJ3/q6pz6quxjP8u/7s8JqzmJAQCSeZYZpE28QT2/aBud94ggryirxOfGoSRckfuS64vEb54LLAs+MmOnUPHGEWCy0sdLGrGhqxFPEUVXTKV/IeKxy3uKslauseU/+wlBOX1nmOq0hJLCIJUgQoaCKEsqwEaNdJ8VCis7jPv5B1y+RSyFXCYwcC6hAg+z6wf/g92yt/OSElxSKA50vjvMxDHTtAo2a43wfO07jBAg+A1d6y1+pAzOfpNdaWvQI6N0GLq5bmrIHXO4AA0+GbMquFKQl5PPA+xl9UxbovwV61ry5Nc9x+gCkaVbJG+DgEBgpUPa6z7u72+f2b09zfj85enKQ1aMGywAAAAlwSFlzAAAuIwAALiMBeKU/dgAAAAd0SU1FB+gCEQ0GMNz9VKwAAAAZdEVYdENvbW1lbnQAQ3JlYXRlZCB3aXRoIEdJTVBXgQ4XAAAAGUlEQVQI1wXBAQEAAACCIP4/cG2BEdsqRgdOxAf5SBcyAQAAAABJRU5ErkJggg==";
+const std::string labeling_texture_image_PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAACCAIAAADq9gq6AAAAH0lEQVQI12P4z8Dwn4FhJgPD////Z86cCePNZGLAAQBunQmThyp5vwAAAABJRU5ErkJggg==";
 
 //////////////////////////////////////
 // Geogram vs glTF mesh vertices map
