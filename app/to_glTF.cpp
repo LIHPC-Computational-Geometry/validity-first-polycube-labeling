@@ -24,8 +24,14 @@ int main(int argc, char **argv)
 {
     GEO::initialize();
 
+    CmdLine::declare_arg(
+        "labeling",
+        "",
+        "path to the labeling file"
+    );
+
     std::vector<std::string> filenames;
-    if(!CmdLine::parse(argc,argv,filenames,"input_mesh"))	{
+    if(!CmdLine::parse(argc,argv,filenames,"input_mesh output_filename"))	{
 		return 1;
 	}
 
@@ -40,19 +46,26 @@ int main(int argc, char **argv)
 		GEO::Logger::warn("normals dir.").flush();
 	}
 
-    // compute facet normals
-	std::vector<vec3> normals(M.facets.nb());
-	FOR(f,M.facets.nb()) {
-		normals[f] = normalize(Geom::mesh_facet_normal(M,f));
+    std::string labeling_filename = GEO::CmdLine::get_arg("labeling");
+    if(labeling_filename.empty()) {
+        write_glTF__triangle_mesh(filenames[1],M,true);
 	}
+    else {
+        // the user provided a labeling
 
-    std::vector<std::vector<AdjacentFacetOfVertex>> per_vertex_adj_facets;
-    compute_adjacent_facets_of_vertices(M,per_vertex_adj_facets);
+        // expand '~' to $HOME
+        if(labeling_filename[0] == '~') {
+            labeling_filename.replace(0, 1, std::string(getenv("HOME")));
+        }
 
-    // compute naive labeling
-    naive_labeling(M,normals,"label");
+        load_labeling(labeling_filename,M,"label");
 
-    // export to glTF
-    write_glTF__labeled_triangle_mesh(filenames[0],M,"label",per_vertex_adj_facets);
+        std::vector<std::vector<AdjacentFacetOfVertex>> per_vertex_adj_facets;
+        compute_adjacent_facets_of_vertices(M,per_vertex_adj_facets);
+
+        // export to glTF
+        write_glTF__labeled_triangle_mesh(filenames[1],M,"label",per_vertex_adj_facets);
+    }
+
     return 0;
 }

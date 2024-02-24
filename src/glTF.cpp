@@ -19,8 +19,6 @@
 #include "containers.h"             // for index_of_last()
 #include "geometry.h"               // for AdjacentFacetOfVertex
 
-#include <dbg.h>
-
 void write_glTF__triangle_mesh(std::string filename, GEO::Mesh& M, bool with_wireframe) {
     ASSERT_GARGANTUA_OFF;
     
@@ -264,9 +262,8 @@ void write_glTF__triangle_mesh(std::string filename, GEO::Mesh& M, bool with_wir
     ///////////////////////
 
     tinygltf::TinyGLTF gltf;
-    std::string output_filename = filename + ".glb";
-    fmt::println(Logger::out("glTF"),"Writing {}...",output_filename); Logger::out("glTF").flush();
-    gltf.WriteGltfSceneToFile(&m, output_filename,
+    fmt::println(Logger::out("glTF"),"Writing {}...",filename); Logger::out("glTF").flush();
+    gltf.WriteGltfSceneToFile(&m, filename,
                             true, // embedImages
                             true, // embedBuffers
                             true, // pretty print
@@ -536,9 +533,8 @@ void write_glTF__labeled_triangle_mesh(std::string filename, GEO::Mesh& M, const
     ///////////////////////
 
     tinygltf::TinyGLTF gltf;
-    std::string output_filename = filename + ".gltf";
-    fmt::println(Logger::out("glTF"),"Writing {}...",output_filename); Logger::out("glTF").flush();
-    gltf.WriteGltfSceneToFile(&m, output_filename,
+    fmt::println(Logger::out("glTF"),"Writing {}...",filename); Logger::out("glTF").flush();
+    gltf.WriteGltfSceneToFile(&m, filename,
                             true, // embedImages
                             true, // embedBuffers
                             true, // pretty print
