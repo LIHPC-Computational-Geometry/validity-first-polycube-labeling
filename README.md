@@ -1,17 +1,24 @@
 # automatic_polycube
+
 Automatic polycube generation for hex-meshing. WIP
 
 ## Requirements
 
 - Linux-based OS
-- gcc >= 11 (other C++20 compilers should work)
+- gcc >= 11 (C++20)
 - [CMake](https://cmake.org/) > 3.11
-- [geogram](https://github.com/BrunoLevy/geogram) : mesh data structure, I/O and GUI (included as submodule)
-- [fmt](https://github.com/fmtlib/fmt) : modern string formatting (included as submodule)
-- [dbg-macro](https://github.com/sharkdp/dbg-macro) : the must-have dbg(...) macro to replace cout/printf-based debugging (included as submodule)
-- [nlohmann/json](https://github.com/nlohmann/json) : JSON for modern C++ (included as submodule)
-- [DisjointSet](https://www.nayuki.io/page/disjoint-set-data-structure) : disjoint-set/union-find data structure, implementation by [Nayuki](https://www.nayuki.io/) (in the source code)
-- [gco-v3.0](https://vision.cs.uwaterloo.ca/code/) :  multi-label energies optimization, implementation by Olga Veksler and Andrew Delong, **for research purposes only** (in the source code)
+
+## Dependencies
+
+ Name | License | Description | Inclusion
+------|---------|-------------|-----------
+[geogram](https://github.com/BrunoLevy/geogram) | [BSD-3-Clause](https://github.com/BrunoLevy/geogram/blob/main/LICENSE) | mesh data structure, I/O and GUI | git submodule
+[fmt](https://github.com/fmtlib/fmt) | [MIT](https://github.com/fmtlib/fmt/blob/master/LICENSE) | modern string formatting | git submodule
+[dbg-macro](https://github.com/sharkdp/dbg-macro) | [MIT](https://github.com/sharkdp/dbg-macro/blob/master/LICENSE) | the must-have dbg(...) macro to replace cout/printf-based debugging | git submodule
+[nlohmann/json](https://github.com/nlohmann/json) | [MIT](https://github.com/nlohmann/json/blob/develop/LICENSE.MIT) | JSON for modern C++ | git submodule
+[tinygltf](https://github.com/syoyo/tinygltf) | [MIT](https://github.com/syoyo/tinygltf/blob/release/LICENSE) | glTF 2.0 (the "JPEG of 3D") export | git submodule
+[DisjointSet](https://www.nayuki.io/page/disjoint-set-data-structure) | [MIT](https://www.nayuki.io/page/disjoint-set-data-structure) | disjoint-set/union-find data structure, implementation by [Nayuki](https://www.nayuki.io/) | in the source code
+[gco-v3.0](https://vision.cs.uwaterloo.ca/code/) | [**for research purposes only**, patented](ext/GraphCutOptimization/GCO_README.TXT) | multi-label energies optimization, implementation by Olga Veksler and Andrew Delong | in the source code
 
 ## How to build
 
@@ -78,3 +85,6 @@ This project contains other applications designed for [HexMeshWorkshop](https://
 ## Wiki
 
 [Centralize within the HexMeshWorkshop repo](https://github.com/LIHPC-Computational-Geometry/HexMeshWorkshop/wiki)
+
+> [!NOTE]
+> Quite empty for now
