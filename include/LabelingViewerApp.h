@@ -771,16 +771,6 @@ protected:
 		BasicStats stats;
 		compute_per_facet_fidelity(mesh_,normals_,LABELING_ATTRIBUTE_NAME,"fidelity",stats);
 		fidelity_text_label_ = fmt::format("min={:.4f} | max={:.4f} | avg={:.4f}",stats.min(),stats.max(),stats.avg());
-
-		#ifndef NDEBUG
-			CustomMeshHalfedges mesh_he(mesh_);
-			mesh_he.set_use_facet_region(LABELING_ATTRIBUTE_NAME);
-			FOR(c,static_labeling_graph_.nb_charts()) {
-				// dump chart n°c and its contour, with halfedges ordered couterclockwise
-				dump_facets(fmt::format("chart_{}",c),mesh_,static_labeling_graph_.charts[c].facets);
-				dump_chart_contour(fmt::format("chart_{}_contour",c),mesh_he,static_labeling_graph_,c);
-			}
-		#endif
 	}
 
 protected:

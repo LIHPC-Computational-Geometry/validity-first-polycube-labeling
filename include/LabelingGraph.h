@@ -141,11 +141,12 @@ std::ostream& operator<< (std::ostream &out, const Corner& data);
 // https://fmt.dev/latest/api.html#std-ostream-support
 template <> struct fmt::formatter<Corner> : ostream_formatter {};
 
-class TurningPoint {
+struct TurningPoint {
 
-public:
+    index_t outgoing_local_halfedge_index_; // index in Boundary::halfedges
+    bool is_towards_right_;
     
-    TurningPoint(index_t outgoing_local_halfedge_index, const Boundary& boundary, const CustomMeshHalfedges& mesh_he); // important : mesh_he must use facet region (on the labeling)
+    void fill_from(index_t outgoing_local_halfedge_index, const Boundary& boundary, const CustomMeshHalfedges& mesh_he); // important : mesh_he must use facet region (on the labeling)
     index_t outgoing_local_halfedge_index() const { return outgoing_local_halfedge_index_; }
     bool is_towards_left() const  { return is_towards_right_ == false; }
     bool is_towards_right() const { return is_towards_right_; }
@@ -153,11 +154,6 @@ public:
     // `boundary` must be the boundary on which the turning point is
     index_t get_closest_corner(const Boundary& boundary, const CustomMeshHalfedges& mesh_he) const;
     index_t vertex(const Boundary& boundary, const Mesh& mesh) const; // get the vertex on which the turning point is
-
-protected:
-
-    index_t outgoing_local_halfedge_index_; // index in Boundary::halfedges
-    bool is_towards_right_;
 };
 
 std::ostream& operator<< (std::ostream &out, const TurningPoint& data);
@@ -230,6 +226,8 @@ struct Boundary {
     vec3 average_vector_between_corners(const Mesh& mesh, const std::vector<Corner>& corners) const;
 
     void get_adjacent_facets(const Mesh& mesh, std::set<index_t>& adjacent_facets, BoundarySide boundary_side_to_explore, const std::vector<index_t>& facet2chart, size_t max_dist = 0) const;
+
+    void get_flipped(const MeshHalfedges& mesh_he, Boundary& flipped_boundary);
 };
 
 std::ostream& operator<< (std::ostream &out, const Boundary& data);

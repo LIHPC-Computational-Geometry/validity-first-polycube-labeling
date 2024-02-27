@@ -318,7 +318,7 @@ std::ostream& operator<< (std::ostream &out, const Corner& data) {
     return out;
 }
 
-TurningPoint::TurningPoint(index_t outgoing_local_halfedge_index, const Boundary& boundary, const CustomMeshHalfedges& mesh_he) {
+void TurningPoint::fill_from(index_t outgoing_local_halfedge_index, const Boundary& boundary, const CustomMeshHalfedges& mesh_he) {
     geo_assert(mesh_he.is_using_facet_region()); // assert a facet region is defined in mesh_he
     outgoing_local_halfedge_index_ = outgoing_local_halfedge_index;
     // Explore clockwise : right side then left side
@@ -596,14 +596,16 @@ bool Boundary::find_turning_points(const CustomMeshHalfedges& mesh_halfedges) {
     // parse result for turning-points
     for (unsigned int i=1; i<per_vertex_result.size(); i++){
         if (per_vertex_result[i] != per_vertex_result[i-1]){
-            turning_points.push_back(TurningPoint((index_t) i, *this, mesh_halfedges));
+            turning_points.push_back(TurningPoint{});
+            turning_points.back().fill_from((index_t) i, *this, mesh_halfedges);
         }
     }
 
     // handle loops
     if ( (start_corner == end_corner) &&
          ((*per_vertex_result.begin()) != (*per_vertex_result.rbegin())) ) {
-        turning_points.push_back(TurningPoint((index_t) 0, *this, mesh_halfedges)); // the first (& last) vertex is a turning point (loop)
+        turning_points.push_back(TurningPoint{});
+        turning_points.back().fill_from((index_t) 0, *this, mesh_halfedges); // the first (& last) vertex is a turning point (loop)
     }
 
     return !turning_points.empty(); // true if there are turning-points, else false
@@ -734,6 +736,32 @@ void Boundary::get_adjacent_facets(const Mesh& mesh, std::set<index_t>& adjacent
                 get_adjacent_facets_conditional(mesh,adjacent_facet,right_chart,facet2chart,adjacent_facets);
             }
         }
+    }
+}
+
+void Boundary::get_flipped(const MeshHalfedges& mesh_he, Boundary& flipped_boundary) {
+    flipped_boundary.axis = axis;
+    flipped_boundary.is_valid = is_valid;
+    flipped_boundary.on_feature_edge = on_feature_edge;
+    flipped_boundary.average_normal = average_normal;
+    flipped_boundary.left_chart = right_chart;
+    flipped_boundary.right_chart = left_chart;
+    flipped_boundary.start_corner = end_corner;
+    flipped_boundary.end_corner = start_corner;
+    // go through halfedges in the reverse order
+    flipped_boundary.halfedges.clear();
+    for(auto it = halfedges.rbegin(); it != halfedges.rend(); ++it) {
+        MeshHalfedges::Halfedge current_halfedge = *it;
+        mesh_he.move_to_opposite(current_halfedge);
+        flipped_boundary.halfedges.push_back(current_halfedge);
+    }
+    // `turning_points` store indices in `halfedges` where a turning poin is on the origin vertex
+    for(auto it = turning_points.rbegin(); it != turning_points.rend(); ++it) {
+        TurningPoint current_turning_point = *it;
+        // modify `current_turning_point` so it is relative to the flipped boundary
+        current_turning_point.is_towards_right_ = !current_turning_point.is_towards_right_;
+        current_turning_point.outgoing_local_halfedge_index_ = (index_t) turning_points.size()-current_turning_point.outgoing_local_halfedge_index_+1;
+        flipped_boundary.turning_points.push_back(current_turning_point);
     }
 }
 
