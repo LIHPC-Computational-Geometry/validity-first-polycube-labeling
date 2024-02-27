@@ -81,6 +81,44 @@ bool dump_boundary_with_halfedges_indices(std::string filename, const Mesh& mesh
     return mesh_save(boundary_mesh,filename + ".geogram");
 }
 
+bool dump_chart_contour(std::string filename, const CustomMeshHalfedges& mesh_he, const StaticLabelingGraph& slg, index_t chart_index) {
+    geo_assert(chart_index < slg.nb_charts());
+    geo_assert(mesh_he.is_using_facet_region());
+    const Mesh& mesh = mesh_he.mesh();
+    std::vector<std::pair<index_t,bool>> counterclockwise_order;
+    slg.charts[chart_index].counterclockwise_boundaries_order(mesh_he,slg.halfedge2boundary,slg.boundaries,counterclockwise_order);
+    geo_assert(!counterclockwise_order.empty());
+    std::map<std::pair<index_t,index_t>,index_t> counterclockwise_halfedges_around_chart;
+    index_t halfedge_count = 0;
+    for(const auto& [b,same_order] : counterclockwise_order) {
+        const Boundary& boundary = slg.boundaries[b];
+        if(same_order) {
+            for(auto it = boundary.halfedges.begin(); it != boundary.halfedges.end(); ++it) {
+                counterclockwise_halfedges_around_chart[
+                    std::make_pair(
+                        halfedge_vertex_index_from(mesh,*it),
+                        halfedge_vertex_index_to(mesh,*it)
+                    )
+                ] = halfedge_count;
+                halfedge_count++;
+            }
+        }
+        else {
+            // same but use reverse iterator
+            for(auto it = boundary.halfedges.rbegin(); it != boundary.halfedges.rend(); ++it) {
+                counterclockwise_halfedges_around_chart[
+                    std::make_pair(
+                        halfedge_vertex_index_from(mesh,*it),
+                        halfedge_vertex_index_to(mesh,*it)
+                    )
+                ] = halfedge_count;
+                halfedge_count++;
+            }
+        }
+    }
+    return dump_edges(filename,"counterclockwise_order",mesh,counterclockwise_halfedges_around_chart);
+}
+
 bool dump_all_boundaries(std::string filename, const Mesh& mesh, const std::vector<Boundary>& boundaries) {
     Mesh boundaries_mesh;
     boundaries_mesh.copy(mesh,false,MESH_VERTICES); // keep only vertices

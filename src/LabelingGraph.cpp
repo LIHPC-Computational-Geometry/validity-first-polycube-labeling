@@ -12,9 +12,10 @@
 
 #include <GCoptimization.h>
 
-#include <utility> // for std::pair
+#include <utility>  // for std::pair
 #include <fstream>
 #include <vector>
+#include <tuple>    // for std::tie()
 
 #include <nlohmann/json.hpp>
 
@@ -33,6 +34,66 @@ bool Chart::is_surrounded_by_feature_edges(const std::vector<Boundary>& all_boun
         }
     }
     return true;
+}
+
+void Chart::counterclockwise_boundaries_order(
+    const CustomMeshHalfedges& mesh_he,
+    const std::map<MeshHalfedges::Halfedge,std::pair<index_t,bool>,HalfedgeCompare> halfedge2boundary,
+    const std::vector<Boundary>& all_boundaries,
+    std::vector<std::pair<index_t,bool>>& counterclockwise_order) const {
+
+    // 1. get the fist halfedge of the fist element in the `boundaries` set
+    // 2. if the current chart is at the right, we are not going counterclockwise -> register the boundary as in the opposite direction
+    //    if the current chart is at the left -> register the boundary as the the same direction + go to the opposite corner
+    // 3. Move clockwise until we are on a boundary halfedge (with the current chart on the left)
+    // 4. Get the boundary associated to this halfedge, register its index and if it's in the same direction or not
+    // ...
+    // stop when we ordered all boundaries
+    
+    geo_assert(mesh_he.is_using_facet_region());
+    geo_assert(!boundaries.empty());
+    counterclockwise_order.clear();
+    const Mesh& mesh = mesh_he.mesh();
+    bool same_direction = false;
+
+    index_t index_of_current_boundary = *boundaries.begin(); // first boundary in the set
+    MeshHalfedges::Halfedge current_halfedge = all_boundaries[index_of_current_boundary].halfedges[0]; // first halfedge of first boundary
+    if(facets.contains(halfedge_facet_left(mesh,current_halfedge))) {
+        counterclockwise_order.push_back(std::make_pair(index_of_current_boundary,true)); // counterclockwise, the boundary is in the same direction
+        current_halfedge = *all_boundaries[index_of_current_boundary].halfedges.rbegin(); // get last halfedge
+        mesh_he.move_to_opposite(current_halfedge);
+    }
+    else if(facets.contains(halfedge_facet_right(mesh,current_halfedge))) {
+        counterclockwise_order.push_back(std::make_pair(index_of_current_boundary,false)); // counterclockwise, the boundary is in the opposite direction
+    }
+    else {
+        geo_assert_not_reached;
+    }
+    // now the base vertex of `current_halfedge` is on the next corner to explore
+
+    unsigned int nb_iter = 0;
+    do {
+        MeshHalfedges::Halfedge previous_halfedge = current_halfedge;
+        mesh_he.move_clockwise_around_vertex_until_on_border(current_halfedge);
+        geo_assert(current_halfedge != previous_halfedge);
+        geo_assert(facets.contains(halfedge_facet_left(mesh,current_halfedge)));
+        std::tie(index_of_current_boundary, same_direction) = halfedge2boundary.at(current_halfedge);
+        geo_assert(boundaries.contains(index_of_current_boundary));
+        counterclockwise_order.push_back(std::make_pair(index_of_current_boundary,same_direction));
+        if(same_direction) {
+            current_halfedge = *all_boundaries[index_of_current_boundary].halfedges.rbegin(); // get last halfedge
+            mesh_he.move_to_opposite(current_halfedge);
+        }
+        else {
+            current_halfedge = *all_boundaries[index_of_current_boundary].halfedges.begin(); // get first halfedge
+        }
+
+        nb_iter++;
+        if(nb_iter > 100) {
+            fmt::println(Logger::err("fix_labeling"),"Infinite loop in Chart::counterclockwise_boundaries_order(), reached max iter"); Logger::err("fix_labeling").flush();
+            break;
+        }
+    } while (counterclockwise_order.size() != boundaries.size());
 }
 
 std::ostream& operator<< (std::ostream &out, const Chart& data) {

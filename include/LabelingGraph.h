@@ -63,6 +63,7 @@ struct Chart {
     //// Methods //////////////////
 
     bool is_surrounded_by_feature_edges(const std::vector<Boundary>& all_boundaries) const;
+    void counterclockwise_boundaries_order(const CustomMeshHalfedges& mesh_he, const std::map<MeshHalfedges::Halfedge,std::pair<index_t,bool>,HalfedgeCompare> halfedge2boundary, const std::vector<Boundary>& all_boundaries, std::vector<std::pair<index_t,bool>>& counterclockwise_order) const; // `counterclockwise_order` list boundary indices & whether or not the boundary is in the same direction when going counterclockwise
 };
 
 std::ostream& operator<< (std::ostream &out, const Chart& data);

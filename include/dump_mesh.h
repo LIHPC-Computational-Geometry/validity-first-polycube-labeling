@@ -57,6 +57,8 @@ bool dump_boundary(std::string filename, const Mesh& mesh, const Boundary& bound
 
 bool dump_boundary_with_halfedges_indices(std::string filename, const Mesh& mesh, const Boundary& boundary);
 
+bool dump_chart_contour(std::string filename, const CustomMeshHalfedges& mesh_he, const StaticLabelingGraph& slg, index_t chart_index);
+
 bool dump_all_boundaries(std::string filename, const Mesh& mesh, const std::vector<Boundary>& boundaries);
 
 bool dump_all_boundaries_with_indices_and_axes(std::string filename, const Mesh& mesh, const StaticLabelingGraph& slg);
