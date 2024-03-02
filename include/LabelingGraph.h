@@ -227,7 +227,7 @@ struct Boundary {
 
     void get_adjacent_facets(const Mesh& mesh, std::set<index_t>& adjacent_facets, BoundarySide boundary_side_to_explore, const std::vector<index_t>& facet2chart, size_t max_dist = 0) const;
 
-    void get_flipped(const MeshHalfedges& mesh_he, Boundary& flipped_boundary);
+    void get_flipped(const MeshHalfedges& mesh_he, Boundary& flipped_boundary) const;
 };
 
 std::ostream& operator<< (std::ostream &out, const Boundary& data);

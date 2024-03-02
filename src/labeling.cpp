@@ -1,6 +1,5 @@
 #include <geogram/basic/attributes.h>   // for GEO::Attribute
 #include <geogram/mesh/mesh_io.h>
-#include <geogram/basic/numeric.h>      // for min_float64()
 #include <geogram/basic/vecg.h>     // for vec3
 #include <geogram/basic/matrix.h>   // for mat3
 #include <geogram/basic/logger.h>   // for Logger::*
@@ -1256,215 +1255,67 @@ bool auto_fix_monotonicity(Mesh& mesh, const char* attribute_name, StaticLabelin
     return false;
 }
 
-void trace_contour(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, StaticLabelingGraph& slg, const std::set<std::pair<index_t,index_t>>& feature_edges) {
+void increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, StaticLabelingGraph& slg, const std::set<std::pair<index_t,index_t>>& feature_edges, index_t invalid_chart_index) {
+    geo_assert(invalid_chart_index < slg.invalid_charts.size());
+    index_t chart_index = slg.invalid_charts[invalid_chart_index];
+    const Chart& chart = slg.charts[chart_index];
+    if(!chart.is_surrounded_by_feature_edges(slg.boundaries)) {
+        fmt::println(Logger::warn("monotonicity"),"increase_chart_valence() cancelled because the given chart is not surrounded by feature edges"); Logger::warn("monotonicity").flush();
+        return;
+    }
     Attribute<index_t> label(mesh.facets.attributes(), attribute_name);
-    Attribute<double> per_facet_fidelity(mesh.facets.attributes(), "fidelity");
-    // there are no iterators for GEO::Attribute, so I can't use std::min_element()...
-    double min_fidelity = 1.0;
-    index_t facet_of_min_fidelity = index_t(-1);
-    FOR(f,mesh.facets.nb()) {
-        if(per_facet_fidelity[f] < min_fidelity) {
-            min_fidelity = per_facet_fidelity[f];
-            facet_of_min_fidelity = f;
-        }
-    }
-    const Chart& chart_to_refine = slg.charts[slg.facet2chart[facet_of_min_fidelity]];
-    index_t prefered_label = nearest_label(normals[facet_of_min_fidelity]);
-    geo_assert(are_orthogonal_labels(chart_to_refine.label,prefered_label));
-    label[facet_of_min_fidelity] = prefered_label;
-    // propagate prefered label to adjacent triangles, if they also prefer this label over the current one
-    index_t current_facet = facet_of_min_fidelity,
-            adjacent_facet = index_t(-1);
-    std::set<index_t> created_chart_facets;
-    std::queue<index_t> facets_to_explore; // FIDO of facet indices, only contains facets that prefers the new label (test before insertion)
-    facets_to_explore.push(current_facet);
-    while(!facets_to_explore.empty()) {
-        current_facet = facets_to_explore.front();
-        facets_to_explore.pop();
-        if(created_chart_facets.contains(current_facet)) {
-            continue; // skip this facet, already explored since insertion in FIFO
-        }
-        label[current_facet] = prefered_label;
-        created_chart_facets.insert(current_facet);
-        FOR(le,3) {
-            adjacent_facet = mesh.facets.adjacent(current_facet,le);
-            if(chart_to_refine.facets.contains(adjacent_facet) && is_better_label(normals[adjacent_facet],label[adjacent_facet],prefered_label) && !created_chart_facets.contains(adjacent_facet)) {
-                facets_to_explore.push(adjacent_facet);
-            }
-        }
-    }
-    #ifndef NDEBUG
-        fmt::println(Logger::out("refinement"),"created chart has {} facets",created_chart_facets.size()); Logger::out("refinement").flush();
-        dump_facets("created_chart",mesh,created_chart_facets);
-    #endif
-    slg.fill_from(mesh,attribute_name,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
-    index_t created_chart_index = slg.facet2chart[facet_of_min_fidelity];
-    geo_assert(slg.charts[created_chart_index].facets == created_chart_facets);
-    // fill holes inside the created chart
-    unsigned int nb_removed_charts = 0;
-    do {
-        nb_removed_charts = remove_surrounded_charts(mesh,attribute_name,slg);
-        slg.fill_from(mesh,attribute_name,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
-    } while(nb_removed_charts!=0);
-    created_chart_index = slg.facet2chart[facet_of_min_fidelity]; // created_chart_index may have changed -> update it
-    index_t total_nb_halfedges = 0,
-            he_counter = 0;
-    for(index_t b : slg.charts[created_chart_index].boundaries) {
-        total_nb_halfedges += (index_t) slg.boundaries[b].halfedges.size();
-    }
     CustomMeshHalfedges mesh_he(mesh);
-    std::vector<std::pair<MeshHalfedges::Halfedge,index_t>> all_boundary_halfedges(total_nb_halfedges); // associate a direction in {0,1,2}={X,Y,Z}
-    std::array<double,3> per_axis_dot_product; // in order to find the max dot product -> axis the most aligned with the current halfedge
-    for(index_t b : slg.charts[created_chart_index].boundaries) {
-        for(const auto& he : slg.boundaries[b].halfedges) { // for each halfedge of the current boundary
-            FOR(axis,3) { // X, Y and Z
-                per_axis_dot_product[axis] = std::max(
-                    dot(normalize(halfedge_vector(mesh,he)),label2vector[axis*2]),  // dot prodoct with X/Y/Z (according to axis)
-                    dot(normalize(halfedge_vector(mesh,he)),label2vector[axis*2+1]) // dot prodoct with -X/-Y/-Z (according to axis)
-                    );
+    mesh_he.set_use_facet_region(attribute_name);
+
+    // transform the set of boundaries around `chart` into a vector
+
+    // among all boundaries around `chart`, find
+    //  - a corner between 2 boundaries that are associated to the same axis (kind of 2D non-orthogonal separation = 2D invalidity)
+    // or
+    //  - a boundary having a turning-point on a feature edge
+    //    assume if there is a turning point, there is only one turning point in the chart contour
+
+    index_t problematic_corner = index_t(-1);
+    index_t problematic_non_monotone_boundary = index_t(-1);
+    Boundary downward_boundary;
+    Boundary upward_boundary;
+    index_t axis_to_insert__new = index_t(-1);
+
+    std::vector<std::pair<index_t,bool>> counterclockwise_order;
+    chart.counterclockwise_boundaries_order(mesh_he,slg.halfedge2boundary,slg.boundaries,counterclockwise_order);
+
+    FOR(lb,counterclockwise_order.size()) { // for each local boundary index (relative to the chart contour)
+        auto& [b,same_direction] = counterclockwise_order[lb]; // b is a boundary index
+        if(!slg.boundaries[b].turning_points.empty()) {
+            geo_assert(slg.boundaries[b].turning_points.size()==1);
+            problematic_non_monotone_boundary = b;
+                break;
             }
-            all_boundary_halfedges[he_counter] = std::make_pair(he,VECTOR_MAX_INDEX(per_axis_dot_product));
-            he_counter++;
-        }
+        geo_assert(slg.boundaries[b].start_corner != index_t(-1));
+        geo_assert(slg.boundaries[b].end_corner != index_t(-1));
+        index_t next_b = counterclockwise_order[(b+1) % counterclockwise_order.size()].first; // next local boundary
+        if(slg.boundaries[b].axis == slg.boundaries[next_b].axis) {
+            problematic_corner = same_direction ? slg.boundaries[b].end_corner : slg.boundaries[b].start_corner;
+                break;
+            }
     }
+    geo_assert( (problematic_corner != index_t(-1)) || (problematic_non_monotone_boundary != index_t(-1)) );
+    
     #ifndef NDEBUG
-        // dump all_boundary_halfedges with closest axis as attribute
-        std::map<std::pair<GEO::index_t, GEO::index_t>, index_t> edges_and_attributes;
-        index_t vertex_1 = index_t(-1),
-                vertex_2 = index_t(-1);
-        for(const auto& kv : all_boundary_halfedges) { // kv.first will be the halfedge itselft, kv.second the associated direction
-            vertex_1 = halfedge_vertex_index_from(mesh,kv.first);
-            vertex_2 = halfedge_vertex_index_to(mesh,kv.first);
-            edges_and_attributes[std::make_pair(vertex_1,vertex_2)] = kv.second;
-        }
-        dump_edges("all_boundary_edges","axis",mesh,edges_and_attributes);
-    #endif
-    // count number of same-axis groups (by counting transitions between different axes)
-    index_t nb_same_axis_groups = 0; // 0 transition encountered for now
-    FOR(he_index,all_boundary_halfedges.size()-2) {
-        if(all_boundary_halfedges[he_index].second != all_boundary_halfedges[he_index+1].second) {
-            nb_same_axis_groups++;
-        }
-    }
-    if (all_boundary_halfedges[0].second != all_boundary_halfedges[all_boundary_halfedges.size()-1].second) {
-        // first and last edges (which are adjacent) have a different closest axis
-        nb_same_axis_groups++;
-    }
-    nb_same_axis_groups = (nb_same_axis_groups == 0) ? 1 : nb_same_axis_groups; // if no transition -> 1 group (not possible in practice I think)
-    fmt::println(Logger::out("refinement"),"boundary of the created chart contains {} group(s) of closest axis",nb_same_axis_groups); Logger::out("refinement").flush();
-    // fix validity of the created chart
-    if(nb_same_axis_groups == 2) {
-        /*
-         *  |\               |\ 
-         *  | \              | \X
-         *  |  \             |  \/ 
-         * Z|   \Z    =>    Z|  /\ 
-         *  |    \           |    \Z 
-         *  |     \          |     \ 
-         *  |______\         |______\ 
-         *     X                X
-         *
-         * split a group in two and add an orthogonal separator group
-         * start by finding the biggest angle between 2 edges having the same nearest axis
-         */
-        double biggest_angle = Numeric::min_float64(),
-               current_angle = 0.0;
-        index_t boundary_halfedge_index_before_biggest_angle = index_t(-1),
-                vertex_at_biggest_angle = index_t(-1),
-                init_axis = index_t(-1),
-                axis_to_insert = index_t(-1);
-        FOR(bhe,total_nb_halfedges) { // == all_boundary_halfedges.size()
-            if(all_boundary_halfedges[bhe].second != all_boundary_halfedges[(bhe+1)%total_nb_halfedges].second) {
-                // ignore this pair of adjacent edges, they are not assigned to the same axis
-                continue;
-            }
-            // compute the angle between this boundary halfedge and the next one
-            current_angle = angle(
-                Geom::halfedge_vector(mesh,all_boundary_halfedges[bhe].first),
-                Geom::halfedge_vector(mesh,all_boundary_halfedges[(bhe+1)%total_nb_halfedges].first)
-            );
-            if(current_angle > biggest_angle) {
-                biggest_angle = current_angle;
-                boundary_halfedge_index_before_biggest_angle = bhe;
-                vertex_at_biggest_angle = Geom::halfedge_vertex_index_to(mesh,all_boundary_halfedges[bhe].first);
-                init_axis = all_boundary_halfedges[bhe].second; // axis associated to the 2 edges
-                // find the axis to insert between the 2 part of this group
-                // among the 2 others axes, find the one that is best suited for the current and next edge (= the second choice)
-                std::array<double,3> per_axis_dot_product;
-                per_axis_dot_product.fill(Numeric::min_float64());
-                FOR(other__axis,3) {
-                    if(other__axis == init_axis) {
-                        continue; // leave min_float64() value
-                    }
-                    // find the max dot product for this axis,
-                    // for both the current edge and the next one,
-                    // for both the positive and negative axis direction
-                    per_axis_dot_product[other__axis] = std::max({
-                        dot(normalize(Geom::halfedge_vector(mesh,all_boundary_halfedges[bhe].first)),label2vector[other__axis*2]),
-                        dot(normalize(Geom::halfedge_vector(mesh,all_boundary_halfedges[bhe].first)),label2vector[other__axis*2+1]),
-                        dot(normalize(Geom::halfedge_vector(mesh,all_boundary_halfedges[(bhe+1)%total_nb_halfedges].first)),label2vector[other__axis*2]),
-                        dot(normalize(Geom::halfedge_vector(mesh,all_boundary_halfedges[(bhe+1)%total_nb_halfedges].first)),label2vector[other__axis*2+1])
-                    });
-                }
-                axis_to_insert = (index_t) VECTOR_MAX_INDEX(per_axis_dot_product);
-            }
-        }
-        geo_assert(vertex_at_biggest_angle != index_t(-1));
-        dump_vertex("vertex_at_biggest_angle",mesh,vertex_at_biggest_angle);
-        // axis_to_insert is orthogonal to init_axis because they are not equal
-        // but axis_to_insert may not be equal to the axis of the 2nd group...
-        fmt::println(Logger::out("refinement"),"axis_to_insert={}",axis_to_insert); Logger::out("refinement").flush();
-        // find wich side of the vertex_at_biggest_angle should be assigned to axis_to_insert
-        // -> compute the average dot product when incrementing indices and when decrementing indices, inside this group of edges currently assigned to the same axis
-        double score_of_assigning_new_axis_upward = 0.0,
-               score_of_assigning_new_axis_downward = 0.0;
-        index_t count = 0;
-        for(index_t bhe = boundary_halfedge_index_before_biggest_angle+1; bhe < total_nb_halfedges; bhe++) {
-            if(all_boundary_halfedges[bhe].second != init_axis) {
-                break;
-            }
-            score_of_assigning_new_axis_upward += std::max(
-                dot(normalize(Geom::halfedge_vector(mesh,all_boundary_halfedges[bhe].first)),label2vector[axis_to_insert*2]),
-                dot(normalize(Geom::halfedge_vector(mesh,all_boundary_halfedges[bhe].first)),label2vector[axis_to_insert*2+1])
-            );
-            count++;
-        }
-        score_of_assigning_new_axis_upward /= (double) count;
-        count = 0;
-        for(signed_index_t bhe = (signed_index_t) boundary_halfedge_index_before_biggest_angle; bhe >= 0; bhe--) {
-            if(all_boundary_halfedges[(size_t) bhe].second != init_axis) {
-                break;
-            }
-            score_of_assigning_new_axis_downward += std::max(
-                dot(normalize(Geom::halfedge_vector(mesh,all_boundary_halfedges[(size_t) bhe].first)),label2vector[axis_to_insert*2]),
-                dot(normalize(Geom::halfedge_vector(mesh,all_boundary_halfedges[(size_t) bhe].first)),label2vector[axis_to_insert*2+1])
-                );
-            count++;
-        }
-        score_of_assigning_new_axis_downward /= (double) count;
-        if(score_of_assigning_new_axis_upward > score_of_assigning_new_axis_downward) {
-            fmt::println(Logger::out("refinement"),"better to insert the axis upward the vertex at biggest angle"); Logger::out("refinement").flush();
-            dump_edge("where_to_insert_the_axis",mesh,all_boundary_halfedges[boundary_halfedge_index_before_biggest_angle+1].first);
+        if(problematic_corner != index_t(-1)) {
+            dump_vertex("new_chart_location",mesh,slg.corners[problematic_corner].vertex);
         }
         else {
-            fmt::println(Logger::out("refinement"),"better to insert the axis downward the vertex at biggest angle"); Logger::out("refinement").flush();
-            dump_edge("where_to_insert_the_axis",mesh,all_boundary_halfedges[boundary_halfedge_index_before_biggest_angle].first);
+            dump_vertex("new_chart_location",mesh,slg.boundaries[problematic_non_monotone_boundary].turning_points[0].vertex(slg.boundaries[problematic_non_monotone_boundary],mesh));
         }
-    }
-    else if(nb_same_axis_groups == 3) {
-        fmt::println(Logger::err("refinement"),"trace_contour operator cannot handle boundaries with 3 groups of closest axis (yet)",nb_same_axis_groups); Logger::err("refinement").flush();
-        // TODO cancel modifications
-        return;
-    }
-    else if(nb_same_axis_groups != 4) {
-        fmt::println(Logger::err("refinement"),"trace_contour operator cannot handle boundaries with {} groups of closest axis",nb_same_axis_groups); Logger::err("refinement").flush();
-        // TODO cancel modifications
-        return;
-        // Future work: kind of graph cut with increasing compactness until there are 4 groups
-    }
-    // created chart = front
-    // counterclockwise : right, back then left
-    // the top chart must have the same label as the initial chart
+    #endif
+
+    // TODO fill `downward_boundary` and `upward_boundary`
+    // TODO compute cumulative sum of init axis assignment on each halfedge (both in `downward_boundary` and `upward_boundary`)
+    // TODO compute cumulative sum of new axis assignment on each halfedge (both in `downward_boundary` and `upward_boundary`)
+    // TODO find cost equilibrium along `downward_boundary` and `upward_boundary`
+    // TODO trace boundary from this/these point(s)
+    // TODO if `problematic_non_monotone_boundary` != -1, also trace another boundary from the turning point
 }
 
 unsigned int count_lost_feature_edges(const CustomMeshHalfedges& mesh_he, const std::set<std::pair<index_t,index_t>>& feature_edges) {

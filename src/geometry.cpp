@@ -3,18 +3,24 @@
 #include <geogram/basic/vecg.h>             // for vec3, length()
 #include <geogram/basic/matrix.h>           // for mat3
 #include <geogram/mesh/mesh_geometry.h>     // for get_bbox()
+#include <geogram/basic/numeric.h>          // for min_float64()
 
 #include <fmt/core.h>
 #include <fmt/ostream.h>    // to use fmt::print() on ostreams
 
 #include <queue>
 #include <vector>
-#include <utility>      // for std::pair, std::make_pair()
-#include <algorithm>    // for std::min(), std::max()
+#include <utility>          // for std::pair, std::make_pair()
+#include <algorithm>        // for std::min(), std::max()
+#include <initializer_list>
+#include <set>
+#include <cmath>            // for std::fabs()
 
 #include "geometry.h"
 #include "CustomMeshHalfedges.h"
 #include "LabelingGraph.h"
+#include "labeling.h" // for label2vector
+#include "containers.h" // for VECTOR_MAX_INDEX()
 
 void per_facet_distance(const Mesh& mesh, std::map<index_t,unsigned int>& distance) {
     // thank you Trizalio https://stackoverflow.com/a/72437022
@@ -466,4 +472,28 @@ index_t get_nearest_vertex_of_coordinates(const CustomMeshHalfedges& mesh_he, co
     // `previous_vertex` was closer than `current_vertex`
     // -> `previous_vertex` is the nearest vertex
     return previous_vertex;
+}
+
+index_t nearest_axis_of_edges(const Mesh& mesh, std::initializer_list<MeshHalfedges::Halfedge> edges, std::initializer_list<index_t> forbidden_axes) {
+    std::set<index_t> forbidden_axes_as_set(forbidden_axes);
+    geo_assert(forbidden_axes_as_set.size() < 3); // at least an axis must be allowed
+    // find the axis to insert between the 2 part of this group
+    // among the 2 others axes, find the one that is best suited for the current and next edge (= the second choice)
+    std::array<double,3> per_axis_dot_product;
+    per_axis_dot_product.fill(Numeric::min_float64());
+    FOR(current_axis,3) {
+        if(forbidden_axes_as_set.contains(current_axis)) {
+            continue; // leave min_float64() value
+        }
+        // find the max dot product for this axis,
+        //  for all edges in `edges` &
+        //  for both the positive and negative axis direction (absolute dot product)
+        for(const auto& edge : edges) {
+            per_axis_dot_product[current_axis] = std::max(
+                per_axis_dot_product[current_axis],
+                std::fabs(dot(normalize(Geom::halfedge_vector(mesh,edge)),label2vector[current_axis*2]))
+            );
+        }
+    }
+    return (index_t) VECTOR_MAX_INDEX(per_axis_dot_product);
 }

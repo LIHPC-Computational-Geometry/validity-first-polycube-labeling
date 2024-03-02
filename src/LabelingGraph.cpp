@@ -739,7 +739,7 @@ void Boundary::get_adjacent_facets(const Mesh& mesh, std::set<index_t>& adjacent
     }
 }
 
-void Boundary::get_flipped(const MeshHalfedges& mesh_he, Boundary& flipped_boundary) {
+void Boundary::get_flipped(const MeshHalfedges& mesh_he, Boundary& flipped_boundary) const {
     flipped_boundary.axis = axis;
     flipped_boundary.is_valid = is_valid;
     flipped_boundary.on_feature_edge = on_feature_edge;

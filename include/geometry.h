@@ -129,3 +129,5 @@ void get_adjacent_facets_conditional(const Mesh& mesh, index_t facet_index, inde
 
 // for given 3D coodinates and a start vertex not too far, find the nearest vertex
 index_t get_nearest_vertex_of_coordinates(const CustomMeshHalfedges& mesh_he, const std::vector<std::vector<index_t>>& adj_facets, vec3 target_coordinates, index_t start_vertex, size_t max_dist);
+
+index_t nearest_axis_of_edges(const Mesh& mesh, std::initializer_list<MeshHalfedges::Halfedge> edges, std::initializer_list<index_t> forbidden_axes);

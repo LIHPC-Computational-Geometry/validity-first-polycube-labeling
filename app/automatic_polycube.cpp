@@ -235,8 +235,8 @@ protected:
 				ImGui::Text("current: %d",selected_chart_);
 			ImGui::EndDisabled();
 
-			if(ImGui::Button("Trace contour")) {
-				trace_contour(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,feature_edges_);
+			if(ImGui::Button("Increase chart valence of first invalid chart")) {
+				increase_chart_valence(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,feature_edges_,0);
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 		}
