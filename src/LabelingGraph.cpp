@@ -768,6 +768,54 @@ void Boundary::get_flipped(const MeshHalfedges& mesh_he, Boundary& flipped_bound
     }
 }
 
+void Boundary::split_at_turning_point(const MeshHalfedges& mesh_he, Boundary& downward_boundary, Boundary& upward_boundary) const {
+    /* Given `this` being a boundary with a single turning-point:
+     *
+     *   start_corner         turning-point              end_corner        
+     *       X ---> ---> ---> ---> o ---> ---> ---> ---> ---> X
+     *
+     * Returns :
+     *  - `downward_boundary`:
+     *       X <--- <--- <--- <--- X
+     *  - `upward_boundary`:
+     *                             X ---> ---> ---> ---> ---> X
+     */
+    geo_assert(turning_points.size() == 1); // cannot split boundary in 2 parts if there is 0, or more than 1 turning-points
+    if(turning_points[0].outgoing_local_halfedge_index_ == 0) {
+        fmt::println(Logger::err("labeling graph"),"Cannot use split_at_turning_point() on a boundary with a turning-point on the first vertex (cyclic boundary?)"); Logger::err("labeling graph").flush();
+        geo_assert_not_reached;
+    }
+
+    downward_boundary.axis = axis;
+    upward_boundary.axis = axis;
+    downward_boundary.is_valid = is_valid;
+    upward_boundary.is_valid = is_valid;
+    downward_boundary.on_feature_edge = on_feature_edge; // should be recomputed on `downward_boundary` only
+    upward_boundary.on_feature_edge = on_feature_edge; // should be recomputed on `upward_boundary` only
+    downward_boundary.average_normal = average_normal; // should be recomputed on `downward_boundary` only
+    upward_boundary.average_normal = average_normal; // should be recomputed on `upward_boundary` only
+    downward_boundary.left_chart = right_chart;
+    upward_boundary.left_chart = left_chart;
+    downward_boundary.right_chart = left_chart;
+    upward_boundary.right_chart = right_chart;
+    downward_boundary.start_corner = index_t(-1); // no corner
+    upward_boundary.start_corner = index_t(-1); // no corner
+    downward_boundary.end_corner = start_corner;
+    upward_boundary.end_corner = end_corner;
+    downward_boundary.turning_points.clear();
+    upward_boundary.turning_points.clear();
+    downward_boundary.halfedges.clear();
+    upward_boundary.halfedges.clear();
+    for(signed_index_t he_index = (signed_index_t) turning_points[0].outgoing_local_halfedge_index_-1; he_index >= 0; --he_index) {
+        downward_boundary.halfedges.push_back(halfedges[(index_t) he_index]);
+        mesh_he.move_to_opposite(downward_boundary.halfedges.back());
+    }
+    for(index_t he_index = turning_points[0].outgoing_local_halfedge_index_; he_index < halfedges.size(); ++he_index) {
+        upward_boundary.halfedges.push_back(halfedges[he_index]);
+    }
+    geo_assert(downward_boundary.halfedges.size() + upward_boundary.halfedges.size() == halfedges.size());
+}
+
 std::ostream& operator<< (std::ostream &out, const Boundary& data) {
     fmt::println(out,"\taxis : {}",data.axis);
     fmt::println(out,"\tis_valid : {}",data.is_valid);
