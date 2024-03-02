@@ -1286,17 +1286,40 @@ void increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
     chart.counterclockwise_boundaries_order(mesh_he,slg.halfedge2boundary,slg.boundaries,counterclockwise_order);
 
     FOR(lb,counterclockwise_order.size()) { // for each local boundary index (relative to the chart contour)
-        auto& [b,same_direction] = counterclockwise_order[lb]; // b is a boundary index
+        auto [b,b_is_same_direction] = counterclockwise_order[lb]; // b is a boundary index
         if(!slg.boundaries[b].turning_points.empty()) {
             geo_assert(slg.boundaries[b].turning_points.size()==1);
             problematic_non_monotone_boundary = b;
+            Boundary current_boundary_as_counterclockwise;
+            if(b_is_same_direction) {
+                current_boundary_as_counterclockwise = slg.boundaries[b];
+            }
+            else {
+                slg.boundaries[b].get_flipped(mesh_he,current_boundary_as_counterclockwise);
+            }
+            current_boundary_as_counterclockwise.split_at_turning_point(mesh_he,downward_boundary,upward_boundary);
             break;
         }
         geo_assert(slg.boundaries[b].start_corner != index_t(-1));
         geo_assert(slg.boundaries[b].end_corner != index_t(-1));
-        index_t next_b = counterclockwise_order[(lb+1) % counterclockwise_order.size()].first; // next local boundary
+        auto [next_b,next_b_is_same_direction] = counterclockwise_order[(lb+1) % counterclockwise_order.size()];
         if(slg.boundaries[b].axis == slg.boundaries[next_b].axis) {
-            problematic_corner = same_direction ? slg.boundaries[b].end_corner : slg.boundaries[b].start_corner;
+            if(b_is_same_direction) {
+                slg.boundaries[b].get_flipped(mesh_he,downward_boundary);
+                problematic_corner = slg.boundaries[b].end_corner;
+            }
+            else {
+                downward_boundary = slg.boundaries[b];
+                problematic_corner = slg.boundaries[b].start_corner;
+            }
+            if(next_b_is_same_direction) {
+                upward_boundary = slg.boundaries[next_b];
+                geo_assert(problematic_corner == upward_boundary.start_corner);
+            }
+            else {
+                slg.boundaries[next_b].get_flipped(mesh_he,upward_boundary);
+                geo_assert(problematic_corner == upward_boundary.end_corner);
+            }
             break;
         }
     }
@@ -1309,9 +1332,10 @@ void increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
         else {
             dump_vertex("new_chart_location",mesh,slg.boundaries[problematic_non_monotone_boundary].turning_points[0].vertex(slg.boundaries[problematic_non_monotone_boundary],mesh));
         }
+        dump_boundary_with_halfedges_indices("downward_boundary",mesh,downward_boundary);
+        dump_boundary_with_halfedges_indices("upward_boundary",mesh,upward_boundary);
     #endif
 
-    // TODO fill `downward_boundary` and `upward_boundary`
     // TODO compute cumulative sum of init axis assignment on each halfedge (both in `downward_boundary` and `upward_boundary`)
     // TODO compute cumulative sum of new axis assignment on each halfedge (both in `downward_boundary` and `upward_boundary`)
     // TODO find cost equilibrium along `downward_boundary` and `upward_boundary`
