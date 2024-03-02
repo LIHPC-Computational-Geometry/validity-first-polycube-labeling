@@ -363,7 +363,7 @@ index_t TurningPoint::vertex(const Boundary& boundary, const Mesh& mesh) const {
 }
 
 std::ostream& operator<< (std::ostream &out, const TurningPoint& data) {
-    fmt::println(out,"\t\toutgoing_local_halfedge_index : {}, direction : {}",data.outgoing_local_halfedge_index(),data.is_towards_left() ? "left" : "right");
+    fmt::println(out,"\t\toutgoing_local_halfedge_index : {}, direction : {}",data.outgoing_local_halfedge_index_,data.is_towards_left() ? "left" : "right");
     return out;
 }
 
@@ -652,12 +652,12 @@ void Boundary::print_successive_halfedges(fmt::v9::ostream& out, Mesh& mesh) {
 }
 
 index_t Boundary::turning_point_vertex(index_t turning_point_index, const Mesh& mesh) const {
-    return mesh.facet_corners.vertex(halfedges[turning_points[turning_point_index].outgoing_local_halfedge_index()].corner);
+    return mesh.facet_corners.vertex(halfedges[turning_points[turning_point_index].outgoing_local_halfedge_index_].corner);
 }
 
 bool Boundary::halfedge_has_turning_point_at_base(index_t local_halfedge_index) const {
     for(auto& tp : turning_points) {
-        if(tp.outgoing_local_halfedge_index() == local_halfedge_index) {
+        if(tp.outgoing_local_halfedge_index_ == local_halfedge_index) {
             return true;
         }
     }
@@ -755,12 +755,15 @@ void Boundary::get_flipped(const MeshHalfedges& mesh_he, Boundary& flipped_bound
         mesh_he.move_to_opposite(current_halfedge);
         flipped_boundary.halfedges.push_back(current_halfedge);
     }
+    geo_assert(flipped_boundary.halfedges.size() == halfedges.size());
     // `turning_points` store indices in `halfedges` where a turning poin is on the origin vertex
     for(auto it = turning_points.rbegin(); it != turning_points.rend(); ++it) {
         TurningPoint current_turning_point = *it;
+        geo_assert(current_turning_point.outgoing_local_halfedge_index_ < halfedges.size());
         // modify `current_turning_point` so it is relative to the flipped boundary
         current_turning_point.is_towards_right_ = !current_turning_point.is_towards_right_;
-        current_turning_point.outgoing_local_halfedge_index_ = (index_t) turning_points.size()-current_turning_point.outgoing_local_halfedge_index_+1;
+        current_turning_point.outgoing_local_halfedge_index_ = (index_t) halfedges.size()-current_turning_point.outgoing_local_halfedge_index_;
+        geo_assert(current_turning_point.outgoing_local_halfedge_index_ < flipped_boundary.halfedges.size());
         flipped_boundary.turning_points.push_back(current_turning_point);
     }
 }

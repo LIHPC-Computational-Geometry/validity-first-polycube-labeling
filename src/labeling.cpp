@@ -607,7 +607,7 @@ unsigned int move_boundaries_near_turning_points(GEO::Mesh& mesh, const char* at
     for(auto b : slg.non_monotone_boundaries) {
         for(auto tp : slg.boundaries[b].turning_points) {
 
-            initial_halfedge = slg.boundaries[b].halfedges[tp.outgoing_local_halfedge_index()];
+            initial_halfedge = slg.boundaries[b].halfedges[tp.outgoing_local_halfedge_index_];
             geo_assert(mesh_halfedges.halfedge_is_border(initial_halfedge));
             geo_assert(MAP_CONTAINS(slg.halfedge2boundary,initial_halfedge));
 
@@ -1040,7 +1040,7 @@ bool merge_a_turning_point_and_a_corner_on_non_monotone_boundary(GEO::Mesh& mesh
     MeshHalfedges::Halfedge ingoing_local_halfedge;
     MeshHalfedges::Halfedge outgoing_local_halfedge;
     for(const TurningPoint& turning_point : non_monotone_boundary.turning_points) {
-        outgoing_local_halfedge_index = turning_point.outgoing_local_halfedge_index();
+        outgoing_local_halfedge_index = turning_point.outgoing_local_halfedge_index_;
         ingoing_local_halfedge_index = outgoing_local_halfedge_index-1;
         ingoing_local_halfedge = non_monotone_boundary.halfedges[ingoing_local_halfedge_index];
         outgoing_local_halfedge = non_monotone_boundary.halfedges[outgoing_local_halfedge_index];
@@ -1120,7 +1120,7 @@ bool merge_a_turning_point_and_a_corner_on_non_monotone_boundary(GEO::Mesh& mesh
     //    that is, the vector going from the current vertex to where would be the end corner if the new boundary has the same vector_between_corners() than `boundary_to_move`
     // /!\ WARNING : This will not work if the path of the new boundary has to be longer than the `boundary_to_move`
 
-    MeshHalfedges::Halfedge current_halfedge = non_monotone_boundary.halfedges[first_turning_point_on_feature_edge.outgoing_local_halfedge_index()],
+    MeshHalfedges::Halfedge current_halfedge = non_monotone_boundary.halfedges[first_turning_point_on_feature_edge.outgoing_local_halfedge_index_],
                             next_halfedge;
     std::set<index_t> facets_at_left, facets_at_right;
     next_halfedge = get_most_aligned_halfedge_around_vertex(current_halfedge,mesh_he,boundary_to_move_vector);
