@@ -1294,7 +1294,7 @@ void increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
         }
         geo_assert(slg.boundaries[b].start_corner != index_t(-1));
         geo_assert(slg.boundaries[b].end_corner != index_t(-1));
-        index_t next_b = counterclockwise_order[(b+1) % counterclockwise_order.size()].first; // next local boundary
+        index_t next_b = counterclockwise_order[(lb+1) % counterclockwise_order.size()].first; // next local boundary
         if(slg.boundaries[b].axis == slg.boundaries[next_b].axis) {
             problematic_corner = same_direction ? slg.boundaries[b].end_corner : slg.boundaries[b].start_corner;
             break;
