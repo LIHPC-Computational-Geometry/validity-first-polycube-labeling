@@ -1280,7 +1280,8 @@ void increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
     index_t problematic_non_monotone_boundary = index_t(-1);
     Boundary downward_boundary;
     Boundary upward_boundary;
-    index_t axis_to_insert__new = index_t(-1);
+    index_t current_axis = index_t(-1);
+    index_t axis_to_insert = index_t(-1);
 
     std::vector<std::pair<index_t,bool>> counterclockwise_order;
     chart.counterclockwise_boundaries_order(mesh_he,slg.halfedge2boundary,slg.boundaries,counterclockwise_order);
@@ -1289,6 +1290,8 @@ void increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
         auto [b,b_is_same_direction] = counterclockwise_order[lb]; // b is a boundary index
         if(!slg.boundaries[b].turning_points.empty()) {
             geo_assert(slg.boundaries[b].turning_points.size()==1);
+            geo_assert(slg.boundaries[b].axis != -1);
+            current_axis = (index_t) slg.boundaries[b].axis;
             problematic_non_monotone_boundary = b;
             Boundary current_boundary_as_counterclockwise;
             if(b_is_same_direction) {
@@ -1298,12 +1301,18 @@ void increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
                 slg.boundaries[b].get_flipped(mesh_he,current_boundary_as_counterclockwise);
             }
             current_boundary_as_counterclockwise.split_at_turning_point(mesh_he,downward_boundary,upward_boundary);
+            axis_to_insert = nearest_axis_of_edges(mesh,{
+                slg.boundaries[b].halfedges[slg.boundaries[b].turning_points[0].outgoing_local_halfedge_index_],
+                slg.boundaries[b].halfedges[slg.boundaries[b].turning_points[0].outgoing_local_halfedge_index_-1]
+            },{current_axis});
             break;
         }
         geo_assert(slg.boundaries[b].start_corner != index_t(-1));
         geo_assert(slg.boundaries[b].end_corner != index_t(-1));
         auto [next_b,next_b_is_same_direction] = counterclockwise_order[(lb+1) % counterclockwise_order.size()];
         if(slg.boundaries[b].axis == slg.boundaries[next_b].axis) {
+            geo_assert(slg.boundaries[b].axis != -1);
+            current_axis = (index_t) slg.boundaries[b].axis;
             if(b_is_same_direction) {
                 slg.boundaries[b].get_flipped(mesh_he,downward_boundary);
                 problematic_corner = slg.boundaries[b].end_corner;
@@ -1320,6 +1329,10 @@ void increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
                 slg.boundaries[next_b].get_flipped(mesh_he,upward_boundary);
                 geo_assert(problematic_corner == upward_boundary.end_corner);
             }
+            axis_to_insert = nearest_axis_of_edges(mesh,{
+                downward_boundary.halfedges[0],
+                upward_boundary.halfedges[0]
+            },{current_axis});
             break;
         }
     }
