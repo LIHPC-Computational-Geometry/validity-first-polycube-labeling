@@ -1215,7 +1215,8 @@ void merge_turning_points_and_corners(GEO::Mesh& mesh, const char* attribute_nam
         }
     } while (current_non_monotone_boundary < slg.non_monotone_boundaries.size()); // must happen when 
 
-    geo_assert(slg.non_monotone_boundaries.empty());
+    // Do not assert there is no more non-monotone boundaries, so that in case of a detected infinite loop, a labeling is still written,
+    // even if not all boundaries are monotone.
 }
 
 bool auto_fix_monotonicity(Mesh& mesh, const char* attribute_name, StaticLabelingGraph& slg, std::vector<std::vector<index_t>>& adj_facets, const std::set<std::pair<index_t,index_t>>& feature_edges) {
@@ -1289,15 +1290,15 @@ void increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
         if(!slg.boundaries[b].turning_points.empty()) {
             geo_assert(slg.boundaries[b].turning_points.size()==1);
             problematic_non_monotone_boundary = b;
-                break;
-            }
+            break;
+        }
         geo_assert(slg.boundaries[b].start_corner != index_t(-1));
         geo_assert(slg.boundaries[b].end_corner != index_t(-1));
         index_t next_b = counterclockwise_order[(b+1) % counterclockwise_order.size()].first; // next local boundary
         if(slg.boundaries[b].axis == slg.boundaries[next_b].axis) {
             problematic_corner = same_direction ? slg.boundaries[b].end_corner : slg.boundaries[b].start_corner;
-                break;
-            }
+            break;
+        }
     }
     geo_assert( (problematic_corner != index_t(-1)) || (problematic_non_monotone_boundary != index_t(-1)) );
     
