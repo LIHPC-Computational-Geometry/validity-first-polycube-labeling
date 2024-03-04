@@ -497,3 +497,14 @@ index_t nearest_axis_of_edges(const Mesh& mesh, std::initializer_list<MeshHalfed
     }
     return (index_t) VECTOR_MAX_INDEX(per_axis_dot_product);
 }
+
+double dot_product_between_halfedge_and_axis(const Mesh& mesh, MeshHalfedges::Halfedge halfedge, index_t axis) {
+    return std::fabs(dot(normalize(Geom::halfedge_vector(mesh,halfedge)),label2vector[axis*2]));
+}
+
+double angle_between_halfedge_and_axis(const Mesh& mesh, MeshHalfedges::Halfedge halfedge, index_t axis) {
+    return std::min(
+        angle(normalize(Geom::halfedge_vector(mesh,halfedge)),label2vector[axis*2]), // angle between `halfedge` and the positive direction of `axis` (eg +X)
+        angle(normalize(Geom::halfedge_vector(mesh,halfedge)),label2vector[axis*2+1]) // angle between `halfedge` and the negative direction of `axis` (eg -X)
+    );
+}
