@@ -816,6 +816,28 @@ void Boundary::split_at_turning_point(const MeshHalfedges& mesh_he, Boundary& do
     geo_assert(downward_boundary.halfedges.size() + upward_boundary.halfedges.size() == halfedges.size());
 }
 
+void Boundary::per_edges_axis_assignement_cost(const Mesh& mesh, index_t axis, std::vector<double>& costs) const {
+    geo_assert(axis < 3); // must be either 0=X, 1=Y or 2=Z
+    costs.resize(halfedges.size());
+    FOR(he_index,halfedges.size()) {
+        costs[he_index] = 1.0 - dot_product_between_halfedge_and_axis(mesh,halfedges[he_index],axis);
+    }
+}
+
+void Boundary::per_edges_cumulative_axis_assignement_cost(const Mesh& mesh, index_t axis, std::vector<double>& costs, bool accumulation_from_start_corner) const {
+    per_edges_axis_assignement_cost(mesh,axis,costs);
+    if(accumulation_from_start_corner) {
+        for(index_t he_index = 1; he_index < halfedges.size(); ++he_index) {
+            costs[he_index] += costs[he_index-1];
+        }
+    }
+    else { // accumulation from end corner
+        for(signed_index_t he_index = (signed_index_t) halfedges.size()-2; he_index >= 0; --he_index) {
+            costs[(index_t) he_index] += costs[(index_t) he_index+1];
+        }
+    }
+}
+
 std::ostream& operator<< (std::ostream &out, const Boundary& data) {
     fmt::println(out,"\taxis : {}",data.axis);
     fmt::println(out,"\tis_valid : {}",data.is_valid);

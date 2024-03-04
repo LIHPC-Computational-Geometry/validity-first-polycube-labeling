@@ -229,6 +229,10 @@ struct Boundary {
     void get_flipped(const MeshHalfedges& mesh_he, Boundary& flipped_boundary) const;
 
     void split_at_turning_point(const MeshHalfedges& mesh_he, Boundary& downward_boundary, Boundary& upward_boundary) const;
+
+    void per_edges_axis_assignement_cost(const Mesh& mesh, index_t axis, std::vector<double>& costs) const;
+
+    void per_edges_cumulative_axis_assignement_cost(const Mesh& mesh, index_t axis, std::vector<double>& costs, bool accumulation_from_start_corner) const;
 };
 
 std::ostream& operator<< (std::ostream &out, const Boundary& data);
