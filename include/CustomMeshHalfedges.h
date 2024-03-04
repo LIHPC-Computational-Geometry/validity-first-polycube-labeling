@@ -32,6 +32,8 @@
 #include <fmt/core.h>
 #include <fmt/ostream.h>
 
+#include <utility> // for std::make_pair()
+
 #define OPTIONAL_TO_STRING(value) ((value == index_t(-1)) ? "undefined" : std::to_string(value).c_str())
 
 using namespace GEO;
@@ -219,6 +221,15 @@ namespace GEO {
         ) {
             index_t c = M.facets.next_corner_around_facet(H.facet, H.corner);
             return M.facet_corners.vertex(c);
+        }
+
+        inline std::pair<index_t,index_t> halfedge_vertices_pair(
+            const Mesh& M, const MeshHalfedges::Halfedge& H
+        ) {
+            return std::make_pair(
+                halfedge_vertex_index_from(M,H),
+                halfedge_vertex_index_to(M,H)
+            );
         }
 
         inline index_t halfedge_facet_left(
