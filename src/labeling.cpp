@@ -1116,9 +1116,7 @@ bool merge_a_turning_point_and_a_corner_on_non_monotone_boundary(GEO::Mesh& mesh
     }
 
     // 6. Start from the turning-point, move edge by edge in the direction of `boundary_to_move_vector`
-    //    To not drift away from this direction, at each step we recompute the difference between `boundary_to_move_vector` and the current vector of the new boundary,
-    //    that is, the vector going from the current vertex to where would be the end corner if the new boundary has the same vector_between_corners() than `boundary_to_move`
-    // /!\ WARNING : This will not work if the path of the new boundary has to be longer than the `boundary_to_move`
+    //    To not drift away from this direction, at each step we move away the target point, in the diretion of `boundary_to_move_normalized_vector`
 
     MeshHalfedges::Halfedge current_halfedge = non_monotone_boundary.halfedges[first_turning_point_on_feature_edge.outgoing_local_halfedge_index_],
                             next_halfedge;
