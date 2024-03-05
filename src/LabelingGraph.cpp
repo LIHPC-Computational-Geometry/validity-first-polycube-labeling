@@ -16,6 +16,7 @@
 #include <fstream>
 #include <vector>
 #include <tuple>    // for std::tie()
+#include <numbers>  // for std::numbers::pi
 
 #include <nlohmann/json.hpp>
 
@@ -820,7 +821,7 @@ void Boundary::per_edges_axis_assignement_cost(const Mesh& mesh, index_t axis, s
     geo_assert(axis < 3); // must be either 0=X, 1=Y or 2=Z
     costs.resize(halfedges.size());
     FOR(he_index,halfedges.size()) {
-        costs[he_index] = 1.0 - dot_product_between_halfedge_and_axis(mesh,halfedges[he_index],axis);
+        costs[he_index] = angle_between_halfedge_and_axis(mesh,halfedges[he_index],axis) / std::numbers::pi;
     }
 }
 
