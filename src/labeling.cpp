@@ -25,8 +25,6 @@
 #include "basic_stats.h"
 #include "dump_mesh.h"
 
-#include <dbg.h>
-
 bool load_labeling(const std::string& filename, Mesh& mesh, const char* attribute_name) {
 
     //open the file
@@ -1351,47 +1349,6 @@ void increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
         dump_boundary_with_halfedges_indices("upward_boundary",mesh,upward_boundary);
     #endif
 
-    std::vector<double> downward_boundary_cost_for_current_axis;
-    std::vector<double> downward_boundary_cost_for_axis_to_insert;
-    std::vector<double> upward_boundary_cost_for_current_axis;
-    std::vector<double> upward_boundary_cost_for_axis_to_insert;
-
-    downward_boundary.per_edges_axis_assignement_cost(mesh,current_axis,downward_boundary_cost_for_current_axis);
-    downward_boundary.per_edges_axis_assignement_cost(mesh,axis_to_insert,downward_boundary_cost_for_axis_to_insert);
-    upward_boundary.per_edges_axis_assignement_cost(mesh,current_axis,upward_boundary_cost_for_current_axis);
-    upward_boundary.per_edges_axis_assignement_cost(mesh,axis_to_insert,upward_boundary_cost_for_axis_to_insert);
-
-    dbg(downward_boundary_cost_for_current_axis);
-    dbg(downward_boundary_cost_for_axis_to_insert);
-    dbg(upward_boundary_cost_for_current_axis);
-    dbg(upward_boundary_cost_for_axis_to_insert);
-
-    std::map<std::pair<index_t,index_t>,double> edges_and_attribute;
-
-    edges_and_attribute.clear();
-    FOR(he_index,downward_boundary.halfedges.size()) {
-        edges_and_attribute[halfedge_vertices_pair(mesh,downward_boundary.halfedges[he_index])] = downward_boundary_cost_for_current_axis[he_index];
-    }
-    dump_edges("downward_boundary_cost_for_current_axis","cost",mesh,edges_and_attribute);
-
-    edges_and_attribute.clear();
-    FOR(he_index,downward_boundary.halfedges.size()) {
-        edges_and_attribute[halfedge_vertices_pair(mesh,downward_boundary.halfedges[he_index])] = downward_boundary_cost_for_axis_to_insert[he_index];
-    }
-    dump_edges("downward_boundary_cost_for_axis_to_insert","cost",mesh,edges_and_attribute);
-
-    edges_and_attribute.clear();
-    FOR(he_index,upward_boundary.halfedges.size()) {
-        edges_and_attribute[halfedge_vertices_pair(mesh,upward_boundary.halfedges[he_index])] = upward_boundary_cost_for_current_axis[he_index];
-    }
-    dump_edges("upward_boundary_cost_for_current_axis","cost",mesh,edges_and_attribute);
-
-    edges_and_attribute.clear();
-    FOR(he_index,upward_boundary.halfedges.size()) {
-        edges_and_attribute[halfedge_vertices_pair(mesh,upward_boundary.halfedges[he_index])] = upward_boundary_cost_for_axis_to_insert[he_index];
-    }
-    dump_edges("upward_boundary_cost_for_axis_to_insert","cost",mesh,edges_and_attribute);
-
     std::vector<double> downward_boundary_cumulative_cost_for_current_axis;
     std::vector<double> downward_boundary_cumulative_cost_for_axis_to_insert;
     std::vector<double> upward_boundary_cumulative_cost_for_current_axis;
@@ -1401,29 +1358,7 @@ void increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
     upward_boundary.per_edges_cumulative_axis_assignement_cost(mesh,current_axis,upward_boundary_cumulative_cost_for_current_axis,false);
     upward_boundary.per_edges_cumulative_axis_assignement_cost(mesh,axis_to_insert,upward_boundary_cumulative_cost_for_axis_to_insert,true);
 
-    edges_and_attribute.clear();
-    FOR(he_index,downward_boundary.halfedges.size()) {
-        edges_and_attribute[halfedge_vertices_pair(mesh,downward_boundary.halfedges[he_index])] = downward_boundary_cumulative_cost_for_current_axis[he_index];
-    }
-    dump_edges("downward_boundary_cumulative_cost_for_current_axis","cost",mesh,edges_and_attribute);
-
-    edges_and_attribute.clear();
-    FOR(he_index,downward_boundary.halfedges.size()) {
-        edges_and_attribute[halfedge_vertices_pair(mesh,downward_boundary.halfedges[he_index])] = downward_boundary_cumulative_cost_for_axis_to_insert[he_index];
-    }
-    dump_edges("downward_boundary_cumulative_cost_for_axis_to_insert","cost",mesh,edges_and_attribute);
-
-    edges_and_attribute.clear();
-    FOR(he_index,upward_boundary.halfedges.size()) {
-        edges_and_attribute[halfedge_vertices_pair(mesh,upward_boundary.halfedges[he_index])] = upward_boundary_cumulative_cost_for_current_axis[he_index];
-    }
-    dump_edges("upward_boundary_cumulative_cost_for_current_axis","cost",mesh,edges_and_attribute);
-
-    edges_and_attribute.clear();
-    FOR(he_index,upward_boundary.halfedges.size()) {
-        edges_and_attribute[halfedge_vertices_pair(mesh,upward_boundary.halfedges[he_index])] = upward_boundary_cumulative_cost_for_axis_to_insert[he_index];
-    }
-    dump_edges("upward_boundary_cumulative_cost_for_axis_to_insert","cost",mesh,edges_and_attribute);
+    // find equilibrium along `downward_boundary`
 
     index_t vertex_index = 0;
     while(downward_boundary_cumulative_cost_for_axis_to_insert[vertex_index] <= downward_boundary_cumulative_cost_for_current_axis[vertex_index]) {
@@ -1440,6 +1375,9 @@ void increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
             dump_vertex("downward_boundary_equilibrium",mesh,halfedge_vertex_index_from(mesh,downward_boundary.halfedges[vertex_index]));
         }
     #endif
+
+    // find equilibrium along `upward_boundary`
+
     vertex_index = 0;
     while(upward_boundary_cumulative_cost_for_axis_to_insert[vertex_index] <= upward_boundary_cumulative_cost_for_current_axis[vertex_index]) {
         vertex_index++;
@@ -1448,13 +1386,14 @@ void increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
         }
     }
     #ifndef NDEBUG
-        if(vertex_index == downward_boundary.halfedges.size()) {
+        if(vertex_index == upward_boundary.halfedges.size()) {
             dump_vertex("upward_boundary_equilibrium",mesh,halfedge_vertex_index_to(mesh,upward_boundary.halfedges[vertex_index-1]));
         }
         else {
             dump_vertex("upward_boundary_equilibrium",mesh,halfedge_vertex_index_from(mesh,upward_boundary.halfedges[vertex_index]));
         }
     #endif
+    
     // TODO trace boundary from this/these point(s)
     // TODO if `problematic_non_monotone_boundary` != -1, also trace another boundary from the turning point
 }
