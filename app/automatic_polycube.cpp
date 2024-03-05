@@ -192,7 +192,11 @@ protected:
 					fmt::println(Logger::out("monotonicity"),"Nothing to do, all-monotone boundaries"); Logger::out("monotonicity").flush();
 				}
 				else {
-					if(merge_a_turning_point_and_a_corner_on_non_monotone_boundary(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,feature_edges_,0)) {
+					// compute vertex-to-facet adjacency if not already done
+					if(adj_facets_.empty()) {
+						compute_adjacent_facets_of_vertices(mesh_,adj_facets_);
+					}
+					if(merge_a_turning_point_and_a_corner_on_non_monotone_boundary(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,feature_edges_,adj_facets_,0)) {
 						fmt::println(Logger::out("monotonicity"),"Returned true"); Logger::out("monotonicity").flush();
 					}
 					else {
@@ -206,7 +210,11 @@ protected:
 			ImGui::SetItemTooltip("Select the first non-monotone boundary, and if it has a turning-point on a feature edge, try to pull the closest corner so that they coincide");
 
 			if(ImGui::Button("Merge turning points and corners")) {
-				merge_turning_points_and_corners(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,feature_edges_);
+				// compute vertex-to-facet adjacency if not already done
+				if(adj_facets_.empty()) {
+					compute_adjacent_facets_of_vertices(mesh_,adj_facets_);
+				}
+				merge_turning_points_and_corners(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,feature_edges_,adj_facets_);
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 
@@ -236,7 +244,11 @@ protected:
 			ImGui::EndDisabled();
 
 			if(ImGui::Button("Increase chart valence of first invalid chart")) {
-				increase_chart_valence(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,feature_edges_,0);
+				// compute vertex-to-facet adjacency if not already done
+				if(adj_facets_.empty()) {
+					compute_adjacent_facets_of_vertices(mesh_,adj_facets_);
+				}
+				increase_chart_valence(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,feature_edges_,adj_facets_,0);
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 		}
