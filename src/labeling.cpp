@@ -342,7 +342,7 @@ unsigned int fix_invalid_boundaries(GEO::Mesh& mesh, const char* attribute_name,
     // https://gitlab.com/franck.ledoux/mambo
 
     unsigned int new_charts_count = 0;
-    index_t new_label;
+    index_t new_label = index_t(-1);
     vec3 new_label_as_vector;
     MeshHalfedges::Halfedge current_halfedge;
     for(index_t boundary_index : slg.invalid_boundaries) { // for each invalid boundary
@@ -350,17 +350,22 @@ unsigned int fix_invalid_boundaries(GEO::Mesh& mesh, const char* attribute_name,
         // get ref to boundary object and retreive geometry and neighborhood info
 
         const Boundary& current_boundary = slg.boundaries[boundary_index];
-        new_label = nearest_label(current_boundary.average_normal);
-        new_label_as_vector = label2vector[new_label];
         const Chart& left_chart = slg.charts[current_boundary.left_chart];
         const Chart& right_chart = slg.charts[current_boundary.right_chart];
+        new_label = find_optimal_label(
+            {},
+            {},
+            {left_chart.label,right_chart.label}, // new label must be orthogonal to the labels at left/right of the boundary
+            current_boundary.average_normal // new label must be close to the boundary normal
+        );
+        new_label_as_vector = label2vector[new_label];
         std::set<index_t> left_facets_along_boundary;
         std::set<index_t> right_facets_along_boundary;
         current_boundary.get_adjacent_facets(mesh,left_facets_along_boundary,OnlyLeft,slg.facet2chart,1); // get triangles at left and at distance 0 or 1 from the boundary
         current_boundary.get_adjacent_facets(mesh,right_facets_along_boundary,OnlyRight,slg.facet2chart,1); // get triangles at right and at distance 0 or 1 from the boundary
         
         if( (new_label == left_chart.label) || (new_label == right_chart.label) ) {
-            fmt::println(Logger::out("fix validity"),"Cannot fix boundary {}, new label computed is one of the adjacent labels",boundary_index); Logger::out("fix validity").flush();
+            fmt::println(Logger::err("fix validity"),"Cannot fix boundary {}, new label computed is one of the adjacent labels",boundary_index); Logger::err("fix validity").flush();
             continue; // ignore this boundary
         }
 
