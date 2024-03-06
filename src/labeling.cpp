@@ -136,14 +136,14 @@ index_t find_optimal_label(std::initializer_list<index_t> forbidden_axes, std::i
     std::map<index_t,double> candidates;
     FOR(label,6) {
         if(INIT_LIST_CONTAINS(forbidden_axes,label/2)) {
-            goto ignore_this_label; // current `label` is on a forbidden axis
+            continue; // current `label` is on a forbidden axis
         }
         if(INIT_LIST_CONTAINS(forbidden_labels,label)) {
-            goto ignore_this_label; // current `label` is forbidden
+            continue; // current `label` is forbidden
         }
         for(index_t orthogonal_label : orthogonal_labels) {
             if(!are_orthogonal_labels(label,orthogonal_label)) {
-                goto ignore_this_label; // yes, I use goto, but only when there are nested loops
+                continue; // test another `orthogonal_label`
             }
         }
         // so `label` passed all the criteria
@@ -153,8 +153,6 @@ index_t find_optimal_label(std::initializer_list<index_t> forbidden_axes, std::i
         else {
             candidates[label] = dot(label2vector[label],normalize(close_vector));
         }
-    ignore_this_label:
-            continue;
     }
     if(candidates.empty()) {
         fmt::println(Logger::err("labeling"),"In find_optimal_label(), no label satisfy all constraints:");
