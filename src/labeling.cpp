@@ -27,6 +27,8 @@
 #include "basic_stats.h"
 #include "dump_mesh.h"
 
+#include <dbg.h>
+
 bool load_labeling(const std::string& filename, Mesh& mesh, const char* attribute_name) {
 
     //open the file
@@ -1478,6 +1480,18 @@ void increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
 
     // TODO change label of `facets_of_new_chart` & their neighbors, but not crossing `walls`
 
+    index_t label_to_insert = find_optimal_label(
+        { // 2 forbidden axes:
+            chart.label/2, // the axis of the chart we're going to increase the valence
+            label[*facets_of_new_chart.begin()]/2 // the axis of the chart on which we traced boundaries
+        },
+        {},
+        {}, // no need to specify orthogonality constraints, becase we already forbid 2 axes over 3
+        average_facets_normal(normals,facets_of_new_chart) // among the 2 remaining labels, choose the one the closest to the avg normal of `facets_of_new_chart`
+    );
+
+    dbg(label_to_insert);
+    
 }
 
 unsigned int count_lost_feature_edges(const CustomMeshHalfedges& mesh_he, const std::set<std::pair<index_t,index_t>>& feature_edges) {
