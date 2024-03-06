@@ -125,6 +125,11 @@ bool are_orthogonal_labels(index_t label1, index_t label2) {
     return (label1 % 2) != (label2 % 2); // orthogonal if they don't have the same axis
 }
 
+index_t opposite_label(index_t label) {
+    geo_assert(label < 6);
+    return (label % 2 == 0) ? label+1 : label-1;
+}
+
 void naive_labeling(Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name) {
 
     // use GEO::Geom::triangle_normal_axis() instead ?
