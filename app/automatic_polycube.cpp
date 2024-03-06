@@ -248,7 +248,7 @@ protected:
 				if(adj_facets_.empty()) {
 					compute_adjacent_facets_of_vertices(mesh_,adj_facets_);
 				}
-				increase_chart_valence(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,feature_edges_,adj_facets_,0);
+				increase_chart_valence(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,adj_facets_,0);
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 		}

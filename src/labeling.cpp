@@ -1298,7 +1298,7 @@ bool auto_fix_monotonicity(Mesh& mesh, const char* attribute_name, StaticLabelin
     return false;
 }
 
-void increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, StaticLabelingGraph& slg, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<std::vector<index_t>>& adj_facets, index_t invalid_chart_index) {
+void increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, StaticLabelingGraph& slg, const std::vector<std::vector<index_t>>& adj_facets, index_t invalid_chart_index) {
     geo_assert(invalid_chart_index < slg.invalid_charts.size());
     index_t chart_index = slg.invalid_charts[invalid_chart_index];
     const Chart& chart = slg.charts[chart_index];
@@ -1482,23 +1482,24 @@ void increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
         trace_path_on_chart(mesh_he,adj_facets,slg.facet2chart,upward_boundary_equilibrium_vertex,label2vector[opposite_label(chart.label)]*10,walls,facets_of_new_chart);
     }
 
+    index_t chart_on_wich_the_new_chart_will_be = slg.facet2chart[*facets_of_new_chart.begin()];
+
     #ifndef NDEBUG
         dump_facets("facets_of_new_chart",mesh,facets_of_new_chart);
         dump_facets("walls",mesh,walls);
     #endif
 
-    // TODO change label of `facets_of_new_chart` & their neighbors, but not crossing `walls`
-
     index_t label_to_insert = find_optimal_label(
         { // 2 forbidden axes:
             chart.label/2, // the axis of the chart we're going to increase the valence
-            label[*facets_of_new_chart.begin()]/2 // the axis of the chart on which we traced boundaries
+            slg.charts[chart_on_wich_the_new_chart_will_be].label/2 // the axis of the chart on which we traced boundaries
         },
         {},
         {}, // no need to specify orthogonality constraints, becase we already forbid 2 axes over 3
         average_facets_normal(normals,facets_of_new_chart) // among the 2 remaining labels, choose the one the closest to the avg normal of `facets_of_new_chart`
     );
-    
+
+    propagate_label(mesh,attribute_name,label_to_insert,facets_of_new_chart,walls,slg.facet2chart,chart_on_wich_the_new_chart_will_be);
 }
 
 unsigned int count_lost_feature_edges(const CustomMeshHalfedges& mesh_he, const std::set<std::pair<index_t,index_t>>& feature_edges) {
