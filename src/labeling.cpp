@@ -10,14 +10,14 @@
 
 #include <array>            // for std::array
 #include <initializer_list> // for std::initializer_list
-#include <algorithm>        // for std::max_element(), std::min(), std::max(), std::sort
+#include <algorithm>        // for std::max_element(), std::min(), std::max(), std::sort()
 #include <iterator>         // for std::distance()
 #include <tuple>            // for std::tuple
 #include <queue>            // for std::queue
 #include <cmath>            // for std::pow(), std::abs()
 #include <set>              // for std::set
 #include <map>              // for std::map()
-#include <ranges>           // for std::ranges::view::keys()
+#include <ranges>           // for std::ranges::view::keys(), std::ranges::sort()
 
 #include "labeling.h"
 #include "LabelingGraph.h"
@@ -456,7 +456,7 @@ unsigned int fix_invalid_boundaries(GEO::Mesh& mesh, const char* attribute_name,
     return new_charts_count;
 }
 
-unsigned int fix_invalid_corners(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, const StaticLabelingGraph& slg) {
+unsigned int fix_invalid_corners(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, const StaticLabelingGraph& slg, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<index_t>& facet2chart) {
     Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // get labeling attribute
     CustomMeshHalfedges mesh_half_edges_(mesh); // create an halfedges interface for this mesh
 
@@ -466,27 +466,85 @@ unsigned int fix_invalid_corners(GEO::Mesh& mesh, const std::vector<vec3>& norma
     unsigned int new_charts_count = 0;
     index_t new_label;
     vec3 vertex_normal = {0,0,0};
+    std::vector<MeshHalfedges::Halfedge> outgoing_halfedges_on_feature_edge;
     for(index_t corner_index : slg.invalid_corners) { // for each invalid corner
 
-        // compute the normal by adding normals of adjacent facets
-        vertex_normal = {0,0,0};
-        for(auto& vr : slg.corners[corner_index].vertex_rings_with_boundaries) { // for each vertex ring
-            for(auto& be : vr.boundary_edges) { // for each boundary edge
-                vertex_normal += normals[be.facet]; // compute normal of associated facet, update vertex_normal
+        // check if there is a feature edge along the corner
+        slg.corners[corner_index].get_outgoing_halfedges_on_feature_edge(mesh,feature_edges,outgoing_halfedges_on_feature_edge);
+        if(outgoing_halfedges_on_feature_edge.empty()) {
+
+            // cone-like invalid corner
+            // compute the normal by adding normals of adjacent facets
+
+            vertex_normal = {0,0,0};
+            for(auto& vr : slg.corners[corner_index].vertex_rings_with_boundaries) { // for each vertex ring
+                for(auto& be : vr.boundary_edges) { // for each boundary edge
+                    vertex_normal += normals[be.facet]; // compute normal of associated facet, update vertex_normal
+                }
+            }
+
+            // compute new label
+            new_label = nearest_label(vertex_normal);
+
+            // change the label of adjacent facets
+            for(auto& vr : slg.corners[corner_index].vertex_rings_with_boundaries) { // for each vertex ring
+                for(auto& be : vr.boundary_edges) { // for each boundary edge
+                    label[be.facet] = new_label; // change the label of this facet
+                }
+            }
+
+            new_charts_count++;
+        }
+        else {
+            
+            // A problematic corner on feature edge like on MAMBO S24 model https://gitlab.com/franck.ledoux/mambo/
+            // Get the 4 outgoing boundaries, all of which being on feature edges
+            // Keep only the 2 shortest
+            // Store the chart they have in common
+            // Change the label on their side where it's not their chart in common, with the label of the chart in common
+            //
+            // Only changes facets at distance of 0 or 1 from the 2 shortest boundaries.
+            // Works for MAMBO S24 but it's not generalizable
+
+            geo_assert(outgoing_halfedges_on_feature_edge.size() == 4);
+            std::vector<std::pair<index_t,double>> adjacent_boundaries_and_their_length;
+            for(const auto& halfedge : outgoing_halfedges_on_feature_edge) {
+                index_t b = slg.halfedge2boundary.at(halfedge).first;
+                adjacent_boundaries_and_their_length.push_back(std::make_pair(
+                    b, // boundary index
+                    slg.boundaries[b].length(mesh) // boundary length
+                ));
+            }
+            std::ranges::sort(
+                adjacent_boundaries_and_their_length,
+                [](const std::pair<index_t,double>& a, const std::pair<index_t,double>& b) { return a.second < b.second; } // sort by second item in the std::pair (the length)
+            );
+            // get the 2 shortest boundaries
+            const Boundary& b0 = slg.boundaries[adjacent_boundaries_and_their_length[0].first];
+            const Boundary& b1 = slg.boundaries[adjacent_boundaries_and_their_length[1].first];
+            index_t chart_in_common = adjacent_chart_in_common(b0,b1);
+            index_t label_of_chart_in_common = slg.charts[chart_in_common].label;
+
+            std::set<index_t> facets_to_edit;
+            b0.get_adjacent_facets(
+                mesh,
+                facets_to_edit,
+                chart_in_common == b0.left_chart ? OnlyRight : OnlyLeft,
+                facet2chart,
+                1 // include facet at a distance of 1 (touch the boundary from a vertex)
+            );
+            // `facets_to_edit` is not cleared inside get_adjacent_facets(), we can call it a second time on top of the existing set values
+            b1.get_adjacent_facets(
+                mesh,
+                facets_to_edit,
+                chart_in_common == b1.left_chart ? OnlyRight : OnlyLeft,
+                facet2chart,
+                1 // include facet at a distance of 1 (touch the boundary from a vertex)
+            );
+            for(index_t f : facets_to_edit) {
+                label[f] = label_of_chart_in_common;
             }
         }
-
-        // compute new label
-        new_label = nearest_label(vertex_normal);
-
-        // change the label of adjacent facets
-        for(auto& vr : slg.corners[corner_index].vertex_rings_with_boundaries) { // for each vertex ring
-            for(auto& be : vr.boundary_edges) { // for each boundary edge
-                label[be.facet] = new_label; // change the label of this facet
-            }
-        }
-
-        new_charts_count++;
     }
 
     return new_charts_count; // should be == to slg.invalid_corners.size()
@@ -610,7 +668,7 @@ bool auto_fix_validity(Mesh& mesh, std::vector<vec3>& normals, const char* attri
         if(slg.is_valid())
             return true;
 
-        fix_invalid_corners(mesh,normals,attribute_name,slg);
+        fix_invalid_corners(mesh,normals,attribute_name,slg,feature_edges,slg.facet2chart);
         // update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
         slg.fill_from(mesh,attribute_name,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
 

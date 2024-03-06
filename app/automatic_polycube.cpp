@@ -137,7 +137,7 @@ protected:
 			}
 
 			if(ImGui::Button("Fix invalid corners")) {
-				unsigned int nb_chart_modified = fix_invalid_corners(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_);
+				unsigned int nb_chart_modified = fix_invalid_corners(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,feature_edges_,static_labeling_graph_.facet2chart);
 				fmt::println(Logger::out("fix_labeling"),"{} chart(s) added to fix invalid corners",nb_chart_modified); Logger::out("fix_labeling").flush();
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
