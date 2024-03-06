@@ -565,3 +565,13 @@ vec3 average_facets_normal(const std::vector<vec3>& normals, const std::set<inde
     }
     return sum / (double) facets.size();
 }
+
+double average_dot_product(const std::vector<vec3>& normals, const std::set<index_t>& facets, vec3 reference) {
+    geo_assert(!normals.empty());
+    vec3 normalized_reference = normalize(reference);
+    double sum = 0.0;
+    for(const auto& f : facets) {
+        sum += dot(normals[f],normalized_reference);
+    }
+    return sum / (double) facets.size();
+}
