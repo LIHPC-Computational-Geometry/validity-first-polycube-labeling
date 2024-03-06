@@ -1453,7 +1453,7 @@ void increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
         // This equilibrium point is on the problematic corner (between 2 boundaries assigned to the same axis)
         // So there is already an outgoing boundary, we just need to fetch facets at its left and right
         MeshHalfedges::Halfedge halfedge = slg.corners[problematic_corner].get_most_aligned_boundary_halfedge(mesh,label2vector[opposite_label(chart.label)]);
-        geo_assert(halfedge_vertex_index_from(mesh,halfedge) == downward_boundary_equilibrium_vertex);
+        geo_assert(halfedge_vertex_index_from(mesh,halfedge) == upward_boundary_equilibrium_vertex);
         auto [boundary_to_reuse, same_direction] = slg.halfedge2boundary[halfedge];
         geo_assert(boundary_to_reuse != index_t(-1));
         dump_boundary_with_halfedges_indices("boundary_to_reuse",mesh,slg.boundaries[boundary_to_reuse]);
