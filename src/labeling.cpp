@@ -334,8 +334,14 @@ unsigned int fix_invalid_boundaries(GEO::Mesh& mesh, const char* attribute_name,
     CustomMeshHalfedges mesh_half_edges_(mesh); // create an halfedges interface for this mesh
 
     // For each invalid boundary,
-    // go through each vertex
-    // and modify the labels in the vertex ring
+    // Get facets at left and right
+    // Find best side to put the new chart
+    // Change label along this side
+    //
+    // TODO distribute the new label on the adjacent chart whole surface
+    // so that the new chart is not that narrow
+    // See MAMBO B29 for example
+    // https://gitlab.com/franck.ledoux/mambo
 
     unsigned int new_charts_count = 0;
     index_t new_label;
@@ -364,9 +370,6 @@ unsigned int fix_invalid_boundaries(GEO::Mesh& mesh, const char* attribute_name,
         
         double average_dot_product_left = 0.0;
         double average_dot_product_right = 0.0;
-        BoundarySide on_which_side_to_place_new_chart = LeftAndRight;
-        index_t nb_facets_for_GCO = index_t(-1);
-        std::vector<index_t> labels_for_GCO;
         // compute cost of assigning `new_label` on `left_facets_along_boundary`
         for(auto f : left_facets_along_boundary) {
             average_dot_product_left += angle(new_label_as_vector,facet_normals[f]); // both operands are already normalized
@@ -379,76 +382,23 @@ unsigned int fix_invalid_boundaries(GEO::Mesh& mesh, const char* attribute_name,
         average_dot_product_right /= (double) right_facets_along_boundary.size();
         // comparison
         if (std::abs(average_dot_product_left - average_dot_product_right) < 0.1) {
-            on_which_side_to_place_new_chart = LeftAndRight;
-            nb_facets_for_GCO = (index_t) left_chart.facets.size() + (index_t) right_chart.facets.size();
-            labels_for_GCO = {new_label,left_chart.label,right_chart.label};
+            for(index_t f : left_facets_along_boundary) {
+                label[f] = new_label;
+            }
+            for(index_t f : right_facets_along_boundary) {
+                label[f] = new_label;
+            }
         }
         else if (average_dot_product_left < average_dot_product_right) { // on average, the left side is a better place to put the new chart
-            on_which_side_to_place_new_chart = OnlyLeft;
-            nb_facets_for_GCO = (index_t) left_chart.facets.size();
-            labels_for_GCO = {new_label,left_chart.label};
+            for(index_t f : left_facets_along_boundary) {
+                label[f] = new_label;
+            }
         }
         else { // on average, the right side is a better place to put the new chart
-            on_which_side_to_place_new_chart = OnlyRight;
-            nb_facets_for_GCO = (index_t) right_chart.facets.size();
-            labels_for_GCO = {new_label,right_chart.label};
-        }
-        geo_assert(!has_duplicates(labels_for_GCO));
-
-        // prepare Graph-Cut optimization
-
-        GraphCutLabeling gcl(mesh,facet_normals,nb_facets_for_GCO,labels_for_GCO);
-
-        // declare facets
-
-        switch (on_which_side_to_place_new_chart) {
-            case LeftAndRight:
-                for(index_t f : left_chart.facets) {
-                    gcl.add_facet(f);
-                }
-                for(index_t f : right_chart.facets) {
-                    gcl.add_facet(f);
-                }
-                break;
-            case OnlyLeft:
-                for(index_t f : left_chart.facets) {
-                    gcl.add_facet(f);
-                }
-                break;
-            case OnlyRight:
-                for(index_t f : right_chart.facets) {
-                    gcl.add_facet(f);
-                }
-                break;
-            default:
-                geo_assert_not_reached;
-        }
-
-        // define data cost. impose the `new_label` along the boundary and elsewhere, cost proportional to the fidelity 
-
-        gcl.data_cost__set__fidelity_based(1);
-        if( (on_which_side_to_place_new_chart == LeftAndRight) || (on_which_side_to_place_new_chart == OnlyLeft) ) {
-            for(index_t f : left_facets_along_boundary) {
-                gcl.data_cost__change_to__locked_polycube_label(f,new_label);
-            }
-        }
-        if( (on_which_side_to_place_new_chart == LeftAndRight) || (on_which_side_to_place_new_chart == OnlyRight) ) {
             for(index_t f : right_facets_along_boundary) {
-                gcl.data_cost__change_to__locked_polycube_label(f,new_label);
+                label[f] = new_label;
             }
         }
-
-        // define smooth cost
-
-        gcl.smooth_cost__set__prevent_opposite_neighbors();
-        
-        // define neighbor cost
-
-        gcl.neighbors__set__compactness_based(1);
-
-        // launch optimizer & update the facet attribute
-
-        gcl.compute_solution(label);
 
         new_charts_count++;
     }
@@ -496,7 +446,7 @@ unsigned int fix_invalid_corners(GEO::Mesh& mesh, const std::vector<vec3>& norma
             new_charts_count++;
         }
         else {
-            
+
             // A problematic corner on feature edge like on MAMBO S24 model https://gitlab.com/franck.ledoux/mambo/
             // Get the 4 outgoing boundaries, all of which being on feature edges
             // Keep only the 2 shortest
