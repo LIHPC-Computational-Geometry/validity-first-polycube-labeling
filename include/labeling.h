@@ -2,6 +2,8 @@
 
 #include <geogram/mesh/mesh.h> // for GEO::Mesh
 
+#include <initializer_list>
+
 #include "LabelingGraph.h"
 #include "basic_stats.h"
 
@@ -46,6 +48,8 @@ const vec3 label2vector[6] = {
 bool are_orthogonal_labels(index_t label1, index_t label2);
 
 index_t opposite_label(index_t label);
+
+index_t find_optimal_label(std::initializer_list<index_t> forbidden_axes = {}, std::initializer_list<index_t> forbidden_labels = {}, std::initializer_list<index_t> orthogonal_labels = {}, vec3 close_vector = vec3(0.0,0.0,0.0));
 
 /**
  * \brief Compute the naive labeling of a given mesh

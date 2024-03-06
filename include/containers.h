@@ -12,6 +12,7 @@
 
 #define VECTOR_CONTAINS(container,value) (std::find(container.cbegin(),container.cend(),value) != container.cend())
 #define MAP_CONTAINS(container,value) (container.find(value) != container.end())
+#define INIT_LIST_CONTAINS(container,value) (std::find(container.begin(),container.end(),value) != container.end()) // there are no .cbegin()/.cend() for std::initializer_list
 
 #define VECTOR_MIN(container) (std::min_element(container.begin(),container.end())) // do not work on mesh attributes because they don't have iterators...
 #define VECTOR_MAX(container) (std::max_element(container.begin(),container.end())) // do not work on mesh attributes because they don't have iterators...
@@ -86,3 +87,10 @@ T max(const vecng<DIM, T>& vector) {
 template <typename T>
 inline std::set<T> make_set(const T& x)
 { return {x}; }
+
+// get map key where value is max
+template <typename K, typename V>
+K key_at_max_value(const std::map<K,V>& map) {
+    // thanks Janek_Kozicki and cigien https://stackoverflow.com/a/54690905
+    return std::max_element(map.begin(),map.end(),[] (const std::pair<K,V>& a, const std::pair<K,V>& b) -> bool{ return a.second < b.second; } )->first;
+}

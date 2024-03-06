@@ -16,6 +16,8 @@
 #include <queue>            // for std::queue
 #include <cmath>            // for std::pow(), std::abs()
 #include <set>              // for std::set
+#include <map>              // for std::map()
+#include <ranges>           // for std::ranges::view::keys()
 
 #include "labeling.h"
 #include "LabelingGraph.h"
@@ -128,6 +130,53 @@ bool are_orthogonal_labels(index_t label1, index_t label2) {
 index_t opposite_label(index_t label) {
     geo_assert(label < 6);
     return (label % 2 == 0) ? label+1 : label-1;
+}
+
+index_t find_optimal_label(std::initializer_list<index_t> forbidden_axes, std::initializer_list<index_t> forbidden_labels, std::initializer_list<index_t> orthogonal_labels, vec3 close_vector) {
+    std::map<index_t,double> candidates;
+    FOR(label,6) {
+        if(INIT_LIST_CONTAINS(forbidden_axes,label/2)) {
+            goto ignore_this_label; // current `label` is on a forbidden axis
+        }
+        if(INIT_LIST_CONTAINS(forbidden_labels,label)) {
+            goto ignore_this_label; // current `label` is forbidden
+        }
+        for(index_t orthogonal_label : orthogonal_labels) {
+            if(!are_orthogonal_labels(label,orthogonal_label)) {
+                goto ignore_this_label; // yes, I use goto, but only when there are nested loops
+            }
+        }
+        // so `label` passed all the criteria
+        if(close_vector == vec3(0.0,0.0,0.0)) { // if no `close_vector` provided
+            candidates[label] = 0.0; // no dot product to compute
+        }
+        else {
+            candidates[label] = dot(label2vector[label],normalize(close_vector));
+        }
+    ignore_this_label:
+            continue;
+    }
+    if(candidates.empty()) {
+        fmt::println(Logger::err("labeling"),"In find_optimal_label(), no label satisfy all constraints:");
+        fmt::println(Logger::err("labeling")," - not on axes {}",forbidden_axes);
+        fmt::println(Logger::err("labeling")," - not {}",forbidden_labels);
+        fmt::println(Logger::err("labeling")," - orthogonal to {}",orthogonal_labels);
+        Logger::err("labeling").flush();
+        geo_assert_not_reached;
+    }
+    if(close_vector == vec3(0.0,0.0,0.0)) { // if no `close_vector` provided
+        if(candidates.size() > 1) {
+            fmt::println(Logger::err("labeling"),"In find_optimal_label(), several labels ({}) match the constraints,",std::ranges::views::keys(candidates));
+            fmt::println(Logger::err("labeling"),"but no close vector was provided to prefer one");
+            Logger::err("labeling").flush();
+            geo_assert_not_reached;
+        }
+        return candidates.begin()->first;
+    }
+    // so a `close_vector` was provided
+    index_t optimal_label = key_at_max_value(candidates); // return label with max dot product with `close_vector`
+    geo_assert(candidates[optimal_label] > 0.0); // the dot product must be positive, else the label is not close to the `close_vector` the user asked for
+    return optimal_label;
 }
 
 void naive_labeling(Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name) {
