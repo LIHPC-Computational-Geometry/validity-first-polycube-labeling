@@ -27,8 +27,6 @@
 #include "basic_stats.h"
 #include "dump_mesh.h"
 
-#include <dbg.h>
-
 bool load_labeling(const std::string& filename, Mesh& mesh, const char* attribute_name) {
 
     //open the file
@@ -179,6 +177,39 @@ index_t find_optimal_label(std::initializer_list<index_t> forbidden_axes, std::i
     index_t optimal_label = key_at_max_value(candidates); // return label with max dot product with `close_vector`
     geo_assert(candidates[optimal_label] > 0.0); // the dot product must be positive, else the label is not close to the `close_vector` the user asked for
     return optimal_label;
+}
+
+void propagate_label(const Mesh& mesh, const char* attribute_name, index_t new_label, const std::set<index_t>& facets_in, const std::set<index_t> facets_out, const std::vector<index_t>& facet2chart, index_t chart_index) {
+    // change label to `new_label` for all facets in `facets_in` and their neighbors, step by step.
+    // 2 limits for the propagation:
+    //  - stay on `chart_index`
+    //  - do not cross facets in `facets_out`
+    std::vector<index_t> to_process(facets_in.begin(),facets_in.end()); // set -> vector data structure
+    geo_assert(!to_process.empty());
+    Attribute<index_t> label(mesh.facets.attributes(),attribute_name);
+
+    index_t current_facet = index_t(-1),
+            adjacent_facet = index_t(-1);
+    while (!to_process.empty()) {
+        current_facet = to_process.back();
+        to_process.pop_back();
+        geo_assert(facet2chart[current_facet] == chart_index); // assert the facets given inside `facets_in` are all on the chart `chart_index`
+        if(label[current_facet] == new_label) {
+            // facet already processed since insertion
+            continue;
+        }
+        label[current_facet] = new_label;
+        FOR(le,3) { // process adjacent triangles
+            adjacent_facet = mesh.facets.adjacent(current_facet,le);
+            if(facets_out.contains(adjacent_facet)) { // do not cross `facets_out` (walls)
+                continue;
+            }
+            if(facet2chart[adjacent_facet] != chart_index) { // do not go away from `chart_index`
+                continue;
+            }
+            to_process.push_back(adjacent_facet);
+        }
+    }
 }
 
 void naive_labeling(Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name) {
@@ -1183,32 +1214,10 @@ bool merge_a_turning_point_and_a_corner_on_non_monotone_boundary(GEO::Mesh& mesh
 
     bool the_wall_is_left_facets = (first_turning_point_on_feature_edge.is_towards_left() && closest_corner == non_monotone_boundary.end_corner) || 
                                    (first_turning_point_on_feature_edge.is_towards_right() && closest_corner == non_monotone_boundary.start_corner);
-    const std::set<index_t>& wall = the_wall_is_left_facets ? facets_at_left : facets_at_right;
-    const std::set<index_t>& to_process_as_set = the_wall_is_left_facets ? facets_at_right : facets_at_left;
-    std::vector<index_t> to_process(to_process_as_set.begin(),to_process_as_set.end()); // set to vector
-    geo_assert(!to_process.empty());
+    const std::set<index_t>& wall_facets = the_wall_is_left_facets ? facets_at_left : facets_at_right;
+    const std::set<index_t>& facets_to_process = the_wall_is_left_facets ? facets_at_right : facets_at_left;
 
-    index_t current_facet = index_t(-1),
-            adjacent_facet = index_t(-1);
-    while (!to_process.empty()) {
-        current_facet = to_process.back();
-        to_process.pop_back();
-        if(label[current_facet] == new_label) {
-            // facet already processed since insertion
-            continue;
-        }
-        label[current_facet] = new_label;
-        FOR(le,3) { // process adjacent triangles
-            adjacent_facet = mesh.facets.adjacent(current_facet,le);
-            if(wall.contains(adjacent_facet)) {
-                continue;
-            }
-            if(!facets_of_the_chart_on_which_the_new_boundary_will_be.contains(adjacent_facet)) {
-                continue;
-            }
-            to_process.push_back(adjacent_facet);
-        }
-    }
+    propagate_label(mesh,attribute_name,new_label,facets_to_process,wall_facets,slg.facet2chart,chart_on_which_the_new_boundary_will_be);
 
     return true;
 }
@@ -1489,8 +1498,6 @@ void increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
         {}, // no need to specify orthogonality constraints, becase we already forbid 2 axes over 3
         average_facets_normal(normals,facets_of_new_chart) // among the 2 remaining labels, choose the one the closest to the avg normal of `facets_of_new_chart`
     );
-
-    dbg(label_to_insert);
     
 }
 

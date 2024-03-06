@@ -51,6 +51,8 @@ index_t opposite_label(index_t label);
 
 index_t find_optimal_label(std::initializer_list<index_t> forbidden_axes = {}, std::initializer_list<index_t> forbidden_labels = {}, std::initializer_list<index_t> orthogonal_labels = {}, vec3 close_vector = vec3(0.0,0.0,0.0));
 
+void propagate_label(const Mesh& mesh, const char* attribute_name, index_t new_label, const std::set<index_t>& facets_in, const std::set<index_t> facets_out, const std::vector<index_t>& facet2chart, index_t chart_index);
+
 /**
  * \brief Compute the naive labeling of a given mesh
  * \details Compute the per-facet nearest-to-normal signed direction +/-{X,Y,Z} of a surface mesh
