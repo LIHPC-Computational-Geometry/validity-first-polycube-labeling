@@ -538,3 +538,12 @@ void trace_path_on_chart(const CustomMeshHalfedges& mesh_he, const std::vector<s
     geo_assert(!facets_at_left.empty());
     geo_assert(!facets_at_right.empty());
 }
+
+vec3 average_facets_normal(const std::vector<vec3>& normals, const std::set<index_t>& facets) {
+    geo_assert(!normals.empty());
+    vec3 sum(0.0,0.0,0.0);
+    for(const auto& f : facets) {
+        sum += normals[f];
+    }
+    return sum / (double) facets.size();
+}
