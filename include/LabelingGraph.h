@@ -214,6 +214,10 @@ struct Boundary {
 
     index_t chart_at_other_side(index_t origin_chart) const;
 
+    // if `label` is the label of the `left_chart`, returns the label of the `right_chart`
+    // if `label` is the label of the `right_chart`, returns the label of the `left_chart`
+    index_t other_label(const std::vector<Chart>& charts, index_t label);
+
     void print_successive_halfedges(fmt::v9::ostream& out, Mesh& mesh);
 
     index_t turning_point_vertex(index_t turning_point_index, const Mesh& mesh) const;

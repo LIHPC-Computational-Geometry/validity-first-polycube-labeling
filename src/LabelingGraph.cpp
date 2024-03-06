@@ -649,6 +649,18 @@ index_t Boundary::chart_at_other_side(index_t origin_chart) const {
     }
 }
 
+index_t Boundary::other_label(const std::vector<Chart>& charts, index_t label) {
+    if(label == charts[left_chart].label) {
+        return charts[right_chart].label;
+    }
+    else if(label == charts[right_chart].label) {
+        return charts[left_chart].label;
+    }
+    else {
+        geo_assert_not_reached;
+    }
+}
+
 void Boundary::print_successive_halfedges(fmt::v9::ostream& out, Mesh& mesh) {
     // example:
     //          
