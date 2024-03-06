@@ -303,15 +303,12 @@ struct StaticLabelingGraph {
 
     bool vertex_is_only_surrounded_by(index_t vertex_index, std::vector<index_t> expected_charts, const std::vector<std::vector<index_t>>& vertex_to_adj_facets) const;
     void get_adjacent_charts_of_vertex(index_t vertex_index, const std::vector<std::vector<index_t>>& vertex_to_adj_facets, std::set<index_t>& adjacent_charts) const;
+    bool is_turning_point(const Mesh& mesh, index_t vertex_index, index_t& invalid_boundary) const;
 
     //// Export //////////////////
 
     void dump_to_text_file(const char* filename, Mesh& mesh);
     void dump_to_D3_graph(const char* filename); // not tested
-
-    //// Debug //////////////////
-
-    bool is_turning_point(const Mesh& mesh, index_t vertex_index) const;
 };
 
 std::ostream& operator<< (std::ostream &out, const StaticLabelingGraph& data);

@@ -1155,6 +1155,18 @@ void StaticLabelingGraph::get_adjacent_charts_of_vertex(index_t vertex_index, co
     }
 }
 
+bool StaticLabelingGraph::is_turning_point(const Mesh& mesh, index_t vertex_index, index_t& invalid_boundary) const {
+    for(auto b : non_monotone_boundaries) {
+        FOR(tp,boundaries[b].turning_points.size()) {
+            if(boundaries[b].turning_point_vertex(tp,mesh) == vertex_index) {
+                invalid_boundary = b;
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 void StaticLabelingGraph::dump_to_text_file(const char* filename, Mesh& mesh) {
     auto out = fmt::output_file(filename);
     out.print("{}",(*this));
@@ -1192,17 +1204,6 @@ void StaticLabelingGraph::dump_to_D3_graph(const char* filename) {
     else {
         fmt::println(Logger::err("I/O"),"Cannot write into {}",filename); Logger::err("I/O").flush();
     }
-}
-
-bool StaticLabelingGraph::is_turning_point(const Mesh& mesh, index_t vertex_index) const {
-    for(auto b : non_monotone_boundaries) {
-        FOR(tp,boundaries[b].turning_points.size()) {
-            if(boundaries[b].turning_point_vertex(tp,mesh) == vertex_index) {
-                return true;
-            }
-        }
-    }
-    return false;
 }
 
 std::ostream& operator<< (std::ostream &out, const StaticLabelingGraph& data) {

@@ -175,7 +175,10 @@ index_t find_optimal_label(std::initializer_list<index_t> forbidden_axes, std::i
     }
     // so a `close_vector` was provided
     index_t optimal_label = key_at_max_value(candidates); // return label with max dot product with `close_vector`
-    geo_assert(candidates[optimal_label] > 0.0); // the dot product must be positive, else the label is not close to the `close_vector` the user asked for
+    if(candidates[optimal_label] <= 0.0) { // the dot product should be positive, else the label is not close to the `close_vector` the user asked for
+        fmt::println(Logger::warn("labeling"),"In find_optimal_label(), max dot product is negative (label = {}, dot product = {})",optimal_label,candidates[optimal_label]);
+        Logger::warn("labeling").flush();
+    }
     return optimal_label;
 }
 
@@ -700,7 +703,8 @@ unsigned int move_boundaries_near_turning_points(GEO::Mesh& mesh, const char* at
 
             // get the vertex index
             index_t current_vertex = mesh.facet_corners.vertex(initial_halfedge.corner);
-            geo_assert(slg.is_turning_point(mesh,current_vertex));
+            index_t dummy;
+            geo_assert(slg.is_turning_point(mesh,current_vertex,dummy));
             geo_assert(slg.vertex2corner[current_vertex] == index_t(-1)); // a turning point should not be a corner
             // test if the valence of current_vertex is 2
             VertexRingWithBoundaries vr;
@@ -1259,6 +1263,107 @@ void merge_turning_points_and_corners(GEO::Mesh& mesh, const char* attribute_nam
 
     // Do not assert there is no more non-monotone boundaries, so that in case of a detected infinite loop, a labeling is still written,
     // even if not all boundaries are monotone.
+}
+
+// returns true if a chart has been created
+// returns false if any of the turning-points can be processed with this operator
+bool join_turning_points_pair_with_new_chart(GEO::Mesh& mesh, const char* attribute_name, StaticLabelingGraph& slg, const std::vector<vec3>& normals, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<std::vector<index_t>>& adj_facets) {
+    if(feature_edges.empty()) {
+        return false; // nothing to do, there are no feature edges
+    }
+    geo_assert(!adj_facets.empty()); // `adj_facets` must have been filled in a parent function
+    geo_assert(!normals.empty()); // `normals` must have been filled in a parent function
+
+    // Parse all turning-points
+    // Look at their neighboring halfedges
+    // If there is an outgoing feature edge not captured (ie same label on both sides),
+    // follow the feature edge.
+    // If we arrive at another turning point, trace a chart between the two turning-points
+    // Else do nothing
+
+    Attribute<index_t> label(mesh.facets.attributes(), attribute_name);
+    CustomMeshHalfedges mesh_he(mesh);
+    mesh_he.set_use_facet_region(attribute_name);
+    MeshHalfedges::Halfedge previous_halfedge;
+    MeshHalfedges::Halfedge current_halfedge;
+    bool move_successful = false;
+    index_t chart_on_which_the_lost_feature_edge_is = index_t(-1);
+    index_t label_on_which_the_lost_feature_edge_is = index_t(-1);
+    std::set<index_t> facets_at_left;
+    std::set<index_t> facets_at_right;
+    index_t vertex_at_tip_of_feature_edge = index_t(-1);
+    index_t new_label = index_t(-1);
+    index_t adjacent_facet = index_t(-1);
+    index_t boundary_of_the_second_turning_point = index_t(-1);
+
+    for(index_t b : slg.non_monotone_boundaries) { // for each non-monotone boundary (b is an index of slg.boundaries)
+        for(const auto& tp : slg.boundaries[b].turning_points) { // for each turning-point of the current boundary
+            if(vertex_has_lost_feature_edge_in_neighborhood(mesh_he,adj_facets,feature_edges,tp.vertex(slg.boundaries[b],mesh),current_halfedge)) {
+                geo_assert(halfedge_is_on_feature_edge(mesh,current_halfedge,feature_edges));
+                chart_on_which_the_lost_feature_edge_is = slg.facet2chart[halfedge_facet_left(mesh,current_halfedge)];
+                geo_assert(chart_on_which_the_lost_feature_edge_is == slg.facet2chart[halfedge_facet_right(mesh,current_halfedge)]);
+                label_on_which_the_lost_feature_edge_is = slg.charts[chart_on_which_the_lost_feature_edge_is].label;
+                // walk along feature edge until we are no longer on the chart
+                do {
+                    facets_at_left.insert(halfedge_facet_left(mesh,current_halfedge));
+                    facets_at_right.insert(halfedge_facet_right(mesh,current_halfedge));
+                    previous_halfedge = current_halfedge;
+                    move_successful = move_to_next_halfedge_on_feature_edge(mesh_he,current_halfedge,feature_edges);
+                    geo_assert(halfedge_is_on_feature_edge(mesh,current_halfedge,feature_edges));
+                } while(
+                    move_successful && 
+                    (slg.facet2chart[halfedge_facet_left(mesh,current_halfedge)] == chart_on_which_the_lost_feature_edge_is) &&
+                    (slg.facet2chart[halfedge_facet_right(mesh,current_halfedge)] == chart_on_which_the_lost_feature_edge_is)
+                );
+                // so move unsuccessful (no more halfedges on feature edge), or we left the chart (found a boundary / corner / turning-point)
+                vertex_at_tip_of_feature_edge = halfedge_vertex_index_to(mesh,previous_halfedge);
+                if(slg.is_turning_point(mesh,vertex_at_tip_of_feature_edge,boundary_of_the_second_turning_point)) {
+                    new_label = find_optimal_label(
+                        {},
+                        { // forbidden labels
+                            label_on_which_the_lost_feature_edge_is,
+                            slg.boundaries[b].other_label(slg.charts,label_on_which_the_lost_feature_edge_is),
+                            slg.boundaries[boundary_of_the_second_turning_point].other_label(slg.charts,label_on_which_the_lost_feature_edge_is)
+                        }, 
+                        {},
+                        (average_facets_normal(normals,facets_at_left) + average_facets_normal(normals,facets_at_right)) / 2.0 // new label must be close to the facet normals
+                    );
+                    bool keep_left_facet = average_dot_product(normals,facets_at_left,label2vector[new_label]) > average_dot_product(normals,facets_at_right,label2vector[new_label]);
+                    const std::set<index_t>& facets_to_edit = keep_left_facet ? facets_at_left : facets_at_right;
+                    const std::set<index_t>& wall = keep_left_facet ? facets_at_right : facets_at_left;
+                    // change label to `new_label` for `facets_to_edit` and their adjacent facets
+                    for(auto f : facets_to_edit) {
+                        label[f] = new_label;
+                        FOR(le,3) { // for each local edge of facet f
+                            adjacent_facet = mesh.facets.adjacent(f,le);
+                            if(wall.contains(adjacent_facet)) {
+                                continue;
+                            }
+                            if(slg.facet2chart[adjacent_facet] == chart_on_which_the_lost_feature_edge_is) {
+                                label[adjacent_facet] = new_label; // also change the label of the adjacent facet
+                            }
+                        }
+                    }
+                    return true;
+                }
+                // else: clear variables & continue
+                previous_halfedge = MeshHalfedges::Halfedge(NO_FACET,NO_CORNER);
+                current_halfedge = MeshHalfedges::Halfedge(NO_FACET,NO_CORNER);
+                move_successful = false;
+                chart_on_which_the_lost_feature_edge_is = index_t(-1);
+                label_on_which_the_lost_feature_edge_is = index_t(-1);
+                facets_at_left.clear();
+                facets_at_right.clear();
+                vertex_at_tip_of_feature_edge = index_t(-1);
+                new_label = index_t(-1);
+                adjacent_facet = index_t(-1);
+                boundary_of_the_second_turning_point = index_t(-1);
+            }
+            // else : continue
+        }
+    }
+
+    return false;
 }
 
 bool auto_fix_monotonicity(Mesh& mesh, const char* attribute_name, StaticLabelingGraph& slg, std::vector<std::vector<index_t>>& adj_facets, const std::set<std::pair<index_t,index_t>>& feature_edges) {
