@@ -241,6 +241,8 @@ struct Boundary {
     void per_edges_axis_assignement_cost(const Mesh& mesh, index_t axis, std::vector<double>& costs) const;
 
     void per_edges_cumulative_axis_assignement_cost(const Mesh& mesh, index_t axis, std::vector<double>& costs, bool accumulation_from_start_corner) const;
+
+    double length(const Mesh& mesh) const;
 };
 
 std::ostream& operator<< (std::ostream &out, const Boundary& data);

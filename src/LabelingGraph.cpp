@@ -888,6 +888,17 @@ void Boundary::per_edges_cumulative_axis_assignement_cost(const Mesh& mesh, inde
     }
 }
 
+double Boundary::length(const Mesh& mesh) const {
+    if(halfedges.empty()) {
+        return 0.0;
+    }
+    double sum = 0.0;
+    for(const auto& halfedge : halfedges) {
+        sum += Geom::edge_length(mesh,halfedge);
+    }
+    return sum;
+}
+
 std::ostream& operator<< (std::ostream &out, const Boundary& data) {
     fmt::println(out,"\taxis : {}",data.axis);
     fmt::println(out,"\tis_valid : {}",data.is_valid);
