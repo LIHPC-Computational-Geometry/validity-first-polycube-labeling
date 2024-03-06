@@ -312,6 +312,29 @@ vec3 Corner::average_coordinates_of_neighborhood(const Mesh& mesh, const StaticL
     return sum / (double) count_vertices_in_sum;
 }
 
+MeshHalfedges::Halfedge Corner::get_most_aligned_boundary_halfedge(const Mesh& mesh, const vec3& reference) const {
+    // based on geometry.cpp / get_most_aligned_halfedge_around_vertex()
+
+    vec3 normalized_reference = normalize(reference);
+    MeshHalfedges::Halfedge most_aligned_halfedge; // init value is (NO_FACET,NO_CORNER)
+    double current_dot_product = 0.0,
+           max_dot_product = Numeric::min_float64();
+
+    for(const auto& vr : vertex_rings_with_boundaries) {
+        for(const auto& boundary_halfedge : vr.boundary_edges) {
+            current_dot_product = dot(normalize(halfedge_vector(mesh,boundary_halfedge)),normalized_reference);
+            if (current_dot_product > max_dot_product) {
+                max_dot_product = current_dot_product;
+                most_aligned_halfedge = boundary_halfedge;
+            }
+        }
+    }
+
+    geo_assert(most_aligned_halfedge.facet != NO_FACET);
+    geo_assert(most_aligned_halfedge.corner != NO_CORNER);
+    return most_aligned_halfedge;    
+}
+
 std::ostream& operator<< (std::ostream &out, const Corner& data) {
     fmt::println(out,"\tvertex : {}",data.vertex);
     fmt::println(out,"\tis_valid : {}",data.is_valid);
