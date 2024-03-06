@@ -575,3 +575,19 @@ double average_dot_product(const std::vector<vec3>& normals, const std::set<inde
     }
     return sum / (double) facets.size();
 }
+
+bool vertex_has_lost_feature_edge_in_neighborhood(const CustomMeshHalfedges& mesh_he, const std::vector<std::vector<index_t>>& adj_facets, const std::set<std::pair<index_t,index_t>>& feature_edges, index_t vertex, MeshHalfedges::Halfedge& outgoing_halfedge_on_feature_edges) {
+    geo_assert(mesh_he.is_using_facet_region()); // we need the labeling to be stored as facet region in `mesh_he`, so that halfedges on borders are defined
+    const Mesh& mesh = mesh_he.mesh();
+    MeshHalfedges::Halfedge init_halfedge = get_an_outgoing_halfedge_of_vertex(mesh,adj_facets,vertex);
+    MeshHalfedges::Halfedge current_halfedge = init_halfedge;
+    do { // explore all outgoing halfedges of this vertex, starting with `init_halfedge`
+        if(halfedge_is_on_feature_edge(mesh,current_halfedge,feature_edges) && !mesh_he.halfedge_is_border(current_halfedge)) {
+            // `current_halfedge` is on a "lost" feature edge
+            outgoing_halfedge_on_feature_edges = current_halfedge;
+            return true;
+        }
+        mesh_he.move_clockwise_around_vertex(current_halfedge,true); // go to next halfedge clockwise & ignore borders
+    } while(current_halfedge != init_halfedge);
+    return false; // found no lost feature edge
+}
