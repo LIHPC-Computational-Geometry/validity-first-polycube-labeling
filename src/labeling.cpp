@@ -1260,6 +1260,7 @@ void increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
 
     index_t problematic_corner = index_t(-1);
     index_t problematic_non_monotone_boundary = index_t(-1);
+    index_t problematic_vertex = index_t(-1);
     Boundary downward_boundary;
     Boundary upward_boundary;
     index_t current_axis = index_t(-1);
@@ -1287,6 +1288,7 @@ void increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
                 slg.boundaries[b].halfedges[slg.boundaries[b].turning_points[0].outgoing_local_halfedge_index_],
                 slg.boundaries[b].halfedges[slg.boundaries[b].turning_points[0].outgoing_local_halfedge_index_-1]
             },{current_axis});
+            problematic_vertex = slg.boundaries[problematic_non_monotone_boundary].turning_points[0].vertex(slg.boundaries[problematic_non_monotone_boundary],mesh);
             break;
         }
         geo_assert(slg.boundaries[b].start_corner != index_t(-1));
@@ -1311,6 +1313,7 @@ void increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
                 slg.boundaries[next_b].get_flipped(mesh_he,upward_boundary);
                 geo_assert(problematic_corner == upward_boundary.end_corner);
             }
+            problematic_vertex = slg.corners[problematic_corner].vertex;
             axis_to_insert = nearest_axis_of_edges(mesh,{
                 downward_boundary.halfedges[0],
                 upward_boundary.halfedges[0]
@@ -1318,15 +1321,11 @@ void increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
             break;
         }
     }
+    geo_assert(problematic_vertex != index_t(-1));
     geo_assert( (problematic_corner != index_t(-1)) || (problematic_non_monotone_boundary != index_t(-1)) );
     
     #ifndef NDEBUG
-        if(problematic_corner != index_t(-1)) {
-            dump_vertex("new_chart_location",mesh,slg.corners[problematic_corner].vertex);
-        }
-        else {
-            dump_vertex("new_chart_location",mesh,slg.boundaries[problematic_non_monotone_boundary].turning_points[0].vertex(slg.boundaries[problematic_non_monotone_boundary],mesh));
-        }
+        dump_vertex("problematic_vertex",mesh,problematic_vertex);
         dump_boundary_with_halfedges_indices("downward_boundary",mesh,downward_boundary);
         dump_boundary_with_halfedges_indices("upward_boundary",mesh,upward_boundary);
     #endif
@@ -1349,13 +1348,11 @@ void increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
             break;
         }
     }
+    index_t downward_boundary_equilibrium_vertex = (vertex_index == downward_boundary.halfedges.size()) ?
+        halfedge_vertex_index_to(mesh,downward_boundary.halfedges[vertex_index-1]) :
+        halfedge_vertex_index_from(mesh,downward_boundary.halfedges[vertex_index]);
     #ifndef NDEBUG
-        if(vertex_index == downward_boundary.halfedges.size()) {
-            dump_vertex("downward_boundary_equilibrium",mesh,halfedge_vertex_index_to(mesh,downward_boundary.halfedges[vertex_index-1]));
-        }
-        else {
-            dump_vertex("downward_boundary_equilibrium",mesh,halfedge_vertex_index_from(mesh,downward_boundary.halfedges[vertex_index]));
-        }
+        dump_vertex("downward_boundary_equilibrium",mesh,downward_boundary_equilibrium_vertex);
     #endif
 
     // find equilibrium along `upward_boundary`
@@ -1367,17 +1364,71 @@ void increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
             break;
         }
     }
+    index_t upward_boundary_equilibrium_vertex = (vertex_index == upward_boundary.halfedges.size()) ?
+        halfedge_vertex_index_to(mesh,upward_boundary.halfedges[vertex_index-1]) :
+        halfedge_vertex_index_from(mesh,upward_boundary.halfedges[vertex_index]);
     #ifndef NDEBUG
-        if(vertex_index == upward_boundary.halfedges.size()) {
-            dump_vertex("upward_boundary_equilibrium",mesh,halfedge_vertex_index_to(mesh,upward_boundary.halfedges[vertex_index-1]));
+        dump_vertex("upward_boundary_equilibrium",mesh,upward_boundary_equilibrium_vertex);
+    #endif
+
+    geo_assert(downward_boundary_equilibrium_vertex != upward_boundary_equilibrium_vertex);
+
+    // Trace a boundary from each equilibrium point
+    // If one of the equilibrium point is on a corner, re-use the boundary going out of the chart
+
+    std::set<index_t> facets_of_new_chart;
+    std::set<index_t> walls;
+
+    if( (downward_boundary_equilibrium_vertex == problematic_vertex) && (problematic_corner != index_t(-1)) ) {
+        // This equilibrium point is on the problematic corner (between 2 boundaries assigned to the same axis)
+        // So there is already an outgoing boundary, we just need to fetch facets at its left and right
+        MeshHalfedges::Halfedge halfedge = slg.corners[problematic_corner].get_most_aligned_boundary_halfedge(mesh,label2vector[opposite_label(chart.label)]);
+        geo_assert(halfedge_vertex_index_from(mesh,halfedge) == downward_boundary_equilibrium_vertex);
+        auto [boundary_to_reuse, same_direction] = slg.halfedge2boundary[halfedge];
+        geo_assert(boundary_to_reuse != index_t(-1));
+        if(same_direction) {
+            slg.boundaries[boundary_to_reuse].get_adjacent_facets(mesh,facets_of_new_chart,OnlyLeft,slg.facet2chart);
+            slg.boundaries[boundary_to_reuse].get_adjacent_facets(mesh,walls,OnlyRight,slg.facet2chart);
         }
         else {
-            dump_vertex("upward_boundary_equilibrium",mesh,halfedge_vertex_index_from(mesh,upward_boundary.halfedges[vertex_index]));
+            slg.boundaries[boundary_to_reuse].get_adjacent_facets(mesh,facets_of_new_chart,OnlyRight,slg.facet2chart);
+            slg.boundaries[boundary_to_reuse].get_adjacent_facets(mesh,walls,OnlyLeft,slg.facet2chart);
         }
+    }
+    else {
+        // trace path
+        trace_path_on_chart(mesh_he,adj_facets,slg.facet2chart,downward_boundary_equilibrium_vertex,label2vector[opposite_label(chart.label)]*10,facets_of_new_chart,walls);
+    }
+
+    if( (upward_boundary_equilibrium_vertex == problematic_vertex) && (problematic_corner != index_t(-1)) ) {
+        // This equilibrium point is on the problematic corner (between 2 boundaries assigned to the same axis)
+        // So there is already an outgoing boundary, we just need to fetch facets at its left and right
+        MeshHalfedges::Halfedge halfedge = slg.corners[problematic_corner].get_most_aligned_boundary_halfedge(mesh,label2vector[opposite_label(chart.label)]);
+        geo_assert(halfedge_vertex_index_from(mesh,halfedge) == downward_boundary_equilibrium_vertex);
+        auto [boundary_to_reuse, same_direction] = slg.halfedge2boundary[halfedge];
+        geo_assert(boundary_to_reuse != index_t(-1));
+        dump_boundary_with_halfedges_indices("boundary_to_reuse",mesh,slg.boundaries[boundary_to_reuse]);
+        if(same_direction) {
+            slg.boundaries[boundary_to_reuse].get_adjacent_facets(mesh,walls,OnlyLeft,slg.facet2chart);
+            slg.boundaries[boundary_to_reuse].get_adjacent_facets(mesh,facets_of_new_chart,OnlyRight,slg.facet2chart);
+        }
+        else {
+            slg.boundaries[boundary_to_reuse].get_adjacent_facets(mesh,walls,OnlyRight,slg.facet2chart);
+            slg.boundaries[boundary_to_reuse].get_adjacent_facets(mesh,facets_of_new_chart,OnlyLeft,slg.facet2chart);
+        }
+    }
+    else {
+        // trace path
+        trace_path_on_chart(mesh_he,adj_facets,slg.facet2chart,upward_boundary_equilibrium_vertex,label2vector[opposite_label(chart.label)]*10,walls,facets_of_new_chart);
+    }
+
+    #ifndef NDEBUG
+        dump_facets("facets_of_new_chart",mesh,facets_of_new_chart);
+        dump_facets("walls",mesh,walls);
     #endif
-    
-    // TODO trace boundary from this/these point(s)
-    // TODO if `problematic_non_monotone_boundary` != -1, also trace another boundary from the turning point
+
+    // TODO change label of `facets_of_new_chart` & their neighbors, but not crossing `walls`
+
 }
 
 unsigned int count_lost_feature_edges(const CustomMeshHalfedges& mesh_he, const std::set<std::pair<index_t,index_t>>& feature_edges) {
