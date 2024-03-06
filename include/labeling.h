@@ -116,3 +116,5 @@ bool auto_fix_monotonicity(Mesh& mesh, const char* attribute_name, StaticLabelin
 void increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, StaticLabelingGraph& slg, const std::vector<std::vector<index_t>>& adj_facets, index_t invalid_chart_index);
 
 unsigned int count_lost_feature_edges(const CustomMeshHalfedges& mesh_he, const std::set<std::pair<index_t,index_t>>& feature_edges);
+
+index_t adjacent_chart_in_common(const Boundary& b0, const Boundary& b1);

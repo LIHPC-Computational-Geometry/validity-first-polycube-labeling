@@ -1643,3 +1643,16 @@ unsigned int count_lost_feature_edges(const CustomMeshHalfedges& mesh_he, const 
     geo_assert(nb_lost_feature_edges <= feature_edges.size());
     return nb_lost_feature_edges;
 }
+
+index_t adjacent_chart_in_common(const Boundary& b0, const Boundary& b1) {
+    if( (b0.left_chart == b1.left_chart) || (b0.left_chart == b1.right_chart) ) {
+        return b0.left_chart;
+    }
+    else if( (b0.right_chart == b1.left_chart) || (b0.right_chart == b1.right_chart) ) {
+        return b0.right_chart;
+    }
+    else {
+        // no chart in common
+        geo_assert_not_reached;
+    }
+}
