@@ -323,6 +323,24 @@ bool halfedge_is_on_feature_edge(const Mesh& mesh, const MeshHalfedges::Halfedge
     ));
 }
 
+// return true if success
+bool move_to_next_halfedge_on_feature_edge(const CustomMeshHalfedges& mesh_he, MeshHalfedges::Halfedge& H, const std::set<std::pair<index_t,index_t>>& feature_edges) {
+    geo_assert(halfedge_is_on_feature_edge(mesh_he.mesh(),H,feature_edges));
+    mesh_he.move_to_opposite(H);
+    MeshHalfedges::Halfedge init_H = H;
+    do {
+        mesh_he.move_clockwise_around_vertex(H,true);
+    } while(!halfedge_is_on_feature_edge(mesh_he.mesh(),H,feature_edges));
+    // we found an halfedge on a feature edge !
+    if(H == init_H) {
+        // it's the same halfedge...
+        mesh_he.move_to_opposite(H); // restore orientation
+        return false;
+    }
+    // we found a *NEW* halfedge on a feature edge !
+    return true;
+}
+
 void rotate_mesh_according_to_principal_axes(Mesh& mesh) {
     geo_assert(mesh.vertices.nb()!=0);
 

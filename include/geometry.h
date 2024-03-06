@@ -112,6 +112,8 @@ void transfer_feature_edges(Mesh& mesh, std::set<std::pair<index_t,index_t>>& fe
 
 bool halfedge_is_on_feature_edge(const Mesh& mesh, const MeshHalfedges::Halfedge& H, const std::set<std::pair<index_t,index_t>>& feature_edges);
 
+bool move_to_next_halfedge_on_feature_edge(const CustomMeshHalfedges& mesh_he, MeshHalfedges::Halfedge& H, const std::set<std::pair<index_t,index_t>>& feature_edges);
+
 void rotate_mesh_according_to_principal_axes(Mesh& mesh);
 
 // Return an outgoing halfedge,
