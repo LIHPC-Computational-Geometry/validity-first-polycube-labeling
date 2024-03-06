@@ -335,6 +335,20 @@ MeshHalfedges::Halfedge Corner::get_most_aligned_boundary_halfedge(const Mesh& m
     return most_aligned_halfedge;    
 }
 
+void Corner::get_outgoing_halfedges_on_feature_edge(const Mesh& mesh, const std::set<std::pair<index_t,index_t>>& all_feature_edges, std::vector<MeshHalfedges::Halfedge>& outgoing_halfedges_on_feature_edge) const {
+    outgoing_halfedges_on_feature_edge.clear();
+    if(all_feature_edges.empty()) {
+        return;
+    }
+    for(const auto& vr : vertex_rings_with_boundaries) {
+        for(const auto& boundary_halfedge : vr.boundary_edges) {
+            if(halfedge_is_on_feature_edge(mesh,boundary_halfedge,all_feature_edges)) {
+                outgoing_halfedges_on_feature_edge.push_back(boundary_halfedge);
+            }
+        }
+    }
+}
+
 std::ostream& operator<< (std::ostream &out, const Corner& data) {
     fmt::println(out,"\tvertex : {}",data.vertex);
     fmt::println(out,"\tis_valid : {}",data.is_valid);

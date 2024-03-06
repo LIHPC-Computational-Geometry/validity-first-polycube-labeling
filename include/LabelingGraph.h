@@ -135,6 +135,8 @@ struct Corner {
     vec3 average_coordinates_of_neighborhood(const Mesh& mesh, const StaticLabelingGraph& slg, bool include_itself, size_t max_dist) const;
 
     MeshHalfedges::Halfedge get_most_aligned_boundary_halfedge(const Mesh& mesh, const vec3& reference) const;
+
+    void get_outgoing_halfedges_on_feature_edge(const Mesh& mesh, const std::set<std::pair<index_t,index_t>>& all_feature_edges, std::vector<MeshHalfedges::Halfedge>& outgoing_halfedges_on_feature_edge) const;
 };
 
 std::ostream& operator<< (std::ostream &out, const Corner& data);
