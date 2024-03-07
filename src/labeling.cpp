@@ -369,30 +369,14 @@ unsigned int fix_invalid_boundaries(GEO::Mesh& mesh, const char* attribute_name,
             continue; // ignore this boundary
         }
 
-        // find out if the chart to insert on the boundary is better suited on the left side, right side, or both
+        // Find out if the chart to insert on the boundary is better suited on the left side or the right side
+        // Don't manage case where both sides are equally suited,
+        // because the boundary could be on a feature edge, and we shouldn't de-capture it
         
-        double average_dot_product_left = 0.0;
-        double average_dot_product_right = 0.0;
-        // compute cost of assigning `new_label` on `left_facets_along_boundary`
-        for(auto f : left_facets_along_boundary) {
-            average_dot_product_left += angle(new_label_as_vector,facet_normals[f]); // both operands are already normalized
-        }
-        average_dot_product_left /= (double) left_facets_along_boundary.size();
-        // compute cost of assigning `new_label` on `right_facets_along_boundary`
-        for(auto f : right_facets_along_boundary) {
-            average_dot_product_right += angle(new_label_as_vector,facet_normals[f]); // both operands are already normalized
-        }
-        average_dot_product_right /= (double) right_facets_along_boundary.size();
+        double average_dot_product_left = average_angle(facet_normals,left_facets_along_boundary,new_label_as_vector);
+        double average_dot_product_right = average_angle(facet_normals,right_facets_along_boundary,new_label_as_vector);
         // comparison
-        if (std::abs(average_dot_product_left - average_dot_product_right) < 0.1) {
-            for(index_t f : left_facets_along_boundary) {
-                label[f] = new_label;
-            }
-            for(index_t f : right_facets_along_boundary) {
-                label[f] = new_label;
-            }
-        }
-        else if (average_dot_product_left < average_dot_product_right) { // on average, the left side is a better place to put the new chart
+        if (average_dot_product_left < average_dot_product_right) { // on average, the left side is a better place to put the new chart
             for(index_t f : left_facets_along_boundary) {
                 label[f] = new_label;
             }
