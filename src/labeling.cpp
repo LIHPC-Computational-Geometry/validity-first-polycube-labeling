@@ -194,7 +194,7 @@ void propagate_label(const Mesh& mesh, const char* attribute_name, index_t new_l
     while (!to_process.empty()) {
         current_facet = to_process.back();
         to_process.pop_back();
-        geo_assert(facet2chart[current_facet] == chart_index); // assert the facets given inside `facets_in` are all on the chart `chart_index`
+        // don't check if `current_facet` is on `chart_index`, too restrictive is some cases
         if(label[current_facet] == new_label) {
             // facet already processed since insertion
             continue;
@@ -536,7 +536,7 @@ unsigned int fix_invalid_boundaries(GEO::Mesh& mesh, const char* attribute_name,
     return new_charts_count;
 }
 
-unsigned int fix_invalid_corners(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, const StaticLabelingGraph& slg, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<index_t>& facet2chart) {
+unsigned int fix_invalid_corners(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, const StaticLabelingGraph& slg, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<index_t>& facet2chart, const std::vector<std::vector<index_t>>& adj_facets) {
     Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // get labeling attribute
     CustomMeshHalfedges mesh_half_edges_(mesh); // create an halfedges interface for this mesh
 
@@ -556,21 +556,19 @@ unsigned int fix_invalid_corners(GEO::Mesh& mesh, const std::vector<vec3>& norma
             // cone-like invalid corner
             // compute the normal by adding normals of adjacent facets
 
+            geo_assert(!adj_facets.empty());
             vertex_normal = {0,0,0};
-            for(auto& vr : slg.corners[corner_index].vertex_rings_with_boundaries) { // for each vertex ring
-                for(auto& be : vr.boundary_edges) { // for each boundary edge
-                    vertex_normal += normals[be.facet]; // compute normal of associated facet, update vertex_normal
-                }
+            for(index_t f : adj_facets[slg.corners[corner_index].vertex]) {
+                vertex_normal += normals[f];
             }
+            vertex_normal /= (double) adj_facets[slg.corners[corner_index].vertex].size();
 
             // compute new label
             new_label = nearest_label(vertex_normal);
 
             // change the label of adjacent facets
-            for(auto& vr : slg.corners[corner_index].vertex_rings_with_boundaries) { // for each vertex ring
-                for(auto& be : vr.boundary_edges) { // for each boundary edge
-                    label[be.facet] = new_label; // change the label of this facet
-                }
+            for(index_t f : adj_facets[slg.corners[corner_index].vertex]) {
+                label[f] = new_label;
             }
 
             new_charts_count++;
@@ -748,7 +746,7 @@ bool auto_fix_validity(Mesh& mesh, std::vector<vec3>& normals, const char* attri
         if(slg.is_valid())
             return true;
 
-        fix_invalid_corners(mesh,normals,attribute_name,slg,feature_edges,slg.facet2chart);
+        fix_invalid_corners(mesh,normals,attribute_name,slg,feature_edges,slg.facet2chart,adj_facets);
         // update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
         slg.fill_from(mesh,attribute_name,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
 
