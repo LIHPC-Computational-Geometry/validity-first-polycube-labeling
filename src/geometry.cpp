@@ -576,6 +576,16 @@ double average_dot_product(const std::vector<vec3>& normals, const std::set<inde
     return sum / (double) facets.size();
 }
 
+double average_angle(const std::vector<vec3>& normals, const std::set<index_t>& facets, vec3 reference) {
+    geo_assert(!normals.empty());
+    vec3 normalized_reference = normalize(reference);
+    double sum = 0.0;
+    for(const auto& f : facets) {
+        sum += angle(normals[f],normalized_reference);
+    }
+    return sum / (double) facets.size();
+}
+
 bool vertex_has_lost_feature_edge_in_neighborhood(const CustomMeshHalfedges& mesh_he, const std::vector<std::vector<index_t>>& adj_facets, const std::set<std::pair<index_t,index_t>>& feature_edges, index_t vertex, MeshHalfedges::Halfedge& outgoing_halfedge_on_feature_edges) {
     geo_assert(mesh_he.is_using_facet_region()); // we need the labeling to be stored as facet region in `mesh_he`, so that halfedges on borders are defined
     const Mesh& mesh = mesh_he.mesh();

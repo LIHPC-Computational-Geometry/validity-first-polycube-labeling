@@ -146,4 +146,6 @@ vec3 average_facets_normal(const std::vector<vec3>& normals, const std::set<inde
 
 double average_dot_product(const std::vector<vec3>& normals, const std::set<index_t>& facets, vec3 reference);
 
+double average_angle(const std::vector<vec3>& normals, const std::set<index_t>& facets, vec3 reference);
+
 bool vertex_has_lost_feature_edge_in_neighborhood(const CustomMeshHalfedges& mesh_he, const std::vector<std::vector<index_t>>& adj_facets, const std::set<std::pair<index_t,index_t>>& feature_edges, index_t vertex, MeshHalfedges::Halfedge& outgoing_halfedge_on_feature_edges);
