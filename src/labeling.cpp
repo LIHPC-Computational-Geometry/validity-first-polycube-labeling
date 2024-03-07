@@ -330,6 +330,7 @@ unsigned int remove_surrounded_charts(GEO::Mesh& mesh, const char* attribute_nam
 unsigned int fix_invalid_boundaries(GEO::Mesh& mesh, const char* attribute_name, StaticLabelingGraph& slg, const std::vector<vec3>& facet_normals, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<std::vector<index_t>>& adj_facets) {
     Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // get labeling attribute
     CustomMeshHalfedges mesh_he(mesh); // create an halfedges interface for this mesh
+    mesh_he.set_use_facet_region(attribute_name);
 
     // For each invalid boundary,
     // Get facets at left and right
@@ -401,6 +402,7 @@ unsigned int fix_invalid_boundaries(GEO::Mesh& mesh, const char* attribute_name,
         geo_assert(!adj_facets.empty()); // we need adjacency between vertices and facets for this part
 
         slg.fill_from(mesh,attribute_name,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
+        mesh_he.set_use_facet_region(attribute_name); // update facet regions
 
         geo_assert(slg.boundaries[slg.halfedge2boundary[an_halfedge_of_the_invalid_boundary].first].axis != -1);
         index_t axis_of_just_fixed_boundary = (index_t) slg.boundaries[slg.halfedge2boundary[an_halfedge_of_the_invalid_boundary].first].axis;
@@ -452,9 +454,11 @@ unsigned int fix_invalid_boundaries(GEO::Mesh& mesh, const char* attribute_name,
                 path
             );
 
-            if( average_angle(facet_normals,facets_at_left,label2vector[created_chart.label]) < 
-                average_angle(facet_normals,facets_at_right,label2vector[created_chart.label])
+            if(dot(normalize(halfedge_midpoint_to_left_facet_tip_vector(mesh,path[0])),label2vector[created_chart.label]) >
+               dot(normalize(halfedge_midpoint_to_right_facet_tip_vector(mesh,path[0])),label2vector[created_chart.label])
             ) {
+                // facets_at_right -> wall
+                // facets_at_left -> new chart
                 propagate_label(
                     mesh,
                     attribute_name,
@@ -466,6 +470,8 @@ unsigned int fix_invalid_boundaries(GEO::Mesh& mesh, const char* attribute_name,
                 );
             }
             else {
+                // facets_at_right -> new chart
+                // facets_at_left -> wall
                 propagate_label(
                     mesh,
                     attribute_name,
@@ -491,9 +497,11 @@ unsigned int fix_invalid_boundaries(GEO::Mesh& mesh, const char* attribute_name,
                 path
             );
 
-            if( average_angle(facet_normals,facets_at_left,label2vector[created_chart.label]) < 
-                average_angle(facet_normals,facets_at_right,label2vector[created_chart.label])
+            if(dot(normalize(halfedge_midpoint_to_left_facet_tip_vector(mesh,path[0])),label2vector[created_chart.label]) >
+               dot(normalize(halfedge_midpoint_to_right_facet_tip_vector(mesh,path[0])),label2vector[created_chart.label])
             ) {
+                // facets_at_right -> wall
+                // facets_at_left -> new chart
                 propagate_label(
                     mesh,
                     attribute_name,
@@ -505,6 +513,8 @@ unsigned int fix_invalid_boundaries(GEO::Mesh& mesh, const char* attribute_name,
                 );
             }
             else {
+                // facets_at_right -> new chart
+                // facets_at_left -> wall
                 propagate_label(
                     mesh,
                     attribute_name,
