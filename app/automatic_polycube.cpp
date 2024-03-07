@@ -126,7 +126,11 @@ protected:
 			}
 
 			if(ImGui::Button("Fix invalid boundaries")) {
-				unsigned int nb_chart_modified = fix_invalid_boundaries(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,normals_);
+				// compute vertex-to-facet adjacency if not already done
+				if(adj_facets_.empty()) {
+					compute_adjacent_facets_of_vertices(mesh_,adj_facets_);
+				}
+				unsigned int nb_chart_modified = fix_invalid_boundaries(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,normals_,feature_edges_,adj_facets_);
 				fmt::println(Logger::out("fix_labeling"),"{} chart(s) added to fix invalid boundaries",nb_chart_modified); Logger::out("fix_labeling").flush();
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
@@ -152,7 +156,11 @@ protected:
 			ImGui::PushStyleColor(ImGuiCol_ButtonHovered,	ImVec4(0.3f, 0.8f, 0.3f, 1.0f)); // darker green
 			ImGui::PushStyleColor(ImGuiCol_ButtonActive,	ImVec4(0.0f, 0.8f, 0.0f, 1.0f));
 			if(ImGui::Button("Auto fix validity")) {
-				auto_fix_validity(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,100,feature_edges_,normals_);
+				// compute vertex-to-facet adjacency if not already done
+				if(adj_facets_.empty()) {
+					compute_adjacent_facets_of_vertices(mesh_,adj_facets_);
+				}
+				auto_fix_validity(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,100,feature_edges_,normals_,adj_facets_);
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 			ImGui::PopStyleColor(3);
@@ -418,7 +426,7 @@ int main(int argc, char** argv) {
 	// Validity & monotonicity correction
 	//////////////////////////////////////////////////
 
-	if(auto_fix_validity(M,normals,LABELING_ATTRIBUTE_NAME,slg,100,feature_edges,normals)) {
+	if(auto_fix_validity(M,normals,LABELING_ATTRIBUTE_NAME,slg,100,feature_edges,normals,adj_facets)) {
 		// auto-fix the monotonicity only if the validity was fixed
 		auto_fix_monotonicity(M,LABELING_ATTRIBUTE_NAME,slg,adj_facets,feature_edges);
 	}
