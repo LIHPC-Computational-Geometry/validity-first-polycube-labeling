@@ -538,8 +538,7 @@ void trace_path_on_chart(const CustomMeshHalfedges& mesh_he, const std::vector<s
                             next_halfedge;
     next_halfedge = get_most_aligned_halfedge_around_vertex(current_halfedge,mesh_he,direction);
     // get which chart is around this halfedge
-    index_t supporting_chart = facet2chart[Geom::halfedge_facet_left(mesh,next_halfedge)];
-    geo_assert(facet2chart[Geom::halfedge_facet_right(mesh,next_halfedge)] == supporting_chart);
+    index_t supporting_chart = index_t(-1); // will be computed at the 2nd halfedge
     // start walking
     do {
         current_halfedge = next_halfedge;
@@ -550,6 +549,10 @@ void trace_path_on_chart(const CustomMeshHalfedges& mesh_he, const std::vector<s
         next_halfedge = get_most_aligned_halfedge_around_vertex(current_halfedge,mesh_he,target_point - halfedge_vertex_from(mesh,current_halfedge)); // reference vector = vector toward the `target_point`
         geo_assert(next_halfedge != current_halfedge); // assert the previous halfedge is not the one the best aligned. else we are backtracking
         target_point += normalized_direction * length(halfedge_vector(mesh,current_halfedge)); // move the target forward
+        if(supporting_chart == index_t(-1)) {
+            supporting_chart = facet2chart[Geom::halfedge_facet_left(mesh,next_halfedge)];
+            geo_assert(facet2chart[Geom::halfedge_facet_right(mesh,next_halfedge)] == supporting_chart);
+        }
     } while(
         facet2chart[Geom::halfedge_facet_left(mesh,next_halfedge)] == supporting_chart &&
         facet2chart[Geom::halfedge_facet_right(mesh,next_halfedge)] == supporting_chart
