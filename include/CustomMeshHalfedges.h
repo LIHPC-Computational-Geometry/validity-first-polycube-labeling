@@ -223,6 +223,12 @@ namespace GEO {
             return M.facet_corners.vertex(c);
         }
 
+        inline vec3 halfedge_midpoint(
+            const Mesh& M, const MeshHalfedges::Halfedge& H
+        ) {
+            return (halfedge_vertex_from(M,H) + halfedge_vertex_to(M,H)) / 2.0;
+        }
+
         inline std::pair<index_t,index_t> halfedge_vertices_pair(
             const Mesh& M, const MeshHalfedges::Halfedge& H
         ) {
@@ -311,6 +317,48 @@ namespace GEO {
                 }
             }
             geo_assert_not_reached;
+        }
+
+        inline index_t halfedge_left_facet_tip_vertex(
+            const Mesh& M, const MeshHalfedges::Halfedge& H
+        ) {
+            return M.facet_corners.vertex(M.facets.prev_corner_around_facet(
+                halfedge_facet_left(M,H),
+                halfedge_bottom_left_corner(M,H)
+            ));
+        }
+
+        inline index_t halfedge_right_facet_tip_vertex(
+            const Mesh& M, const MeshHalfedges::Halfedge& H
+        ) {
+            return M.facet_corners.vertex(M.facets.next_corner_around_facet(
+                halfedge_facet_right(M,H),
+                halfedge_bottom_right_corner(M,H)
+            ));
+        }
+
+        inline vec3 halfedge_left_facet_tip_point(
+            const Mesh& M, const MeshHalfedges::Halfedge& H
+        ) {
+            return mesh_vertex(M,halfedge_left_facet_tip_vertex(M,H));
+        }
+
+        inline vec3 halfedge_right_facet_tip_point(
+            const Mesh& M, const MeshHalfedges::Halfedge& H
+        ) {
+            return mesh_vertex(M,halfedge_right_facet_tip_vertex(M,H));
+        }
+
+        inline vec3 halfedge_midpoint_to_left_facet_tip_vector(
+            const Mesh& M, const MeshHalfedges::Halfedge& H
+        ) {
+            return halfedge_left_facet_tip_point(M,H)-halfedge_midpoint(M,H);
+        }
+
+        inline vec3 halfedge_midpoint_to_right_facet_tip_vector(
+            const Mesh& M, const MeshHalfedges::Halfedge& H
+        ) {
+            return halfedge_right_facet_tip_point(M,H)-halfedge_midpoint(M,H);
         }
 
         inline vec3 halfedge_normal(
