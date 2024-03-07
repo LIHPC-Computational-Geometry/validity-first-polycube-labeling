@@ -161,6 +161,8 @@ struct TurningPoint {
 
 std::ostream& operator<< (std::ostream &out, const TurningPoint& data);
 
+bool operator==(const TurningPoint& a, const TurningPoint& b);
+
 // Use the operator<< overloading with {fmt}
 // https://fmt.dev/latest/api.html#std-ostream-support
 template <> struct fmt::formatter<TurningPoint> : ostream_formatter {};

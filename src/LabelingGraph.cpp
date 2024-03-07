@@ -405,6 +405,14 @@ std::ostream& operator<< (std::ostream &out, const TurningPoint& data) {
     return out;
 }
 
+bool operator==(const TurningPoint& a, const TurningPoint& b) {
+    if(a.outgoing_local_halfedge_index_ == b.outgoing_local_halfedge_index_) {
+        geo_assert(a.is_towards_right_ == b.is_towards_right_);
+        return true;
+    }
+    return false;
+}
+
 bool Boundary::empty() const {
     return (
         axis == -1 &&
