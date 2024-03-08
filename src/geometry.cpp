@@ -627,3 +627,16 @@ MeshHalfedges::Halfedge follow_feature_edge_on_chart(const CustomMeshHalfedges& 
     );
     return previous_halfedge;
 }
+
+bool is_a_facet_to_tilt(const vec3& facet_normal, double sensitivity) {
+    std::array<std::pair<double,index_t>,6> per_label_weights = {
+        std::make_pair(facet_normal.x < 0.0 ? 0.0 : facet_normal.x,     0), // +X
+        std::make_pair(facet_normal.x < 0.0 ? -facet_normal.x : 0.0,    1), // -X
+        std::make_pair(facet_normal.y < 0.0 ? 0.0 : facet_normal.y,     2), // +Y
+        std::make_pair(facet_normal.y < 0.0 ? -facet_normal.y : 0.0,    3), // -Y
+        std::make_pair(facet_normal.z < 0.0 ? 0.0 : facet_normal.z,     4), // +Z
+        std::make_pair(facet_normal.z < 0.0 ? -facet_normal.z : 0.0,    5)  // -Z
+    };
+    std::sort(per_label_weights.begin(),per_label_weights.end());
+    return std::fabs(per_label_weights[5].first-per_label_weights[4].first) < sensitivity;
+}

@@ -21,6 +21,7 @@
 
 #include "SimpleMeshApplicationExt.h"   // for colormaps indices
 #include "about_window.h"               // for draw_about_window()
+#include "geometry.h"                   // for is_a_facet_to_tilt()
 
 using namespace GEO;
 
@@ -84,18 +85,7 @@ protected:
         Attribute<bool> on_area_to_tilt(mesh_.facets.attributes(),"on_area_to_tilt");
         unsigned int nb_facet_on_areas_to_tilt = 0;
         FOR(f,mesh_.facets.nb()) { // for each facet
-            const vec3& normal = normals_[f];
-            // based on labeling.cpp nearest_label()
-            std::array<std::pair<double,index_t>,6> per_label_weights = {
-                std::make_pair(normal.x < 0.0 ? 0.0 : normal.x,     0), // +X
-                std::make_pair(normal.x < 0.0 ? -normal.x : 0.0,    1), // -X
-                std::make_pair(normal.y < 0.0 ? 0.0 : normal.y,     2), // +Y
-                std::make_pair(normal.y < 0.0 ? -normal.y : 0.0,    3), // -Y
-                std::make_pair(normal.z < 0.0 ? 0.0 : normal.z,     4), // +Z
-                std::make_pair(normal.z < 0.0 ? -normal.z : 0.0,    5)  // -Z
-            };
-            std::sort(per_label_weights.begin(),per_label_weights.end());
-            if(std::abs(per_label_weights[5].first-per_label_weights[4].first) < (double) sensitivity_) {
+            if(is_a_facet_to_tilt(normals_[f],(double) sensitivity_)) {
                 // the 2 labels with the most weight are too close
                 nb_facet_on_areas_to_tilt++;
                 on_area_to_tilt[f] = true;

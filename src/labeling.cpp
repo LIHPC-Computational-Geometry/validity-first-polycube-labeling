@@ -244,27 +244,16 @@ void tweaked_naive_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
     Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // create a facet attribute in this mesh
     FOR(f,mesh.facets.nb()) { // for each facet
         vec3 normal = normals[f];
-        // based on nearest_label()
-        std::array<std::pair<double,index_t>,6> per_label_weights = {
-            std::make_pair(normal.x < 0.0 ? 0.0 : normal.x,     0), // +X
-            std::make_pair(normal.x < 0.0 ? -normal.x : 0.0,    1), // -X
-            std::make_pair(normal.y < 0.0 ? 0.0 : normal.y,     2), // +Y
-            std::make_pair(normal.y < 0.0 ? -normal.y : 0.0,    3), // -Y
-            std::make_pair(normal.z < 0.0 ? 0.0 : normal.z,     4), // +Z
-            std::make_pair(normal.z < 0.0 ? -normal.z : 0.0,    5)  // -Z
-        };
-        std::sort(per_label_weights.begin(),per_label_weights.end());
-        if(std::abs(per_label_weights[5].first-per_label_weights[4].first) < NAIVE_LABELING_TWEAK_SENSITIVITY) {
+        if(is_a_facet_to_tilt(normal,NAIVE_LABELING_TWEAK_SENSITIVITY)) {
             // the 2 labels with the most weight are too close
             // slightly rotate the the normal to go out of this indecisiveness area
             normal = mult(rotation,normal);
-
             // find the nearest label of the rotated normal
             label[f] = nearest_label(normal);
         }
         else {
             // assign the closest label
-            label[f] = per_label_weights[5].second;
+            label[f] = nearest_label(normal);
         }
     }
 }

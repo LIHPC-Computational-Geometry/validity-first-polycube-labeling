@@ -152,3 +152,5 @@ bool vertex_has_lost_feature_edge_in_neighborhood(const CustomMeshHalfedges& mes
 
 // return last halfedge on the feature edge that is still on the same chart, or the last halfedge before unsuccessful move
 MeshHalfedges::Halfedge follow_feature_edge_on_chart(const CustomMeshHalfedges& mesh_he, MeshHalfedges::Halfedge halfedge, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<index_t>& facet2chart, std::set<index_t>& facets_at_left, std::set<index_t>& facets_at_right);
+
+bool is_a_facet_to_tilt(const vec3& facet_normal, double sensitivity);
