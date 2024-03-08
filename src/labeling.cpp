@@ -124,7 +124,7 @@ bool is_better_label(const vec3& facet_normal, index_t current_label, index_t ne
 bool are_orthogonal_labels(index_t label1, index_t label2) {
     geo_assert(label1 < 6);
     geo_assert(label2 < 6);
-    return (label1 % 2) != (label2 % 2); // orthogonal if they don't have the same axis
+    return (label1/2) != (label2/2); // orthogonal if they don't have the same axis
 }
 
 index_t opposite_label(index_t label) {
