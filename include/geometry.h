@@ -149,3 +149,6 @@ double average_dot_product(const std::vector<vec3>& normals, const std::set<inde
 double average_angle(const std::vector<vec3>& normals, const std::set<index_t>& facets, vec3 reference);
 
 bool vertex_has_lost_feature_edge_in_neighborhood(const CustomMeshHalfedges& mesh_he, const std::vector<std::vector<index_t>>& adj_facets, const std::set<std::pair<index_t,index_t>>& feature_edges, index_t vertex, MeshHalfedges::Halfedge& outgoing_halfedge_on_feature_edges);
+
+// return last halfedge on the feature edge that is still on the same chart, or the last halfedge before unsuccessful move
+MeshHalfedges::Halfedge follow_feature_edge_on_chart(const CustomMeshHalfedges& mesh_he, MeshHalfedges::Halfedge halfedge, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<index_t>& facet2chart, std::set<index_t>& facets_at_left, std::set<index_t>& facets_at_right);

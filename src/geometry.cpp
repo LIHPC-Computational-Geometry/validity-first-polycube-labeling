@@ -605,3 +605,25 @@ bool vertex_has_lost_feature_edge_in_neighborhood(const CustomMeshHalfedges& mes
     } while(current_halfedge != init_halfedge);
     return false; // found no lost feature edge
 }
+
+MeshHalfedges::Halfedge follow_feature_edge_on_chart(const CustomMeshHalfedges& mesh_he, MeshHalfedges::Halfedge halfedge, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<index_t>& facet2chart, std::set<index_t>& facets_at_left, std::set<index_t>& facets_at_right) {
+    const Mesh& mesh = mesh_he.mesh();
+    geo_assert(halfedge_is_on_feature_edge(mesh,halfedge,feature_edges));
+    MeshHalfedges::Halfedge previous_halfedge;
+    index_t chart_on_which_the_lost_feature_edge_is = facet2chart[halfedge_facet_left(mesh,halfedge)];
+    geo_assert(chart_on_which_the_lost_feature_edge_is == facet2chart[halfedge_facet_right(mesh,halfedge)]);
+    bool move_successful = false;
+    // walk along feature edge until we are no longer on the chart
+    do {
+        facets_at_left.insert(halfedge_facet_left(mesh,halfedge));
+        facets_at_right.insert(halfedge_facet_right(mesh,halfedge));
+        previous_halfedge = halfedge;
+        move_successful = move_to_next_halfedge_on_feature_edge(mesh_he,halfedge,feature_edges);
+        geo_assert(halfedge_is_on_feature_edge(mesh,halfedge,feature_edges));
+    } while(
+        move_successful && 
+        (facet2chart[halfedge_facet_left(mesh,halfedge)] == chart_on_which_the_lost_feature_edge_is) &&
+        (facet2chart[halfedge_facet_right(mesh,halfedge)] == chart_on_which_the_lost_feature_edge_is)
+    );
+    return previous_halfedge;
+}

@@ -1421,9 +1421,7 @@ bool join_turning_points_pair_with_new_chart(GEO::Mesh& mesh, const char* attrib
     Attribute<index_t> label(mesh.facets.attributes(), attribute_name);
     CustomMeshHalfedges mesh_he(mesh);
     mesh_he.set_use_facet_region(attribute_name);
-    MeshHalfedges::Halfedge previous_halfedge;
-    MeshHalfedges::Halfedge current_halfedge;
-    bool move_successful = false;
+    MeshHalfedges::Halfedge halfedge;
     index_t chart_on_which_the_lost_feature_edge_is = index_t(-1);
     index_t label_on_which_the_lost_feature_edge_is = index_t(-1);
     std::set<index_t> facets_at_left;
@@ -1435,25 +1433,13 @@ bool join_turning_points_pair_with_new_chart(GEO::Mesh& mesh, const char* attrib
 
     for(index_t b : slg.non_monotone_boundaries) { // for each non-monotone boundary (b is an index of slg.boundaries)
         for(const auto& tp : slg.boundaries[b].turning_points) { // for each turning-point of the current boundary
-            if(vertex_has_lost_feature_edge_in_neighborhood(mesh_he,adj_facets,feature_edges,tp.vertex(slg.boundaries[b],mesh),current_halfedge)) {
-                geo_assert(halfedge_is_on_feature_edge(mesh,current_halfedge,feature_edges));
-                chart_on_which_the_lost_feature_edge_is = slg.facet2chart[halfedge_facet_left(mesh,current_halfedge)];
-                geo_assert(chart_on_which_the_lost_feature_edge_is == slg.facet2chart[halfedge_facet_right(mesh,current_halfedge)]);
+            if(vertex_has_lost_feature_edge_in_neighborhood(mesh_he,adj_facets,feature_edges,tp.vertex(slg.boundaries[b],mesh),halfedge)) {
+                chart_on_which_the_lost_feature_edge_is = slg.facet2chart[halfedge_facet_left(mesh,halfedge)];
+                geo_assert(chart_on_which_the_lost_feature_edge_is == slg.facet2chart[halfedge_facet_right(mesh,halfedge)]);
                 label_on_which_the_lost_feature_edge_is = slg.charts[chart_on_which_the_lost_feature_edge_is].label;
-                // walk along feature edge until we are no longer on the chart
-                do {
-                    facets_at_left.insert(halfedge_facet_left(mesh,current_halfedge));
-                    facets_at_right.insert(halfedge_facet_right(mesh,current_halfedge));
-                    previous_halfedge = current_halfedge;
-                    move_successful = move_to_next_halfedge_on_feature_edge(mesh_he,current_halfedge,feature_edges);
-                    geo_assert(halfedge_is_on_feature_edge(mesh,current_halfedge,feature_edges));
-                } while(
-                    move_successful && 
-                    (slg.facet2chart[halfedge_facet_left(mesh,current_halfedge)] == chart_on_which_the_lost_feature_edge_is) &&
-                    (slg.facet2chart[halfedge_facet_right(mesh,current_halfedge)] == chart_on_which_the_lost_feature_edge_is)
-                );
+                halfedge = follow_feature_edge_on_chart(mesh_he,halfedge,feature_edges,slg.facet2chart,facets_at_left,facets_at_right);
                 // so move unsuccessful (no more halfedges on feature edge), or we left the chart (found a boundary / corner / turning-point)
-                vertex_at_tip_of_feature_edge = halfedge_vertex_index_to(mesh,previous_halfedge);
+                vertex_at_tip_of_feature_edge = halfedge_vertex_index_to(mesh,halfedge);
                 if(slg.is_turning_point(mesh,vertex_at_tip_of_feature_edge,boundary_of_the_second_turning_point)) {
                     new_label = find_optimal_label(
                         {},
@@ -1484,9 +1470,7 @@ bool join_turning_points_pair_with_new_chart(GEO::Mesh& mesh, const char* attrib
                     return true;
                 }
                 // else: clear variables & continue
-                previous_halfedge = MeshHalfedges::Halfedge(NO_FACET,NO_CORNER);
-                current_halfedge = MeshHalfedges::Halfedge(NO_FACET,NO_CORNER);
-                move_successful = false;
+                halfedge = MeshHalfedges::Halfedge(NO_FACET,NO_CORNER);
                 chart_on_which_the_lost_feature_edge_is = index_t(-1);
                 label_on_which_the_lost_feature_edge_is = index_t(-1);
                 facets_at_left.clear();
