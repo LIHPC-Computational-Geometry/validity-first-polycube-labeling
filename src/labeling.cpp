@@ -1441,6 +1441,18 @@ bool merge_a_turning_point_and_a_corner_on_non_monotone_boundary(GEO::Mesh& mesh
     const std::set<index_t>& wall_facets = the_wall_is_left_facets ? facets_at_left : facets_at_right;
     const std::set<index_t>& facets_to_process = the_wall_is_left_facets ? facets_at_right : facets_at_left;
 
+    // Issue : by propagating the `new_label` on `facets_to_process`, we could make the adjacent chart invalid if it is narrow
+    // see MAMBO S9 for example
+    // https://gitlab.com/franck.ledoux/mambo
+    // Solution : Go through all vertices in `path` except the extremities, and apply the supporting chart label on all adjacent facets
+    index_t vertex = index_t(-1);
+    for(auto halfedge = path.begin()+1 ; halfedge != path.end(); ++halfedge) {
+        vertex = halfedge_vertex_index_from(mesh,*halfedge);
+        for(index_t facet : adj_facets[vertex]) {
+            label[facet] = slg.charts[chart_on_which_the_new_boundary_will_be].label;
+        }
+    }
+
     propagate_label(mesh,attribute_name,new_label,facets_to_process,wall_facets,slg.facet2chart,chart_on_which_the_new_boundary_will_be);
 
     return true;
