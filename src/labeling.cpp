@@ -136,15 +136,16 @@ index_t find_optimal_label(std::initializer_list<index_t> forbidden_axes, std::i
     std::map<index_t,double> candidates;
     FOR(label,6) {
         if(INIT_LIST_CONTAINS(forbidden_axes,label/2)) {
-            continue; // current `label` is on a forbidden axis
+            goto ignore_this_label; // current `label` is on a forbidden axis
         }
         if(INIT_LIST_CONTAINS(forbidden_labels,label)) {
-            continue; // current `label` is forbidden
+            goto ignore_this_label; // current `label` is forbidden
         }
         for(index_t orthogonal_label : orthogonal_labels) {
             if(!are_orthogonal_labels(label,orthogonal_label)) {
-                continue; // test another `orthogonal_label`
+                goto ignore_this_label; // current `label` doesn't comply with one of the orthogonality constraints
             }
+            // else: they are orthogonal, check other orthogonality constraints
         }
         // so `label` passed all the criteria
         if(close_vector == vec3(0.0,0.0,0.0)) { // if no `close_vector` provided
@@ -153,6 +154,8 @@ index_t find_optimal_label(std::initializer_list<index_t> forbidden_axes, std::i
         else {
             candidates[label] = dot(label2vector[label],normalize(close_vector));
         }
+    ignore_this_label:
+        continue;
     }
     if(candidates.empty()) {
         fmt::println(Logger::err("labeling"),"In find_optimal_label(), no label satisfy all constraints:");
