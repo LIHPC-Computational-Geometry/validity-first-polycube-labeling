@@ -937,7 +937,7 @@ void StaticLabelingGraph::fill_from(Mesh& mesh, std::string facet_attribute, boo
     allow_boundaries_between_opposite_labels_ = allow_boundaries_between_opposite_labels;
 
     facet2chart.resize(mesh.facets.nb()); // important: memory allocation allowing to call ds.getSetsMap() on the underlying array
-    vertex2corner.resize(mesh.vertices.nb(),index_t(-1)); // contrary to facet2chart where all facets are associated to a chart, not all vertices are associated to a corner -> use UNDEFINED for vertices that are not on a corner
+    vertex2corner.resize(mesh.vertices.nb(),index_t(-1)); // contrary to facet2chart where all facets are associated to a chart, not all vertices are associated to a corner
     CustomMeshHalfedges mesh_half_edges_(mesh); // Half edges API
 
     // STEP 1 : Aggregate adjacent triangles of same label as chart

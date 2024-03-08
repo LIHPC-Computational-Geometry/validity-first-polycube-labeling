@@ -539,9 +539,10 @@ unsigned int fix_invalid_boundaries(GEO::Mesh& mesh, const char* attribute_name,
     return new_charts_count;
 }
 
-unsigned int fix_invalid_corners(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, const StaticLabelingGraph& slg, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<index_t>& facet2chart, const std::vector<std::vector<index_t>>& adj_facets) {
+unsigned int fix_invalid_corners(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, StaticLabelingGraph& slg, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<index_t>& facet2chart, const std::vector<std::vector<index_t>>& adj_facets) {
     Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // get labeling attribute
-    CustomMeshHalfedges mesh_half_edges_(mesh); // create an halfedges interface for this mesh
+    CustomMeshHalfedges mesh_he(mesh); // create an halfedges interface for this mesh
+    mesh_he.set_use_facet_region(attribute_name);
 
     // Replace the labels around invalid corners
     // by the nearest one from the vertex normal
@@ -578,52 +579,131 @@ unsigned int fix_invalid_corners(GEO::Mesh& mesh, const std::vector<vec3>& norma
         }
         else {
 
-            // A problematic corner on feature edge like on MAMBO S24 model https://gitlab.com/franck.ledoux/mambo/
-            // Get the 4 outgoing boundaries, all of which being on feature edges
-            // Keep only the 2 shortest
-            // Store the chart they have in common
-            // Change the label on their side where it's not their chart in common, with the label of the chart in common
-            //
-            // Only changes facets at distance of 0 or 1 from the 2 shortest boundaries.
-            // Works for MAMBO S24 but it's not generalizable
+            MeshHalfedges::Halfedge halfedge;
+            if(vertex_has_lost_feature_edge_in_neighborhood(mesh_he,adj_facets,feature_edges,slg.corners[corner_index].vertex,halfedge)) {
 
-            geo_assert(outgoing_halfedges_on_feature_edge.size() == 4);
-            std::vector<std::pair<index_t,double>> adjacent_boundaries_and_their_length;
-            for(const auto& halfedge : outgoing_halfedges_on_feature_edge) {
-                index_t b = slg.halfedge2boundary.at(halfedge).first;
-                adjacent_boundaries_and_their_length.push_back(std::make_pair(
-                    b, // boundary index
-                    slg.boundaries[b].length(mesh) // boundary length
-                ));
+                // There is an outgoing feature edge not captured (ie same label on both sides),
+                // Follow the feature edge.
+                // If we arrive at another invalid corner, trace a chart between the two invalid corners
+                // Else do nothing
+                // See MAMBO S9 for example
+                // https://gitlab.com/franck.ledoux/mambo/
+
+                index_t current_chart = slg.facet2chart[halfedge_facet_left(mesh,halfedge)];
+                index_t label_of_current_chart = slg.charts[current_chart].label;
+                index_t new_label = index_t(-1);
+                geo_assert(label_of_current_chart == label[halfedge_facet_right(mesh,halfedge)]);
+                std::set<index_t> facets_at_left;
+                std::set<index_t> facets_at_right;
+                index_t adjacent_facet = index_t(-1);
+                halfedge = follow_feature_edge_on_chart(mesh_he,halfedge,feature_edges,slg.facet2chart,facets_at_left,facets_at_right);
+                index_t corner_found = slg.vertex2corner[halfedge_vertex_index_to(mesh,halfedge)]; // can be -1
+                if( (corner_found != index_t(-1)) && VECTOR_CONTAINS(slg.invalid_corners,corner_found) ) {
+                    // we found a lost feature edge between 2 invalid corners
+                    vec3 avg_normal_at_left = average_facets_normal(normals,facets_at_left);
+                    vec3 avg_normal_at_right = average_facets_normal(normals,facets_at_right);
+                    if(dot(avg_normal_at_left,label2vector[label_of_current_chart]) < dot(avg_normal_at_right,label2vector[label_of_current_chart])) {
+                        // better to change the label of `facets_at_left`
+                        new_label = find_optimal_label(
+                            {},
+                            {},
+                            {label_of_current_chart}, // must be orthogonal to the current label
+                            avg_normal_at_left // should be close to the `facets_at_left` normals
+                        );
+                        geo_assert(new_label != label_of_current_chart);
+                        // change the label of the facets at the left & their neighbors
+                        for(auto f : facets_at_left) {
+                            label[f] = new_label;
+                            FOR(le,3) { // for each local edge of facet f
+                                adjacent_facet = mesh.facets.adjacent(f,le);
+                                if(facets_at_right.contains(adjacent_facet)) {
+                                    continue;
+                                }
+                                if(slg.facet2chart[adjacent_facet] == current_chart) {
+                                    label[adjacent_facet] = new_label; // also change the label of the adjacent facet
+                                }
+                            }
+                        }
+                    }
+                    else {
+                        // better to change the label of `facets_at_right`
+                        new_label = find_optimal_label(
+                            {},
+                            {},
+                            {label_of_current_chart}, // must be orthogonal to the current label
+                            avg_normal_at_right // should be close to the `facets_at_right` normals
+                        );
+                        geo_assert(new_label != label_of_current_chart);
+                        // change the label of the facets at the left & their neighbors
+                        for(auto f : facets_at_right) {
+                            label[f] = new_label;
+                            FOR(le,3) { // for each local edge of facet f
+                                adjacent_facet = mesh.facets.adjacent(f,le);
+                                if(facets_at_left.contains(adjacent_facet)) {
+                                    continue;
+                                }
+                                if(slg.facet2chart[adjacent_facet] == current_chart) {
+                                    label[adjacent_facet] = new_label; // also change the label of the adjacent facet
+                                }
+                            }
+                        }
+                    }
+
+                    slg.fill_from(mesh,attribute_name,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
+                    return new_charts_count;
+                }
+                // else : don't know how to fix, ignore
             }
-            std::ranges::sort(
-                adjacent_boundaries_and_their_length,
-                [](const std::pair<index_t,double>& a, const std::pair<index_t,double>& b) { return a.second < b.second; } // sort by second item in the std::pair (the length)
-            );
-            // get the 2 shortest boundaries
-            const Boundary& b0 = slg.boundaries[adjacent_boundaries_and_their_length[0].first];
-            const Boundary& b1 = slg.boundaries[adjacent_boundaries_and_their_length[1].first];
-            index_t chart_in_common = adjacent_chart_in_common(b0,b1);
-            index_t label_of_chart_in_common = slg.charts[chart_in_common].label;
+            else {
 
-            std::set<index_t> facets_to_edit;
-            b0.get_adjacent_facets(
-                mesh,
-                facets_to_edit,
-                chart_in_common == b0.left_chart ? OnlyRight : OnlyLeft,
-                facet2chart,
-                1 // include facet at a distance of 1 (touch the boundary from a vertex)
-            );
-            // `facets_to_edit` is not cleared inside get_adjacent_facets(), we can call it a second time on top of the existing set values
-            b1.get_adjacent_facets(
-                mesh,
-                facets_to_edit,
-                chart_in_common == b1.left_chart ? OnlyRight : OnlyLeft,
-                facet2chart,
-                1 // include facet at a distance of 1 (touch the boundary from a vertex)
-            );
-            for(index_t f : facets_to_edit) {
-                label[f] = label_of_chart_in_common;
+                // A problematic corner on feature edge like on MAMBO S24 model https://gitlab.com/franck.ledoux/mambo/
+                // Get the 4 outgoing boundaries, all of which being on feature edges
+                // Keep only the 2 shortest
+                // Store the chart they have in common
+                // Change the label on their side where it's not their chart in common, with the label of the chart in common
+                //
+                // Only changes facets at distance of 0 or 1 from the 2 shortest boundaries.
+                // Works for MAMBO S24 but it's not generalizable
+
+                geo_assert(outgoing_halfedges_on_feature_edge.size() == 4);
+                std::vector<std::pair<index_t,double>> adjacent_boundaries_and_their_length;
+                for(const auto& halfedge : outgoing_halfedges_on_feature_edge) {
+                    index_t b = slg.halfedge2boundary.at(halfedge).first;
+                    adjacent_boundaries_and_their_length.push_back(std::make_pair(
+                        b, // boundary index
+                        slg.boundaries[b].length(mesh) // boundary length
+                    ));
+                }
+                std::ranges::sort(
+                    adjacent_boundaries_and_their_length,
+                    [](const std::pair<index_t,double>& a, const std::pair<index_t,double>& b) { return a.second < b.second; } // sort by second item in the std::pair (the length)
+                );
+                // get the 2 shortest boundaries
+                const Boundary& b0 = slg.boundaries[adjacent_boundaries_and_their_length[0].first];
+                const Boundary& b1 = slg.boundaries[adjacent_boundaries_and_their_length[1].first];
+                index_t chart_in_common = adjacent_chart_in_common(b0,b1);
+                index_t label_of_chart_in_common = slg.charts[chart_in_common].label;
+
+                std::set<index_t> facets_to_edit;
+                b0.get_adjacent_facets(
+                    mesh,
+                    facets_to_edit,
+                    chart_in_common == b0.left_chart ? OnlyRight : OnlyLeft,
+                    facet2chart,
+                    1 // include facet at a distance of 1 (touch the boundary from a vertex)
+                );
+                // `facets_to_edit` is not cleared inside get_adjacent_facets(), we can call it a second time on top of the existing set values
+                b1.get_adjacent_facets(
+                    mesh,
+                    facets_to_edit,
+                    chart_in_common == b1.left_chart ? OnlyRight : OnlyLeft,
+                    facet2chart,
+                    1 // include facet at a distance of 1 (touch the boundary from a vertex)
+                );
+                for(index_t f : facets_to_edit) {
+                    label[f] = label_of_chart_in_common;
+                }
+
             }
         }
     }
