@@ -94,3 +94,11 @@ K key_at_max_value(const std::map<K,V>& map) {
     // thanks Janek_Kozicki and cigien https://stackoverflow.com/a/54690905
     return std::max_element(map.begin(),map.end(),[] (const std::pair<K,V>& a, const std::pair<K,V>& b) -> bool{ return a.second < b.second; } )->first;
 }
+
+template <typename K, typename V>
+void fill_set_with_map_keys(const std::map<K,V>& map, std::set<K>& keys) {
+    keys.clear();
+    for(auto [key,value] : map) {
+        keys.insert(key);
+    }
+}
