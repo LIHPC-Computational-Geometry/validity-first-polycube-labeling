@@ -361,7 +361,14 @@ unsigned int remove_surrounded_charts(GEO::Mesh& mesh, const char* attribute_nam
     return modified_charts_count;
 }
 
-unsigned int fix_invalid_boundaries(GEO::Mesh& mesh, const char* attribute_name, StaticLabelingGraph& slg, const std::vector<vec3>& facet_normals, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<std::vector<index_t>>& adj_facets) {
+size_t fix_as_much_invalid_boundaries_as_possible(
+    GEO::Mesh& mesh,
+    const char* attribute_name,
+    StaticLabelingGraph& slg,
+    const std::vector<vec3>& facet_normals,
+    const std::set<std::pair<index_t,index_t>>& feature_edges,
+    const std::vector<std::vector<index_t>>& adj_facets
+) {
     Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // get labeling attribute
     CustomMeshHalfedges mesh_he(mesh); // create an halfedges interface for this mesh
     mesh_he.set_use_facet_region(attribute_name);
@@ -376,7 +383,7 @@ unsigned int fix_invalid_boundaries(GEO::Mesh& mesh, const char* attribute_name,
     // See MAMBO B29 for example
     // https://gitlab.com/franck.ledoux/mambo
 
-    unsigned int new_charts_count = 0;
+    size_t nb_invalid_boundaries_processed = 0;
     index_t new_label = index_t(-1);
     vec3 new_label_as_vector;
     MeshHalfedges::Halfedge current_halfedge;
@@ -400,11 +407,6 @@ unsigned int fix_invalid_boundaries(GEO::Mesh& mesh, const char* attribute_name,
         index_t a_facet_on_new_chart = index_t(-1);
         current_boundary.get_adjacent_facets(mesh,left_facets_along_boundary,OnlyLeft,slg.facet2chart,1); // get triangles at left and at distance 0 or 1 from the boundary
         current_boundary.get_adjacent_facets(mesh,right_facets_along_boundary,OnlyRight,slg.facet2chart,1); // get triangles at right and at distance 0 or 1 from the boundary
-        
-        if( (new_label == left_chart.label) || (new_label == right_chart.label) ) {
-            fmt::println(Logger::err("fix validity"),"Cannot fix boundary {}, new label computed is one of the adjacent labels",boundary_index); Logger::err("fix validity").flush();
-            continue; // ignore this boundary
-        }
 
         // Find out if the chart to insert on the boundary is better suited on the left side or the right side
         // Don't manage case where both sides are equally suited,
@@ -560,14 +562,18 @@ unsigned int fix_invalid_boundaries(GEO::Mesh& mesh, const char* attribute_name,
                 );
             }
 
-            slg.fill_from(mesh,attribute_name,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
+            nb_invalid_boundaries_processed++;
+
+            // we need to stop fix_as_much_invalid_boundaries_as_possible() now
+            // because the loop iterating over `slg.invalid_boundaries` is no longer up to date
+            return nb_invalid_boundaries_processed;
         }
         // else: continue
 
-        new_charts_count++;
+        nb_invalid_boundaries_processed++;
     }
 
-    return new_charts_count;
+    return nb_invalid_boundaries_processed;
 }
 
 unsigned int fix_invalid_corners(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, StaticLabelingGraph& slg, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<index_t>& facet2chart, const std::vector<std::vector<index_t>>& adj_facets) {
@@ -838,22 +844,26 @@ void remove_charts_around_invalid_boundaries(GEO::Mesh& mesh, const std::vector<
 
 bool auto_fix_validity(Mesh& mesh, std::vector<vec3>& normals, const char* attribute_name, StaticLabelingGraph& slg, unsigned int max_nb_loop, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<vec3>& facet_normals, const std::vector<std::vector<index_t>>& adj_facets) {
     unsigned int nb_loops = 0;
-    unsigned int nb_fixed_features = 0;
+    size_t nb_processed = 0;
     std::set<std::array<std::size_t,7>> set_of_labeling_features_combinations_encountered;
     while(!slg.is_valid() && nb_loops <= max_nb_loop) { // until valid labeling OR too much steps
         nb_loops++;
 
         // as much as possible, remove isolated (surrounded) charts
         do {
-            nb_fixed_features = remove_surrounded_charts(mesh,attribute_name,slg);
+            nb_processed = (size_t) remove_surrounded_charts(mesh,attribute_name,slg);
             // update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
             slg.fill_from(mesh,attribute_name,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
-        } while(nb_fixed_features != 0);
+        } while(nb_processed != 0);
 
         if(slg.is_valid())
             return true;
 
-        fix_invalid_boundaries(mesh,attribute_name,slg,facet_normals,feature_edges,adj_facets);
+        do {
+            nb_processed = fix_as_much_invalid_boundaries_as_possible(mesh,attribute_name,slg,facet_normals,feature_edges,adj_facets);
+            slg.fill_from(mesh,attribute_name,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
+        }
+        while (nb_processed != 0);
         // update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
         slg.fill_from(mesh,attribute_name,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
 
