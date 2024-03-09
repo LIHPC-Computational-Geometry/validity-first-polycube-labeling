@@ -228,19 +228,6 @@ void naive_labeling(Mesh& mesh, const std::vector<vec3>& normals, const char* at
 
 void tweaked_naive_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name) {
 
-    // https://en.wikipedia.org/wiki/Rotation_matrix#Basic_3D_rotations
-    // rotation of NAIVE_LABELING_TWEAK_ANGLE around the x, y and z axes
-    mat3 rotation; 
-    rotation(0,0) = COS_SQUARED_TILT_ANGLE; // <=> cos*cos
-    rotation(0,1) = SIN_BY_COS_TILT_ANGLE*(SIN_TILT_ANGLE-1); // <=> sin*sin*cos-cos*sin
-    rotation(0,2) = SIN_TILT_ANGLE*(COS_SQUARED_TILT_ANGLE+SIN_TILT_ANGLE); // <=> cos*sin*cos+sin*sin
-    rotation(1,0) = SIN_BY_COS_TILT_ANGLE; // <=> cos*sin
-    rotation(1,1) = SIN_SQUARED_TILT_ANGLE*SIN_TILT_ANGLE+COS_SQUARED_TILT_ANGLE; // <=> sin*sin*sin+cos*cos
-    rotation(1,2) = SIN_BY_COS_TILT_ANGLE*(SIN_TILT_ANGLE-1); // <=> cos*sin*sin-sin*cos
-    rotation(2,0) = -SIN_TILT_ANGLE; // <=> -sin
-    rotation(2,1) = SIN_BY_COS_TILT_ANGLE; // <=> sin*cos
-    rotation(2,2) = COS_SQUARED_TILT_ANGLE; // <=> cos*cos
-
     Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // create a facet attribute in this mesh
     std::set<index_t> facets_to_tilt;
     size_t nb_facet_on_areas_to_tilt = get_facets_to_tilt(mesh,normals,facets_to_tilt,(double) NAIVE_LABELING_TWEAK_SENSITIVITY);
