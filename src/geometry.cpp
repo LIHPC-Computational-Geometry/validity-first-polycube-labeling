@@ -8,8 +8,6 @@
 #include <fmt/core.h>
 #include <fmt/ostream.h>    // to use fmt::print() on ostreams
 
-#include <DisjointSet.hpp>
-
 #include <queue>
 #include <vector>
 #include <utility>          // for std::pair, std::make_pair()
@@ -652,19 +650,4 @@ size_t get_facets_to_tilt(const Mesh& mesh, const std::vector<vec3>& normals, st
         }
     }
     return facets_to_tilt.size();
-}
-
-index_t group_facets(const Mesh& mesh, const std::set<index_t>& facets_to_tilt, index_t* per_facet_group_index) {
-    DisjointSet<index_t> ds(mesh.facets.nb());
-    index_t adjacent_facet = index_t(-1);
-    FOR(f,mesh.facets.nb()) {
-        FOR(le,3) { // for each local edge
-            adjacent_facet = mesh.facets.adjacent(f,le);
-            if(facets_to_tilt.contains(f) == facets_to_tilt.contains(adjacent_facet)) {
-                // both are in the set or both are out
-                ds.mergeSets(f,adjacent_facet);
-            }
-        }
-    }
-    return ds.getSetsMap(per_facet_group_index,&facets_to_tilt); // return association between facet and group index, and impose facets outside `facets_to_tilt` to have 0 as group index
 }

@@ -92,7 +92,7 @@ protected:
         fmt::println(Logger::out("areas to tilt"),"{} facet(s) over {} are on an area to tilt",nb_facet_on_areas_to_tilt,mesh_.facets.nb()); Logger::out("areas to tilt").flush();
 
         Attribute<index_t> area_index(mesh_.facets.attributes(),"area_index");
-        nb_areas = group_facets(mesh_,facets_to_tilt,area_index.data());
+        nb_areas = group_facets<Attribute>(mesh_,facets_to_tilt,area_index);
 
         std::vector<index_t> color_randomizer(nb_areas);
         FOR(a,nb_areas)

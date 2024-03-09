@@ -4,6 +4,8 @@
 #include <geogram/basic/vecg.h>             // for GEO::vecng
 #include <geogram/mesh/mesh_halfedges.h>    // for MeshHalfedges::Halfedge
 
+#include <DisjointSet.hpp>
+
 #include <utility>  // for std::pair
 
 #include "CustomMeshHalfedges.h"
@@ -159,4 +161,19 @@ bool is_a_facet_to_tilt(const vec3& facet_normal, double sensitivity);
 size_t get_facets_to_tilt(const Mesh& mesh, const std::vector<vec3>& normals, std::set<index_t>& facets_to_tilt, double sensitivity);
 
 // return nb groups
-index_t group_facets(const Mesh& mesh, const std::set<index_t>& facets_to_tilt, index_t* per_facet_group_index);
+template <template<class> class C> // C a container -> usable with std::vector<> or GEO::Attribute<>
+index_t group_facets(const Mesh& mesh, const std::set<index_t>& facets_to_tilt, C<index_t>& per_facet_group_index) {
+    geo_assert(per_facet_group_index.size() == mesh.facets.nb());
+    DisjointSet<index_t> ds(mesh.facets.nb());
+    index_t adjacent_facet = index_t(-1);
+    FOR(f,mesh.facets.nb()) {
+        FOR(le,3) { // for each local edge
+            adjacent_facet = mesh.facets.adjacent(f,le);
+            if(facets_to_tilt.contains(f) == facets_to_tilt.contains(adjacent_facet)) {
+                // both are in the set or both are out
+                ds.mergeSets(f,adjacent_facet);
+            }
+        }
+    }
+    return ds.getSetsMap(per_facet_group_index.data(),&facets_to_tilt); // return association between facet and group index, and impose facets outside `facets_to_tilt` to have 0 as group index
+}
