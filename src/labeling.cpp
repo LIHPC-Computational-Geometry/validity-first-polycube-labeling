@@ -236,7 +236,7 @@ void tweaked_naive_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
     }
 }
 
-void smart_init_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name) {
+void smart_init_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, const std::set<std::pair<index_t,index_t>>& feature_edges) {
     std::set<index_t> facets_to_tilt;
     get_facets_to_tilt(mesh,normals,facets_to_tilt,(double) NAIVE_LABELING_TWEAK_SENSITIVITY);
     std::vector<index_t> per_facet_group_index(mesh.facets.nb());
@@ -265,7 +265,33 @@ void smart_init_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
         }
     #endif
 
-    if(per_group_area[group_having_largest_area] > total_surface_area * 0.01) {
+    std::set<index_t> groups_surrounded_by_feature_edges;
+    fill_set_with_map_keys(per_group_area,groups_surrounded_by_feature_edges);
+    index_t adjacent_facet = index_t(-1);
+    FOR(f,mesh.facets.nb()) {
+        FOR(le,3) {
+            adjacent_facet = mesh.facets.adjacent(f,le);
+            // local edge k is the one between local vertices k and (k+1)%3
+            // see https://github.com/BrunoLevy/geogram/wiki/Mesh#triangulated-and-polygonal-meshes
+            if(
+                (!local_edge_is_on_feature_edge(mesh,f,le,feature_edges)) &&
+                (per_facet_group_index[f] != per_facet_group_index[adjacent_facet])
+            ) {
+                groups_surrounded_by_feature_edges.erase(per_facet_group_index[f]);
+                groups_surrounded_by_feature_edges.erase(per_facet_group_index[adjacent_facet]);
+                if(groups_surrounded_by_feature_edges.empty()) {
+                    goto break_both_loops;
+                }
+            }
+        }
+    }
+
+break_both_loops:
+
+    if(
+        (per_group_area[group_having_largest_area] > total_surface_area * 0.01) ||
+        !groups_surrounded_by_feature_edges.empty()
+    ) {
         // the group having the largest area is bigger than 1% of the total surface
         fmt::println(Logger::out("labeling"),"smart_init_labeling() says: use the TWEAKED naive labeling"); Logger::out("labeling").flush();
     }

@@ -89,7 +89,7 @@ void naive_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, const cha
 void tweaked_naive_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name);
 
 // apply either naive_labeling() or tweaked_naive_labeling() depending on the mesh
-void smart_init_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name);
+void smart_init_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, const std::set<std::pair<index_t,index_t>>& feature_edges);
 
 void graphcut_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, int compactness_coeff = 1, int fidelity_coeff = 1);
 
