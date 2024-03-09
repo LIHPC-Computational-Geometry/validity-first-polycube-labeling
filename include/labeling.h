@@ -88,6 +88,9 @@ void naive_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, const cha
  */
 void tweaked_naive_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name);
 
+// apply either naive_labeling() or tweaked_naive_labeling() depending on the mesh
+void smart_init_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name);
+
 void graphcut_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, int compactness_coeff = 1, int fidelity_coeff = 1);
 
 void compute_per_facet_fidelity(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* labeling_attribute_name, const char* fidelity_attribute_name, BasicStats& stats);

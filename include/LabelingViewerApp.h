@@ -379,6 +379,10 @@ protected:
 			ImGui::TextDisabled("(?)");
 			ImGui::SetItemTooltip("Like the naive labeling, but facets normals close to multiple labels\nare slightly rotated before choosing the closest label,\nto avoid labeling fragmentation on subsurfaces\npoorly aligned with XY, XZ, YZ planes");
 			
+			if(ImGui::Button("Smart init labeling")) {
+				smart_init_labeling(mesh_,normals_,LABELING_ATTRIBUTE_NAME);
+			}
+
 			break;
 		case labeling:
 

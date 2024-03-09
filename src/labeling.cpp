@@ -236,6 +236,30 @@ void tweaked_naive_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
     }
 }
 
+void smart_init_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name) {
+    std::set<index_t> facets_to_tilt;
+    get_facets_to_tilt(mesh,normals,facets_to_tilt,(double) NAIVE_LABELING_TWEAK_SENSITIVITY);
+    std::vector<index_t> per_facet_group_index(mesh.facets.nb());
+    index_t nb_groups = group_facets<std::vector>(mesh,facets_to_tilt,per_facet_group_index);
+    // The group n°0 is facets we don't have to tilt
+    // For groups we have to tilt, compute total surface area
+    std::map<index_t,double> per_group_area;
+    index_t current_facet_group_index = index_t(-1);
+    double current_facet_area = 0.0;
+    FOR(f,mesh.facets.nb()) {
+        current_facet_group_index = per_facet_group_index[f];
+        if(current_facet_group_index == 0) {
+            continue; // do not compute the area of group n°0
+        }
+        current_facet_area = mesh_facet_area(mesh,f);
+        per_group_area[current_facet_group_index] = (per_group_area.contains(current_facet_group_index) ? per_group_area[current_facet_group_index] : 0.0) + current_facet_area;
+    }
+    geo_assert(per_group_area.size() == nb_groups-1);
+    for(auto& [key,value] : per_group_area) {
+        fmt::println("[{}] {}",key,value);
+    }
+}
+
 // https://github.com/LIHPC-Computational-Geometry/genomesh/blob/main/src/flagging.cpp#L102
 void graphcut_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, int compactness_coeff, int fidelity_coeff) {
     Attribute<index_t> label(mesh.facets.attributes(), attribute_name);
