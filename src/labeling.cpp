@@ -255,8 +255,22 @@ void smart_init_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
         per_group_area[current_facet_group_index] = (per_group_area.contains(current_facet_group_index) ? per_group_area[current_facet_group_index] : 0.0) + current_facet_area;
     }
     geo_assert(per_group_area.size() == nb_groups-1);
-    for(auto& [key,value] : per_group_area) {
-        fmt::println("[{}] {}",key,value);
+
+    double total_surface_area = mesh_area(mesh);
+    index_t group_having_largest_area = key_at_max_value(per_group_area);
+
+    #ifndef NDEBUG
+        for(index_t group_index = 1; group_index < nb_groups; ++group_index) {
+            fmt::println("[{}] {:.5f} -> {:0.2f} %",group_index,per_group_area[group_index],per_group_area[group_index]/total_surface_area*100);
+        }
+    #endif
+
+    if(per_group_area[group_having_largest_area] > total_surface_area * 0.01) {
+        // the group having the largest area is bigger than 1% of the total surface
+        fmt::println(Logger::out("labeling"),"smart_init_labeling() says: use the TWEAKED naive labeling"); Logger::out("labeling").flush();
+    }
+    else {
+        fmt::println(Logger::out("labeling"),"smart_init_labeling() says: use the unmodified naive labeling"); Logger::out("labeling").flush();
     }
 }
 
