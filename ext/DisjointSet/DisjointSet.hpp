@@ -223,15 +223,33 @@ class DisjointSet final {
 
 	// elemToSetMap must point to an array of numElems*sizeof(S)
 	// return the number of set and fill elemToSetMap
-	public: S getSetsMap(S *elemToSetMap) const {
+	public: S getSetsMap(S *elemToSetMap, const std::set<S>* nonZeroElems = nullptr) const {
 
 		assert((numElems == nodes.size()));
 
 		S set_count = 0;
-		for(S i=0; i<nodes.size(); ++i) {
-			if(i != getRepr(i)) continue; // skip non-root element
-			elemToSetMap[i] = set_count;
-			set_count++;
+		if(nonZeroElems != nullptr) {
+			// Force elements outside `nonZeroElems` to have a site index of 0
+			// and elements inside to have a site index >= 1
+			// Assume at least one element is outside `nonZeroElems`
+			set_count = 1;
+			for(S i=0; i<nodes.size(); ++i) {
+				if(i != getRepr(i)) continue; // skip non-root element
+				if(nonZeroElems->contains(i)) {
+					elemToSetMap[i] = set_count;
+					set_count++;
+				}
+				else {
+					elemToSetMap[i] = 0;
+				}
+			}
+		}
+		else {
+			for(S i=0; i<nodes.size(); ++i) {
+				if(i != getRepr(i)) continue; // skip non-root element
+				elemToSetMap[i] = set_count;
+				set_count++;
+			}
 		}
 
 		assert((set_count == numSets));

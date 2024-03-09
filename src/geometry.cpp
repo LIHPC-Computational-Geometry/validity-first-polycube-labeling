@@ -666,5 +666,5 @@ index_t group_facets(const Mesh& mesh, const std::set<index_t>& facets_to_tilt, 
             }
         }
     }
-    return ds.getSetsMap(per_facet_group_index);
+    return ds.getSetsMap(per_facet_group_index,&facets_to_tilt); // return association between facet and group index, and impose facets outside `facets_to_tilt` to have 0 as group index
 }
