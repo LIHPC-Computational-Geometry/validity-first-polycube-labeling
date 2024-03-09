@@ -157,3 +157,6 @@ bool is_a_facet_to_tilt(const vec3& facet_normal, double sensitivity);
 
 // return nb facets to tilt (size of set)
 size_t get_facets_to_tilt(const Mesh& mesh, const std::vector<vec3>& normals, std::set<index_t>& facets_to_tilt, double sensitivity);
+
+// return nb groups
+index_t group_facets(const Mesh& mesh, const std::set<index_t>& facets_to_tilt, index_t* per_facet_group_index);

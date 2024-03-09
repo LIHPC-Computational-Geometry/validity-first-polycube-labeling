@@ -91,19 +91,8 @@ protected:
 
         fmt::println(Logger::out("areas to tilt"),"{} facet(s) over {} are on an area to tilt",nb_facet_on_areas_to_tilt,mesh_.facets.nb()); Logger::out("areas to tilt").flush();
 
-        DisjointSet<index_t> ds(mesh_.facets.nb());
-        index_t neighbor_facet = index_t(-1);
-        FOR(current_facet,mesh_.facets.nb()) {
-            FOR(le,3) { // for each of the 3 local edges
-                neighbor_facet = mesh_.facets.adjacent(current_facet,le);
-                if(on_area_to_tilt[current_facet] == on_area_to_tilt[neighbor_facet]) {
-                    ds.mergeSets(current_facet,neighbor_facet);
-                }
-            }
-        }
-
         Attribute<index_t> area_index(mesh_.facets.attributes(),"area_index");
-        nb_areas = ds.getSetsMap(area_index.data());
+        nb_areas = group_facets(mesh_,facets_to_tilt,area_index.data());
 
         std::vector<index_t> color_randomizer(nb_areas);
         FOR(a,nb_areas)
