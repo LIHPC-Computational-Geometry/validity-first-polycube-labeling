@@ -323,6 +323,19 @@ bool halfedge_is_on_feature_edge(const Mesh& mesh, const MeshHalfedges::Halfedge
     ));
 }
 
+bool local_edge_is_on_feature_edge(const Mesh& mesh, index_t facet_index, index_t local_edge, const std::set<std::pair<index_t,index_t>>& feature_edges) {
+    // local edge k is the one between local vertices k and (k+1)%3
+    // see https://github.com/BrunoLevy/geogram/wiki/Mesh#triangulated-and-polygonal-meshes
+    geo_assert(facet_index < mesh.facets.nb());
+    geo_assert(local_edge < 3);
+    index_t v0 = mesh.facets.vertex(facet_index,local_edge),
+            v1 = mesh.facets.vertex(facet_index,(local_edge+1)%3);
+    return feature_edges.contains(std::make_pair(
+        std::min(v0,v1),
+        std::max(v0,v1)
+    ));
+}
+
 // return true if success
 bool move_to_next_halfedge_on_feature_edge(const CustomMeshHalfedges& mesh_he, MeshHalfedges::Halfedge& H, const std::set<std::pair<index_t,index_t>>& feature_edges) {
     geo_assert(halfedge_is_on_feature_edge(mesh_he.mesh(),H,feature_edges));
