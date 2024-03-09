@@ -39,7 +39,8 @@
 #include <utility>
 #include <vector>
 #include <cassert>
-
+#include <optional>
+#include <algorithm> // for std::swap()
 
 /* 
  * Represents a set of disjoint sets. Also known as the union-find data structure.
@@ -223,36 +224,39 @@ class DisjointSet final {
 
 	// elemToSetMap must point to an array of numElems*sizeof(S)
 	// return the number of set and fill elemToSetMap
-	public: S getSetsMap(S *elemToSetMap, const std::set<S>* nonZeroElems = nullptr) const {
+	// If elem `must_be_on_set_0` is provided, its set will be the n°0
+	public: S getSetsMap(S *elemToSetMap, std::optional<S> must_be_on_set_0 = std::nullopt) const {
 
 		assert((numElems == nodes.size()));
 
 		S set_count = 0;
-		if(nonZeroElems != nullptr) {
-			// Force elements outside `nonZeroElems` to have a site index of 0
-			// and elements inside to have a site index >= 1
-			// Assume at least one element is outside `nonZeroElems`
-			set_count = 1;
-			for(S i=0; i<nodes.size(); ++i) {
-				if(i != getRepr(i)) continue; // skip non-root element
-				if(nonZeroElems->contains(i)) {
-					elemToSetMap[i] = set_count;
-					set_count++;
-				}
-				else {
-					elemToSetMap[i] = 0;
-				}
+		std::optional<S> repr_of_zeroth_set = std::nullopt;
+		for(S i=0; i<nodes.size(); ++i) {
+			if(i != getRepr(i)) continue; // skip non-root element
+			elemToSetMap[i] = set_count;
+			if(set_count == 0) {
+				repr_of_zeroth_set = i;
 			}
-		}
-		else {
-			for(S i=0; i<nodes.size(); ++i) {
-				if(i != getRepr(i)) continue; // skip non-root element
-				elemToSetMap[i] = set_count;
-				set_count++;
-			}
+			set_count++;	
 		}
 
-		assert((set_count == numSets));
+		assert(repr_of_zeroth_set.has_value()); // must be true with numElems != 0
+
+		// to ensure the provided `must_be_on_set_0` is in set n°0
+		if(set_count > 1) {
+			if(must_be_on_set_0.has_value()) {
+				S repr_of_given_elem = getRepr(must_be_on_set_0.value());
+				if (elemToSetMap[repr_of_given_elem] != 0) {
+					std::swap(
+						elemToSetMap[repr_of_given_elem],
+						elemToSetMap[repr_of_zeroth_set.value()]
+					);
+				}
+				// else: `must_be_on_set_0` is already in set n°0
+			}
+			// else: the user doesn't care about what is set n°0 and what is not set n°0
+		}
+		// else: only one set, so even if a `must_be_on_set_0` is provided, it will be on the 0th set
 
 		for(S i=0; i<nodes.size(); ++i) { // fill for non-root elements
 			elemToSetMap[i] = elemToSetMap[getRepr(i)];

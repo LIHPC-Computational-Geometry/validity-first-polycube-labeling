@@ -7,6 +7,7 @@
 #include <DisjointSet.hpp>
 
 #include <utility>  // for std::pair
+#include <optional>
 
 #include "CustomMeshHalfedges.h"
 
@@ -166,6 +167,7 @@ index_t group_facets(const Mesh& mesh, const std::set<index_t>& facets_to_tilt, 
     geo_assert(per_facet_group_index.size() == mesh.facets.nb());
     DisjointSet<index_t> ds(mesh.facets.nb());
     index_t adjacent_facet = index_t(-1);
+    std::optional<index_t> a_facet_not_to_tilt = std::nullopt;
     FOR(f,mesh.facets.nb()) {
         FOR(le,3) { // for each local edge
             adjacent_facet = mesh.facets.adjacent(f,le);
@@ -173,7 +175,10 @@ index_t group_facets(const Mesh& mesh, const std::set<index_t>& facets_to_tilt, 
                 // both are in the set or both are out
                 ds.mergeSets(f,adjacent_facet);
             }
+            if(!facets_to_tilt.contains(f)) {
+                a_facet_not_to_tilt = f;
+            }
         }
     }
-    return ds.getSetsMap(per_facet_group_index.data(),&facets_to_tilt); // return association between facet and group index, and impose facets outside `facets_to_tilt` to have 0 as group index
+    return ds.getSetsMap(per_facet_group_index.data(),a_facet_not_to_tilt); // return association between facet and group index, and impose facets outside `facets_to_tilt` to have 0 as group index
 }
