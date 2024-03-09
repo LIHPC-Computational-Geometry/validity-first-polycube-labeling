@@ -154,3 +154,6 @@ bool vertex_has_lost_feature_edge_in_neighborhood(const CustomMeshHalfedges& mes
 MeshHalfedges::Halfedge follow_feature_edge_on_chart(const CustomMeshHalfedges& mesh_he, MeshHalfedges::Halfedge halfedge, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<index_t>& facet2chart, std::set<index_t>& facets_at_left, std::set<index_t>& facets_at_right);
 
 bool is_a_facet_to_tilt(const vec3& facet_normal, double sensitivity);
+
+// return nb facets to tilt (size of set)
+size_t get_facets_to_tilt(const Mesh& mesh, const std::vector<vec3>& normals, std::set<index_t>& facets_to_tilt, double sensitivity);

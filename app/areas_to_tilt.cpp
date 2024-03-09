@@ -82,17 +82,11 @@ protected:
 
     void compute_areas_to_tilt() {
 
+        std::set<index_t> facets_to_tilt;
+        size_t nb_facet_on_areas_to_tilt = get_facets_to_tilt(mesh_,normals_,facets_to_tilt,sensitivity_);
         Attribute<bool> on_area_to_tilt(mesh_.facets.attributes(),"on_area_to_tilt");
-        unsigned int nb_facet_on_areas_to_tilt = 0;
         FOR(f,mesh_.facets.nb()) { // for each facet
-            if(is_a_facet_to_tilt(normals_[f],(double) sensitivity_)) {
-                // the 2 labels with the most weight are too close
-                nb_facet_on_areas_to_tilt++;
-                on_area_to_tilt[f] = true;
-            }
-            else {
-                on_area_to_tilt[f] = false;
-            }
+            on_area_to_tilt[f] = facets_to_tilt.contains(f);
         }
 
         fmt::println(Logger::out("areas to tilt"),"{} facet(s) over {} are on an area to tilt",nb_facet_on_areas_to_tilt,mesh_.facets.nb()); Logger::out("areas to tilt").flush();

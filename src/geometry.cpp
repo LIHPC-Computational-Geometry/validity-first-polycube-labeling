@@ -640,3 +640,14 @@ bool is_a_facet_to_tilt(const vec3& facet_normal, double sensitivity) {
     std::sort(per_label_weights.begin(),per_label_weights.end());
     return std::fabs(per_label_weights[5].first-per_label_weights[4].first) < sensitivity;
 }
+
+size_t get_facets_to_tilt(const Mesh& mesh, const std::vector<vec3>& normals, std::set<index_t>& facets_to_tilt, double sensitivity) {
+    facets_to_tilt.clear();
+    FOR(f,mesh.facets.nb()) { // for each facet
+        if(is_a_facet_to_tilt(normals[f],sensitivity)) {
+            // the 2 labels with the most weight are too close
+            facets_to_tilt.insert(f);
+        }
+    }
+    return facets_to_tilt.size();
+}

@@ -242,19 +242,10 @@ void tweaked_naive_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
     rotation(2,2) = COS_SQUARED_TILT_ANGLE; // <=> cos*cos
 
     Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // create a facet attribute in this mesh
+    std::set<index_t> facets_to_tilt;
+    size_t nb_facet_on_areas_to_tilt = get_facets_to_tilt(mesh,normals,facets_to_tilt,(double) NAIVE_LABELING_TWEAK_SENSITIVITY);
     FOR(f,mesh.facets.nb()) { // for each facet
-        vec3 normal = normals[f];
-        if(is_a_facet_to_tilt(normal,NAIVE_LABELING_TWEAK_SENSITIVITY)) {
-            // the 2 labels with the most weight are too close
-            // slightly rotate the the normal to go out of this indecisiveness area
-            normal = mult(rotation,normal);
-            // find the nearest label of the rotated normal
-            label[f] = nearest_label(normal);
-        }
-        else {
-            // assign the closest label
-            label[f] = nearest_label(normal);
-        }
+        label[f] = facets_to_tilt.contains(f) ? nearest_label(mult(rotation,normals[f])) : nearest_label(normals[f]);
     }
 }
 
