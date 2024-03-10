@@ -95,7 +95,7 @@ void graphcut_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, const 
 
 void compute_per_facet_fidelity(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* labeling_attribute_name, const char* fidelity_attribute_name, BasicStats& stats);
 
-unsigned int remove_surrounded_charts(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg);
+size_t remove_surrounded_charts(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg);
 
 // fix as much invalid boundaries as possible until the labeling graph needs to be recomputed
 // return the number of invalid boundaries processed

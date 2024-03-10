@@ -327,20 +327,26 @@ void compute_per_facet_fidelity(GEO::Mesh& mesh, const std::vector<vec3>& normal
     }
 }
 
-unsigned int remove_surrounded_charts(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg) {
+size_t remove_surrounded_charts(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg) {
     Attribute<index_t> label(mesh.facets.attributes(), attribute_name);
 
     // Get charts surronded by only 1 label
     // Broader fix than just looking at charts having 1 boundary
 
-    unsigned int modified_charts_count = 0;
+    size_t nb_invalid_charts_processed = 0;
     for(index_t chart_index : slg.invalid_charts) {
         auto boundary_iterator = slg.charts[chart_index].boundaries.begin();
         index_t chart_at_other_side = slg.boundaries[*boundary_iterator].chart_at_other_side(chart_index);
         index_t surrounding_label = slg.charts[chart_at_other_side].label;
+        if(slg.boundaries[*boundary_iterator].on_feature_edge) {
+            goto skip_modification; // by propagating the `surrounding_label`, we will lost a feature edge
+        }
 
         boundary_iterator++; // go to next boundary
-        for(;boundary_iterator != slg.charts[chart_index].boundaries.end();++boundary_iterator) {
+        for(;boundary_iterator != slg.charts[chart_index].boundaries.end(); ++boundary_iterator) {
+            if(slg.boundaries[*boundary_iterator].on_feature_edge) {
+                goto skip_modification; // by propagating the `surrounding_label`, we will lost a feature edge
+            }
             chart_at_other_side = slg.boundaries[*boundary_iterator].chart_at_other_side(chart_index);
             if(surrounding_label != slg.charts[chart_at_other_side].label) {
                 goto skip_modification; // this chart has several labels around (goto because break in nested loops is a worse idea)
@@ -351,14 +357,14 @@ unsigned int remove_surrounded_charts(GEO::Mesh& mesh, const char* attribute_nam
         for(index_t facet_index : slg.charts[chart_index].facets) {
             label[facet_index] = surrounding_label;
         }
-        modified_charts_count++;
+        nb_invalid_charts_processed++;
 
 
         skip_modification:
             ; // just end this loop interation
     }
 
-    return modified_charts_count;
+    return nb_invalid_charts_processed;
 }
 
 size_t fix_as_much_invalid_boundaries_as_possible(
@@ -851,7 +857,7 @@ bool auto_fix_validity(Mesh& mesh, std::vector<vec3>& normals, const char* attri
 
         // as much as possible, remove isolated (surrounded) charts
         do {
-            nb_processed = (size_t) remove_surrounded_charts(mesh,attribute_name,slg);
+            nb_processed = remove_surrounded_charts(mesh,attribute_name,slg);
             // update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
             slg.fill_from(mesh,attribute_name,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
         } while(nb_processed != 0);
