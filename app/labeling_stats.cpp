@@ -81,7 +81,7 @@ int main(int argc, char** argv) {
     }
 
     StaticLabelingGraph slg;
-    slg.fill_from(input_mesh,LABELING_ATTRIBUTE_NAME,CmdLine::get_arg_bool("allow-opposite-labels"),feature_edges);
+    slg.fill_from(input_mesh,LABELING_ATTRIBUTE_NAME,feature_edges,CmdLine::get_arg_bool("allow-opposite-labels"));
     CustomMeshHalfedges mesh_he(input_mesh);
     mesh_he.set_use_facet_region(LABELING_ATTRIBUTE_NAME);
 

@@ -703,7 +703,7 @@ protected:
     virtual void update_static_labeling_graph(bool allow_boundaries_between_opposite_labels) {
 
 		// compute charts, boundaries and corners of the labeling
-		static_labeling_graph_.fill_from(mesh_,LABELING_ATTRIBUTE_NAME,allow_boundaries_between_opposite_labels,feature_edges_);
+		static_labeling_graph_.fill_from(mesh_,LABELING_ATTRIBUTE_NAME,feature_edges_,allow_boundaries_between_opposite_labels);
 		nb_turning_points_ = static_labeling_graph_.nb_turning_points();
 
 		clear_scene_overlay();

@@ -28,6 +28,7 @@
 #include <map>
 #include <utility> // for std::pair
 #include <limits>
+#include <optional>
 
 #include "geometry.h" // for HalfedgeCompare
 #include "CustomMeshHalfedges.h"
@@ -281,7 +282,7 @@ struct StaticLabelingGraph {
 
     //// Fill & clear //////////////////
 
-    void fill_from(Mesh& mesh, std::string facet_attribute, bool allow_boundaries_between_opposite_labels, const std::set<std::pair<index_t,index_t>>& feature_edges);
+    void fill_from(Mesh& mesh, std::string facet_attribute, const std::set<std::pair<index_t,index_t>>& feature_edges, std::optional<bool> allow_boundaries_between_opposite_labels = std::nullopt);
     void clear();
 
     //// Validity //////////////////

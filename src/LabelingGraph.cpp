@@ -17,6 +17,7 @@
 #include <vector>
 #include <tuple>    // for std::tie()
 #include <numbers>  // for std::numbers::pi
+#include <optional>
 
 #include <nlohmann/json.hpp>
 
@@ -924,7 +925,12 @@ std::ostream& operator<< (std::ostream &out, const Boundary& data) {
     return out;
 }
 
-void StaticLabelingGraph::fill_from(Mesh& mesh, std::string facet_attribute, bool allow_boundaries_between_opposite_labels, const std::set<std::pair<index_t,index_t>>& feature_edges) {
+void StaticLabelingGraph::fill_from(
+    Mesh& mesh,
+    std::string facet_attribute,
+    const std::set<std::pair<index_t,index_t>>& feature_edges,
+    std::optional<bool> allow_boundaries_between_opposite_labels
+) {
 
     // based on https://github.com/LIHPC-Computational-Geometry/genomesh/blob/main/src/flagging.cpp#L795
     // but here we use a disjoint-set for step 1
@@ -934,7 +940,10 @@ void StaticLabelingGraph::fill_from(Mesh& mesh, std::string facet_attribute, boo
     geo_assert(mesh.cells.nb()==0);
 
     clear();
-    allow_boundaries_between_opposite_labels_ = allow_boundaries_between_opposite_labels;
+    if(allow_boundaries_between_opposite_labels.has_value()) {
+        allow_boundaries_between_opposite_labels_ = allow_boundaries_between_opposite_labels.value();
+    }
+    // else: keep existing value
 
     facet2chart.resize(mesh.facets.nb()); // important: memory allocation allowing to call ds.getSetsMap() on the underlying array
     vertex2corner.resize(mesh.vertices.nb(),index_t(-1)); // contrary to facet2chart where all facets are associated to a chart, not all vertices are associated to a corner
@@ -1034,7 +1043,7 @@ void StaticLabelingGraph::fill_from(Mesh& mesh, std::string facet_attribute, boo
             if(boundaries.back().find_turning_points(mesh_half_edges_)) {
                 non_monotone_boundaries.push_back((index_t) index_of_last(boundaries));
             }
-            if(boundaries.back().compute_validity(allow_boundaries_between_opposite_labels,mesh_half_edges_)==false) {
+            if(boundaries.back().compute_validity(allow_boundaries_between_opposite_labels_,mesh_half_edges_)==false) {
                 invalid_boundaries.push_back((index_t) index_of_last(boundaries));
             }
         }
@@ -1073,7 +1082,7 @@ void StaticLabelingGraph::fill_from(Mesh& mesh, std::string facet_attribute, boo
         if(boundaries.back().find_turning_points(mesh_half_edges_)) {
             non_monotone_boundaries.push_back((index_t) index_of_last(boundaries));
         }
-        if(boundaries.back().compute_validity(allow_boundaries_between_opposite_labels,mesh_half_edges_)==false) {
+        if(boundaries.back().compute_validity(allow_boundaries_between_opposite_labels_,mesh_half_edges_)==false) {
             invalid_boundaries.push_back((index_t) index_of_last(boundaries));
         }
     }}
@@ -1094,7 +1103,7 @@ void StaticLabelingGraph::fill_from(Mesh& mesh, std::string facet_attribute, boo
 
     // STEP 5 : Find invalid corners
     FOR(c,corners.size()) {
-        if(corners[c].compute_validity(allow_boundaries_between_opposite_labels,boundaries,halfedge2boundary)==false) {
+        if(corners[c].compute_validity(allow_boundaries_between_opposite_labels_,boundaries,halfedge2boundary)==false) {
             invalid_corners.push_back(c);
         }
     }

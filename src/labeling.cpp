@@ -443,7 +443,7 @@ size_t fix_as_much_invalid_boundaries_as_possible(
 
         geo_assert(!adj_facets.empty()); // we need adjacency between vertices and facets for this part
 
-        slg.fill_from(mesh,attribute_name,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
+        slg.fill_from(mesh,attribute_name,feature_edges);
         mesh_he.set_use_facet_region(attribute_name); // update facet regions
 
         geo_assert(slg.boundaries[slg.halfedge2boundary[an_halfedge_of_the_invalid_boundary].first].axis != -1);
@@ -692,7 +692,7 @@ unsigned int fix_invalid_corners(GEO::Mesh& mesh, const std::vector<vec3>& norma
                         }
                     }
 
-                    slg.fill_from(mesh,attribute_name,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
+                    slg.fill_from(mesh,attribute_name,feature_edges);
                     return new_charts_count;
                 }
                 // else : don't know how to fix, ignore
@@ -859,7 +859,7 @@ bool auto_fix_validity(Mesh& mesh, std::vector<vec3>& normals, const char* attri
         do {
             nb_processed = remove_surrounded_charts(mesh,attribute_name,slg);
             // update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
-            slg.fill_from(mesh,attribute_name,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
+            slg.fill_from(mesh,attribute_name,feature_edges);
         } while(nb_processed != 0);
 
         if(slg.is_valid())
@@ -867,18 +867,18 @@ bool auto_fix_validity(Mesh& mesh, std::vector<vec3>& normals, const char* attri
 
         do {
             nb_processed = fix_as_much_invalid_boundaries_as_possible(mesh,attribute_name,slg,facet_normals,feature_edges,adj_facets);
-            slg.fill_from(mesh,attribute_name,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
+            slg.fill_from(mesh,attribute_name,feature_edges);
         }
         while (nb_processed != 0);
         // update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
-        slg.fill_from(mesh,attribute_name,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
+        slg.fill_from(mesh,attribute_name,feature_edges);
 
         if(slg.is_valid())
             return true;
 
         fix_invalid_corners(mesh,normals,attribute_name,slg,feature_edges,slg.facet2chart,adj_facets);
         // update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
-        slg.fill_from(mesh,attribute_name,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
+        slg.fill_from(mesh,attribute_name,feature_edges);
 
         if(slg.is_valid())
             return true;
@@ -906,7 +906,7 @@ bool auto_fix_validity(Mesh& mesh, std::vector<vec3>& normals, const char* attri
                 // else : continue and expect the other operators to fix invalid boundaries and corners
             }
             // update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
-            slg.fill_from(mesh,attribute_name,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
+            slg.fill_from(mesh,attribute_name,feature_edges);
 
             if(slg.is_valid())
                 return true;
@@ -925,7 +925,7 @@ bool auto_fix_validity(Mesh& mesh, std::vector<vec3>& normals, const char* attri
                 // we backtracked
                 // There is probably small charts that we can remove to help the fixing routine
                 remove_charts_around_invalid_boundaries(mesh,normals,attribute_name,slg);
-                slg.fill_from(mesh,attribute_name,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
+                slg.fill_from(mesh,attribute_name,feature_edges);
                 break; // go back to the beginning of the loop, with other fix operators
             }
             else {
@@ -1276,7 +1276,7 @@ void straighten_boundaries(GEO::Mesh& mesh, const char* attribute_name, StaticLa
         geo_assert(boundary_index != index_t(-1));
         if(straighten_boundary(mesh,attribute_name,slg,boundary_index,adj_facets)) 
         {
-            slg.fill_from(mesh,attribute_name,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
+            slg.fill_from(mesh,attribute_name,feature_edges);
         }
         else {
             boundary_edges_to_process.push_front(current_boundary_edge); // re-process this boundary edge later
@@ -1527,7 +1527,7 @@ void merge_turning_points_and_corners(GEO::Mesh& mesh, const char* attribute_nam
         previous_number_of_turning_points = slg.nb_turning_points();
         if(merge_a_turning_point_and_a_corner_on_non_monotone_boundary(mesh,attribute_name,slg,feature_edges,adj_facets,current_non_monotone_boundary)) {
             // a turning-point was merge with a corner, we need to update the labeling graph
-            slg.fill_from(mesh,attribute_name,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
+            slg.fill_from(mesh,attribute_name,feature_edges);
             // and then, re-process this boundary that can have another turning-point on a feature edge
             if (slg.nb_turning_points() == previous_number_of_turning_points) {
                 // geo_abort();
@@ -1656,7 +1656,7 @@ bool auto_fix_monotonicity(Mesh& mesh, const char* attribute_name, StaticLabelin
     }
 
     move_boundaries_near_turning_points(mesh,attribute_name,slg);
-    slg.fill_from(mesh,attribute_name,slg.is_allowing_boundaries_between_opposite_labels(),feature_edges);
+    slg.fill_from(mesh,attribute_name,feature_edges);
 
     if (slg.non_monotone_boundaries.empty()) {
         return true;

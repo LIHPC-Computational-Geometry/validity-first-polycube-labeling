@@ -360,7 +360,7 @@ int main(int argc, char** argv) {
 		filenames.push_back("labeling.txt"); // default output filename
 	}
 
-	bool allow_boundaries_between_opposite_labels = false;
+	bool allow_boundaries_between_opposite_labels = true;
 	Mesh M;
 	if(!mesh_load(filenames[0],M)) {
 		fmt::println(Logger::err("I/O"),"Unable to load mesh from {}",filenames[0]);
@@ -420,7 +420,7 @@ int main(int argc, char** argv) {
 	//////////////////////////////////////////////////
 
 	StaticLabelingGraph slg;
-	slg.fill_from(M,LABELING_ATTRIBUTE_NAME,allow_boundaries_between_opposite_labels,feature_edges);
+	slg.fill_from(M,LABELING_ATTRIBUTE_NAME,feature_edges,allow_boundaries_between_opposite_labels);
 
 	//////////////////////////////////////////////////
 	// Validity & monotonicity correction
