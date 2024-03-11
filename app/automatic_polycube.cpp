@@ -152,6 +152,15 @@ protected:
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 
+			if(ImGui::Button("Increase chart valence of first invalid chart")) {
+				// compute vertex-to-facet adjacency if not already done
+				if(adj_facets_.empty()) {
+					compute_adjacent_facets_of_vertices(mesh_,adj_facets_);
+				}
+				increase_chart_valence(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,adj_facets_,0);
+				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+			}
+
 			ImGui::PushStyleColor(ImGuiCol_Button, 			ImVec4(0.6f, 0.9f, 0.6f, 1.0f)); // green
 			ImGui::PushStyleColor(ImGuiCol_ButtonHovered,	ImVec4(0.3f, 0.8f, 0.3f, 1.0f)); // darker green
 			ImGui::PushStyleColor(ImGuiCol_ButtonActive,	ImVec4(0.0f, 0.8f, 0.0f, 1.0f));
@@ -226,6 +235,15 @@ protected:
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 
+			if(ImGui::Button("Join turning-points pair with new chart")) {
+				// compute vertex-to-facet adjacency if not already done
+				if(adj_facets_.empty()) {
+					compute_adjacent_facets_of_vertices(mesh_,adj_facets_);
+				}
+				join_turning_points_pair_with_new_chart(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,normals_,feature_edges_,adj_facets_);
+				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+			}
+
 			ImGui::PushStyleColor(ImGuiCol_Button, 			ImVec4(0.6f, 0.9f, 0.6f, 1.0f)); // green
 			ImGui::PushStyleColor(ImGuiCol_ButtonHovered,	ImVec4(0.3f, 0.8f, 0.3f, 1.0f)); // darker green
 			ImGui::PushStyleColor(ImGuiCol_ButtonActive,	ImVec4(0.0f, 0.8f, 0.0f, 1.0f));
@@ -250,24 +268,6 @@ protected:
 			else
 				ImGui::Text("current: %d",selected_chart_);
 			ImGui::EndDisabled();
-
-			if(ImGui::Button("Increase chart valence of first invalid chart")) {
-				// compute vertex-to-facet adjacency if not already done
-				if(adj_facets_.empty()) {
-					compute_adjacent_facets_of_vertices(mesh_,adj_facets_);
-				}
-				increase_chart_valence(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,adj_facets_,0);
-				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
-			}
-
-			if(ImGui::Button("Join turning-points pair with new chart")) {
-				// compute vertex-to-facet adjacency if not already done
-				if(adj_facets_.empty()) {
-					compute_adjacent_facets_of_vertices(mesh_,adj_facets_);
-				}
-				join_turning_points_pair_with_new_chart(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,normals_,feature_edges_,adj_facets_);
-				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
-			}
 		}
 	}
 
