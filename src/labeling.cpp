@@ -1218,9 +1218,10 @@ bool auto_fix_validity(Mesh& mesh, std::vector<vec3>& normals, const char* attri
     return true;
 }
 
-unsigned int move_boundaries_near_turning_points(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg) {
+size_t move_boundaries_near_turning_points(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg, const std::set<std::pair<index_t,index_t>>& feature_edges) {
 
-    unsigned int nb_labels_changed = 0;
+    size_t nb_labels_changed = 0;
+    size_t nb_turning_points_moved = 0;
 
     if(slg.non_monotone_boundaries.empty()) {
         fmt::println(Logger::out("fix_labeling"),"Warning : operation canceled because all boundaries are monotone"); Logger::out("fix_labeling").flush();
@@ -1236,11 +1237,29 @@ unsigned int move_boundaries_near_turning_points(GEO::Mesh& mesh, const char* at
     // Get turning points, change the label if this doesnt break charts connectivity
 
     for(auto b : slg.non_monotone_boundaries) {
+
+        if(slg.boundaries[b].on_feature_edge) {
+            continue; // don't move this boundary away from the feature edge
+        }
+
         for(auto tp : slg.boundaries[b].turning_points) {
 
             initial_halfedge = slg.boundaries[b].halfedges[tp.outgoing_local_halfedge_index_];
             geo_assert(mesh_halfedges.halfedge_is_border(initial_halfedge));
             geo_assert(MAP_CONTAINS(slg.halfedge2boundary,initial_halfedge));
+
+            // if one of the halfedges, the one before or the one after,
+            // is on a feature edge, don't move this boundary
+
+            if(halfedge_is_on_feature_edge(mesh,initial_halfedge,feature_edges)) {
+                break; // don't move this boundary away from the feature edge
+            }
+            if(halfedge_is_on_feature_edge(mesh,
+                slg.boundaries[b].halfedges[(tp.outgoing_local_halfedge_index_+1) % slg.boundaries[b].halfedges.size()],
+                feature_edges
+            )) {
+                break; // don't move this boundary away from the feature edge
+            }
 
             // get the vertex index
             index_t current_vertex = mesh.facet_corners.vertex(initial_halfedge.corner);
@@ -1263,9 +1282,11 @@ unsigned int move_boundaries_near_turning_points(GEO::Mesh& mesh, const char* at
                     nb_labels_changed++;
                 }
             } while (current_halfedge != initial_halfedge);
+
+            nb_turning_points_moved++;
         }
     }
-    return nb_labels_changed;
+    return nb_turning_points_moved;
 }
 
 void straighten_boundary_with_GCO(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, const StaticLabelingGraph& slg, index_t boundary_index) {
@@ -1930,7 +1951,7 @@ bool auto_fix_monotonicity(Mesh& mesh, const char* attribute_name, StaticLabelin
         return true;
     }
 
-    move_boundaries_near_turning_points(mesh,attribute_name,slg);
+    move_boundaries_near_turning_points(mesh,attribute_name,slg,feature_edges);
     slg.fill_from(mesh,attribute_name,feature_edges);
 
     if (slg.non_monotone_boundaries.empty()) {
