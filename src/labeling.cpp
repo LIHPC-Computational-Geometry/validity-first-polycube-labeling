@@ -1133,6 +1133,14 @@ bool auto_fix_validity(Mesh& mesh, std::vector<vec3>& normals, const char* attri
             return true;
 
         do {
+            nb_processed = (size_t) increase_chart_valence(mesh,normals,attribute_name,slg,adj_facets,feature_edges);
+            slg.fill_from(mesh,attribute_name,feature_edges);
+        } while(nb_processed != 0);
+
+        if(slg.is_valid())
+            return true;
+
+        do {
             nb_processed = fix_as_much_invalid_boundaries_as_possible(mesh,attribute_name,slg,facet_normals,feature_edges,adj_facets);
             slg.fill_from(mesh,attribute_name,feature_edges);
         }
