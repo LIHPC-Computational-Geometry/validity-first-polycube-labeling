@@ -992,53 +992,42 @@ bool increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
         geo_assert(downward_boundary_equilibrium_vertex != upward_boundary_equilibrium_vertex);
 
         // Compute the direction to follow
-        // If there is a lost feature edge next to one of the equilibrium point -> go in this direction
-        // Else, go in the opposite direction as the label of the current `chart` (like with MAMBO B21)
-        // or the same direction (like with MAMBO B49), depending on the most aligned adj halfedges
+        // Between
+        //   label2vector[chart.label] <=> same direction as the label of the current `chart` (like with MAMBO B49)
+        // and
+        //   label2vector[opposite_label(chart.label)] <=> opposite direction (like with MAMBO B21)
+        // choose the one for which the most aligned outgoing halfedge is the closer
+        // Check for both
+        //   `downward_boundary_equilibrium_vertex`
+        // and
+        //   `upward_boundary_equilibrium_vertex`
 
         MeshHalfedges::Halfedge outgoing_halfedge;
         vec3 direction;
-        if(vertex_has_lost_feature_edge_in_neighborhood(mesh_he,adj_facets,feature_edges,downward_boundary_equilibrium_vertex,outgoing_halfedge)) {
-            direction = normalize(halfedge_vector(mesh,outgoing_halfedge));
-        }
-        else if(vertex_has_lost_feature_edge_in_neighborhood(mesh_he,adj_facets,feature_edges,upward_boundary_equilibrium_vertex,outgoing_halfedge)) {
-            direction = normalize(halfedge_vector(mesh,outgoing_halfedge));
+        
+        // neighborhood of `downward_boundary_equilibrium_vertex`
+        outgoing_halfedge = get_an_outgoing_halfedge_of_vertex(mesh,adj_facets,downward_boundary_equilibrium_vertex);
+        outgoing_halfedge = get_most_aligned_halfedge_around_vertex(outgoing_halfedge,mesh_he,label2vector[chart.label]);
+        double max_angle_same_direction = angle(normalize(halfedge_vector(mesh,outgoing_halfedge)),label2vector[chart.label]);
+
+        outgoing_halfedge = get_most_aligned_halfedge_around_vertex(outgoing_halfedge,mesh_he,label2vector[opposite_label(chart.label)]);
+        double max_angle_opposite_direction = angle(normalize(halfedge_vector(mesh,outgoing_halfedge)),label2vector[opposite_label(chart.label)]);
+
+        // neighborhood of `upward_boundary_equilibrium_vertex`
+        outgoing_halfedge = get_an_outgoing_halfedge_of_vertex(mesh,adj_facets,upward_boundary_equilibrium_vertex);
+        outgoing_halfedge = get_most_aligned_halfedge_around_vertex(outgoing_halfedge,mesh_he,label2vector[chart.label]);
+        max_angle_same_direction = std::max(max_angle_same_direction,angle(normalize(halfedge_vector(mesh,outgoing_halfedge)),label2vector[chart.label]));
+
+        outgoing_halfedge = get_most_aligned_halfedge_around_vertex(outgoing_halfedge,mesh_he,label2vector[opposite_label(chart.label)]);
+        max_angle_opposite_direction = std::max(max_angle_opposite_direction,angle(normalize(halfedge_vector(mesh,outgoing_halfedge)),label2vector[opposite_label(chart.label)]));
+
+        if(max_angle_same_direction < max_angle_opposite_direction) {
+            // better to go in the same direction as the label of the current chart
+            direction = label2vector[chart.label];
         }
         else {
-            // Choose between
-            //   label2vector[chart.label]
-            // and
-            //   label2vector[opposite_label(chart.label)]
-            // depending on if we are backtracking or not while picking the most aligned outgoing halfedge. 
-            // Check for both
-            //   `downward_boundary_equilibrium_vertex`
-            // and
-            //   `upward_boundary_equilibrium_vertex`
-
-            // neighborhood of `downward_boundary_equilibrium_vertex`
-            outgoing_halfedge = get_an_outgoing_halfedge_of_vertex(mesh,adj_facets,downward_boundary_equilibrium_vertex);
-            outgoing_halfedge = get_most_aligned_halfedge_around_vertex(outgoing_halfedge,mesh_he,label2vector[chart.label]);
-            double max_angle_same_direction = angle(normalize(halfedge_vector(mesh,outgoing_halfedge)),label2vector[chart.label]);
-
-            outgoing_halfedge = get_most_aligned_halfedge_around_vertex(outgoing_halfedge,mesh_he,label2vector[opposite_label(chart.label)]);
-            double max_angle_opposite_direction = angle(normalize(halfedge_vector(mesh,outgoing_halfedge)),label2vector[opposite_label(chart.label)]);
-
-            // neighborhood of `upward_boundary_equilibrium_vertex`
-            outgoing_halfedge = get_an_outgoing_halfedge_of_vertex(mesh,adj_facets,upward_boundary_equilibrium_vertex);
-            outgoing_halfedge = get_most_aligned_halfedge_around_vertex(outgoing_halfedge,mesh_he,label2vector[chart.label]);
-            max_angle_same_direction = std::max(max_angle_same_direction,angle(normalize(halfedge_vector(mesh,outgoing_halfedge)),label2vector[chart.label]));
-
-            outgoing_halfedge = get_most_aligned_halfedge_around_vertex(outgoing_halfedge,mesh_he,label2vector[opposite_label(chart.label)]);
-            max_angle_opposite_direction = std::max(max_angle_opposite_direction,angle(normalize(halfedge_vector(mesh,outgoing_halfedge)),label2vector[opposite_label(chart.label)]));
-
-            if(max_angle_same_direction < max_angle_opposite_direction) {
-                // better to go in the same direction as the label of the current chart
-                direction = label2vector[chart.label];
-            }
-            else {
-                // better to go in the opposite direction
-                direction = label2vector[opposite_label(chart.label)];
-            }
+            // better to go in the opposite direction
+            direction = label2vector[opposite_label(chart.label)];
         }
 
         // Trace a boundary from each equilibrium point
