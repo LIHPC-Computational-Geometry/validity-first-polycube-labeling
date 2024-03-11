@@ -152,14 +152,18 @@ protected:
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 
-			if(ImGui::Button("Increase chart valence of first invalid chart")) {
+			if(ImGui::Button("Increase chart valence")) {
 				// compute vertex-to-facet adjacency if not already done
 				if(adj_facets_.empty()) {
 					compute_adjacent_facets_of_vertices(mesh_,adj_facets_);
 				}
-				increase_chart_valence(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,adj_facets_,feature_edges_,0);
+				bool chart_processed = increase_chart_valence(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,adj_facets_,feature_edges_);
+				fmt::println(Logger::out("fix_labeling"),"{} invalid charts processed",size_t(chart_processed)); Logger::out("fix_labeling").flush();
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
+			ImGui::SameLine();
+			ImGui::TextDisabled("(?)");
+			ImGui::SetItemTooltip("Pick the first invalid chart surrounded by feature edges\nand trace a new adjacent chart to increase the valence of the first one");
 
 			ImGui::PushStyleColor(ImGuiCol_Button, 			ImVec4(0.6f, 0.9f, 0.6f, 1.0f)); // green
 			ImGui::PushStyleColor(ImGuiCol_ButtonHovered,	ImVec4(0.3f, 0.8f, 0.3f, 1.0f)); // darker green
