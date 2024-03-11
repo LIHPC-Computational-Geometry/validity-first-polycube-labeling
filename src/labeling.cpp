@@ -854,7 +854,7 @@ void remove_charts_around_invalid_boundaries(GEO::Mesh& mesh, const std::vector<
 
 }
 
-void increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, StaticLabelingGraph& slg, const std::vector<std::vector<index_t>>& adj_facets, index_t invalid_chart_index) {
+void increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, StaticLabelingGraph& slg, const std::vector<std::vector<index_t>>& adj_facets, const std::set<std::pair<index_t,index_t>>& feature_edges, index_t invalid_chart_index) {
     geo_assert(invalid_chart_index < slg.invalid_charts.size());
     index_t chart_index = slg.invalid_charts[invalid_chart_index];
     const Chart& chart = slg.charts[chart_index];
@@ -989,6 +989,56 @@ void increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
 
     geo_assert(downward_boundary_equilibrium_vertex != upward_boundary_equilibrium_vertex);
 
+    // Compute the direction to follow
+    // If there is a lost feature edge next to one of the equilibrium point -> go in this direction
+    // Else, go in the opposite direction as the label of the current `chart` (like with MAMBO B21)
+    // or the same direction (like with MAMBO B49), depending on the most aligned adj halfedges
+
+    MeshHalfedges::Halfedge outgoing_halfedge;
+    vec3 direction;
+    if(vertex_has_lost_feature_edge_in_neighborhood(mesh_he,adj_facets,feature_edges,downward_boundary_equilibrium_vertex,outgoing_halfedge)) {
+        direction = normalize(halfedge_vector(mesh,outgoing_halfedge));
+    }
+    else if(vertex_has_lost_feature_edge_in_neighborhood(mesh_he,adj_facets,feature_edges,upward_boundary_equilibrium_vertex,outgoing_halfedge)) {
+        direction = normalize(halfedge_vector(mesh,outgoing_halfedge));
+    }
+    else {
+        // Choose between
+        //   label2vector[chart.label]
+        // and
+        //   label2vector[opposite_label(chart.label)]
+        // depending on if we are backtracking or not while picking the most aligned outgoing halfedge. 
+        // Check for both
+        //   `downward_boundary_equilibrium_vertex`
+        // and
+        //   `upward_boundary_equilibrium_vertex`
+
+        // neighborhood of `downward_boundary_equilibrium_vertex`
+        outgoing_halfedge = get_an_outgoing_halfedge_of_vertex(mesh,adj_facets,downward_boundary_equilibrium_vertex);
+        outgoing_halfedge = get_most_aligned_halfedge_around_vertex(outgoing_halfedge,mesh_he,label2vector[chart.label]);
+        double max_angle_same_direction = angle(normalize(halfedge_vector(mesh,outgoing_halfedge)),label2vector[chart.label]);
+
+        outgoing_halfedge = get_most_aligned_halfedge_around_vertex(outgoing_halfedge,mesh_he,label2vector[opposite_label(chart.label)]);
+        double max_angle_opposite_direction = angle(normalize(halfedge_vector(mesh,outgoing_halfedge)),label2vector[opposite_label(chart.label)]);
+
+        // neighborhood of `upward_boundary_equilibrium_vertex`
+        outgoing_halfedge = get_an_outgoing_halfedge_of_vertex(mesh,adj_facets,upward_boundary_equilibrium_vertex);
+        outgoing_halfedge = get_most_aligned_halfedge_around_vertex(outgoing_halfedge,mesh_he,label2vector[chart.label]);
+        max_angle_same_direction = std::max(max_angle_same_direction,angle(normalize(halfedge_vector(mesh,outgoing_halfedge)),label2vector[chart.label]));
+
+        outgoing_halfedge = get_most_aligned_halfedge_around_vertex(outgoing_halfedge,mesh_he,label2vector[opposite_label(chart.label)]);
+        max_angle_opposite_direction = std::max(max_angle_opposite_direction,angle(normalize(halfedge_vector(mesh,outgoing_halfedge)),label2vector[opposite_label(chart.label)]));
+
+        if(max_angle_same_direction < max_angle_opposite_direction) {
+            // better to go in the same direction as the label of the current chart
+            direction = label2vector[chart.label];
+        }
+        else {
+            // better to go in the opposite direction
+            direction = label2vector[opposite_label(chart.label)];
+        }
+    }
+
     // Trace a boundary from each equilibrium point
     // If one of the equilibrium point is on a corner, re-use the boundary going out of the chart
 
@@ -999,7 +1049,7 @@ void increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
     if( (downward_boundary_equilibrium_vertex == problematic_vertex) && (problematic_corner != index_t(-1)) ) {
         // This equilibrium point is on the problematic corner (between 2 boundaries assigned to the same axis)
         // So there is already an outgoing boundary, we just need to fetch facets at its left and right
-        MeshHalfedges::Halfedge halfedge = slg.corners[problematic_corner].get_most_aligned_boundary_halfedge(mesh,label2vector[opposite_label(chart.label)]);
+        MeshHalfedges::Halfedge halfedge = slg.corners[problematic_corner].get_most_aligned_boundary_halfedge(mesh,direction);
         geo_assert(halfedge_vertex_index_from(mesh,halfedge) == downward_boundary_equilibrium_vertex);
         auto [boundary_to_reuse, same_direction] = slg.halfedge2boundary[halfedge];
         geo_assert(boundary_to_reuse != index_t(-1));
@@ -1014,13 +1064,13 @@ void increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
     }
     else {
         // trace path
-        trace_path_on_chart(mesh_he,adj_facets,slg.facet2chart,downward_boundary_equilibrium_vertex,label2vector[opposite_label(chart.label)]*10,facets_of_new_chart,walls,path);
+        trace_path_on_chart(mesh_he,adj_facets,slg.facet2chart,downward_boundary_equilibrium_vertex,direction*10,facets_of_new_chart,walls,path);
     }
 
     if( (upward_boundary_equilibrium_vertex == problematic_vertex) && (problematic_corner != index_t(-1)) ) {
         // This equilibrium point is on the problematic corner (between 2 boundaries assigned to the same axis)
         // So there is already an outgoing boundary, we just need to fetch facets at its left and right
-        MeshHalfedges::Halfedge halfedge = slg.corners[problematic_corner].get_most_aligned_boundary_halfedge(mesh,label2vector[opposite_label(chart.label)]);
+        MeshHalfedges::Halfedge halfedge = slg.corners[problematic_corner].get_most_aligned_boundary_halfedge(mesh,direction);
         geo_assert(halfedge_vertex_index_from(mesh,halfedge) == upward_boundary_equilibrium_vertex);
         auto [boundary_to_reuse, same_direction] = slg.halfedge2boundary[halfedge];
         geo_assert(boundary_to_reuse != index_t(-1));
@@ -1036,7 +1086,7 @@ void increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
     }
     else {
         // trace path
-        trace_path_on_chart(mesh_he,adj_facets,slg.facet2chart,upward_boundary_equilibrium_vertex,label2vector[opposite_label(chart.label)]*10,walls,facets_of_new_chart,path);
+        trace_path_on_chart(mesh_he,adj_facets,slg.facet2chart,upward_boundary_equilibrium_vertex,direction*10,walls,facets_of_new_chart,path);
     }
 
     index_t chart_on_wich_the_new_chart_will_be = slg.facet2chart[*facets_of_new_chart.begin()];
