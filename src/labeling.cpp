@@ -489,6 +489,7 @@ size_t fix_as_much_invalid_boundaries_as_possible(
                 mesh_he,
                 adj_facets,
                 slg.facet2chart,
+                slg.turning_point_vertices,
                 turning_point_at_max_coordinate_on_axis.vertex(slg.boundaries[non_monotone_boundary],mesh),
                 label2vector[axis_of_just_fixed_boundary*2], // positive direction
                 facets_at_left,
@@ -532,6 +533,7 @@ size_t fix_as_much_invalid_boundaries_as_possible(
                 mesh_he,
                 adj_facets,
                 slg.facet2chart,
+                slg.turning_point_vertices,
                 turning_point_at_min_coordinate_on_axis.vertex(slg.boundaries[non_monotone_boundary],mesh),
                 label2vector[axis_of_just_fixed_boundary*2+1], // negative direction
                 facets_at_left,
@@ -1064,7 +1066,7 @@ void increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
     }
     else {
         // trace path
-        trace_path_on_chart(mesh_he,adj_facets,slg.facet2chart,downward_boundary_equilibrium_vertex,direction*10,facets_of_new_chart,walls,path);
+        trace_path_on_chart(mesh_he,adj_facets,slg.facet2chart,slg.turning_point_vertices,downward_boundary_equilibrium_vertex,direction*10,facets_of_new_chart,walls,path);
     }
 
     if( (upward_boundary_equilibrium_vertex == problematic_vertex) && (problematic_corner != index_t(-1)) ) {
@@ -1086,7 +1088,7 @@ void increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
     }
     else {
         // trace path
-        trace_path_on_chart(mesh_he,adj_facets,slg.facet2chart,upward_boundary_equilibrium_vertex,direction*10,walls,facets_of_new_chart,path);
+        trace_path_on_chart(mesh_he,adj_facets,slg.facet2chart,slg.turning_point_vertices,upward_boundary_equilibrium_vertex,direction*10,walls,facets_of_new_chart,path);
     }
 
     index_t chart_on_wich_the_new_chart_will_be = slg.facet2chart[*facets_of_new_chart.begin()];
@@ -1735,7 +1737,7 @@ bool merge_a_turning_point_and_a_corner_on_non_monotone_boundary(GEO::Mesh& mesh
 
     std::vector<MeshHalfedges::Halfedge> path;
     std::set<index_t> facets_at_left, facets_at_right;
-    trace_path_on_chart(mesh_he,adj_facets,slg.facet2chart,first_turning_point_on_feature_edge_vertex,boundary_to_move_vector,facets_at_left,facets_at_right,path);
+    trace_path_on_chart(mesh_he,adj_facets,slg.facet2chart,slg.turning_point_vertices,first_turning_point_on_feature_edge_vertex,boundary_to_move_vector,facets_at_left,facets_at_right,path);
     #ifndef NDEBUG
         dump_facets("facets_at_left",mesh,facets_at_left);
         dump_facets("facets_at_right",mesh,facets_at_right);

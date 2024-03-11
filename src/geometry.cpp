@@ -544,7 +544,7 @@ double angle_between_halfedge_and_axis(const Mesh& mesh, MeshHalfedges::Halfedge
     );
 }
 
-void trace_path_on_chart(const CustomMeshHalfedges& mesh_he, const std::vector<std::vector<index_t>>& adj_facets, const std::vector<index_t>& facet2chart, index_t start_vertex, vec3 direction, std::set<index_t>& facets_at_left, std::set<index_t>& facets_at_right, std::vector<MeshHalfedges::Halfedge>& halfedges) {
+void trace_path_on_chart(const CustomMeshHalfedges& mesh_he, const std::vector<std::vector<index_t>>& adj_facets, const std::vector<index_t>& facet2chart, const std::map<index_t,std::pair<index_t,index_t>>& turning_point_vertices, index_t start_vertex, vec3 direction, std::set<index_t>& facets_at_left, std::set<index_t>& facets_at_right, std::vector<MeshHalfedges::Halfedge>& halfedges) {
     // From `start_vertex`, move edge by edge in the given `direction`
     // To not drift away from this direction, we aim a target point, and not the same vector each time
     // To allow to go further than the init target point, we move the target point away at each step
@@ -562,6 +562,12 @@ void trace_path_on_chart(const CustomMeshHalfedges& mesh_he, const std::vector<s
         facets_at_left.insert(halfedge_facet_left(mesh,current_halfedge));
         facets_at_right.insert(halfedge_facet_right(mesh,current_halfedge));
         halfedges.push_back(current_halfedge);
+        // Stop if we found a turning point
+        // see MAMBO B76 for example
+        // https://gitlab.com/franck.ledoux/mambo
+        if(turning_point_vertices.contains(halfedge_vertex_index_to(mesh,current_halfedge))) {
+            break;
+        }
         mesh_he.move_to_opposite(current_halfedge); // flip `current_halfedge` so that its origin vertex is the origin vertex of the next halfedge
         next_halfedge = get_most_aligned_halfedge_around_vertex(current_halfedge,mesh_he,target_point - halfedge_vertex_from(mesh,current_halfedge)); // reference vector = vector toward the `target_point`
         geo_assert(next_halfedge != current_halfedge); // assert the previous halfedge is not the one the best aligned. else we are backtracking
