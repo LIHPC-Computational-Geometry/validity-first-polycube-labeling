@@ -582,7 +582,7 @@ size_t fix_as_much_invalid_boundaries_as_possible(
     return nb_invalid_boundaries_processed;
 }
 
-unsigned int fix_invalid_corners(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, StaticLabelingGraph& slg, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<index_t>& facet2chart, const std::vector<std::vector<index_t>>& adj_facets) {
+size_t fix_as_much_invalid_corners_as_possible(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, StaticLabelingGraph& slg, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<index_t>& facet2chart, const std::vector<std::vector<index_t>>& adj_facets) {
     Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // get labeling attribute
     CustomMeshHalfedges mesh_he(mesh); // create an halfedges interface for this mesh
     mesh_he.set_use_facet_region(attribute_name);
@@ -590,7 +590,7 @@ unsigned int fix_invalid_corners(GEO::Mesh& mesh, const std::vector<vec3>& norma
     // Replace the labels around invalid corners
     // by the nearest one from the vertex normal
 
-    unsigned int new_charts_count = 0;
+    unsigned int nb_invalid_corners_processed = 0;
     index_t new_label;
     vec3 vertex_normal = {0,0,0};
     std::vector<MeshHalfedges::Halfedge> outgoing_halfedges_on_feature_edge;
@@ -618,7 +618,7 @@ unsigned int fix_invalid_corners(GEO::Mesh& mesh, const std::vector<vec3>& norma
                 label[f] = new_label;
             }
 
-            new_charts_count++;
+            nb_invalid_corners_processed++;
         }
         else {
 
@@ -693,7 +693,10 @@ unsigned int fix_invalid_corners(GEO::Mesh& mesh, const std::vector<vec3>& norma
                     }
 
                     slg.fill_from(mesh,attribute_name,feature_edges);
-                    return new_charts_count;
+
+                    // we need to stop fix_as_much_invalid_corners_as_possible() now
+                    // because the loop iterating over `slg.invalid_corners` is no longer up to date
+                    return nb_invalid_corners_processed;
                 }
                 // else : don't know how to fix, ignore
             }
@@ -746,12 +749,12 @@ unsigned int fix_invalid_corners(GEO::Mesh& mesh, const std::vector<vec3>& norma
                 for(index_t f : facets_to_edit) {
                     label[f] = label_of_chart_in_common;
                 }
-
+                nb_invalid_corners_processed++;
             }
         }
     }
 
-    return new_charts_count; // should be == to slg.invalid_corners.size()
+    return nb_invalid_corners_processed;
 }
 
 // from https://github.com/LIHPC-Computational-Geometry/evocube/blob/master/src/labeling_ops.cpp removeChartMutation()
@@ -870,15 +873,15 @@ bool auto_fix_validity(Mesh& mesh, std::vector<vec3>& normals, const char* attri
             slg.fill_from(mesh,attribute_name,feature_edges);
         }
         while (nb_processed != 0);
-        // update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
-        slg.fill_from(mesh,attribute_name,feature_edges);
 
         if(slg.is_valid())
             return true;
-
-        fix_invalid_corners(mesh,normals,attribute_name,slg,feature_edges,slg.facet2chart,adj_facets);
-        // update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
-        slg.fill_from(mesh,attribute_name,feature_edges);
+        
+        do {
+            nb_processed = fix_as_much_invalid_corners_as_possible(mesh,normals,attribute_name,slg,feature_edges,slg.facet2chart,adj_facets);
+            slg.fill_from(mesh,attribute_name,feature_edges);
+        }
+        while (nb_processed != 0);
 
         if(slg.is_valid())
             return true;
