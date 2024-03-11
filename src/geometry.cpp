@@ -3,7 +3,7 @@
 #include <geogram/basic/vecg.h>             // for vec3, length()
 #include <geogram/basic/matrix.h>           // for mat3
 #include <geogram/mesh/mesh_geometry.h>     // for get_bbox()
-#include <geogram/basic/numeric.h>          // for min_float64()
+#include <geogram/basic/numeric.h>          // for max_float64()
 
 #include <fmt/core.h>
 #include <fmt/ostream.h>    // to use fmt::print() on ostreams
@@ -446,13 +446,17 @@ MeshHalfedges::Halfedge get_most_aligned_halfedge_around_vertex(const MeshHalfed
     vec3 normalized_reference = normalize(reference);
     MeshHalfedges::Halfedge current_halfedge = init_halfedge;
     MeshHalfedges::Halfedge most_aligned_halfedge; // init value is (NO_FACET,NO_CORNER)
-    double current_dot_product = 0.0,
-           max_dot_product = Numeric::min_float64();
+    double current_cost = 0.0,
+           min_cost = Numeric::max_float64();
     do {
         mesh_he.move_clockwise_around_vertex(current_halfedge,true);
-        current_dot_product = dot(normalize(halfedge_vector(mesh_he.mesh(),current_halfedge)),normalized_reference);
-        if (current_dot_product > max_dot_product) {
-            max_dot_product = current_dot_product;
+        // dot product = 1  -> cost = 0
+        // dot product = 0  -> cost = 0.5
+        // dot product = -1 -> cost = 1
+        // -> flip (*-1), halve range (*0.5) and shift (+0.5)
+        current_cost = dot(normalize(halfedge_vector(mesh_he.mesh(),current_halfedge)),normalized_reference)*(-0.5)+0.5;
+        if (current_cost < min_cost) {
+            min_cost = current_cost;
             most_aligned_halfedge = current_halfedge;
         }
     } while (current_halfedge != init_halfedge);
