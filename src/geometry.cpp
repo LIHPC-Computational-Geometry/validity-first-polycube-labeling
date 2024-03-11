@@ -605,6 +605,9 @@ double average_angle(const std::vector<vec3>& normals, const std::set<index_t>& 
 
 bool vertex_has_lost_feature_edge_in_neighborhood(const CustomMeshHalfedges& mesh_he, const std::vector<std::vector<index_t>>& adj_facets, const std::set<std::pair<index_t,index_t>>& feature_edges, index_t vertex, MeshHalfedges::Halfedge& outgoing_halfedge_on_feature_edges) {
     geo_assert(mesh_he.is_using_facet_region()); // we need the labeling to be stored as facet region in `mesh_he`, so that halfedges on borders are defined
+    if(feature_edges.empty()) {
+        return false;
+    }
     const Mesh& mesh = mesh_he.mesh();
     MeshHalfedges::Halfedge init_halfedge = get_an_outgoing_halfedge_of_vertex(mesh,adj_facets,vertex);
     MeshHalfedges::Halfedge current_halfedge = init_halfedge;
