@@ -1230,8 +1230,7 @@ unsigned int move_boundaries_near_turning_points(GEO::Mesh& mesh, const char* at
 
             // get the vertex index
             index_t current_vertex = mesh.facet_corners.vertex(initial_halfedge.corner);
-            index_t dummy;
-            geo_assert(slg.is_turning_point(mesh,current_vertex,dummy));
+            geo_assert(slg.turning_point_vertices.contains(current_vertex));
             geo_assert(slg.vertex2corner[current_vertex] == index_t(-1)); // a turning point should not be a corner
             // test if the valence of current_vertex is 2
             VertexRingWithBoundaries vr;
@@ -1843,7 +1842,8 @@ bool join_turning_points_pair_with_new_chart(GEO::Mesh& mesh, const char* attrib
                 halfedge = follow_feature_edge_on_chart(mesh_he,halfedge,feature_edges,slg.facet2chart,facets_at_left,facets_at_right);
                 // so move unsuccessful (no more halfedges on feature edge), or we left the chart (found a boundary / corner / turning-point)
                 vertex_at_tip_of_feature_edge = halfedge_vertex_index_to(mesh,halfedge);
-                if(slg.is_turning_point(mesh,vertex_at_tip_of_feature_edge,boundary_of_the_second_turning_point)) {
+                if(slg.turning_point_vertices.contains(vertex_at_tip_of_feature_edge)) {
+                    boundary_of_the_second_turning_point = slg.non_monotone_boundaries[slg.turning_point_vertices[vertex_at_tip_of_feature_edge].first];
                     new_label = find_optimal_label(
                         {},
                         { // forbidden labels

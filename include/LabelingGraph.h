@@ -276,6 +276,7 @@ struct StaticLabelingGraph {
     vector<index_t> invalid_boundaries;
     vector<index_t> invalid_corners;
     vector<index_t> non_monotone_boundaries;
+    std::map<index_t,std::pair<index_t,index_t>> turning_point_vertices; // map a vertex index on which there is a turning-point to an invalid boundary index and a local turning-point index
 
     //// Parameter given to last fill_from() //////////////////
     bool allow_boundaries_between_opposite_labels_ = false;
@@ -310,7 +311,6 @@ struct StaticLabelingGraph {
 
     bool vertex_is_only_surrounded_by(index_t vertex_index, std::vector<index_t> expected_charts, const std::vector<std::vector<index_t>>& vertex_to_adj_facets) const;
     void get_adjacent_charts_of_vertex(index_t vertex_index, const std::vector<std::vector<index_t>>& vertex_to_adj_facets, std::set<index_t>& adjacent_charts) const;
-    bool is_turning_point(const Mesh& mesh, index_t vertex_index, index_t& invalid_boundary) const;
 
     //// Export //////////////////
 

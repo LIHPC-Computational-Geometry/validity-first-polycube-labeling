@@ -1107,6 +1107,17 @@ void StaticLabelingGraph::fill_from(
             invalid_corners.push_back(c);
         }
     }
+
+    // STEP 6 : Aggregate turning-points
+    index_t vertex = index_t(-1);
+    FOR(non_monotone_boundary_index,non_monotone_boundaries.size()) { // for each non-monotone boundary
+        const Boundary& boundary = boundaries[non_monotone_boundaries[non_monotone_boundary_index]];
+        FOR(ltp,boundary.turning_points.size()) { // for each local turning-point
+            vertex = boundary.turning_points[ltp].vertex(boundary,mesh);
+            geo_assert(!turning_point_vertices.contains(vertex));
+            turning_point_vertices[vertex] = std::make_pair(non_monotone_boundary_index,ltp);
+        }
+    }
 }
 
 void StaticLabelingGraph::clear() {
@@ -1120,6 +1131,7 @@ void StaticLabelingGraph::clear() {
     invalid_boundaries.clear();
     invalid_corners.clear();
     non_monotone_boundaries.clear();
+    turning_point_vertices.clear();
     allow_boundaries_between_opposite_labels_ = false;
     // note : the mesh attributes will not be removed, because we no longer have a ref/pointer to the mesh
 }
@@ -1167,11 +1179,7 @@ std::size_t StaticLabelingGraph::nb_non_monotone_boundaries() const {
 }
 
 std::size_t StaticLabelingGraph::nb_turning_points() const {
-    std::size_t count = 0;
-    for(index_t i : non_monotone_boundaries) {
-        count += boundaries[i].turning_points.size();
-    }
-    return count;
+    return turning_point_vertices.size();
 }
 
 bool StaticLabelingGraph::is_allowing_boundaries_between_opposite_labels() const {
@@ -1195,18 +1203,6 @@ void StaticLabelingGraph::get_adjacent_charts_of_vertex(index_t vertex_index, co
         geo_assert(adj_facet < facet2chart.size());
         adjacent_charts.insert(facet2chart[adj_facet]);
     }
-}
-
-bool StaticLabelingGraph::is_turning_point(const Mesh& mesh, index_t vertex_index, index_t& invalid_boundary) const {
-    for(auto b : non_monotone_boundaries) {
-        FOR(tp,boundaries[b].turning_points.size()) {
-            if(boundaries[b].turning_point_vertex(tp,mesh) == vertex_index) {
-                invalid_boundary = b;
-                return true;
-            }
-        }
-    }
-    return false;
 }
 
 void StaticLabelingGraph::dump_to_text_file(const char* filename, Mesh& mesh) {
