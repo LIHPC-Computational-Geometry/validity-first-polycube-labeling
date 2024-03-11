@@ -598,9 +598,11 @@ size_t fix_as_much_invalid_corners_as_possible(GEO::Mesh& mesh, const std::vecto
 
         // check if there is a feature edge along the corner
         slg.corners[corner_index].get_outgoing_halfedges_on_feature_edge(mesh,feature_edges,outgoing_halfedges_on_feature_edge);
-        if(outgoing_halfedges_on_feature_edge.empty()) {
+        // also compute the evenness of adj facets area
+        double sd_adj_facets_area = sd_adjacent_facets_area(mesh,adj_facets,slg.corners[corner_index].vertex);
+        if(outgoing_halfedges_on_feature_edge.empty() || sd_adj_facets_area < 0.3) {
 
-            // cone-like invalid corner
+            // cone-like, or pyramid-like (MAMBO B20) invalid corner
             // compute the normal by adding normals of adjacent facets
 
             geo_assert(!adj_facets.empty());
@@ -621,6 +623,7 @@ size_t fix_as_much_invalid_corners_as_possible(GEO::Mesh& mesh, const std::vecto
             nb_invalid_corners_processed++;
         }
         else {
+            // there is some kind of feature-edges pinching
 
             MeshHalfedges::Halfedge halfedge;
             if(vertex_has_lost_feature_edge_in_neighborhood(mesh_he,adj_facets,feature_edges,slg.corners[corner_index].vertex,halfedge)) {
