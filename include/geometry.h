@@ -184,3 +184,6 @@ index_t group_facets(const Mesh& mesh, const std::set<index_t>& facets_to_tilt, 
     }
     return ds.getSetsMap(per_facet_group_index.data(),a_facet_not_to_tilt); // return association between facet and group index, and impose facets outside `facets_to_tilt` to have 0 as group index
 }
+
+// compute standart deviation of the adjacent facets area
+double sd_adjacent_facets_area(const Mesh& mesh, const std::vector<std::vector<index_t>>& adj_facets, index_t vertex_index);
