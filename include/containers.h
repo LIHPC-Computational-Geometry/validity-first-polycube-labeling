@@ -102,3 +102,18 @@ void fill_set_with_map_keys(const std::map<K,V>& map, std::set<K>& keys) {
         keys.insert(key);
     }
 }
+
+template <typename T>
+bool no_item_in_common(const std::set<T>& a, const std::set<T>& b) {
+    for(const auto& i : a) {
+        if(b.contains(i)) {
+            return false;
+        }
+    }
+    for(const auto& j : b) {
+        if(a.contains(j)) {
+            return false;
+        }
+    }
+    return true;
+}
