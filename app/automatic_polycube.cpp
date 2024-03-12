@@ -233,7 +233,7 @@ protected:
 			ImGui::PushStyleColor(ImGuiCol_ButtonHovered,	ImVec4(0.3f, 0.8f, 0.3f, 1.0f)); // darker green
 			ImGui::PushStyleColor(ImGuiCol_ButtonActive,	ImVec4(0.0f, 0.8f, 0.0f, 1.0f));
 			if(ImGui::Button("Auto fix monotonicity")) {
-				auto_fix_monotonicity(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,adj_facets_,feature_edges_);
+				auto_fix_monotonicity(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,adj_facets_,feature_edges_,normals_);
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 			ImGui::PopStyleColor(3);
@@ -347,7 +347,7 @@ int main(int argc, char** argv) {
 
 	if(auto_fix_validity(M,normals,LABELING_ATTRIBUTE_NAME,slg,100,feature_edges,normals,adj_facets)) {
 		// auto-fix the monotonicity only if the validity was fixed
-		auto_fix_monotonicity(M,LABELING_ATTRIBUTE_NAME,slg,adj_facets,feature_edges);
+		auto_fix_monotonicity(M,LABELING_ATTRIBUTE_NAME,slg,adj_facets,feature_edges,normals);
 	}
 
 	//////////////////////////////////////////////////

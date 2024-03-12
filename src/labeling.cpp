@@ -1818,6 +1818,9 @@ bool merge_a_turning_point_and_its_closest_corner(GEO::Mesh& mesh, const char* a
 // returns true if a chart has been created
 // returns false if any of the turning-points can be processed with this operator
 bool join_turning_points_pair_with_new_chart(GEO::Mesh& mesh, const char* attribute_name, StaticLabelingGraph& slg, const std::vector<vec3>& normals, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<std::vector<index_t>>& adj_facets) {
+    if(slg.non_monotone_boundaries.empty()) {
+        return false;
+    }
     if(feature_edges.empty()) {
         return false; // nothing to do, there are no feature edges
     }
@@ -1901,7 +1904,7 @@ bool join_turning_points_pair_with_new_chart(GEO::Mesh& mesh, const char* attrib
     return false;
 }
 
-bool auto_fix_monotonicity(Mesh& mesh, const char* attribute_name, StaticLabelingGraph& slg, std::vector<std::vector<index_t>>& adj_facets, const std::set<std::pair<index_t,index_t>>& feature_edges) {
+bool auto_fix_monotonicity(Mesh& mesh, const char* attribute_name, StaticLabelingGraph& slg, std::vector<std::vector<index_t>>& adj_facets, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<vec3>& normals) {
     
     size_t nb_processed = 0;
 
@@ -1910,9 +1913,22 @@ bool auto_fix_monotonicity(Mesh& mesh, const char* attribute_name, StaticLabelin
     }
 
     // compute vertex-to-facet adjacency if not already done
-    // required for merge_a_turning_point_and_its_closest_corner() & straighten_boundaries()
+    // required for
+    //   join_turning_points_pair_with_new_chart(),
+    //   merge_a_turning_point_and_its_closest_corner(),
+    //   straighten_boundaries()
+    
     if(adj_facets.empty()) {
         compute_adjacent_facets_of_vertices(mesh,adj_facets);
+    }
+
+    do {
+        nb_processed = (size_t) join_turning_points_pair_with_new_chart(mesh,attribute_name,slg,normals,feature_edges,adj_facets);
+        slg.fill_from(mesh,attribute_name,feature_edges);
+    } while (nb_processed != 0);
+
+    if (slg.non_monotone_boundaries.empty()) {
+        return true;
     }
 
     do {
