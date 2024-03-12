@@ -130,7 +130,7 @@ protected:
 				if(adj_facets_.empty()) {
 					compute_adjacent_facets_of_vertices(mesh_,adj_facets_);
 				}
-				size_t nb_invalid_boundaries_processed = fix_as_much_invalid_boundaries_as_possible(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,normals_,feature_edges_,adj_facets_);
+				size_t nb_invalid_boundaries_processed = (size_t) fix_an_invalid_boundary(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,normals_,feature_edges_,adj_facets_);
 				fmt::println(Logger::out("fix_labeling"),"{} invalid boundaries processed",nb_invalid_boundaries_processed); Logger::out("fix_labeling").flush();
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}

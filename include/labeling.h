@@ -97,10 +97,9 @@ void compute_per_facet_fidelity(GEO::Mesh& mesh, const std::vector<vec3>& normal
 
 size_t remove_surrounded_charts(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg);
 
-// fix as much invalid boundaries as possible until the labeling graph needs to be recomputed
-// return the number of invalid boundaries processed
-// -> if returned 0, no need to call the function again
-size_t fix_as_much_invalid_boundaries_as_possible(GEO::Mesh& mesh, const char* attribute_name, StaticLabelingGraph& slg, const std::vector<vec3>& facet_normals, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<std::vector<index_t>>& adj_facets);
+// return true if an invalid boundary was processed
+// -> if returned false, no need to call the function again
+bool fix_an_invalid_boundary(GEO::Mesh& mesh, const char* attribute_name, StaticLabelingGraph& slg, const std::vector<vec3>& facet_normals, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<std::vector<index_t>>& adj_facets);
 
 // fix as much invalid corners as possible until the labeling graph needs to be recomputed
 // return the number of invalid corners processed

@@ -363,7 +363,7 @@ size_t remove_surrounded_charts(GEO::Mesh& mesh, const char* attribute_name, con
     return nb_invalid_charts_processed;
 }
 
-size_t fix_as_much_invalid_boundaries_as_possible(
+bool fix_an_invalid_boundary(
     GEO::Mesh& mesh,
     const char* attribute_name,
     StaticLabelingGraph& slg,
@@ -446,137 +446,133 @@ size_t fix_as_much_invalid_boundaries_as_possible(
         index_t axis_of_just_fixed_boundary = (index_t) slg.boundaries[slg.halfedge2boundary[an_halfedge_of_the_invalid_boundary].first].axis;
 
         const Chart& created_chart = slg.charts[slg.facet2chart[a_facet_on_new_chart]];
-        if(created_chart.boundaries.size() == 2) {
-            // get the non-monotone boundary among the 2 boundaries around the created chart
-            // it should have 2 turning-points
-            // find the one toward positive `axis_of_just_fixed_boundary` and trace a path in the same direction
-            // change label on one side
-            // find the one toward negative `axis_of_just_fixed_boundary` and trace a path in the same direction
-            // change label on one side
-            index_t non_monotone_boundary = index_t(-1);
-            TurningPoint tp0;
-            TurningPoint tp1;
-            if(slg.boundaries[*created_chart.boundaries.begin()].turning_points.size() == 2) {
-                non_monotone_boundary = *created_chart.boundaries.begin();
-                tp0 = slg.boundaries[non_monotone_boundary].turning_points[0];
-                tp1 = slg.boundaries[non_monotone_boundary].turning_points[1];
-            }
-            else if(slg.boundaries[*created_chart.boundaries.rbegin()].turning_points.size() == 2) {
-                non_monotone_boundary = *created_chart.boundaries.rbegin();
-                tp0 = slg.boundaries[non_monotone_boundary].turning_points[0];
-                tp1 = slg.boundaries[non_monotone_boundary].turning_points[1];
-            }
-            else {
-                fmt::println(Logger::err("fix validity"),"In fix_as_much_invalid_boundaries_as_possible(), did not find the boundary with 2 turning-points in the contour of the created chart");
-                continue;
-            }
-            const TurningPoint& turning_point_at_max_coordinate_on_axis = 
-                mesh_vertex(mesh,tp0.vertex(slg.boundaries[non_monotone_boundary],mesh))[axis_of_just_fixed_boundary] >
-                mesh_vertex(mesh,tp1.vertex(slg.boundaries[non_monotone_boundary],mesh))[axis_of_just_fixed_boundary] ?
-                tp0 : tp1;
-            const TurningPoint& turning_point_at_min_coordinate_on_axis = turning_point_at_max_coordinate_on_axis == tp0 ?
-                tp1 : tp0;
 
-            std::vector<MeshHalfedges::Halfedge> path;
-            std::set<index_t> facets_at_left;
-            std::set<index_t> facets_at_right;
-            trace_path_on_chart(
-                mesh_he,
-                adj_facets,
-                slg.facet2chart,
-                slg.turning_point_vertices,
-                turning_point_at_max_coordinate_on_axis.vertex(slg.boundaries[non_monotone_boundary],mesh),
-                label2vector[axis_of_just_fixed_boundary*2], // positive direction
-                facets_at_left,
-                facets_at_right,
-                path
-            );
-
-            if(dot(normalize(halfedge_midpoint_to_left_facet_tip_vector(mesh,path[0])),label2vector[created_chart.label]) >
-               dot(normalize(halfedge_midpoint_to_right_facet_tip_vector(mesh,path[0])),label2vector[created_chart.label])
-            ) {
-                // facets_at_right -> wall
-                // facets_at_left -> new chart
-                propagate_label(
-                    mesh,
-                    attribute_name,
-                    created_chart.label,
-                    facets_at_left,
-                    facets_at_right,
-                    slg.facet2chart,
-                    slg.facet2chart[*facets_at_left.begin()]
-                );
-            }
-            else {
-                // facets_at_right -> new chart
-                // facets_at_left -> wall
-                propagate_label(
-                    mesh,
-                    attribute_name,
-                    created_chart.label,
-                    facets_at_right,
-                    facets_at_left,
-                    slg.facet2chart,
-                    slg.facet2chart[*facets_at_right.begin()]
-                );
-            }
-
-            path.clear();
-            facets_at_left.clear();
-            facets_at_right.clear();
-            trace_path_on_chart(
-                mesh_he,
-                adj_facets,
-                slg.facet2chart,
-                slg.turning_point_vertices,
-                turning_point_at_min_coordinate_on_axis.vertex(slg.boundaries[non_monotone_boundary],mesh),
-                label2vector[axis_of_just_fixed_boundary*2+1], // negative direction
-                facets_at_left,
-                facets_at_right,
-                path
-            );
-
-            if(dot(normalize(halfedge_midpoint_to_left_facet_tip_vector(mesh,path[0])),label2vector[created_chart.label]) >
-               dot(normalize(halfedge_midpoint_to_right_facet_tip_vector(mesh,path[0])),label2vector[created_chart.label])
-            ) {
-                // facets_at_right -> wall
-                // facets_at_left -> new chart
-                propagate_label(
-                    mesh,
-                    attribute_name,
-                    created_chart.label,
-                    facets_at_left,
-                    facets_at_right,
-                    slg.facet2chart,
-                    slg.facet2chart[*facets_at_left.begin()]
-                );
-            }
-            else {
-                // facets_at_right -> new chart
-                // facets_at_left -> wall
-                propagate_label(
-                    mesh,
-                    attribute_name,
-                    created_chart.label,
-                    facets_at_right,
-                    facets_at_left,
-                    slg.facet2chart,
-                    slg.facet2chart[*facets_at_right.begin()]
-                );
-            }
-
-            nb_invalid_boundaries_processed++;
-
-            // we need to stop fix_as_much_invalid_boundaries_as_possible() now
-            // because the loop iterating over `slg.invalid_boundaries` is no longer up to date
-            return nb_invalid_boundaries_processed;
+        if(created_chart.boundaries.size() > 2) {
+            // nothing more to do
+            return true;
         }
-        // else: continue
 
-        nb_invalid_boundaries_processed++;
+        // get the non-monotone boundary among the 2 boundaries around the created chart
+        // it should have 2 turning-points
+        // find the one toward positive `axis_of_just_fixed_boundary` and trace a path in the same direction
+        // change label on one side
+        // find the one toward negative `axis_of_just_fixed_boundary` and trace a path in the same direction
+        // change label on one side
+        index_t non_monotone_boundary = index_t(-1);
+        TurningPoint tp0;
+        TurningPoint tp1;
+        if(slg.boundaries[*created_chart.boundaries.begin()].turning_points.size() == 2) {
+            non_monotone_boundary = *created_chart.boundaries.begin();
+            tp0 = slg.boundaries[non_monotone_boundary].turning_points[0];
+            tp1 = slg.boundaries[non_monotone_boundary].turning_points[1];
+        }
+        else if(slg.boundaries[*created_chart.boundaries.rbegin()].turning_points.size() == 2) {
+            non_monotone_boundary = *created_chart.boundaries.rbegin();
+            tp0 = slg.boundaries[non_monotone_boundary].turning_points[0];
+            tp1 = slg.boundaries[non_monotone_boundary].turning_points[1];
+        }
+        else {
+            fmt::println(Logger::err("fix validity"),"In fix_as_much_invalid_boundaries_as_possible(), did not find the boundary with 2 turning-points in the contour of the created chart");
+            continue;
+        }
+        const TurningPoint& turning_point_at_max_coordinate_on_axis = 
+            mesh_vertex(mesh,tp0.vertex(slg.boundaries[non_monotone_boundary],mesh))[axis_of_just_fixed_boundary] >
+            mesh_vertex(mesh,tp1.vertex(slg.boundaries[non_monotone_boundary],mesh))[axis_of_just_fixed_boundary] ?
+            tp0 : tp1;
+        const TurningPoint& turning_point_at_min_coordinate_on_axis = turning_point_at_max_coordinate_on_axis == tp0 ?
+            tp1 : tp0;
+
+        std::vector<MeshHalfedges::Halfedge> path;
+        std::set<index_t> facets_at_left;
+        std::set<index_t> facets_at_right;
+        trace_path_on_chart(
+            mesh_he,
+            adj_facets,
+            slg.facet2chart,
+            slg.turning_point_vertices,
+            turning_point_at_max_coordinate_on_axis.vertex(slg.boundaries[non_monotone_boundary],mesh),
+            label2vector[axis_of_just_fixed_boundary*2], // positive direction
+            facets_at_left,
+            facets_at_right,
+            path
+        );
+
+        if(dot(normalize(halfedge_midpoint_to_left_facet_tip_vector(mesh,path[0])),label2vector[created_chart.label]) >
+            dot(normalize(halfedge_midpoint_to_right_facet_tip_vector(mesh,path[0])),label2vector[created_chart.label])
+        ) {
+            // facets_at_right -> wall
+            // facets_at_left -> new chart
+            propagate_label(
+                mesh,
+                attribute_name,
+                created_chart.label,
+                facets_at_left,
+                facets_at_right,
+                slg.facet2chart,
+                slg.facet2chart[*facets_at_left.begin()]
+            );
+        }
+        else {
+            // facets_at_right -> new chart
+            // facets_at_left -> wall
+            propagate_label(
+                mesh,
+                attribute_name,
+                created_chart.label,
+                facets_at_right,
+                facets_at_left,
+                slg.facet2chart,
+                slg.facet2chart[*facets_at_right.begin()]
+            );
+        }
+
+        path.clear();
+        facets_at_left.clear();
+        facets_at_right.clear();
+        trace_path_on_chart(
+            mesh_he,
+            adj_facets,
+            slg.facet2chart,
+            slg.turning_point_vertices,
+            turning_point_at_min_coordinate_on_axis.vertex(slg.boundaries[non_monotone_boundary],mesh),
+            label2vector[axis_of_just_fixed_boundary*2+1], // negative direction
+            facets_at_left,
+            facets_at_right,
+            path
+        );
+
+        if(dot(normalize(halfedge_midpoint_to_left_facet_tip_vector(mesh,path[0])),label2vector[created_chart.label]) >
+            dot(normalize(halfedge_midpoint_to_right_facet_tip_vector(mesh,path[0])),label2vector[created_chart.label])
+        ) {
+            // facets_at_right -> wall
+            // facets_at_left -> new chart
+            propagate_label(
+                mesh,
+                attribute_name,
+                created_chart.label,
+                facets_at_left,
+                facets_at_right,
+                slg.facet2chart,
+                slg.facet2chart[*facets_at_left.begin()]
+            );
+        }
+        else {
+            // facets_at_right -> new chart
+            // facets_at_left -> wall
+            propagate_label(
+                mesh,
+                attribute_name,
+                created_chart.label,
+                facets_at_right,
+                facets_at_left,
+                slg.facet2chart,
+                slg.facet2chart[*facets_at_right.begin()]
+            );
+        }
+        return true;
     }
 
-    return nb_invalid_boundaries_processed;
+    return false;
 }
 
 size_t fix_as_much_invalid_corners_as_possible(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, StaticLabelingGraph& slg, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<index_t>& facet2chart, const std::vector<std::vector<index_t>>& adj_facets) {
@@ -1123,7 +1119,7 @@ bool auto_fix_validity(Mesh& mesh, std::vector<vec3>& normals, const char* attri
             return true;
 
         do {
-            nb_processed = fix_as_much_invalid_boundaries_as_possible(mesh,attribute_name,slg,facet_normals,feature_edges,adj_facets);
+            nb_processed = (size_t) fix_an_invalid_boundary(mesh,attribute_name,slg,facet_normals,feature_edges,adj_facets);
             slg.fill_from(mesh,attribute_name,feature_edges);
         }
         while (nb_processed != 0);
