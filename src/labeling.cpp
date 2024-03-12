@@ -259,12 +259,6 @@ void smart_init_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, cons
     double total_surface_area = mesh_area(mesh);
     index_t group_having_largest_area = key_at_max_value(per_group_area);
 
-    #ifndef NDEBUG
-        for(index_t group_index = 1; group_index < nb_groups; ++group_index) {
-            fmt::println("[{}] {:.5f} -> {:0.2f} %",group_index,per_group_area[group_index],per_group_area[group_index]/total_surface_area*100);
-        }
-    #endif
-
     std::set<index_t> groups_surrounded_by_feature_edges;
     fill_set_with_map_keys(per_group_area,groups_surrounded_by_feature_edges);
     index_t adjacent_facet = index_t(-1);
@@ -293,10 +287,12 @@ break_both_loops:
         !groups_surrounded_by_feature_edges.empty()
     ) {
         // the group having the largest area is bigger than 1% of the total surface
-        fmt::println(Logger::out("labeling"),"smart_init_labeling() says: use the TWEAKED naive labeling"); Logger::out("labeling").flush();
+        fmt::println(Logger::out("labeling"),"Init labeling: *tweaked* naive labeling"); Logger::out("labeling").flush();
+        tweaked_naive_labeling(mesh,normals,attribute_name); // TODO transmit `per_facet_group_index` to not recompute it
     }
     else {
-        fmt::println(Logger::out("labeling"),"smart_init_labeling() says: use the unmodified naive labeling"); Logger::out("labeling").flush();
+        fmt::println(Logger::out("labeling"),"Init labeling: naive labeling"); Logger::out("labeling").flush();
+        naive_labeling(mesh,normals,attribute_name);
     }
 }
 
@@ -1857,7 +1853,8 @@ bool join_turning_points_pair_with_new_chart(GEO::Mesh& mesh, const char* attrib
                 // so move unsuccessful (no more halfedges on feature edge), or we left the chart (found a boundary / corner / turning-point)
                 vertex_at_tip_of_feature_edge = halfedge_vertex_index_to(mesh,halfedge);
                 if(slg.turning_point_vertices.contains(vertex_at_tip_of_feature_edge)) {
-                    boundary_of_the_second_turning_point = slg.non_monotone_boundaries[slg.turning_point_vertices[vertex_at_tip_of_feature_edge].first];
+                    geo_assert(slg.turning_point_vertices[vertex_at_tip_of_feature_edge].size() == 1); // assert only one turning-point associated to this vertex
+                    boundary_of_the_second_turning_point = slg.non_monotone_boundaries[slg.turning_point_vertices[vertex_at_tip_of_feature_edge][0].first];
                     new_label = find_optimal_label(
                         {},
                         { // forbidden labels

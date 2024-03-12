@@ -332,7 +332,7 @@ int main(int argc, char** argv) {
 	// Compute initial labeling
 	//////////////////////////////////////////////////
 
-	tweaked_naive_labeling(M,normals,LABELING_ATTRIBUTE_NAME);
+	smart_init_labeling(M,normals,LABELING_ATTRIBUTE_NAME,feature_edges);
 
 	//////////////////////////////////////////////////
 	// Construct charts, boundaries & corners

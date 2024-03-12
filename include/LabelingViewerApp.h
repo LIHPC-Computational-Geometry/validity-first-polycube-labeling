@@ -356,11 +356,8 @@ protected:
 			ImGui::SetItemTooltip("If on, boundaries between opposite labels (e.g. +X and -X)\ncan be considered valid if they only contain > 180° angles");
 
 			if(ImGui::Button("Compute naive labeling")) {
-
 				naive_labeling(mesh_,normals_,LABELING_ATTRIBUTE_NAME);
-
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
-
 				state_transition(labeling);
 			}
 			ImGui::SameLine();
@@ -368,11 +365,8 @@ protected:
 			ImGui::SetItemTooltip("Associate each facet to the label the closest to its normal");
 
 			if(ImGui::Button("Compute tweaked naive labeling")) {
-
 				tweaked_naive_labeling(mesh_,normals_,LABELING_ATTRIBUTE_NAME);
-
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
-
 				state_transition(labeling);
 			}
 			ImGui::SameLine();
@@ -381,6 +375,8 @@ protected:
 			
 			if(ImGui::Button("Smart init labeling")) {
 				smart_init_labeling(mesh_,normals_,LABELING_ATTRIBUTE_NAME,feature_edges_);
+				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+				state_transition(labeling);
 			}
 
 			break;
