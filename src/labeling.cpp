@@ -1755,28 +1755,27 @@ bool merge_a_turning_point_and_its_closest_corner(GEO::Mesh& mesh, const char* a
 
         // 6. Start from the turning-point, move edge by edge in the direction of `boundary_to_move_vector`
 
+        std::vector<MeshHalfedges::Halfedge> path;
+        std::set<index_t> facets_at_left, facets_at_right;
+
         // quick fix for MAMBO B39-like models
-        // after auto_fix_validity(): some corners are misplaced & turning-points are at 1 edge of distance
-        index_t facet_to_re_label = index_t(-1);
-        if(ingoing_local_halfedge_index == 0) { // if turning-point at 1 edge from `non_monotone_boundary.start_corner`
-            facet_to_re_label =
-                first_turning_point_on_feature_edge.is_towards_right_ ?
-                halfedge_facet_right(mesh,ingoing_local_halfedge) :
-                halfedge_facet_left(mesh,ingoing_local_halfedge);
-            label[facet_to_re_label] = new_label;
-            return true;
-        }
-        else if(outgoing_local_halfedge_index == non_monotone_boundary.halfedges.size()-1) { // if turning-point at 1 edge from `non_monotone_boundary.end_corner`
-            facet_to_re_label =
-                first_turning_point_on_feature_edge.is_towards_right_ ?
-                halfedge_facet_right(mesh,outgoing_local_halfedge) :
-                halfedge_facet_left(mesh,outgoing_local_halfedge);
-            label[facet_to_re_label] = new_label;
+        // after auto_fix_validity(): some corners are misplaced & turning-points are very close to one of the corners,
+        // separated by a lost feature edge
+        MeshHalfedges::Halfedge halfedge_on_lost_feature_edge;
+        if(vertex_has_lost_feature_edge_in_neighborhood(mesh_he,adj_facets,feature_edges,first_turning_point_on_feature_edge_vertex,halfedge_on_lost_feature_edge)) {
+            MeshHalfedges::Halfedge last_halfedge = follow_feature_edge_on_chart(mesh_he,halfedge_on_lost_feature_edge,feature_edges,slg.facet2chart,facets_at_left,facets_at_right);
+            const std::set<index_t>& facets_to_re_label = 
+                (closest_corner == non_monotone_boundary.end_corner) ?
+                (first_turning_point_on_feature_edge.is_towards_right_ ? facets_at_left : facets_at_right) : 
+                (first_turning_point_on_feature_edge.is_towards_right_ ? facets_at_right : facets_at_left);
+            const std::set<index_t>& wall =
+                (closest_corner == non_monotone_boundary.end_corner) ?
+                (first_turning_point_on_feature_edge.is_towards_right_ ? facets_at_right : facets_at_left) :
+                (first_turning_point_on_feature_edge.is_towards_right_ ? facets_at_left : facets_at_right);
+            propagate_label(mesh,attribute_name,new_label,facets_to_re_label,wall,slg.facet2chart,chart_on_which_the_new_boundary_will_be);
             return true;
         }
 
-        std::vector<MeshHalfedges::Halfedge> path;
-        std::set<index_t> facets_at_left, facets_at_right;
         trace_path_on_chart(mesh_he,adj_facets,slg.facet2chart,slg.turning_point_vertices,first_turning_point_on_feature_edge_vertex,boundary_to_move_vector,facets_at_left,facets_at_right,path);
         #ifndef NDEBUG
             dump_facets("facets_at_left",mesh,facets_at_left);
