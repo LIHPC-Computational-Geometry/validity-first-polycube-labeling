@@ -467,9 +467,8 @@ size_t fix_as_much_invalid_boundaries_as_possible(
                 tp1 = slg.boundaries[non_monotone_boundary].turning_points[1];
             }
             else {
-                fmt::println(Logger::err("fix validity"),"In fix_invalid_boundaries(), did not find the boundary with 2 turning-points in the contour of the created chart");
-                Logger::err("fix validity").flush();
-                geo_assert_not_reached;
+                fmt::println(Logger::err("fix validity"),"In fix_as_much_invalid_boundaries_as_possible(), did not find the boundary with 2 turning-points in the contour of the created chart");
+                continue;
             }
             const TurningPoint& turning_point_at_max_coordinate_on_axis = 
                 mesh_vertex(mesh,tp0.vertex(slg.boundaries[non_monotone_boundary],mesh))[axis_of_just_fixed_boundary] >
