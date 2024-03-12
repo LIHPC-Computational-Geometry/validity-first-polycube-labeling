@@ -1940,15 +1940,15 @@ bool auto_fix_monotonicity(Mesh& mesh, const char* attribute_name, StaticLabelin
         return true;
     }
 
-    straighten_boundaries(mesh,attribute_name,slg,adj_facets,feature_edges);
-    // `slg` already updated in straighten_boundaries()
+    move_boundaries_near_turning_points(mesh,attribute_name,slg,feature_edges);
+    slg.fill_from(mesh,attribute_name,feature_edges);
 
     if (slg.non_monotone_boundaries.empty()) {
         return true;
     }
 
-    move_boundaries_near_turning_points(mesh,attribute_name,slg,feature_edges);
-    slg.fill_from(mesh,attribute_name,feature_edges);
+    straighten_boundaries(mesh,attribute_name,slg,adj_facets,feature_edges);
+    // `slg` already updated in straighten_boundaries()
 
     if (slg.non_monotone_boundaries.empty()) {
         return true;
