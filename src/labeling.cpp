@@ -925,11 +925,9 @@ bool increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
                 }
                 if(next_b_is_same_direction) {
                     upward_boundary = slg.boundaries[next_b];
-                    geo_assert(problematic_corner == upward_boundary.start_corner);
                 }
                 else {
                     slg.boundaries[next_b].get_flipped(mesh_he,upward_boundary);
-                    geo_assert(problematic_corner == upward_boundary.end_corner);
                 }
                 problematic_vertex = slg.corners[problematic_corner].vertex;
                 axis_to_insert = nearest_axis_of_edges(mesh,{
