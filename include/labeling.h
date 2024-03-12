@@ -135,15 +135,13 @@ void move_corners(GEO::Mesh& mesh, const char* attribute_name, const StaticLabel
 
 // only for turning-points on feature edges
 // on a non-monotone boundary, find turning-points on feature edges, and for each of them, move the closest corner to the same vertex
-// return bool if a turning point was merge with a corner, else false
-bool merge_a_turning_point_and_a_corner_on_non_monotone_boundary(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<std::vector<index_t>>& adj_facets, index_t non_monotone_boundary_index);
-
-// only for turning-points on feature edges
-void merge_turning_points_and_corners(GEO::Mesh& mesh, const char* attribute_name, StaticLabelingGraph& slg, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<std::vector<index_t>>& adj_facets);
+// return true if a turning point was merge with a corner
+// -> if returned false, no need to call the function again
+bool merge_a_turning_point_and_its_closest_corner(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<std::vector<index_t>>& adj_facets);
 
 bool join_turning_points_pair_with_new_chart(GEO::Mesh& mesh, const char* attribute_name, StaticLabelingGraph& slg, const std::vector<vec3>& normals, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<std::vector<index_t>>& adj_facets);
 
-// true if we reached 0 turning-point
+// return true if we reached 0 turning-point
 bool auto_fix_monotonicity(Mesh& mesh, const char* attribute_name, StaticLabelingGraph& slg, std::vector<std::vector<index_t>>& adj_facets, const std::set<std::pair<index_t,index_t>>& feature_edges);
 
 unsigned int count_lost_feature_edges(const CustomMeshHalfedges& mesh_he, const std::set<std::pair<index_t,index_t>>& feature_edges);

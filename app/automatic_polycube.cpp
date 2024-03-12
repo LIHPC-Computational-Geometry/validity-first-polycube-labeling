@@ -207,37 +207,18 @@ protected:
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 
-			if(ImGui::Button("Merge turning-points and corners on first non-monotone boundary")) {
-				// merge_turning_points_and_corners(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,feature_edges_);
-				if (static_labeling_graph_.non_monotone_boundaries.empty()) {
-					fmt::println(Logger::out("monotonicity"),"Nothing to do, all-monotone boundaries"); Logger::out("monotonicity").flush();
-				}
-				else {
-					// compute vertex-to-facet adjacency if not already done
-					if(adj_facets_.empty()) {
-						compute_adjacent_facets_of_vertices(mesh_,adj_facets_);
-					}
-					if(merge_a_turning_point_and_a_corner_on_non_monotone_boundary(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,feature_edges_,adj_facets_,0)) {
-						fmt::println(Logger::out("monotonicity"),"Returned true"); Logger::out("monotonicity").flush();
-					}
-					else {
-						fmt::println(Logger::out("monotonicity"),"Returned false"); Logger::out("monotonicity").flush();
-					}
-					update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
-				}
-			}
-			ImGui::SameLine();
-			ImGui::TextDisabled("(?)");
-			ImGui::SetItemTooltip("Select the first non-monotone boundary, and if it has a turning-point on a feature edge, try to pull the closest corner so that they coincide");
-
-			if(ImGui::Button("Merge turning points and corners")) {
+			if(ImGui::Button("Merge a turning-points and its closest corners")) {
 				// compute vertex-to-facet adjacency if not already done
 				if(adj_facets_.empty()) {
 					compute_adjacent_facets_of_vertices(mesh_,adj_facets_);
 				}
-				merge_turning_points_and_corners(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,feature_edges_,adj_facets_);
+				bool a_non_monotone_boundary_was_processed = merge_a_turning_point_and_its_closest_corner(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,feature_edges_,adj_facets_);
+				fmt::println(Logger::out("monotonicity"),"{} non-monotone boundaries processed",(size_t) a_non_monotone_boundary_was_processed); Logger::out("monotonicity").flush();
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
+			ImGui::SameLine();
+			ImGui::TextDisabled("(?)");
+			ImGui::SetItemTooltip("Parse non-monotone boundaries, and if one of them has a turning-point on a feature edge, try to pull the closest corner so that they coincide");
 
 			if(ImGui::Button("Join turning-points pair with new chart")) {
 				// compute vertex-to-facet adjacency if not already done
