@@ -544,7 +544,7 @@ double angle_between_halfedge_and_axis(const Mesh& mesh, MeshHalfedges::Halfedge
     );
 }
 
-void trace_path_on_chart(const CustomMeshHalfedges& mesh_he, const std::vector<std::vector<index_t>>& adj_facets, const std::vector<index_t>& facet2chart, const std::map<index_t,std::pair<index_t,index_t>>& turning_point_vertices, index_t start_vertex, vec3 direction, std::set<index_t>& facets_at_left, std::set<index_t>& facets_at_right, std::vector<MeshHalfedges::Halfedge>& halfedges) {
+void trace_path_on_chart(const CustomMeshHalfedges& mesh_he, const std::vector<std::vector<index_t>>& adj_facets, const std::vector<index_t>& facet2chart, const std::map<index_t,std::vector<std::pair<index_t,index_t>>>& turning_point_vertices, index_t start_vertex, vec3 direction, std::set<index_t>& facets_at_left, std::set<index_t>& facets_at_right, std::vector<MeshHalfedges::Halfedge>& halfedges) {
     // From `start_vertex`, move edge by edge in the given `direction`
     // To not drift away from this direction, we aim a target point, and not the same vector each time
     // To allow to go further than the init target point, we move the target point away at each step

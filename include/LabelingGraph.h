@@ -276,7 +276,7 @@ struct StaticLabelingGraph {
     vector<index_t> invalid_boundaries;
     vector<index_t> invalid_corners;
     vector<index_t> non_monotone_boundaries;
-    std::map<index_t,std::pair<index_t,index_t>> turning_point_vertices; // map a vertex index on which there is a turning-point to an invalid boundary index and a local turning-point index
+    std::map<index_t,std::vector<std::pair<index_t,index_t>>> turning_point_vertices; // map a vertex index on which there is a turning-point to an invalid boundary index and a local turning-point index
 
     //// Parameter given to last fill_from() //////////////////
     bool allow_boundaries_between_opposite_labels_ = false;

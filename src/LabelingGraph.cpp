@@ -1114,8 +1114,7 @@ void StaticLabelingGraph::fill_from(
         const Boundary& boundary = boundaries[non_monotone_boundaries[non_monotone_boundary_index]];
         FOR(ltp,boundary.turning_points.size()) { // for each local turning-point
             vertex = boundary.turning_points[ltp].vertex(boundary,mesh);
-            geo_assert(!turning_point_vertices.contains(vertex));
-            turning_point_vertices[vertex] = std::make_pair(non_monotone_boundary_index,ltp);
+            turning_point_vertices[vertex].push_back(std::make_pair(non_monotone_boundary_index,ltp));
         }
     }
 }
