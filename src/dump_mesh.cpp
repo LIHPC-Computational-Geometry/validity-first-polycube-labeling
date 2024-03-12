@@ -155,6 +155,18 @@ bool dump_all_boundaries_with_indices_and_axes(std::string filename, const Mesh&
     return mesh_save(boundaries_mesh,filename + ".geogram");
 }
 
+bool dump_facet(std::string filename, const Mesh& mesh, index_t facet_index) {
+    Mesh out;
+    out.copy(mesh,false,MESH_VERTICES); // keep only vertices
+    out.facets.create_triangle(
+        mesh.facets.vertex(facet_index,0),
+        mesh.facets.vertex(facet_index,1),
+        mesh.facets.vertex(facet_index,2)
+    );
+    out.vertices.remove_isolated();
+    return mesh_save(out,filename + ".geogram");
+}
+
 bool dump_facets(std::string filename, const Mesh& mesh, std::set<index_t> facet_indices) {
     Mesh out;
     out.copy(mesh,false,MESH_VERTICES); // keep only vertices

@@ -65,6 +65,8 @@ bool dump_all_boundaries_with_indices_and_axes(std::string filename, const Mesh&
 
 // 2D
 
+bool dump_facet(std::string filename, const Mesh& mesh, index_t facet_index);
+
 bool dump_facets(std::string filename, const Mesh& mesh, std::set<index_t> facet_indices);
 
 //idem but also write a facet attribute
