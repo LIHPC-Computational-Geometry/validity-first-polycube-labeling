@@ -1927,9 +1927,14 @@ bool auto_fix_monotonicity(Mesh& mesh, const char* attribute_name, StaticLabelin
         return true;
     }
 
+    size_t nb_iter = 0;
     do {
         nb_processed = (size_t) merge_a_turning_point_and_its_closest_corner(mesh,attribute_name,slg,feature_edges,adj_facets);
         slg.fill_from(mesh,attribute_name,feature_edges);
+        nb_iter++;
+        if(nb_iter > 20) {
+            break;
+        }
     } while (nb_processed != 0);
 
     if (slg.non_monotone_boundaries.empty()) {
