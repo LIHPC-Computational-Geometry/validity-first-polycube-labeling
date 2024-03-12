@@ -1682,7 +1682,7 @@ bool merge_a_turning_point_and_a_corner_on_non_monotone_boundary(GEO::Mesh& mesh
     MeshHalfedges::Halfedge outgoing_local_halfedge;
     for(const TurningPoint& turning_point : non_monotone_boundary.turning_points) {
         outgoing_local_halfedge_index = turning_point.outgoing_local_halfedge_index_;
-        ingoing_local_halfedge_index = outgoing_local_halfedge_index-1;
+        ingoing_local_halfedge_index = (outgoing_local_halfedge_index-1) % (index_t) non_monotone_boundary.halfedges.size();
         ingoing_local_halfedge = non_monotone_boundary.halfedges[ingoing_local_halfedge_index];
         outgoing_local_halfedge = non_monotone_boundary.halfedges[outgoing_local_halfedge_index];
         if(halfedge_is_on_feature_edge(mesh,ingoing_local_halfedge,feature_edges) || halfedge_is_on_feature_edge(mesh,outgoing_local_halfedge,feature_edges)) {
@@ -1756,6 +1756,26 @@ bool merge_a_turning_point_and_a_corner_on_non_monotone_boundary(GEO::Mesh& mesh
     }
 
     // 6. Start from the turning-point, move edge by edge in the direction of `boundary_to_move_vector`
+
+    // quick fix for MAMBO B39-like models
+    // after auto_fix_validity(): some corners are misplaced & turning-points are at 1 edge of distance
+    index_t facet_to_re_label = index_t(-1);
+    if(ingoing_local_halfedge_index == 0) { // if turning-point at 1 edge from `non_monotone_boundary.start_corner`
+        facet_to_re_label =
+            first_turning_point_on_feature_edge.is_towards_right_ ?
+            halfedge_facet_right(mesh,ingoing_local_halfedge) :
+            halfedge_facet_left(mesh,ingoing_local_halfedge);
+        label[facet_to_re_label] = new_label;
+        return true;
+    }
+    else if(outgoing_local_halfedge_index == non_monotone_boundary.halfedges.size()-1) { // if turning-point at 1 edge from `non_monotone_boundary.end_corner`
+        facet_to_re_label =
+            first_turning_point_on_feature_edge.is_towards_right_ ?
+            halfedge_facet_right(mesh,outgoing_local_halfedge) :
+            halfedge_facet_left(mesh,outgoing_local_halfedge);
+        label[facet_to_re_label] = new_label;
+        return true;
+    }
 
     std::vector<MeshHalfedges::Halfedge> path;
     std::set<index_t> facets_at_left, facets_at_right;
