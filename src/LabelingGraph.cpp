@@ -350,6 +350,17 @@ void Corner::get_outgoing_halfedges_on_feature_edge(const Mesh& mesh, const std:
     }
 }
 
+bool Corner::is_adjacent_to_an_invalid_boundary(const std::vector<Boundary>& all_boundaries, const std::map<MeshHalfedges::Halfedge,std::pair<index_t,bool>,HalfedgeCompare>& halfedge2boundary) const {
+    for(const auto& vr : vertex_rings_with_boundaries) {
+        for(const auto& be : vr.boundary_edges) {
+            if(!all_boundaries[halfedge2boundary.at(be).first].is_valid) {
+                return true; // at least one of the adjacent boundaries is invalid
+            }
+        }
+    }
+    return false; // no invalid boundary among all adjacent boundaries
+}
+
 std::ostream& operator<< (std::ostream &out, const Corner& data) {
     fmt::println(out,"\tvertex : {}",data.vertex);
     fmt::println(out,"\tis_valid : {}",data.is_valid);

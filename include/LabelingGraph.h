@@ -138,6 +138,8 @@ struct Corner {
     MeshHalfedges::Halfedge get_most_aligned_boundary_halfedge(const Mesh& mesh, const vec3& reference) const;
 
     void get_outgoing_halfedges_on_feature_edge(const Mesh& mesh, const std::set<std::pair<index_t,index_t>>& all_feature_edges, std::vector<MeshHalfedges::Halfedge>& outgoing_halfedges_on_feature_edge) const;
+
+    bool is_adjacent_to_an_invalid_boundary(const std::vector<Boundary>& all_boundaries, const std::map<MeshHalfedges::Halfedge,std::pair<index_t,bool>,HalfedgeCompare>& halfedge2boundary) const;
 };
 
 std::ostream& operator<< (std::ostream &out, const Corner& data);
