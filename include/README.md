@@ -1,6 +1,5 @@
 # Source files
 
-- **[about_window.h](about_window.h)** : content of the "About" window, shared between applications
 - **[containers.h](containers.h)/[.cpp](../src/containers.cpp)** : additional functions & macros for std containers (contains, min, concatenation...)
 - **[CustomMeshHalfedges.h](CustomMeshHalfedges.h)** : modified version of Geogram's [MeshHalfedges](https://github.com/BrunoLevy/geogram/blob/main/src/lib/geogram/mesh/mesh_halfedges.h) class
 - **[geometry.h](geometry.h)/[.cpp](../src/geometry.cpp)** : geometry-related functions (labels & axes, comparison operator for geometric objects, distance)

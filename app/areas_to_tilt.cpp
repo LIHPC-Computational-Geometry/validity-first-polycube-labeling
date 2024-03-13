@@ -20,7 +20,6 @@
 #include <algorithm> // for std::random_shuffle(), std::sort
 
 #include "SimpleMeshApplicationExt.h"   // for colormaps indices
-#include "about_window.h"               // for draw_about_window()
 #include "geometry.h"                   // for is_a_facet_to_tilt()
 
 using namespace GEO;

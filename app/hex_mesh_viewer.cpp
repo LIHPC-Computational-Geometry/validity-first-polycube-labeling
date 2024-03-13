@@ -8,7 +8,6 @@
 
 #include "hex_mesh.h"                   // for compute_scaled_jacobian()
 #include "SimpleMeshApplicationExt.h"   // for colormaps indices
-#include "about_window.h"               // for draw_about_window()
 #include "basic_stats.h"                // for BasicStats
 
 using namespace GEO;
