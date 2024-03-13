@@ -928,9 +928,11 @@ bool increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
                 }
                 // if this is a pyramid-like invalid corner (see MAMBO B20),
                 // don't apply increase_chart_valence() but fix_as_much_invalid_corners_as_possible()
+                double sd_adj_facets_area = sd_adjacent_facets_area(mesh,adj_facets,slg.corners[problematic_corner].vertex);
                 if(
                     (slg.corners[problematic_corner].valence() == 4) && 
-                    slg.corners[problematic_corner].all_adjacent_boundary_edges_are_on_feature_edges(mesh,feature_edges)
+                    slg.corners[problematic_corner].all_adjacent_boundary_edges_are_on_feature_edges(mesh,feature_edges) &&
+                    sd_adj_facets_area < 0.3 // required to distinguish B20 from S36
                 ) {
                     problematic_corner = index_t(-1);
                     problematic_vertex = index_t(-1);
