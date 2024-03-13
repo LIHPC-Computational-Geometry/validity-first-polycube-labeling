@@ -276,13 +276,25 @@ protected:
 				glupEnd();
 			}
 		}
-		if((state_ == triangle_mesh) && show_feature_edges_) {
-			glupSetColor4fv(GLUP_FRONT_COLOR, dark_blue);
+		if(
+			((state_ == triangle_mesh) && show_feature_edges_) ||
+			((state_ == labeling) && (labeling_visu_mode_ == VIEW_TRIANGLE_MESH))
+		) {
+			// dark blue color (coord. 0.0 of parula colormap)
+            glupEnable(GLUP_TEXTURING);
+			glActiveTexture(GL_TEXTURE0 + GLUP_TEXTURE_2D_UNIT);
+			glBindTexture(GL_TEXTURE_2D, colormaps_[COLORMAP_PARULA].texture);
+			glupTextureType(GLUP_TEXTURE_2D);
+			glupTextureMode(GLUP_TEXTURE_REPLACE);
+			glupPrivateTexCoord1d(0.0);
+			// thick lines
+			glupSetMeshWidth(5);
 			glupBegin(GLUP_LINES);
 			for(const std::pair<index_t,index_t>& edge : feature_edges_) { // for each edge in the set of feature edges
 				glupPrivateVertex3dv(mesh_.vertices.point_ptr(edge.first)); // draw first vertex
 				glupPrivateVertex3dv(mesh_.vertices.point_ptr(edge.second)); // draw second vertex
 			}
+			glupDisable(GLUP_TEXTURING);
 			glupEnd();
 		}
 	}
