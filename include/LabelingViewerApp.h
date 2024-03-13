@@ -185,9 +185,9 @@ protected:
 				set_points_group_color(invalid_corners_group_index_,corners_color_); // no 	distinction between valid and invalid corners in this view
 				points_groups_show_only({valid_corners_group_index_, invalid_corners_group_index_, turning_points_group_index_});
 				// edges in overlay
-				set_edges_group_color(X_boundaries_group_index_,labeling_colors_.color_as_floats(0)); // axis X -> color of label 0 = +X
-				set_edges_group_color(Y_boundaries_group_index_,labeling_colors_.color_as_floats(2)); // axis Y -> color of label 2 = +Y
-				set_edges_group_color(Z_boundaries_group_index_,labeling_colors_.color_as_floats(4)); // axis Z -> color of label 4 = +Z
+				set_edges_group_color(X_boundaries_group_index_,colormaps_[COLORMAP_LABELING].texture,0.084); // axis X -> color of label 0 = +X
+				set_edges_group_color(Y_boundaries_group_index_,colormaps_[COLORMAP_LABELING].texture,0.417); // axis Y -> color of label 2 = +Y
+				set_edges_group_color(Z_boundaries_group_index_,colormaps_[COLORMAP_LABELING].texture,0.750); // axis Z -> color of label 4 = +Z
 				edges_groups_show_only({X_boundaries_group_index_, Y_boundaries_group_index_, Z_boundaries_group_index_});
 				break;
 			case VIEW_FIDELITY:
@@ -216,9 +216,9 @@ protected:
 				// points in overlay
 				points_groups_show_only({}); // show none
 				// edges in overlay
-				set_edges_group_color(X_boundaries_group_index_,labeling_colors_.color_as_floats(0)); // axis X -> color of label 0 = +X
-				set_edges_group_color(Y_boundaries_group_index_,labeling_colors_.color_as_floats(2)); // axis Y -> color of label 2 = +Y
-				set_edges_group_color(Z_boundaries_group_index_,labeling_colors_.color_as_floats(4)); // axis Z -> color of label 4 = +Z
+				set_edges_group_color(X_boundaries_group_index_,colormaps_[COLORMAP_LABELING].texture,0.084); // axis X -> color of label 0 = +X
+				set_edges_group_color(Y_boundaries_group_index_,colormaps_[COLORMAP_LABELING].texture,0.417); // axis Y -> color of label 2 = +Y
+				set_edges_group_color(Z_boundaries_group_index_,colormaps_[COLORMAP_LABELING].texture,0.750); // axis Z -> color of label 4 = +Z
 				edges_groups_show_only({X_boundaries_group_index_, Y_boundaries_group_index_, Z_boundaries_group_index_});
 
 				// use mesh_gfx_.draw_surface_borders() ?
@@ -231,9 +231,9 @@ protected:
 				// points in overlay
 				points_groups_show_only({}); // show none
 				// edges in overlay
-				set_edges_group_color(X_boundaries_group_index_,validity_colors_.color_as_floats(1)); // apply the color of valid LabelingGraph components
-				set_edges_group_color(Y_boundaries_group_index_,validity_colors_.color_as_floats(1)); // apply the color of valid LabelingGraph components
-				set_edges_group_color(Z_boundaries_group_index_,validity_colors_.color_as_floats(1)); // apply the color of valid LabelingGraph components
+				set_edges_group_color(X_boundaries_group_index_,colormaps_[COLORMAP_VALIDITY].texture,1.0); // apply the color of valid LabelingGraph components
+				set_edges_group_color(Y_boundaries_group_index_,colormaps_[COLORMAP_VALIDITY].texture,1.0); // apply the color of valid LabelingGraph components
+				set_edges_group_color(Z_boundaries_group_index_,colormaps_[COLORMAP_VALIDITY].texture,1.0); // apply the color of valid LabelingGraph components
 				edges_groups_show_only({X_boundaries_group_index_, Y_boundaries_group_index_, Z_boundaries_group_index_, invalid_boundaries_group_index_, valid_but_axisless_boundaries_group_index_});
 				break;
 			case VIEW_INVALID_CORNERS:
@@ -245,9 +245,9 @@ protected:
 				set_points_group_color(invalid_corners_group_index_,validity_colors_.color_as_floats(0)); // apply the color of invalid LabelingGraph components
 				points_groups_show_only({valid_corners_group_index_, invalid_corners_group_index_});
 				// edges in overlay
-				set_edges_group_color(X_boundaries_group_index_,labeling_colors_.color_as_floats(0)); // axis X -> color of label 0 = +X
-				set_edges_group_color(Y_boundaries_group_index_,labeling_colors_.color_as_floats(2)); // axis Y -> color of label 2 = +Y
-				set_edges_group_color(Z_boundaries_group_index_,labeling_colors_.color_as_floats(4)); // axis Z -> color of label 4 = +Z
+				set_edges_group_color(X_boundaries_group_index_,colormaps_[COLORMAP_LABELING].texture,0.084); // axis X -> color of label 0 = +X
+				set_edges_group_color(Y_boundaries_group_index_,colormaps_[COLORMAP_LABELING].texture,0.417); // axis Y -> color of label 2 = +Y
+				set_edges_group_color(Z_boundaries_group_index_,colormaps_[COLORMAP_LABELING].texture,0.750); // axis Z -> color of label 4 = +Z
 				edges_groups_show_only({X_boundaries_group_index_, Y_boundaries_group_index_, Z_boundaries_group_index_});
 
 				// use mesh_gfx_.draw_surface_borders() ?
@@ -719,11 +719,11 @@ protected:
 		valid_corners_group_index_ = new_points_group(corners_color_,&corners_size_,true);
 		invalid_corners_group_index_ = new_points_group(corners_color_,&corners_size_,true);
 		turning_points_group_index_ = new_points_group(turning_points_color_,&turning_points_size_,true);
-		X_boundaries_group_index_ = new_edges_group(labeling_colors_.color_as_floats(0),false); // axis X -> color of label 0 = +X
-		Y_boundaries_group_index_ = new_edges_group(labeling_colors_.color_as_floats(2),false); // axis Y -> color of label 2 = +Y
-		Z_boundaries_group_index_ = new_edges_group(labeling_colors_.color_as_floats(3),false); // axis Z -> color of label 4 = +Z
-		invalid_boundaries_group_index_ = new_edges_group(validity_colors_.color_as_floats(0),false); // color of invalid LabelingGraph components
-		valid_but_axisless_boundaries_group_index_ = new_edges_group(validity_colors_.color_as_floats(1),false); // color of valid LabelingGraph components
+		X_boundaries_group_index_ = new_edges_group(colormaps_[COLORMAP_LABELING].texture,0.084,6,false); // axis X -> color of label 0 = +X
+		Y_boundaries_group_index_ = new_edges_group(colormaps_[COLORMAP_LABELING].texture,0.417,6,false); // axis Y -> color of label 2 = +Y
+		Z_boundaries_group_index_ = new_edges_group(colormaps_[COLORMAP_LABELING].texture,0.750,6,false); // axis Z -> color of label 4 = +Z
+		invalid_boundaries_group_index_ = new_edges_group(colormaps_[COLORMAP_VALIDITY].texture,0.0,6,false); // color of invalid LabelingGraph components
+		valid_but_axisless_boundaries_group_index_ = new_edges_group(colormaps_[COLORMAP_VALIDITY].texture,1.0,6,false); // color of valid LabelingGraph components
 
 		for(std::size_t i = 0; i < static_labeling_graph_.nb_corners(); ++i) {
 			const double* coordinates = mesh_.vertices.point_ptr(

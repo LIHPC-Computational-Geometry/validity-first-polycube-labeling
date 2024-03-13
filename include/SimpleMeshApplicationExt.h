@@ -50,10 +50,12 @@ public:
 
     struct EdgesGroup {
         std::vector<std::pair<vec3,vec3>> edges;
-        const float* color = nullptr; // storing a pointer allows for direct color modification from the GUI
+        unsigned int texture = 0;
+        double texture_coordinate = 0.0;
+        unsigned int width = 1;
         bool show = false;
-        EdgesGroup(const float* rgba, bool show) : color(rgba), show(show) {}
-        void clear() { edges.clear(); color = nullptr; show = false; }
+        EdgesGroup(unsigned int texture, double texture_coordinate, unsigned int width, bool show) : texture(texture), texture_coordinate(texture_coordinate), width(width), show(show) {}
+        void clear() { edges.clear(); texture = 0; texture_coordinate = 0.0; width = 1; show = false; }
     };
 
     // both float (for ImGui) and char (for OpenGL textures) representations
@@ -141,8 +143,8 @@ public:
         return index_of_last(points_groups_);
     }
 
-    std::size_t new_edges_group(const float* rgba, bool show) {
-        edges_groups_.push_back(EdgesGroup(rgba,show));
+    std::size_t new_edges_group(unsigned int texture, double texture_coordinate, unsigned int width, bool show) {
+        edges_groups_.push_back(EdgesGroup(texture,texture_coordinate,width,show));
         return index_of_last(edges_groups_);
     }
 
@@ -160,8 +162,9 @@ public:
         points_groups_.at(index).color = new_color;
     }
 
-    void set_edges_group_color(std::size_t index, const float* new_color) {
-        edges_groups_.at(index).color = new_color;
+    void set_edges_group_color(std::size_t index, unsigned int new_texture, double new_texture_coordinate) {
+        edges_groups_.at(index).texture = new_texture;
+        edges_groups_.at(index).texture_coordinate = new_texture_coordinate;
     }
 
     void set_points_group_visibility(std::size_t index, bool visible) {
@@ -214,13 +217,19 @@ public:
         // draw edges groups
         for(const auto& group : edges_groups_) {
             if(group.show) {
-                geo_assert(group.color != nullptr);
-                glupSetColor4fv(GLUP_FRONT_COLOR, group.color); // use the color of this group of edges
+                glupEnable(GLUP_TEXTURING);
+                glActiveTexture(GL_TEXTURE0 + GLUP_TEXTURE_2D_UNIT);
+                glBindTexture(GL_TEXTURE_2D, (GLuint) group.texture);
+                glupTextureType(GLUP_TEXTURE_2D);
+                glupTextureMode(GLUP_TEXTURE_REPLACE);
+                glupPrivateTexCoord1d(group.texture_coordinate);
+                glupSetMeshWidth((GLUPint) group.width);
                 glupBegin(GLUP_LINES);
                 for(const auto& edge : group.edges) { // for each edge in this group
                     glupPrivateVertex3dv(edge.first.data()); // give a pointer to the coordinates to GLUP
                     glupPrivateVertex3dv(edge.second.data()); // give a pointer to the coordinates to GLUP
                 }
+                glupDisable(GLUP_TEXTURING);
                 glupEnd();
             }
         }

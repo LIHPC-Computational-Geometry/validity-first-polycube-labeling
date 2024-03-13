@@ -98,9 +98,9 @@ protected:
 			// points in overlay
 			points_groups_show_only({}); // show none
 			// edges in overlay
-			set_edges_group_color(X_boundaries_group_index_,labeling_colors_.color_as_floats(0)); // axis X -> color of label 0 = +X
-			set_edges_group_color(Y_boundaries_group_index_,labeling_colors_.color_as_floats(2)); // axis Y -> color of label 2 = +Y
-			set_edges_group_color(Z_boundaries_group_index_,labeling_colors_.color_as_floats(4)); // axis Z -> color of label 4 = +Z
+			set_edges_group_color(X_boundaries_group_index_,colormaps_[COLORMAP_LABELING].texture,0.084); // axis X -> color of label 0 = +X
+			set_edges_group_color(Y_boundaries_group_index_,colormaps_[COLORMAP_LABELING].texture,0.417); // axis Y -> color of label 2 = +Y
+			set_edges_group_color(Z_boundaries_group_index_,colormaps_[COLORMAP_LABELING].texture,0.750); // axis Z -> color of label 4 = +Z
 			edges_groups_show_only({X_boundaries_group_index_, Y_boundaries_group_index_, Z_boundaries_group_index_});
 			labeling_visu_mode_ = VIEW_CHARTS_TO_REFINE;
 		}
