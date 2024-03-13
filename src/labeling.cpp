@@ -1771,6 +1771,9 @@ bool merge_a_turning_point_and_its_closest_corner(GEO::Mesh& mesh, const char* a
         // separated by a lost feature edge
         MeshHalfedges::Halfedge halfedge_on_lost_feature_edge;
         if(vertex_has_lost_feature_edge_in_neighborhood(mesh_he,adj_facets,feature_edges,first_turning_point_on_feature_edge_vertex,halfedge_on_lost_feature_edge)) {
+            if(dot(normalize(halfedge_vector(mesh,halfedge_on_lost_feature_edge)),normalize(boundary_to_move_vector)) < 0.5) { // if the direction of the lost feature edge is far from the direction of the boundary to move
+                goto default_behavior; // S9 also has a lost feature edge but we must use the default behavior
+            }
             MeshHalfedges::Halfedge last_halfedge = follow_feature_edge_on_chart(mesh_he,halfedge_on_lost_feature_edge,feature_edges,slg.facet2chart,facets_at_left,facets_at_right);
             const std::set<index_t>& facets_to_re_label = 
                 (closest_corner == non_monotone_boundary.end_corner) ?
@@ -1783,6 +1786,8 @@ bool merge_a_turning_point_and_its_closest_corner(GEO::Mesh& mesh, const char* a
             propagate_label(mesh,attribute_name,new_label,facets_to_re_label,wall,slg.facet2chart,chart_on_which_the_new_boundary_will_be);
             return true;
         }
+        
+    default_behavior:
 
         trace_path_on_chart(mesh_he,adj_facets,slg.facet2chart,slg.turning_point_vertices,first_turning_point_on_feature_edge_vertex,boundary_to_move_vector,facets_at_left,facets_at_right,path);
         #ifndef NDEBUG
