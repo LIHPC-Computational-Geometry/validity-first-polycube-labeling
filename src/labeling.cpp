@@ -1102,7 +1102,6 @@ bool increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
             geo_assert(halfedge_vertex_index_from(mesh,halfedge) == upward_boundary_equilibrium_vertex);
             auto [boundary_to_reuse, same_direction] = slg.halfedge2boundary[halfedge];
             geo_assert(boundary_to_reuse != index_t(-1));
-            dump_boundary_with_halfedges_indices("boundary_to_reuse",mesh,slg.boundaries[boundary_to_reuse]);
             if(same_direction) {
                 slg.boundaries[boundary_to_reuse].get_adjacent_facets(mesh,walls,OnlyLeft,slg.facet2chart);
                 slg.boundaries[boundary_to_reuse].get_adjacent_facets(mesh,facets_of_new_chart,OnlyRight,slg.facet2chart);
