@@ -231,7 +231,7 @@ void tweaked_naive_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
 
     Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // create a facet attribute in this mesh
     std::set<index_t> facets_to_tilt;
-    size_t nb_facet_on_areas_to_tilt = get_facets_to_tilt(mesh,normals,facets_to_tilt,(double) NAIVE_LABELING_TWEAK_SENSITIVITY);
+    get_facets_to_tilt(mesh,normals,facets_to_tilt,(double) NAIVE_LABELING_TWEAK_SENSITIVITY);
     FOR(f,mesh.facets.nb()) { // for each facet
         label[f] = facets_to_tilt.contains(f) ? nearest_label(mult(rotation,normals[f])) : nearest_label(normals[f]);
     }
@@ -386,7 +386,6 @@ bool fix_an_invalid_boundary(
     // See MAMBO B29 for example
     // https://gitlab.com/franck.ledoux/mambo
 
-    size_t nb_invalid_boundaries_processed = 0;
     index_t new_label = index_t(-1);
     vec3 new_label_as_vector;
     MeshHalfedges::Halfedge current_halfedge;
@@ -886,10 +885,10 @@ bool increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
                 // only one of them is relevant for this operator -> the closest to the boundary midpoint
                 index_t ltp = 0; // local turning-point index
                 if(slg.boundaries[b].turning_points.size() > 1) {
-                    float midpoint_vertex = slg.boundaries[b].turning_points.size() / 2.0f;
+                    float midpoint_vertex = ( (float) slg.boundaries[b].turning_points.size() ) / 2.0f;
                     float min_dist_to_midpoint = Numeric::max_float32();
                     FOR(current_ltp,slg.boundaries[b].turning_points.size()) {
-                        double current_dist = std::abs((float) current_ltp - midpoint_vertex);
+                        float current_dist = std::abs( ((float) current_ltp) - midpoint_vertex);
                         if(current_dist < min_dist_to_midpoint) {
                             min_dist_to_midpoint = current_dist;
                             ltp = current_ltp;
@@ -1787,7 +1786,7 @@ bool merge_a_turning_point_and_its_closest_corner(GEO::Mesh& mesh, const char* a
             if(dot(normalize(halfedge_vector(mesh,halfedge_on_lost_feature_edge)),normalize(boundary_to_move_vector)) < 0.5) { // if the direction of the lost feature edge is far from the direction of the boundary to move
                 goto default_behavior; // S9 also has a lost feature edge but we must use the default behavior
             }
-            MeshHalfedges::Halfedge last_halfedge = follow_feature_edge_on_chart(mesh_he,halfedge_on_lost_feature_edge,feature_edges,slg.facet2chart,facets_at_left,facets_at_right);
+            follow_feature_edge_on_chart(mesh_he,halfedge_on_lost_feature_edge,feature_edges,slg.facet2chart,facets_at_left,facets_at_right);
             const std::set<index_t>& facets_to_re_label = 
                 (closest_corner == non_monotone_boundary.end_corner) ?
                 (first_turning_point_on_feature_edge.is_towards_right_ ? facets_at_left : facets_at_right) : 
