@@ -1196,17 +1196,7 @@ bool auto_fix_validity(Mesh& mesh, std::vector<vec3>& normals, const char* attri
         });
 
         while(1) {
-            if(remove_invalid_charts(mesh,normals,attribute_name,slg)) {
-                // all invalid charts cannot be removed because of feature edges
-                // No need to update the labeling graph because the labeling didn't change
-                if((slg.nb_invalid_boundaries() == 0) && (slg.nb_invalid_corners() == 0)) {
-                    // these charts are the only invalid parts of the labeling graph
-                    fmt::println(Logger::err("fix_labeling"),"the labeling validity cannot be reached because remaining invalid charts are surrounded by feature edges. TODO new operator to fix them"); Logger::err("fix_labeling").flush();
-                    return false;
-                }
-                // else : continue and expect the other operators to fix invalid boundaries and corners
-            }
-            // update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+            remove_invalid_charts(mesh,normals,attribute_name,slg);
             slg.fill_from(mesh,attribute_name,feature_edges);
 
             if(slg.is_valid())
