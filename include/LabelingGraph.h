@@ -239,7 +239,7 @@ struct Boundary {
 
     void get_flipped(const MeshHalfedges& mesh_he, Boundary& flipped_boundary) const;
 
-    void split_at_turning_point(const MeshHalfedges& mesh_he, Boundary& downward_boundary, Boundary& upward_boundary) const;
+    void split_at_turning_point(const MeshHalfedges& mesh_he, Boundary& downward_boundary, Boundary& upward_boundary, index_t local_turning_point_index = 0) const;
 
     void per_edges_axis_assignement_cost(const Mesh& mesh, index_t axis, std::vector<double>& costs) const;
 

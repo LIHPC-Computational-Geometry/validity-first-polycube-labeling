@@ -3,6 +3,7 @@
 #include <geogram/basic/vecg.h>     // for vec3
 #include <geogram/basic/matrix.h>   // for mat3
 #include <geogram/basic/logger.h>   // for Logger::*
+#include <geogram/basic/numeric.h>  // for Numeric::max_float32();
 
 #include <fmt/core.h>
 #include <fmt/ostream.h>
@@ -880,9 +881,21 @@ bool increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
 
         FOR(lb,counterclockwise_order.size()) { // for each local boundary index (relative to the chart contour)
             auto [b,b_is_same_direction] = counterclockwise_order[lb]; // b is a boundary index
-            if(!slg.boundaries[b].turning_points.empty()) {
-                geo_assert(slg.boundaries[b].turning_points.size()==1);
-                geo_assert(slg.boundaries[b].axis != -1);
+            if( !slg.boundaries[b].turning_points.empty() && (slg.boundaries[b].axis != -1) ) {
+                // naive labeling of MAMBO S36 has 2 turning-points around one of its invalid chart surrounded by feature edges
+                // only one of them is relevant for this operator -> the closest to the boundary midpoint
+                index_t ltp = 0; // local turning-point index
+                if(slg.boundaries[b].turning_points.size() > 1) {
+                    float midpoint_vertex = slg.boundaries[b].turning_points.size() / 2.0f;
+                    float min_dist_to_midpoint = Numeric::max_float32();
+                    FOR(current_ltp,slg.boundaries[b].turning_points.size()) {
+                        double current_dist = std::abs((float) current_ltp - midpoint_vertex);
+                        if(current_dist < min_dist_to_midpoint) {
+                            min_dist_to_midpoint = current_dist;
+                            ltp = current_ltp;
+                        }
+                    }
+                }
                 current_axis = (index_t) slg.boundaries[b].axis;
                 problematic_non_monotone_boundary = b;
                 Boundary current_boundary_as_counterclockwise;
@@ -892,12 +905,12 @@ bool increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
                 else {
                     slg.boundaries[b].get_flipped(mesh_he,current_boundary_as_counterclockwise);
                 }
-                current_boundary_as_counterclockwise.split_at_turning_point(mesh_he,downward_boundary,upward_boundary);
+                current_boundary_as_counterclockwise.split_at_turning_point(mesh_he,downward_boundary,upward_boundary,ltp);
                 axis_to_insert = nearest_axis_of_edges(mesh,{
-                    slg.boundaries[b].halfedges[slg.boundaries[b].turning_points[0].outgoing_local_halfedge_index_],
-                    slg.boundaries[b].halfedges[slg.boundaries[b].turning_points[0].outgoing_local_halfedge_index_-1]
+                    slg.boundaries[b].halfedges[slg.boundaries[b].turning_points[ltp].outgoing_local_halfedge_index_],
+                    slg.boundaries[b].halfedges[slg.boundaries[b].turning_points[ltp].outgoing_local_halfedge_index_-1]
                 },{current_axis});
-                problematic_vertex = slg.boundaries[problematic_non_monotone_boundary].turning_points[0].vertex(slg.boundaries[problematic_non_monotone_boundary],mesh);
+                problematic_vertex = slg.boundaries[problematic_non_monotone_boundary].turning_points[ltp].vertex(slg.boundaries[problematic_non_monotone_boundary],mesh);
                 break;
             }
             geo_assert(slg.boundaries[b].start_corner != index_t(-1));
@@ -1786,7 +1799,7 @@ bool merge_a_turning_point_and_its_closest_corner(GEO::Mesh& mesh, const char* a
             propagate_label(mesh,attribute_name,new_label,facets_to_re_label,wall,slg.facet2chart,chart_on_which_the_new_boundary_will_be);
             return true;
         }
-        
+
     default_behavior:
 
         trace_path_on_chart(mesh_he,adj_facets,slg.facet2chart,slg.turning_point_vertices,first_turning_point_on_feature_edge_vertex,boundary_to_move_vector,facets_at_left,facets_at_right,path);
