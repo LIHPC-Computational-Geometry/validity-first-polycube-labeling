@@ -3,7 +3,6 @@
 #include <geogram/basic/vecg.h>     // for vec3
 #include <geogram/basic/matrix.h>   // for mat3
 #include <geogram/basic/logger.h>   // for Logger::*
-#include <geogram/basic/numeric.h>  // for Numeric::max_float32();
 
 #include <fmt/core.h>
 #include <fmt/ostream.h>
@@ -885,12 +884,14 @@ bool increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
                 // only one of them is relevant for this operator -> the closest to the boundary midpoint
                 index_t ltp = 0; // local turning-point index
                 if(slg.boundaries[b].turning_points.size() > 1) {
-                    float midpoint_vertex = ( (float) slg.boundaries[b].turning_points.size() ) / 2.0f;
-                    float min_dist_to_midpoint = Numeric::max_float32();
-                    FOR(current_ltp,slg.boundaries[b].turning_points.size()) {
-                        float current_dist = std::abs( ((float) current_ltp) - midpoint_vertex);
-                        if(current_dist < min_dist_to_midpoint) {
-                            min_dist_to_midpoint = current_dist;
+                    size_t max_dist_to_corners = 0; // in number of edges
+                    FOR(current_ltp,slg.boundaries[b].turning_points.size()) { // for each turning-point of the boundary `b`
+                        size_t current_dist = std::min(
+                            (size_t) slg.boundaries[b].turning_points[current_ltp].outgoing_local_halfedge_index_,
+                            slg.boundaries[b].halfedges.size() - ((size_t) slg.boundaries[b].turning_points[current_ltp].outgoing_local_halfedge_index_) + 1
+                        );
+                        if(current_dist > max_dist_to_corners) {
+                            max_dist_to_corners = current_dist;
                             ltp = current_ltp;
                         }
                     }
@@ -903,13 +904,14 @@ bool increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
                 }
                 else {
                     slg.boundaries[b].get_flipped(mesh_he,current_boundary_as_counterclockwise);
+                    ltp = ((index_t) slg.boundaries[b].turning_points.size()) - 1 - ltp;
                 }
                 current_boundary_as_counterclockwise.split_at_turning_point(mesh_he,downward_boundary,upward_boundary,ltp);
                 axis_to_insert = nearest_axis_of_edges(mesh,{
                     slg.boundaries[b].halfedges[slg.boundaries[b].turning_points[ltp].outgoing_local_halfedge_index_],
                     slg.boundaries[b].halfedges[slg.boundaries[b].turning_points[ltp].outgoing_local_halfedge_index_-1]
                 },{current_axis});
-                problematic_vertex = slg.boundaries[problematic_non_monotone_boundary].turning_points[ltp].vertex(slg.boundaries[problematic_non_monotone_boundary],mesh);
+                problematic_vertex = current_boundary_as_counterclockwise.turning_points[ltp].vertex(current_boundary_as_counterclockwise,mesh);
                 break;
             }
             geo_assert(slg.boundaries[b].start_corner != index_t(-1));
@@ -975,37 +977,56 @@ bool increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
 
         // find equilibrium along `downward_boundary`
 
-        index_t vertex_index = 0;
-        while(downward_boundary_cumulative_cost_for_axis_to_insert[vertex_index] <= downward_boundary_cumulative_cost_for_current_axis[vertex_index]) {
-            vertex_index++;
-            if(vertex_index == downward_boundary.halfedges.size()) {
+        index_t downward_boundary_equilibrium_vertex_index = 0;
+        while(downward_boundary_cumulative_cost_for_axis_to_insert[downward_boundary_equilibrium_vertex_index] <= downward_boundary_cumulative_cost_for_current_axis[downward_boundary_equilibrium_vertex_index]) {
+            downward_boundary_equilibrium_vertex_index++;
+            if(downward_boundary_equilibrium_vertex_index == downward_boundary.halfedges.size()) {
                 break;
             }
         }
-        index_t downward_boundary_equilibrium_vertex = (vertex_index == downward_boundary.halfedges.size()) ?
-            halfedge_vertex_index_to(mesh,downward_boundary.halfedges[vertex_index-1]) :
-            halfedge_vertex_index_from(mesh,downward_boundary.halfedges[vertex_index]);
+        index_t downward_boundary_equilibrium_vertex = (downward_boundary_equilibrium_vertex_index == downward_boundary.halfedges.size()) ?
+            halfedge_vertex_index_to(mesh,downward_boundary.halfedges[downward_boundary_equilibrium_vertex_index-1]) :
+            halfedge_vertex_index_from(mesh,downward_boundary.halfedges[downward_boundary_equilibrium_vertex_index]);
         #ifndef NDEBUG
             dump_vertex("downward_boundary_equilibrium",mesh,downward_boundary_equilibrium_vertex);
         #endif
 
         // find equilibrium along `upward_boundary`
 
-        vertex_index = 0;
-        while(upward_boundary_cumulative_cost_for_axis_to_insert[vertex_index] <= upward_boundary_cumulative_cost_for_current_axis[vertex_index]) {
-            vertex_index++;
-            if(vertex_index == upward_boundary.halfedges.size()) {
+        index_t upward_boundary_equilibrium_vertex_index = 0;
+        while(upward_boundary_cumulative_cost_for_axis_to_insert[upward_boundary_equilibrium_vertex_index] <= upward_boundary_cumulative_cost_for_current_axis[upward_boundary_equilibrium_vertex_index]) {
+            upward_boundary_equilibrium_vertex_index++;
+            if(upward_boundary_equilibrium_vertex_index == upward_boundary.halfedges.size()) {
                 break;
             }
         }
-        index_t upward_boundary_equilibrium_vertex = (vertex_index == upward_boundary.halfedges.size()) ?
-            halfedge_vertex_index_to(mesh,upward_boundary.halfedges[vertex_index-1]) :
-            halfedge_vertex_index_from(mesh,upward_boundary.halfedges[vertex_index]);
+        index_t upward_boundary_equilibrium_vertex = (upward_boundary_equilibrium_vertex_index == upward_boundary.halfedges.size()) ?
+            halfedge_vertex_index_to(mesh,upward_boundary.halfedges[upward_boundary_equilibrium_vertex_index-1]) :
+            halfedge_vertex_index_from(mesh,upward_boundary.halfedges[upward_boundary_equilibrium_vertex_index]);
         #ifndef NDEBUG
             dump_vertex("upward_boundary_equilibrium",mesh,upward_boundary_equilibrium_vertex);
         #endif
 
         geo_assert(downward_boundary_equilibrium_vertex != upward_boundary_equilibrium_vertex);
+
+        // If neither the downward equilibrium point nor the upward one are on the `problematic_vertex`,
+        // move the closest onto the `problematic_vertex`,
+        // so that we always have a boundary starting from an equilibrium point and one starting from the `problematic_vertex`
+        // Avoids strange behavior on MAMBO B41
+        if(
+            (downward_boundary_equilibrium_vertex != problematic_vertex) && 
+            (upward_boundary_equilibrium_vertex != problematic_vertex)
+        ) {
+            if(
+                upward_boundary_equilibrium_vertex_index < downward_boundary_equilibrium_vertex_index
+            ) {
+                // `upward_boundary_equilibrium_vertex` is the closest
+                upward_boundary_equilibrium_vertex = problematic_vertex;
+            }
+            else {
+                downward_boundary_equilibrium_vertex = problematic_vertex;
+            }
+        }
 
         // Compute the direction to follow
         // Between
