@@ -593,7 +593,7 @@ size_t fix_as_much_invalid_corners_as_possible(GEO::Mesh& mesh, const std::vecto
         slg.corners[corner_index].get_outgoing_halfedges_on_feature_edge(mesh,feature_edges,outgoing_halfedges_on_feature_edge);
         // also compute the evenness of adj facets area
         double sd_adj_facets_area = sd_adjacent_facets_area(mesh,adj_facets,slg.corners[corner_index].vertex);
-        if(outgoing_halfedges_on_feature_edge.empty() || sd_adj_facets_area < 0.3) {
+        if(outgoing_halfedges_on_feature_edge.empty() || sd_adj_facets_area < 0.02) {
 
             // cone-like, or pyramid-like (MAMBO B20) invalid corner
             // compute the normal by adding normals of adjacent facets
@@ -932,7 +932,7 @@ bool increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
                 if(
                     (slg.corners[problematic_corner].valence() == 4) && 
                     slg.corners[problematic_corner].all_adjacent_boundary_edges_are_on_feature_edges(mesh,feature_edges) &&
-                    sd_adj_facets_area < 0.3 // required to distinguish B20 from S36
+                    sd_adj_facets_area < 0.02 // required to distinguish B20 from S36, S33
                 ) {
                     problematic_corner = index_t(-1);
                     problematic_vertex = index_t(-1);
