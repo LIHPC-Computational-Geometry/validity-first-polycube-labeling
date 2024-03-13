@@ -914,6 +914,16 @@ bool increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
                     downward_boundary = slg.boundaries[b];
                     problematic_corner = slg.boundaries[b].start_corner;
                 }
+                // if this is a pyramid-like invalid corner (see MAMBO B20),
+                // don't apply increase_chart_valence() but fix_as_much_invalid_corners_as_possible()
+                if(
+                    (slg.corners[problematic_corner].valence() == 4) && 
+                    slg.corners[problematic_corner].all_adjacent_boundary_edges_are_on_feature_edges(mesh,feature_edges)
+                ) {
+                    problematic_corner = index_t(-1);
+                    problematic_vertex = index_t(-1);
+                    continue;
+                }
                 if(next_b_is_same_direction) {
                     upward_boundary = slg.boundaries[next_b];
                 }
@@ -928,7 +938,10 @@ bool increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
                 break;
             }
         }
-        geo_assert(problematic_vertex != index_t(-1));
+
+        if(problematic_vertex == index_t(-1)) {
+            continue; // propagate 'continue'
+        }
         geo_assert( (problematic_corner != index_t(-1)) || (problematic_non_monotone_boundary != index_t(-1)) );
         
         #ifndef NDEBUG
