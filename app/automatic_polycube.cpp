@@ -125,6 +125,19 @@ protected:
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 
+			if(ImGui::Button("Increase chart valence")) {
+				// compute vertex-to-facet adjacency if not already done
+				if(adj_facets_.empty()) {
+					compute_adjacent_facets_of_vertices(mesh_,adj_facets_);
+				}
+				bool chart_processed = increase_chart_valence(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,adj_facets_,feature_edges_);
+				fmt::println(Logger::out("fix_labeling"),"{} invalid charts processed",size_t(chart_processed)); Logger::out("fix_labeling").flush();
+				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+			}
+			ImGui::SameLine();
+			ImGui::TextDisabled("(?)");
+			ImGui::SetItemTooltip("Pick the first invalid chart surrounded by feature edges\nand trace a new adjacent chart to increase the valence of the first one");
+
 			if(ImGui::Button("Fix invalid boundaries (as much as possible)")) {
 				// compute vertex-to-facet adjacency if not already done
 				if(adj_facets_.empty()) {
@@ -132,11 +145,6 @@ protected:
 				}
 				size_t nb_invalid_boundaries_processed = (size_t) fix_an_invalid_boundary(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,normals_,feature_edges_,adj_facets_);
 				fmt::println(Logger::out("fix_labeling"),"{} invalid boundaries processed",nb_invalid_boundaries_processed); Logger::out("fix_labeling").flush();
-				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
-			}
-
-			if(ImGui::Button("Remove charts around invalid boundaries")) {
-				remove_charts_around_invalid_boundaries(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_);
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 
@@ -152,18 +160,10 @@ protected:
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 
-			if(ImGui::Button("Increase chart valence")) {
-				// compute vertex-to-facet adjacency if not already done
-				if(adj_facets_.empty()) {
-					compute_adjacent_facets_of_vertices(mesh_,adj_facets_);
-				}
-				bool chart_processed = increase_chart_valence(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,adj_facets_,feature_edges_);
-				fmt::println(Logger::out("fix_labeling"),"{} invalid charts processed",size_t(chart_processed)); Logger::out("fix_labeling").flush();
+			if(ImGui::Button("Remove charts around invalid boundaries")) {
+				remove_charts_around_invalid_boundaries(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_);
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
-			ImGui::SameLine();
-			ImGui::TextDisabled("(?)");
-			ImGui::SetItemTooltip("Pick the first invalid chart surrounded by feature edges\nand trace a new adjacent chart to increase the valence of the first one");
 
 			ImGui::PushStyleColor(ImGuiCol_Button, 			ImVec4(0.6f, 0.9f, 0.6f, 1.0f)); // green
 			ImGui::PushStyleColor(ImGuiCol_ButtonHovered,	ImVec4(0.3f, 0.8f, 0.3f, 1.0f)); // darker green
@@ -179,6 +179,28 @@ protected:
 			ImGui::PopStyleColor(3);
 
 			ImGui::SeparatorText("Monotonicity");
+
+			if(ImGui::Button("Join turning-points pair with new chart")) {
+				// compute vertex-to-facet adjacency if not already done
+				if(adj_facets_.empty()) {
+					compute_adjacent_facets_of_vertices(mesh_,adj_facets_);
+				}
+				join_turning_points_pair_with_new_chart(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,normals_,feature_edges_,adj_facets_);
+				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+			}
+
+			if(ImGui::Button("Merge a turning-points and its closest corners")) {
+				// compute vertex-to-facet adjacency if not already done
+				if(adj_facets_.empty()) {
+					compute_adjacent_facets_of_vertices(mesh_,adj_facets_);
+				}
+				bool a_non_monotone_boundary_was_processed = merge_a_turning_point_and_its_closest_corner(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,feature_edges_,adj_facets_);
+				fmt::println(Logger::out("monotonicity"),"{} non-monotone boundaries processed",(size_t) a_non_monotone_boundary_was_processed); Logger::out("monotonicity").flush();
+				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+			}
+			ImGui::SameLine();
+			ImGui::TextDisabled("(?)");
+			ImGui::SetItemTooltip("Parse non-monotone boundaries, and if one of them has a turning-point on a feature edge, try to pull the closest corner so that they coincide");
 
 			if(ImGui::Button("Move boundaries near turning points")) {
 				size_t nb_turning_points_processed = move_boundaries_near_turning_points(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,feature_edges_);
@@ -204,28 +226,6 @@ protected:
 					compute_adjacent_facets_of_vertices(mesh_,adj_facets_);
 				}
 				move_corners(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,feature_edges_,adj_facets_);
-				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
-			}
-
-			if(ImGui::Button("Merge a turning-points and its closest corners")) {
-				// compute vertex-to-facet adjacency if not already done
-				if(adj_facets_.empty()) {
-					compute_adjacent_facets_of_vertices(mesh_,adj_facets_);
-				}
-				bool a_non_monotone_boundary_was_processed = merge_a_turning_point_and_its_closest_corner(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,feature_edges_,adj_facets_);
-				fmt::println(Logger::out("monotonicity"),"{} non-monotone boundaries processed",(size_t) a_non_monotone_boundary_was_processed); Logger::out("monotonicity").flush();
-				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
-			}
-			ImGui::SameLine();
-			ImGui::TextDisabled("(?)");
-			ImGui::SetItemTooltip("Parse non-monotone boundaries, and if one of them has a turning-point on a feature edge, try to pull the closest corner so that they coincide");
-
-			if(ImGui::Button("Join turning-points pair with new chart")) {
-				// compute vertex-to-facet adjacency if not already done
-				if(adj_facets_.empty()) {
-					compute_adjacent_facets_of_vertices(mesh_,adj_facets_);
-				}
-				join_turning_points_pair_with_new_chart(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,normals_,feature_edges_,adj_facets_);
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 
