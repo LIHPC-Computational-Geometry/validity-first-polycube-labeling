@@ -216,9 +216,9 @@ protected:
 				// points in overlay
 				points_groups_show_only({}); // show none
 				// edges in overlay
-				set_edges_group_color(X_boundaries_group_index_,colormaps_[COLORMAP_LABELING].texture,0.084); // axis X -> color of label 0 = +X
-				set_edges_group_color(Y_boundaries_group_index_,colormaps_[COLORMAP_LABELING].texture,0.417); // axis Y -> color of label 2 = +Y
-				set_edges_group_color(Z_boundaries_group_index_,colormaps_[COLORMAP_LABELING].texture,0.750); // axis Z -> color of label 4 = +Z
+				set_edges_group_color(X_boundaries_group_index_,colormaps_[COLORMAP_VALIDITY].texture,1.0); // apply the color of valid LabelingGraph components
+				set_edges_group_color(Y_boundaries_group_index_,colormaps_[COLORMAP_VALIDITY].texture,1.0); // apply the color of valid LabelingGraph components
+				set_edges_group_color(Z_boundaries_group_index_,colormaps_[COLORMAP_VALIDITY].texture,1.0); // apply the color of valid LabelingGraph components
 				edges_groups_show_only({X_boundaries_group_index_, Y_boundaries_group_index_, Z_boundaries_group_index_});
 
 				// use mesh_gfx_.draw_surface_borders() ?
@@ -245,9 +245,9 @@ protected:
 				set_points_group_color(invalid_corners_group_index_,validity_colors_.color_as_floats(0)); // apply the color of invalid LabelingGraph components
 				points_groups_show_only({valid_corners_group_index_, invalid_corners_group_index_});
 				// edges in overlay
-				set_edges_group_color(X_boundaries_group_index_,colormaps_[COLORMAP_LABELING].texture,0.084); // axis X -> color of label 0 = +X
-				set_edges_group_color(Y_boundaries_group_index_,colormaps_[COLORMAP_LABELING].texture,0.417); // axis Y -> color of label 2 = +Y
-				set_edges_group_color(Z_boundaries_group_index_,colormaps_[COLORMAP_LABELING].texture,0.750); // axis Z -> color of label 4 = +Z
+				set_edges_group_color(X_boundaries_group_index_,colormaps_[COLORMAP_VALIDITY].texture,1.0); // apply the color of valid LabelingGraph components
+				set_edges_group_color(Y_boundaries_group_index_,colormaps_[COLORMAP_VALIDITY].texture,1.0); // apply the color of valid LabelingGraph components
+				set_edges_group_color(Z_boundaries_group_index_,colormaps_[COLORMAP_VALIDITY].texture,1.0); // apply the color of valid LabelingGraph components
 				edges_groups_show_only({X_boundaries_group_index_, Y_boundaries_group_index_, Z_boundaries_group_index_});
 
 				// use mesh_gfx_.draw_surface_borders() ?
