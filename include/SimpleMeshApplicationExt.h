@@ -50,12 +50,12 @@ public:
 
     struct EdgesGroup {
         std::vector<std::pair<vec3,vec3>> edges;
-        unsigned int texture = 0;
+        unsigned int colormap_index = 0;
         double texture_coordinate = 0.0;
         unsigned int width = 1;
         bool show = false;
-        EdgesGroup(unsigned int texture, double texture_coordinate, unsigned int width, bool show) : texture(texture), texture_coordinate(texture_coordinate), width(width), show(show) {}
-        void clear() { edges.clear(); texture = 0; texture_coordinate = 0.0; width = 1; show = false; }
+        EdgesGroup(unsigned int colormap_index, double texture_coordinate, unsigned int width, bool show) : colormap_index(colormap_index), texture_coordinate(texture_coordinate), width(width), show(show) {}
+        void clear() { edges.clear(); colormap_index = 0; texture_coordinate = 0.0; width = 1; show = false; }
     };
 
     // both float (for ImGui) and char (for OpenGL textures) representations
@@ -143,8 +143,8 @@ public:
         return index_of_last(points_groups_);
     }
 
-    std::size_t new_edges_group(unsigned int texture, double texture_coordinate, unsigned int width, bool show) {
-        edges_groups_.push_back(EdgesGroup(texture,texture_coordinate,width,show));
+    std::size_t new_edges_group(unsigned int colormap_index, double texture_coordinate, unsigned int width, bool show) {
+        edges_groups_.push_back(EdgesGroup(colormap_index,texture_coordinate,width,show));
         return index_of_last(edges_groups_);
     }
 
@@ -162,8 +162,8 @@ public:
         points_groups_.at(index).color = new_color;
     }
 
-    void set_edges_group_color(std::size_t index, unsigned int new_texture, double new_texture_coordinate) {
-        edges_groups_.at(index).texture = new_texture;
+    void set_edges_group_color(std::size_t index, unsigned int new_colormap_index, double new_texture_coordinate) {
+        edges_groups_.at(index).colormap_index = new_colormap_index;
         edges_groups_.at(index).texture_coordinate = new_texture_coordinate;
     }
 
@@ -219,7 +219,7 @@ public:
             if(group.show) {
                 glupEnable(GLUP_TEXTURING);
                 glActiveTexture(GL_TEXTURE0 + GLUP_TEXTURE_2D_UNIT);
-                glBindTexture(GL_TEXTURE_2D, (GLuint) group.texture);
+                glBindTexture(GL_TEXTURE_2D, (GLuint) colormaps_[group.colormap_index].texture);
                 glupTextureType(GLUP_TEXTURE_2D);
                 glupTextureMode(GLUP_TEXTURE_REPLACE);
                 glupPrivateTexCoord1d(group.texture_coordinate);
