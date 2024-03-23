@@ -36,11 +36,11 @@ using GEO::index_t; // to use the FOR() macro of Geogram
 //
 //                        R    G    B
 // 0 = +X ->       red : 1.0, 0.0, 0.0
-// 1 = -X ->  dark red : 0.6, 0.0, 0.0
+// 1 = -X ->  dark red : 0.4, 0.0, 0.0
 // 2 = +Y ->     white : 1.0, 1.0, 1.0
-// 3 = -Y ->      grey : 0.6, 0.6, 0.6
+// 3 = -Y ->      grey : 0.4, 0.4, 0.4
 // 4 = +Z ->      blue : 0.0, 0.0, 1.0
-// 5 = -Z -> dark blue : 0.0, 0.0, 0.6
+// 5 = -Z -> dark blue : 0.0, 0.0, 0.4
 // 
 // Texture coordinates :
 //
@@ -65,7 +65,7 @@ const vec2f LABELING_TO_TEXTURE_COORDINATES[6] = {{0.188f, 0.5f},  // = 0/8 + 3/
 
 // Image created with GIMP, saved to PNG, then converted to base64
 // https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URLs
-const std::string labeling_texture_image_PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAACCAIAAADq9gq6AAAAH0lEQVQI12P4z8Dwn4FhJgPD////Z86cCePNZGLAAQBunQmThyp5vwAAAABJRU5ErkJggg==";
+const std::string labeling_texture_image_PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAACCAIAAADq9gq6AAAAJUlEQVQI13XBAREAIAgEsJ1GsqABIcfHwARue7iEmknSXYSzfDysLAtr+BxIUwAAAABJRU5ErkJggg==";
 
 //////////////////////////////////////
 // Geogram vs glTF mesh vertices map
