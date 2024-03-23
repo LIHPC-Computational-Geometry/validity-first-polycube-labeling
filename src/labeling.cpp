@@ -697,6 +697,10 @@ size_t fix_as_much_invalid_corners_as_possible(GEO::Mesh& mesh, const std::vecto
             }
             else {
 
+                if(outgoing_halfedges_on_feature_edge.size() != 4) {
+                    continue;
+                }
+
                 // A problematic corner on feature edge like on MAMBO S24 model https://gitlab.com/franck.ledoux/mambo/
                 // Get the 4 outgoing boundaries, all of which being on feature edges
                 // Keep only the 2 shortest
@@ -706,7 +710,6 @@ size_t fix_as_much_invalid_corners_as_possible(GEO::Mesh& mesh, const std::vecto
                 // Only changes facets at distance of 0 or 1 from the 2 shortest boundaries.
                 // Works for MAMBO S24 but it's not generalizable
 
-                geo_assert(outgoing_halfedges_on_feature_edge.size() == 4);
                 std::vector<std::pair<index_t,double>> adjacent_boundaries_and_their_length;
                 for(const auto& halfedge : outgoing_halfedges_on_feature_edge) {
                     index_t b = slg.halfedge2boundary.at(halfedge).first;
