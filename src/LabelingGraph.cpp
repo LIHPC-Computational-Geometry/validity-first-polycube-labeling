@@ -361,6 +361,22 @@ bool Corner::is_adjacent_to_an_invalid_boundary(const std::vector<Boundary>& all
     return false; // no invalid boundary among all adjacent boundaries
 }
 
+double Corner::sd_boundary_angles(const Mesh& mesh) const {
+    BasicStats stats;
+    index_t nb_boundary_edges_in_vertex_ring = index_t(-1);
+    for(const auto& vr : vertex_rings_with_boundaries) {
+        nb_boundary_edges_in_vertex_ring = vr.boundary_edges.size();
+        FOR(be_index, nb_boundary_edges_in_vertex_ring) {
+            // compute the angle between the current boundary edge and the next one
+            stats.insert(angle(
+                normalize(halfedge_vector(mesh, vr.boundary_edges[be_index])),
+                normalize(halfedge_vector(mesh, vr.boundary_edges[(be_index+1) % nb_boundary_edges_in_vertex_ring]))
+            ));
+        }
+    }
+    return stats.sd();
+}
+
 std::ostream& operator<< (std::ostream &out, const Corner& data) {
     fmt::println(out,"\tvertex : {}",data.vertex);
     fmt::println(out,"\tis_valid : {}",data.is_valid);

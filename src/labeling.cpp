@@ -590,9 +590,9 @@ size_t fix_as_much_invalid_corners_as_possible(GEO::Mesh& mesh, const std::vecto
 
         // check if there is a feature edge along the corner
         slg.corners[corner_index].get_outgoing_halfedges_on_feature_edge(mesh,feature_edges,outgoing_halfedges_on_feature_edge);
-        // also compute the evenness of adj facets area
-        double sd_adj_facets_area = sd_adjacent_facets_area(mesh,adj_facets,slg.corners[corner_index].vertex);
-        if(outgoing_halfedges_on_feature_edge.empty() || sd_adj_facets_area < 0.02) {
+        // also compute the evenness of angles between adj boundaries
+        double sd_boundary_angles = slg.corners[corner_index].sd_boundary_angles(mesh);
+        if(outgoing_halfedges_on_feature_edge.empty() || sd_boundary_angles < 0.02) {
 
             // cone-like, or pyramid-like (MAMBO B20) invalid corner
             // compute the normal by adding normals of adjacent facets
@@ -930,11 +930,11 @@ bool increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
                 }
                 // if this is a pyramid-like invalid corner (see MAMBO B20),
                 // don't apply increase_chart_valence() but fix_as_much_invalid_corners_as_possible()
-                double sd_adj_facets_area = sd_adjacent_facets_area(mesh,adj_facets,slg.corners[problematic_corner].vertex);
+                double sd_boundary_angles = slg.corners[problematic_corner].sd_boundary_angles(mesh);
                 if(
                     (slg.corners[problematic_corner].valence() == 4) && 
                     slg.corners[problematic_corner].all_adjacent_boundary_edges_are_on_feature_edges(mesh,feature_edges) &&
-                    sd_adj_facets_area < 0.02 // required to distinguish B20 from S36, S33
+                    sd_boundary_angles < 0.02 // required to distinguish B20 from S36, S33
                 ) {
                     problematic_corner = index_t(-1);
                     problematic_vertex = index_t(-1);
