@@ -53,6 +53,19 @@ bool dump_edges(std::string filename, const Mesh& mesh, const std::set<std::pair
     return mesh_save(out,filename + ".geogram");
 }
 
+bool dump_edges(std::string filename, const Mesh& mesh, const std::vector<MeshHalfedges::Halfedge>& halfedges) {
+    Mesh out;
+    out.copy(mesh,false,MESH_VERTICES); // keep only vertices
+    index_t edge_index = out.edges.create_edges( (index_t) halfedges.size());
+    for(const auto& he : halfedges) {
+        out.edges.set_vertex(edge_index,0,halfedge_vertex_index_from(mesh,he));
+        out.edges.set_vertex(edge_index,1,halfedge_vertex_index_to(mesh,he));
+        edge_index++;
+    }
+    out.vertices.remove_isolated();
+    return mesh_save(out,filename + ".geogram");
+}
+
 bool dump_boundary(std::string filename, const Mesh& mesh, const Boundary& boundary) {
     Mesh boundary_mesh;
     boundary_mesh.copy(mesh,false,MESH_VERTICES); // keep only vertices

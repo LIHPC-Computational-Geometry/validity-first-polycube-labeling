@@ -53,6 +53,8 @@ bool dump_edges(std::string filename, std::string attribute_name, const Mesh& me
     return mesh_save(out,filename + ".geogram");
 }
 
+bool dump_edges(std::string filename, const Mesh& mesh, const std::vector<MeshHalfedges::Halfedge>& halfedges);
+
 bool dump_boundary(std::string filename, const Mesh& mesh, const Boundary& boundary);
 
 bool dump_boundary_with_halfedges_indices(std::string filename, const Mesh& mesh, const Boundary& boundary);
