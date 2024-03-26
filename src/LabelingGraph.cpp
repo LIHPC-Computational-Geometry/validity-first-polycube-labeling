@@ -365,7 +365,7 @@ double Corner::sd_boundary_angles(const Mesh& mesh) const {
     BasicStats stats;
     index_t nb_boundary_edges_in_vertex_ring = index_t(-1);
     for(const auto& vr : vertex_rings_with_boundaries) {
-        nb_boundary_edges_in_vertex_ring = vr.boundary_edges.size();
+        nb_boundary_edges_in_vertex_ring = (index_t) vr.boundary_edges.size();
         FOR(be_index, nb_boundary_edges_in_vertex_ring) {
             // compute the angle between the current boundary edge and the next one
             stats.insert(angle(
