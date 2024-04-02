@@ -40,6 +40,20 @@ bool dump_edge(std::string filename, const Mesh& mesh, MeshHalfedges::Halfedge& 
     return mesh_save(out,filename + ".geogram");
 }
 
+bool dump_edges(std::string filename, const Mesh& mesh, const std::set<std::set<index_t>>& edges) {
+    Mesh out;
+    out.copy(mesh,false,MESH_VERTICES); // keep only vertices
+    index_t edge_index = out.edges.create_edges( (index_t) edges.size());
+    for(const auto& e : edges) { // for each edge
+        geo_assert(e.size()==2); // assert only 2 vertices per item
+        out.edges.set_vertex(edge_index,0,*e.begin());
+        out.edges.set_vertex(edge_index,1,*e.rbegin());
+        edge_index++;
+    }
+    out.vertices.remove_isolated();
+    return mesh_save(out,filename + ".geogram");
+}
+
 bool dump_edges(std::string filename, const Mesh& mesh, const std::set<std::pair<index_t,index_t>>& edges) {
     Mesh out;
     out.copy(mesh,false,MESH_VERTICES); // keep only vertices

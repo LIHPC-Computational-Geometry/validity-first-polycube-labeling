@@ -34,6 +34,8 @@ inline bool dump_vector(std::string filename, const Mesh& mesh, index_t origin_v
 
 bool dump_edge(std::string filename, const Mesh& mesh, MeshHalfedges::Halfedge& halfedge);
 
+bool dump_edges(std::string filename, const Mesh& mesh, const std::set<std::set<index_t>>& edges);
+
 bool dump_edges(std::string filename, const Mesh& mesh, const std::set<std::pair<index_t,index_t>>& edges);
 
 //idem but also write an edge attribute
