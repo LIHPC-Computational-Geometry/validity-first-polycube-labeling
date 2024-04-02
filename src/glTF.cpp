@@ -570,6 +570,8 @@ void write_glTF__hex_mesh_surface(std::string filename, const GEO::Mesh& hex_mes
     FOR(f,mesh.facets.nb()) { // for each facet (quads)
         SJ_on_surface[f] = SJ[per_quad_cell_index[f]];
     }
+    mesh.cells.clear();
+    mesh.vertices.remove_isolated();
 
     // 3.
     // 4.
