@@ -685,3 +685,37 @@ double sd_adjacent_facets_area(const Mesh& mesh, const std::vector<std::vector<i
     }
     return stats.sd();
 }
+
+void triangulate_facets(Mesh& M, std::vector<index_t>& triangle_index_to_old_facet_index) {
+    // based on ext/geogram/src/lib/geogram/mesh/mesh.cpp MeshFacets::triangulate()
+    // but returns the map between triangle indices and facet indices before the triangulation
+    // allowing to transfer facet attributes
+    if(M.facets.are_simplices()) {
+        return;
+    }
+    triangle_index_to_old_facet_index.clear();
+    index_t nb_triangles = 0;
+    for(index_t f = 0; f < M.facets.nb(); f++) {
+        FOR(i,M.facets.nb_vertices(f) - 2) {
+            triangle_index_to_old_facet_index.push_back(f);
+            nb_triangles++;
+        }
+    }
+    vector<index_t> new_corner_vertex_index;
+    new_corner_vertex_index.reserve(nb_triangles * 3);
+    for(index_t f = 0; f < M.facets.nb(); f++) {
+        index_t v0 = M.facet_corners.vertex(M.facets.corners_begin(f));
+        for(index_t c = M.facets.corners_begin(f) + 1;
+            c + 1 < M.facets.corners_end(f); ++c
+        ) {
+            new_corner_vertex_index.push_back(v0);
+            new_corner_vertex_index.push_back(
+                M.facet_corners.vertex(c)
+            );
+            new_corner_vertex_index.push_back(
+                M.facet_corners.vertex(c + 1)
+            );
+        }
+    }
+    M.facets.assign_triangle_mesh(new_corner_vertex_index, true);
+}

@@ -565,15 +565,24 @@ void write_glTF__hex_mesh_surface(std::string filename, const GEO::Mesh& hex_mes
 
     GEO::Attribute<index_t> per_quad_cell_index(mesh.cells.attributes(),"cell_index");
     mesh.cells.compute_borders(per_quad_cell_index);
-    // transfer attribute
-    GEO::Attribute<double> SJ_on_surface(mesh.facets.attributes(),"SJ_on_surface");
+    // transfer attribute from cells to quads
+    std::vector<double> SJ_on_surface_quads(mesh.facets.nb());
     FOR(f,mesh.facets.nb()) { // for each facet (quads)
-        SJ_on_surface[f] = SJ[per_quad_cell_index[f]];
+        SJ_on_surface_quads[f] = SJ[per_quad_cell_index[f]];
     }
     mesh.cells.clear();
     mesh.vertices.remove_isolated();
 
     // 3.
+
+    std::vector<index_t> triangle_to_old_facet; // index map before/after triangulation
+    triangulate_facets(mesh,triangle_to_old_facet);
+    // transfer attribute from quads to triangles
+    GEO::Attribute<double> SJ_on_surface_triangles(mesh.facets.attributes(),"SJ");
+    FOR(t,mesh.facets.nb()) { // for each triangle
+        SJ_on_surface_triangles[t] = SJ_on_surface_quads[triangle_to_old_facet[t]];
+    }
+
     // 4.
     // 5.
     // 6.
