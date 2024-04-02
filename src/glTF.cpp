@@ -596,9 +596,6 @@ void write_glTF__hex_mesh_surface(std::string filename, const GEO::Mesh& hex_mes
     // -> convert to vector
     std::vector<std::set<index_t>> wireframe_edges_as_vector(wireframe_edges_as_set.begin(),wireframe_edges_as_set.end());
 
-    // debug export wireframe
-    dump_edges("quads_wireframe",mesh,wireframe_edges_as_set);
-
     // 4.
 
     std::vector<index_t> triangle_to_old_facet; // index map before/after triangulation
@@ -610,6 +607,10 @@ void write_glTF__hex_mesh_surface(std::string filename, const GEO::Mesh& hex_mes
     }
 
     // 5.
+
+    std::vector<std::vector<index_t>> adj_facets;
+    compute_adjacent_facets_of_vertices(mesh,adj_facets);
+
     // 6.
     // 7.
     // 8.
