@@ -19,6 +19,7 @@
 #include "containers.h"             // for index_of_last()
 #include "geometry.h"               // for AdjacentFacetOfVertex
 #include "hex_mesh.h"               // for compute_scaled_jacobian()
+#include "dump_mesh.h"              // for dump_edges()
 
 void write_glTF__triangle_mesh(std::string filename, GEO::Mesh& M, bool with_wireframe) {
     ASSERT_GARGANTUA_OFF;
@@ -545,12 +546,13 @@ void write_glTF__labeled_triangle_mesh(std::string filename, GEO::Mesh& M, const
 void write_glTF__hex_mesh_surface(std::string filename, const GEO::Mesh& hex_mesh) {
     // 1. Compute the per-cell Scaled Jacobian
     // 2. Extract the surface mesh
-    // 3. Triangulate the quads
-    // 4. Compute per-vertex adjacent triangles
-    // 5. For each vertex, create 1 glTF vertex if attribute value doesn't change much in neighborhood,
+    // 3. Store the quads wireframe edges
+    // 4. Triangulate the quads
+    // 5. Compute per-vertex adjacent triangles
+    // 6. For each vertex, create 1 glTF vertex if attribute value doesn't change much in neighborhood,
     //    else create a glTF vertex for each adjacent triangle
-    // 6. Assemble the glTF asset, embed the colormap
-    // 7. Write to file
+    // 7. Assemble the glTF asset, embed the colormap
+    // 8. Write to file
 
     GEO::Mesh mesh;
     mesh.copy(hex_mesh,false); // don't copy attributes
@@ -575,6 +577,30 @@ void write_glTF__hex_mesh_surface(std::string filename, const GEO::Mesh& hex_mes
 
     // 3.
 
+    std::set<std::set<index_t>> wireframe_edges_as_set;
+    GEO::CustomMeshHalfedges mesh_he(mesh);
+    GEO::MeshHalfedges::Halfedge H;
+    index_t H_v0 = index_t(-1);
+    index_t H_v1 = index_t(-1);
+    FOR(f,mesh.facets.nb()) { // for each facet
+        H.facet = f;
+        geo_assert(mesh.facets.nb_vertices(f)==4); // assert it's a quad
+        FOR(lv,4) { // for each local vertex of f
+            H.corner = mesh.facets.corner(f,lv);
+            H_v0 = halfedge_vertex_index_from(mesh,H);
+            H_v1 = halfedge_vertex_index_to(mesh,H);
+            wireframe_edges_as_set.insert({H_v0,H_v1});
+        }
+    }
+    // we need to have an index associated to each wireframe edge in the glTF asset
+    // -> convert to vector
+    std::vector<std::set<index_t>> wireframe_edges_as_vector(wireframe_edges_as_set.begin(),wireframe_edges_as_set.end());
+
+    // debug export wireframe
+    dump_edges("quads_wireframe",mesh,wireframe_edges_as_set);
+
+    // 4.
+
     std::vector<index_t> triangle_to_old_facet; // index map before/after triangulation
     triangulate_facets(mesh,triangle_to_old_facet);
     // transfer attribute from quads to triangles
@@ -583,10 +609,10 @@ void write_glTF__hex_mesh_surface(std::string filename, const GEO::Mesh& hex_mes
         SJ_on_surface_triangles[t] = SJ_on_surface_quads[triangle_to_old_facet[t]];
     }
 
-    // 4.
     // 5.
     // 6.
     // 7.
+    // 8.
 
     // debug export as .geogram
     mesh_save(mesh,"hex_mesh_surface.geogram");
