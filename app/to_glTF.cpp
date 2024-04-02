@@ -23,6 +23,7 @@ using GEO::index_t; // to use the FOR() macro of Geogram
 int main(int argc, char **argv)
 {
     GEO::initialize();
+    CmdLine::import_arg_group("sys"); // to export .geogram files
 
     CmdLine::declare_arg(
         "labeling",
@@ -34,9 +35,22 @@ int main(int argc, char **argv)
     if(!CmdLine::parse(argc,argv,filenames,"input_mesh output_filename"))	{
 		return 1;
 	}
+    std::string labeling_filename = GEO::CmdLine::get_arg("labeling");
 
     GEO::Mesh M;
     mesh_load(filenames[0],M);
+
+    if(M.cells.nb() != 0) {
+        // The user provided a volume mesh
+        // Expect an hex-mesh
+        geo_assert(!M.cells.are_simplices());
+        FOR(c,M.cells.nb()) {
+            geo_assert(M.cells.type(c) == MESH_HEX);
+        }
+        geo_assert(labeling_filename.empty()); // the user should not provide a labeling in this case
+        write_glTF__hex_mesh_surface(filenames[1],M);
+        return 0;
+    }
 
     // ensure facet normals are outward
 	if(facet_normals_are_inward(M)) {
@@ -46,7 +60,6 @@ int main(int argc, char **argv)
 		GEO::Logger::warn("normals dir.").flush();
 	}
 
-    std::string labeling_filename = GEO::CmdLine::get_arg("labeling");
     if(labeling_filename.empty()) {
         write_glTF__triangle_mesh(filenames[1],M,true);
 	}

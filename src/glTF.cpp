@@ -18,6 +18,7 @@
 #include "CustomMeshHalfedges.h"    // for CustomMeshHalfedges
 #include "containers.h"             // for index_of_last()
 #include "geometry.h"               // for AdjacentFacetOfVertex
+#include "hex_mesh.h"               // for compute_scaled_jacobian()
 
 void write_glTF__triangle_mesh(std::string filename, GEO::Mesh& M, bool with_wireframe) {
     ASSERT_GARGANTUA_OFF;
@@ -539,4 +540,43 @@ void write_glTF__labeled_triangle_mesh(std::string filename, GEO::Mesh& M, const
                             true, // embedBuffers
                             true, // pretty print
                             true); // write binary
+}
+
+void write_glTF__hex_mesh_surface(std::string filename, const GEO::Mesh& hex_mesh) {
+    // 1. Compute the per-cell Scaled Jacobian
+    // 2. Extract the surface mesh
+    // 3. Triangulate the quads
+    // 4. Compute per-vertex adjacent triangles
+    // 5. For each vertex, create 1 glTF vertex if attribute value doesn't change much in neighborhood,
+    //    else create a glTF vertex for each adjacent triangle
+    // 6. Assemble the glTF asset, embed the colormap
+    // 7. Write to file
+
+    GEO::Mesh mesh;
+    mesh.copy(hex_mesh,false); // don't copy attributes
+
+    // 1.
+
+    BasicStats SJ_stats;
+    compute_scaled_jacobian(mesh,SJ_stats); // creates a "SJ" cell attribute, of type double
+    GEO::Attribute<double> SJ(mesh.cells.attributes(), "SJ"); // retrieve the attribute
+
+    // 2.
+
+    GEO::Attribute<index_t> per_quad_cell_index(mesh.cells.attributes(),"cell_index");
+    mesh.cells.compute_borders(per_quad_cell_index);
+    // transfer attribute
+    GEO::Attribute<double> SJ_on_surface(mesh.facets.attributes(),"SJ_on_surface");
+    FOR(f,mesh.facets.nb()) { // for each facet (quads)
+        SJ_on_surface[f] = SJ[per_quad_cell_index[f]];
+    }
+
+    // 3.
+    // 4.
+    // 5.
+    // 6.
+    // 7.
+
+    // debug export as .geogram
+    mesh_save(mesh,"hex_mesh_surface.geogram");
 }
