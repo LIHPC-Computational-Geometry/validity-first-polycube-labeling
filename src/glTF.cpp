@@ -545,14 +545,16 @@ void write_glTF__labeled_triangle_mesh(std::string filename, GEO::Mesh& M, const
 
 void write_glTF__hex_mesh_surface(std::string filename, const GEO::Mesh& hex_mesh) {
     // 1. Compute the per-cell Scaled Jacobian
-    // 2. Extract the surface mesh
-    // 3. Store the quads wireframe edges
-    // 4. Triangulate the quads
-    // 5. Compute per-vertex adjacent triangles
-    // 6. For each vertex, create 1 glTF vertex if attribute value doesn't change much in neighborhood,
+    // 2. Extract the (quad) surface mesh
+    // 3. Create glTF vertices (each of them store a Geogram vertex & a Scaled Jacobian value)
+    // 4. Store the quads wireframe edges
+    // 5. Triangulate the quads
+    // 6. Create the association between Geogram facet corners and glTF vertices
+    // 7. Compute per-vertex adjacent triangles
+    // 8. For each vertex, create 1 glTF vertex if attribute value doesn't change much in neighborhood,
     //    else create a glTF vertex for each adjacent triangle
-    // 7. Assemble the glTF asset, embed the colormap
-    // 8. Write to file
+    // 9. Assemble the glTF asset, embed the colormap
+    //10. Write to file
 
     GEO::Mesh mesh;
     mesh.copy(hex_mesh,false); // don't copy attributes
@@ -577,6 +579,20 @@ void write_glTF__hex_mesh_surface(std::string filename, const GEO::Mesh& hex_mes
 
     // 3.
 
+    // create as many glTF vertices as there are facet corners
+    std::vector<glTF_vertex<double>> glTF_vertices(mesh.facet_corners.nb());
+    index_t facet_corner = index_t(-1);
+    FOR(f,mesh.facets.nb()) {
+        geo_assert(mesh.facets.nb_corners(f) == 4);
+        FOR(lv,4) { // for each of the 4 corners of this quad
+            facet_corner = mesh.facets.corner(f,lv);
+            glTF_vertices[facet_corner].Geogram_vertex = mesh.facet_corners.vertex(facet_corner);
+            glTF_vertices[facet_corner].value = SJ_on_surface_quads[f];
+        }
+    }
+
+    // 4.
+
     std::set<std::set<index_t>> wireframe_edges_as_set;
     GEO::CustomMeshHalfedges mesh_he(mesh);
     GEO::MeshHalfedges::Halfedge H;
@@ -596,73 +612,38 @@ void write_glTF__hex_mesh_surface(std::string filename, const GEO::Mesh& hex_mes
     // -> convert to vector
     std::vector<std::set<index_t>> wireframe_edges_as_vector(wireframe_edges_as_set.begin(),wireframe_edges_as_set.end());
 
-    // 4.
+    // 5.
 
-    std::vector<index_t> triangle_to_old_facet; // index map before/after triangulation
-    triangulate_facets(mesh,triangle_to_old_facet);
+    // index maps before/after triangulation
+    std::vector<index_t> triangle_to_old_facet;
+    std::vector<index_t> corner_to_old_corner;
+    triangulate_facets(mesh,triangle_to_old_facet,corner_to_old_corner);
     // transfer attribute from quads to triangles
     GEO::Attribute<double> SJ_on_surface_triangles(mesh.facets.attributes(),"SJ");
     FOR(t,mesh.facets.nb()) { // for each triangle
         SJ_on_surface_triangles[t] = SJ_on_surface_quads[triangle_to_old_facet[t]];
     }
 
-    // 5.
+    // 6.
+
+    // create per facet corner attribute to store the glTF mesh vertex index (can be different of the index in `mesh`)
+    GEO::Attribute<index_t> facet_corner_to_glTF_vertex(mesh.facet_corners.attributes(),"glTF_vertex");
+    FOR(t,mesh.facets.nb()) { // for each triangle
+        geo_assert(mesh.facets.nb_corners(t) == 3);
+        FOR(lv,3) {
+            facet_corner = mesh.facets.corner(t,lv);
+            facet_corner_to_glTF_vertex[facet_corner] = corner_to_old_corner[facet_corner];
+            geo_assert(glTF_vertices[facet_corner_to_glTF_vertex[facet_corner]].Geogram_vertex == mesh.facet_corners.vertex(facet_corner));
+        }
+    }
+
+    // 7.
 
     std::vector<std::vector<AdjacentFacetOfVertex>> per_facet_adj_facet_corners;
     compute_adjacent_facets_of_vertices(mesh,per_facet_adj_facet_corners);
 
-    // 6.
+    // 8.
 
-    // create a vector that will enumerate vertices in the glTF mesh
-    std::vector<glTF_vertex<double>> glTF_vertices; // for each vertex in the glTF mesh, store the corresponding vertex in `mesh` and the SJ value (future texture coordinate) of this glTF vertex
-    // create per facet corner attribute to store the glTF mesh vertex index (can be different of the index in `mesh`)
-    GEO::Attribute<index_t> facet_corner_to_glTF_vertex(mesh.facet_corners.attributes(),"glTF_vertex");
-    
-    std::vector<AdjacentFacetOfVertex>::const_iterator it;
-    double minSJ_around_vertex = index_t(-1);
-    double maxSJ_around_vertex = index_t(-1);
-    bool similar_SJ_around_vertex = true;
-    index_t facet_corner = index_t(-1);
-    FOR(v,mesh.vertices.nb()) { // for each vertex of M
-        similar_SJ_around_vertex = true;
-        // get label of first facet around vertex v
-        minSJ_around_vertex = SJ_on_surface_triangles[per_facet_adj_facet_corners[v][0].facet_index];
-        maxSJ_around_vertex = minSJ_around_vertex;
-        // parse remaining facets around v
-        it = per_facet_adj_facet_corners[v].begin();
-        it++; // start with facet at index 1 (we already have the label of facet 0)
-        do {
-            minSJ_around_vertex = std::min(minSJ_around_vertex,SJ_on_surface_triangles[it->facet_index]);
-            maxSJ_around_vertex = std::max(maxSJ_around_vertex,SJ_on_surface_triangles[it->facet_index]);
-            if(maxSJ_around_vertex-minSJ_around_vertex > 0.05) {
-                // facets around vertex v don't have a similar SJ value
-                similar_SJ_around_vertex = false;
-                break;
-            }
-            it++;
-        } while (it != per_facet_adj_facet_corners[v].end());
-
-        if(similar_SJ_around_vertex) {
-            // only one vertex in the glTF mesh in necessary to represent v^th vertex of M
-            // create new glTF vertex and link it to the vertex of `mesh`
-            glTF_vertices.push_back(glTF_vertex{v,(maxSJ_around_vertex-minSJ_around_vertex)/2.0});
-            // link `mesh` facet corners to glTF vertex
-            for(const auto& adj_facets : per_facet_adj_facet_corners[v]) {
-                facet_corner = mesh.facets.corner(adj_facets.facet_index,adj_facets.local_vertex);
-                facet_corner_to_glTF_vertex[facet_corner] = (index_t) index_of_last(glTF_vertices);
-            }
-        }
-        else {
-            // split this vertex in as many vertices as there are adjacent facets
-            for(const auto& adj_facets : per_facet_adj_facet_corners[v]) {
-                // create new glTF vertex and link it to M vertex
-                glTF_vertices.push_back(glTF_vertex{v,SJ_on_surface_triangles[adj_facets.facet_index]});
-                // link M facet corners to glTF vertex
-                facet_corner = mesh.facets.corner(adj_facets.facet_index,adj_facets.local_vertex);
-                facet_corner_to_glTF_vertex[facet_corner] = (index_t) index_of_last(glTF_vertices);
-            }
-        }
-    }
     // update `wireframe_edges_as_vector`
     index_t v0 = index_t(-1);
     index_t v1 = index_t(-1);
@@ -680,7 +661,7 @@ void write_glTF__hex_mesh_surface(std::string filename, const GEO::Mesh& hex_mes
         wireframe_edges_as_vector[i] = {v0,v1};
     }
 
-    // 7.
+    // 9.
 
     // Warning: vertices coordinates must be double precision for get_bbox()
     // Should be the case because of compute_scaled_jacobian()
@@ -867,7 +848,7 @@ void write_glTF__hex_mesh_surface(std::string filename, const GEO::Mesh& hex_mes
     m.asset.version = "2.0"; // required
     m.asset.generator = "tinygltf";
 
-    // 8.
+    // 10.
 
     tinygltf::TinyGLTF gltf;
     fmt::println(Logger::out("glTF"),"Writing {}...",filename); Logger::out("glTF").flush();
