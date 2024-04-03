@@ -73,10 +73,11 @@ const std::string labeling_texture_image_PNG = "data:image/png;base64,iVBORw0KGg
 
 // it's ext/geogram/src/lib/geogram_gfx/gui/colormaps/parula.xpm
 // opened with GIMP
+// flipped (so that coordinate 0 is yellow and 1 is blue)
 // resized to 32x2 (power-of-two dimensions)
 // exported to PNG
 // then converted to base64
-const std::string parula_texture_image_PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAACCAYAAAA5Ht7JAAAAc0lEQVQY08XBbRKCIBRA0QuJksXgaE4fq+hXK22LbaDshRDQMjpH3a73WtwFcWcew8zTGbptprUZ0yWwX+IOoi0Um1DtSmuEffNhMMLULMybNydeHLVwqIGJwFgjvkTGEvCseCV0dqH0QuoD2QW0EzR/9gPoAyr9xfSM2AAAAABJRU5ErkJggg==";
+const std::string parula_texture_image_PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAACCAYAAAA5Ht7JAAAAcElEQVQY08XBSRKCMBBA0U8jIbboyp33v5pDIVSoaMyAxGP4XhPcuW5eab2lCxYJSooDS1UWemaxLGKYG8OE5dlYHpty58j4PTCtA64or3VPLkrNPRI7TBTMG4g7SurIsSV9Wk6+cHEj6m+IvyL82Q+DHTH9UiYXWAAAAABJRU5ErkJggg==";
 
 //////////////////////////////////////
 // Geogram vs glTF mesh vertices map

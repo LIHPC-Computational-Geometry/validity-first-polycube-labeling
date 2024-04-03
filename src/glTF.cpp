@@ -562,15 +562,6 @@ void write_glTF__hex_mesh_surface(std::string filename, const GEO::Mesh& hex_mes
     BasicStats SJ_stats;
     compute_scaled_jacobian(mesh,SJ_stats); // creates a "SJ" cell attribute, of type double
     GEO::Attribute<double> SJ(mesh.cells.attributes(), "SJ"); // retrieve the attribute
-    // set to 0 every negative value, to stay in the [0,1] range of the colormap
-    // unecessary? see sampler wrapping modes
-    /*SJ_stats.reset();
-    FOR(c,mesh.cells.nb()) {
-        SJ[c] = std::max(0.0,SJ[c]);
-        geo_assert(0.0 <= SJ[c]);
-        geo_assert(SJ[c] <= 1.0);
-        SJ_stats.insert(SJ[c]);
-    }*/
 
     // 2.
 
