@@ -27,9 +27,9 @@
 
 using GEO::index_t; // to use the FOR() macro of Geogram
 
-/////////////////////
-// Labeling texture
-/////////////////////
+/////////////////////////////
+// Labeling colors as image
+/////////////////////////////
 
 // The minimal texture image would have 6 pixels, one for each label in +/-{X,Y,Z}
 // But texture images should have power-of-two dimensions -> 8x2 image
@@ -67,13 +67,25 @@ const vec2f LABELING_TO_TEXTURE_COORDINATES[6] = {{0.188f, 0.5f},  // = 0/8 + 3/
 // https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URLs
 const std::string labeling_texture_image_PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAACCAIAAADq9gq6AAAAJUlEQVQI13XBAREAIAgEsJ1GsqABIcfHwARue7iEmknSXYSzfDysLAtr+BxIUwAAAABJRU5ErkJggg==";
 
+/////////////////////////////
+// Parula colormap as image
+/////////////////////////////
+
+// it's ext/geogram/src/lib/geogram_gfx/gui/colormaps/parula.xpm
+// opened with GIMP
+// resized to 32x2 (power-of-two dimensions)
+// exported to PNG
+// then converted to base64
+const std::string parula_texture_image_PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAACCAYAAAA5Ht7JAAAAc0lEQVQY08XBbRKCIBRA0QuJksXgaE4fq+hXK22LbaDshRDQMjpH3a73WtwFcWcew8zTGbptprUZ0yWwX+IOoi0Um1DtSmuEffNhMMLULMybNydeHLVwqIGJwFgjvkTGEvCseCV0dqH0QuoD2QW0EzR/9gPoAyr9xfSM2AAAAABJRU5ErkJggg==";
+
 //////////////////////////////////////
 // Geogram vs glTF mesh vertices map
 //////////////////////////////////////
 
+template <typename T>
 struct glTF_vertex {
     index_t Geogram_vertex;
-    index_t label;
+    T value;
 };
 
 //////////////
