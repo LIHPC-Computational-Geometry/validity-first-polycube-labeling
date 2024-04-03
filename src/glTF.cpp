@@ -551,10 +551,8 @@ void write_glTF__hex_mesh_surface(std::string filename, const GEO::Mesh& hex_mes
     // 5. Triangulate the quads
     // 6. Create the association between Geogram facet corners and glTF vertices
     // 7. Compute per-vertex adjacent triangles
-    // 8. For each vertex, create 1 glTF vertex if attribute value doesn't change much in neighborhood,
-    //    else create a glTF vertex for each adjacent triangle
-    // 9. Assemble the glTF asset, embed the colormap
-    //10. Write to file
+    // 8. Assemble the glTF asset, embed the colormap
+    // 9. Write to file
 
     GEO::Mesh mesh;
     mesh.copy(hex_mesh,false); // don't copy attributes
@@ -636,9 +634,6 @@ void write_glTF__hex_mesh_surface(std::string filename, const GEO::Mesh& hex_mes
 
     std::vector<std::vector<AdjacentFacetOfVertex>> per_facet_adj_facet_corners;
     compute_adjacent_facets_of_vertices(mesh,per_facet_adj_facet_corners);
-
-    // 8.
-
     // update `wireframe_edges_as_vector`
     index_t v0 = index_t(-1);
     index_t v1 = index_t(-1);
@@ -662,7 +657,7 @@ void write_glTF__hex_mesh_surface(std::string filename, const GEO::Mesh& hex_mes
         wireframe_edges_as_vector[i] = {v0,v1};
     }
 
-    // 9.
+    // 8.
 
     // Warning: vertices coordinates must be double precision for get_bbox()
     // Should be the case because of compute_scaled_jacobian()
@@ -849,7 +844,7 @@ void write_glTF__hex_mesh_surface(std::string filename, const GEO::Mesh& hex_mes
     m.asset.version = "2.0"; // required
     m.asset.generator = "tinygltf";
 
-    // 10.
+    // 9.
 
     tinygltf::TinyGLTF gltf;
     fmt::println(Logger::out("glTF"),"Writing {}...",filename); Logger::out("glTF").flush();
