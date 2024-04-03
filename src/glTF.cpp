@@ -830,7 +830,7 @@ void write_glTF__hex_mesh_surface(std::string filename, const GEO::Mesh& hex_mes
     accessor_3.componentType = TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT;
     accessor_3.count = wireframe_edges_as_vector.size()*2;
     accessor_3.type = TINYGLTF_TYPE_SCALAR;
-    accessor_3.maxValues.push_back(mesh.vertices.nb()-1);
+    accessor_3.maxValues.push_back((double) (glTF_vertices.size()-1));
     accessor_3.minValues.push_back(0);
 
     // create a mesh with 2 primitives
