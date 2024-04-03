@@ -642,6 +642,8 @@ void write_glTF__hex_mesh_surface(std::string filename, const GEO::Mesh& hex_mes
     // update `wireframe_edges_as_vector`
     index_t v0 = index_t(-1);
     index_t v1 = index_t(-1);
+    index_t min_vertex_index_in_edges_def = index_t(-1);
+    index_t max_vertex_index_in_edges_def = 0;
     FOR(i,wireframe_edges_as_vector.size()) {
         v0 = *wireframe_edges_as_vector[i].begin();
         v1 = *wireframe_edges_as_vector[i].rbegin();
@@ -653,6 +655,10 @@ void write_glTF__hex_mesh_surface(std::string filename, const GEO::Mesh& hex_mes
             per_facet_adj_facet_corners[v1][0].facet_index,
             per_facet_adj_facet_corners[v1][0].local_vertex
         )];
+        min_vertex_index_in_edges_def = std::min(min_vertex_index_in_edges_def,v0);
+        min_vertex_index_in_edges_def = std::min(min_vertex_index_in_edges_def,v1);
+        max_vertex_index_in_edges_def = std::max(max_vertex_index_in_edges_def,v0);
+        max_vertex_index_in_edges_def = std::max(max_vertex_index_in_edges_def,v1);
         wireframe_edges_as_vector[i] = {v0,v1};
     }
 
@@ -806,8 +812,8 @@ void write_glTF__hex_mesh_surface(std::string filename, const GEO::Mesh& hex_mes
     accessor_3.componentType = TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT;
     accessor_3.count = wireframe_edges_as_vector.size()*2;
     accessor_3.type = TINYGLTF_TYPE_SCALAR;
-    accessor_3.maxValues.push_back((double) (glTF_vertices.size()-1));
-    accessor_3.minValues.push_back(0);
+    accessor_3.maxValues.push_back((double) max_vertex_index_in_edges_def);
+    accessor_3.minValues.push_back((double) min_vertex_index_in_edges_def);
 
     // create a mesh with 2 primitives
 
