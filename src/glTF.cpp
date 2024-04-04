@@ -558,6 +558,9 @@ void write_glTF__labeled_triangle_mesh_with_polycube_animation(std::string filen
     geo_assert(M.vertices.nb() == polycube.vertices.nb());
     geo_assert(M.facets.nb() == polycube.facets.nb());
 
+    center_mesh(M,true);
+    center_mesh(polycube,true);
+
     // TODO code factorization with write_glTF__labeled_triangle_mesh()
 
     // retrieve per facet label
@@ -691,7 +694,7 @@ void write_glTF__labeled_triangle_mesh_with_polycube_animation(std::string filen
     //                + 4 bytes * 3 floating points * #vertices (2 floating points + 1 of padding, per vertex -> byteStride of 12 bytes)
     //                + 4 bytes * 3 floating points * #vertices
     //                + 4 bytes * 5 key frames (times)
-    //                + 4 bytes * 5 key frames (weights)
+    //                + 4 bytes * 2 weights * 5 key frames
     size_t buffer_triangles_start               = 0;
     size_t buffer_triangles_length              = 4*3*M.facets.nb();
     size_t buffer_vertices_coordinates_start    = buffer_triangles_length;
@@ -703,7 +706,7 @@ void write_glTF__labeled_triangle_mesh_with_polycube_animation(std::string filen
     size_t buffer_times_start                   = buffer_polycube_coordinates_start+buffer_polycube_coordinates_length;
     size_t buffer_times_length                  = 4*5;
     size_t buffer_weights_start                 = buffer_times_start+buffer_times_length;
-    size_t buffer_weights_length                = 4*5;
+    size_t buffer_weights_length                = 4*2*5;
     buffer_0.data.resize(
         buffer_triangles_length +
         buffer_vertices_coordinates_length +
@@ -736,14 +739,15 @@ void write_glTF__labeled_triangle_mesh_with_polycube_animation(std::string filen
     }
     // write times
     std::vector<float> times{0.0f, 5.0f, 10.0f, 15.0, 20.0f};
-    FOR(i,5) {
-        memcpy(buffer_0.data.data() + buffer_times_start, times.data(), 20);
-    }
+    memcpy(buffer_0.data.data() + buffer_times_start, times.data(), 20);
     // write weights
-    std::vector<float> weights{0.0f, 0.0f, 1.0f, 1.0, 0.0f};
-    FOR(i,5) {
-        memcpy(buffer_0.data.data() + buffer_weights_start, weights.data(), 20);
-    }
+    std::vector<float> weights{
+        0.0f,  0.0f,
+        0.0f,  0.0f,
+        1.0f, -1.0f, // weight of 1 for the polycube coordinates, weight of -1 for the base coordinates (to cancel their contribution)
+        1.0f, -1.0f, // idem
+        0.0f,  0.0f};
+    memcpy(buffer_0.data.data() + buffer_weights_start, weights.data(), 40);
 
     //////////////////////////
     // Create 5 buffer views
@@ -846,7 +850,7 @@ void write_glTF__labeled_triangle_mesh_with_polycube_animation(std::string filen
     accessor_5.bufferView = BUFFERVIEW_4;
     accessor_5.byteOffset = 0;
     accessor_5.componentType = TINYGLTF_COMPONENT_TYPE_FLOAT;
-    accessor_5.count = 5;
+    accessor_5.count = 10;
     accessor_5.type = TINYGLTF_TYPE_SCALAR;
     accessor_5.maxValues = { *VECTOR_MAX(weights) };
     accessor_5.minValues = { *VECTOR_MIN(weights) };
@@ -859,7 +863,7 @@ void write_glTF__labeled_triangle_mesh_with_polycube_animation(std::string filen
     const size_t MESH_0 = 0;
     tinygltf::Mesh& mesh_0 = m.meshes[MESH_0];
 
-    mesh_0.weights = {1.0};
+    mesh_0.weights = {0.0, 0.0};
     mesh_0.primitives.resize(1);
     const size_t PRIMITIVE_0 = 0;
     tinygltf::Primitive& primitive_0 = mesh_0.primitives[PRIMITIVE_0];
@@ -869,9 +873,10 @@ void write_glTF__labeled_triangle_mesh_with_polycube_animation(std::string filen
     primitive_0.attributes["TEXCOORD_0"] = ACCESSOR_2;
     primitive_0.material = MATERIAL_0;
     primitive_0.mode = TINYGLTF_MODE_TRIANGLES; // default value in spec, but tinygltf writes -1 if not specified
-    primitive_0.targets = {{
-        {"POSITION", ACCESSOR_3} // add a morph target for "POSITION", stored in ACCESSOR_3
-    }};
+    primitive_0.targets = {
+        {{"POSITION", ACCESSOR_3}}, // add a morph target for "POSITION", stored in ACCESSOR_3
+        {{"POSITION", ACCESSOR_1}}  // also use the base coordinates as morph target
+    };
 
     //////////////////
     // Create a node
