@@ -840,16 +840,16 @@ void write_glTF__labeled_triangle_mesh_with_polycube_animation(std::string filen
     accessor_4.componentType = TINYGLTF_COMPONENT_TYPE_FLOAT;
     accessor_4.count = 5;
     accessor_4.type = TINYGLTF_TYPE_SCALAR;
-    accessor_4.maxValues = { 20.0 };
-    accessor_4.minValues = { 0.0 };
+    accessor_4.maxValues = { *VECTOR_MAX(times) };
+    accessor_4.minValues = { *VECTOR_MIN(times) };
 
     accessor_5.bufferView = BUFFERVIEW_4;
     accessor_5.byteOffset = 0;
     accessor_5.componentType = TINYGLTF_COMPONENT_TYPE_FLOAT;
     accessor_5.count = 5;
     accessor_5.type = TINYGLTF_TYPE_SCALAR;
-    accessor_5.maxValues = { 1.0 };
-    accessor_5.minValues = { 0.0 };
+    accessor_5.maxValues = { *VECTOR_MAX(weights) };
+    accessor_5.minValues = { *VECTOR_MIN(weights) };
 
     ///////////////////////////////////
     // Create a mesh with 1 primitive
