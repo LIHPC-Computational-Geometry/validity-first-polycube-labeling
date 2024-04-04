@@ -31,11 +31,18 @@ int main(int argc, char **argv)
         "path to the labeling file"
     );
 
+    CmdLine::declare_arg(
+        "polycube",
+        "",
+        "path to the polycube mesh"
+    );
+
     std::vector<std::string> filenames;
     if(!CmdLine::parse(argc,argv,filenames,"input_mesh output_filename"))	{
 		return 1;
 	}
     std::string labeling_filename = GEO::CmdLine::get_arg("labeling");
+    std::string polycube_filename = GEO::CmdLine::get_arg("polycube");
 
     GEO::Mesh M;
     mesh_load(filenames[0],M);
@@ -62,23 +69,35 @@ int main(int argc, char **argv)
 
     if(labeling_filename.empty()) {
         write_glTF__triangle_mesh(filenames[1],M,true);
+        return 0;
 	}
-    else {
-        // the user provided a labeling
+    //else: the user provided a labeling
 
-        // expand '~' to $HOME
-        if(labeling_filename[0] == '~') {
-            labeling_filename.replace(0, 1, std::string(getenv("HOME")));
-        }
-
-        load_labeling(labeling_filename,M,"label");
-
-        std::vector<std::vector<AdjacentFacetOfVertex>> per_vertex_adj_facets;
-        compute_adjacent_facets_of_vertices(M,per_vertex_adj_facets);
-
-        // export to glTF
-        write_glTF__labeled_triangle_mesh(filenames[1],M,"label",per_vertex_adj_facets);
+    // expand '~' to $HOME
+    if(labeling_filename[0] == '~') {
+        labeling_filename.replace(0, 1, std::string(getenv("HOME")));
     }
+
+    load_labeling(labeling_filename,M,"label");
+
+    std::vector<std::vector<AdjacentFacetOfVertex>> per_vertex_adj_facets;
+    compute_adjacent_facets_of_vertices(M,per_vertex_adj_facets);
+
+    if(polycube_filename.empty()) {
+        write_glTF__labeled_triangle_mesh(filenames[1],M,"label",per_vertex_adj_facets);
+        return 0;
+    }
+    //else: the user provided a polycube
+
+    // expand '~' to $HOME
+    if(polycube_filename[0] == '~') {
+        polycube_filename.replace(0, 1, std::string(getenv("HOME")));
+    }
+
+    GEO::Mesh polycube;
+    mesh_load(polycube_filename,polycube);
+
+    write_glTF__labeled_triangle_mesh_with_polycube_animation(filenames[1],M,polycube,"label",per_vertex_adj_facets);
 
     return 0;
 }
