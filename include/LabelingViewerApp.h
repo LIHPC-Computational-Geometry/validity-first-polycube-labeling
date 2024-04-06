@@ -326,6 +326,10 @@ protected:
 				if (ImGui::MenuItem("Show ImGui demo window", NULL, show_ImGui_demo_window_)) {
 					show_ImGui_demo_window_ = !show_ImGui_demo_window_;
 				}
+				if (ImGui::MenuItem("Flip labeling")) {
+					flip_labeling(mesh_,LABELING_ATTRIBUTE_NAME);
+					update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+				}
 				ImGui::EndMenu();
 			}
 			ImGui::EndMainMenuBar();

@@ -132,6 +132,13 @@ index_t opposite_label(index_t label) {
     return (label % 2 == 0) ? label+1 : label-1;
 }
 
+void flip_labeling(Mesh& mesh, const char* attribute_name) {
+    Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // create a facet attribute in this mesh
+    FOR(f,mesh.facets.nb()) { // for each facet
+        label[f] = opposite_label(label[f]);
+    }
+}
+
 index_t find_optimal_label(std::initializer_list<index_t> forbidden_axes, std::initializer_list<index_t> forbidden_labels, std::initializer_list<index_t> orthogonal_labels, vec3 close_vector) {
     std::map<index_t,double> candidates;
     FOR(label,6) {
