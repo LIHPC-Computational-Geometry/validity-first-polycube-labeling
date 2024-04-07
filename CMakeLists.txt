@@ -157,6 +157,10 @@ add_executable(to_glTF app/to_glTF.cpp)
 target_include_directories(to_glTF PRIVATE include)
 target_link_libraries(to_glTF PRIVATE automatic_polycube_lib ${EXTERNAL_LIBS})
 
+add_executable(polycube_distortion app/polycube_distortion.cpp)
+target_include_directories(polycube_distortion PRIVATE include)
+target_link_libraries(polycube_distortion PRIVATE automatic_polycube_lib ${EXTERNAL_LIBS})
+
 # optional test subdirectory (using googletest)
 option(AUTOMATIC_POLYCUBE_BUILD_TESTS "Build automatic_polycube tests" OFF)
 if(AUTOMATIC_POLYCUBE_BUILD_TESTS)

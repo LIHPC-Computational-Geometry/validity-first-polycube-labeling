@@ -725,3 +725,75 @@ void triangulate_facets(Mesh& M, std::vector<index_t>& triangle_index_to_old_fac
     }
     M.facets.assign_triangle_mesh(new_corner_vertex_index, true);
 }
+
+void per_facet_local_transfo(const Mesh& M, const std::vector<vec3>& facets_normal, std::vector<mat2>& out) {
+    // Based on https://github.com/LIHPC-Computational-Geometry/evocube/blob/master/src/distortion.cpp#L13
+    // There:
+    // - F(f_id, 1) is the vertex index at the local vertex 1 -> v1
+    // - F(f_id, 0) is the vertex index at the local vertex 0 -> v0
+    // - local_axis1 is the normalized 3D vector going from v0 to v1
+    // - local_axis2 is the cross product between the facet normal and local_axis1
+    // - local_coords1[0] is the norm of local_axis1 (before normalization), and local_coords1[1] is 0
+    // - local_coords2[0] is dot product of the 3D vector going from v0 to v2 with local_axis1
+    // - local_coords2[1] is dot product of the 3D vector going from v0 to v2 with local_axis2
+    // - A is the resulting 2x2 matrix for the current facet -> out[f]
+    // - column 0 of A is local_coords1
+    // - column 1 of A is local_coords2
+    out.resize(M.facets.nb());
+    index_t v0 = index_t(-1);
+    index_t v1 = index_t(-1);
+    index_t v2 = index_t(-1);
+    vec3 local_axis1;
+    vec3 local_axis2;
+    vec2 local_coords1;
+    vec2 local_coords2;
+    mat2 A;
+    FOR(f,M.facets.nb()) {
+        v0 = M.facets.vertex(f,0);
+        v1 = M.facets.vertex(f,1);
+        v2 = M.facets.vertex(f,2);
+        local_axis1 = M.vertices.point(v1) - M.vertices.point(v0);
+        local_coords1 = vec2(local_axis1.length(),0.0);
+        local_axis1 = normalize(local_axis1);
+        local_axis2 = cross(facets_normal[f],local_axis1);
+        local_coords2[0] = dot(M.vertices.point(v2) - M.vertices.point(v0), local_axis1);
+        local_coords2[1] = dot(M.vertices.point(v2) - M.vertices.point(v0), local_axis2);
+        // fill column 0
+        out[f](0,0) = local_coords1[0];
+        out[f](1,0) = local_coords1[1];
+        // fill column 1
+        out[f](0,1) = local_coords2[0];
+        out[f](1,1) = local_coords2[1];
+    }
+}
+
+void compute_jacobians(const Mesh& M1, const Mesh& M2, const std::vector<vec3>& M1_normals, const std::vector<vec3>& M2_normals, std::vector<mat2>& out) {
+    // based on https://github.com/LIHPC-Computational-Geometry/evocube/blob/master/src/distortion.cpp#L38
+    
+    // check consistency between the meshes
+
+    geo_assert(M1.vertices.nb() == M2.vertices.nb());
+    geo_assert(M1.facets.nb() == M2.facets.nb());
+    geo_assert(M1.facets.are_simplices());
+    geo_assert(M2.facets.are_simplices());
+    geo_assert(M1.cells.nb() == 0);
+    geo_assert(M2.cells.nb() == 0);
+    FOR(f,M1.facets.nb()) { // for each facet index
+        FOR(lv,3) { // for each local vertex
+            geo_assert(M1.facets.vertex(f,lv) == M2.facets.vertex(f,lv));
+        }
+    }
+
+    // compute local transformation
+
+    std::vector<mat2> M1_per_facet_local_transfo;
+    per_facet_local_transfo(M1,M1_normals,M1_per_facet_local_transfo);
+
+    std::vector<mat2> M2_per_facet_local_transfo;
+    per_facet_local_transfo(M2,M2_normals,M2_per_facet_local_transfo);
+
+    out.resize(M1.facets.nb());
+    FOR(f,M1.facets.nb()) {
+        out[f] = (M2_per_facet_local_transfo[f] * M1_per_facet_local_transfo[f]).inverse();
+    }
+}
