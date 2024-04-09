@@ -26,11 +26,25 @@
 #include <fmt/core.h>
 #include <fmt/ostream.h>
 
+#include <Eigen/SVD>
+
 #include <vector>
 
 #include "geometry.h" // for facet_normals_are_inward(), flip_facet_normals(), center_mesh(), compute_jacobians()
 
 using namespace GEO;
+
+// Geogram matrix to Eigen matrix
+// Only for square matrices
+template <index_t DIM, class T>
+void fill_Eigen_from_Geogram_matrix(const GEO::Matrix<DIM,T>& in, Eigen::Matrix<T,Eigen::Dynamic,Eigen::Dynamic>& out) {
+    out.resize(DIM,DIM);
+    FOR(r,DIM) { // for each row
+        FOR(c,DIM) { // for each column
+            out(r,c) = in(r,c);
+        }
+    }
+}
 
 int main(int argc, char** argv) {
     
@@ -145,7 +159,18 @@ int main(int argc, char** argv) {
     compute_jacobians(input_mesh,polycube_mesh,input_mesh_per_facet_normals,polycube_mesh_per_facet_normals,jacobians);
 
     // compute per facet singular values
-    // TODO find substitute for Eigen's JacobiSVD solver
+    std::vector<std::pair<double, double>> per_facet_singular_values(input_mesh.facets.nb(),{0.0,0.0});
+    Eigen::MatrixXd current_matrix;
+    FOR(f,input_mesh.facets.nb()){
+        fill_Eigen_from_Geogram_matrix(jacobians[f],current_matrix);
+        // Note: We could use an Eigen::Matrix2d
+        // but Evocube configure the solver with Eigen::ComputeThinU | Eigen::ComputeThinV (which doesn't seem necessary)
+        // and it's incompatible: "thin U and V are only available when your matrix has a dynamic number of columns"
+        // So I use an Eigen::MatrixXd...
+        Eigen::JacobiSVD<Eigen::MatrixXd> svd(current_matrix, Eigen::ComputeThinU | Eigen::ComputeThinV);
+        per_facet_singular_values[f].first = svd.singularValues()(0);
+        per_facet_singular_values[f].second = svd.singularValues()(1);
+    }
 
     // TODO compute Stretch
     // TODO compute Area distortion
