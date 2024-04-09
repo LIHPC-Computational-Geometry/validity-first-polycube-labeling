@@ -57,6 +57,21 @@ set(TINYGLTF_INSTALL OFF)
 add_subdirectory(ext/tinygltf)
 include_directories(ext/tinygltf)
 
+# Eigen
+# Thanks https://github.com/cpm-cmake/CPM.cmake/wiki/More-Snippets#eigen
+include(cmake/CPM.cmake)
+CPMAddPackage(
+  NAME Eigen
+  VERSION 3.2.8
+  URL https://gitlab.com/libeigen/eigen/-/archive/3.3.9/eigen-3.3.9.tar.gz
+  # Eigen's CMakelists are not intended for library use
+  DOWNLOAD_ONLY YES 
+)
+if(Eigen_ADDED)
+  add_library(Eigen INTERFACE IMPORTED)
+  target_include_directories(Eigen INTERFACE ${Eigen_SOURCE_DIR})
+endif()
+
 set(
   EXTERNAL_LIBS
   geogram
@@ -66,6 +81,7 @@ set(
   gco
   nlohmann_json
   tinygltf
+  Eigen
 )
 
 #################
