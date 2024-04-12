@@ -965,7 +965,7 @@ void write_glTF__hex_mesh_surface(std::string filename, const GEO::Mesh& hex_mes
 
     // 2.
 
-    GEO::Attribute<index_t> per_quad_cell_index(mesh.cells.attributes(),"cell_index");
+    GEO::Attribute<index_t> per_quad_cell_index(mesh.facets.attributes(),"cell_index");
     mesh.cells.compute_borders(per_quad_cell_index);
     // transfer attribute from cells to quads
     std::vector<double> SJ_on_surface_quads(mesh.facets.nb());
