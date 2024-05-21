@@ -18,6 +18,7 @@
 #include <set>              // for std::set
 #include <map>              // for std::map()
 #include <ranges>           // for std::ranges::view::keys(), std::ranges::sort()
+#include <random>           // for std::random_device, std::uniform_int_distribution<>
 
 #include "labeling.h"
 #include "LabelingGraph.h"
@@ -220,6 +221,15 @@ void propagate_label(const Mesh& mesh, const char* attribute_name, index_t new_l
             }
             to_process.push_back(adjacent_facet);
         }
+    }
+}
+
+void random_labeling(GEO::Mesh& mesh, const char* attribute_name) {
+    std::random_device rd; // https://en.cppreference.com/w/cpp/numeric/random/random_device
+    std::uniform_int_distribution<index_t> dist(0, 5); // 0 and 5 included
+    Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // create a facet attribute in this mesh
+    for(index_t f: mesh.facets) { // for each facet
+        label[f] = dist(rd);
     }
 }
 

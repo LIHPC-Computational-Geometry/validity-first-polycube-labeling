@@ -330,6 +330,10 @@ protected:
 					flip_labeling(mesh_,LABELING_ATTRIBUTE_NAME);
 					update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 				}
+				if (ImGui::MenuItem("Random labeling")) {
+					random_labeling(mesh_,LABELING_ATTRIBUTE_NAME);
+					update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+				}
 				ImGui::EndMenu();
 			}
 			ImGui::EndMainMenuBar();

@@ -74,6 +74,9 @@ index_t find_optimal_label(std::initializer_list<index_t> forbidden_axes = {}, s
 
 void propagate_label(const Mesh& mesh, const char* attribute_name, index_t new_label, const std::set<index_t>& facets_in, const std::set<index_t> facets_out, const std::vector<index_t>& facet2chart, index_t chart_index);
 
+// assign randomly one of the six labels to each surface facet (useless, unless to show that not all labelings lead to polycubes)
+void random_labeling(GEO::Mesh& mesh, const char* attribute_name);
+
 /**
  * \brief Compute the naive labeling of a given mesh
  * \details Compute the per-facet nearest-to-normal signed direction +/-{X,Y,Z} of a surface mesh
