@@ -20,6 +20,7 @@
 #include "geometry.h"               // for AdjacentFacetOfVertex
 #include "hex_mesh.h"               // for compute_scaled_jacobian()
 #include "dump_mesh.h"              // for dump_edges()
+#include "geometry.h"               // for compute_adjacent_facets_of_vertices()
 
 void write_glTF__triangle_mesh(std::string filename, GEO::Mesh& M, bool with_wireframe) {
     ASSERT_GARGANTUA_OFF;
@@ -273,12 +274,35 @@ void write_glTF__triangle_mesh(std::string filename, GEO::Mesh& M, bool with_wir
 
 }
 
-void write_glTF__labeled_triangle_mesh(std::string filename, GEO::Mesh& M, const char* attribute_name, const std::vector<std::vector<AdjacentFacetOfVertex>>& per_vertex_adj_facets) {
+void write_glTF__labeled_triangle_mesh(std::string filename, GEO::Mesh& M, const char* attribute_name, std::vector<std::vector<AdjacentFacetOfVertex>> per_vertex_adj_facets) {
     ASSERT_GARGANTUA_OFF;
     geo_assert(per_vertex_adj_facets.size() == M.vertices.nb());
 
     // retreive per facet label
     GEO::Attribute<index_t> label(M.facets.attributes(),attribute_name);
+
+    // Delete some facets for the 'in-volume_twist' model (https://github.com/LIHPC-Computational-Geometry/nightmare_of_polycubes)
+    // Facets whose:
+    // - label is -Y (=3)
+    // and
+    // - vertices are near 0 in the Y axis
+    double Y_axis_threshold = 11000*0.01; // = 1% of the bounding box length in the Y axis
+    GEO::vector<index_t> to_delete(M.facets.nb(),0);
+    FOR(f, M.facets.nb()) {
+        if( label[f] == 3) { // -Y
+            if( (mesh_vertex(M,M.facets.vertex(f,0)).y < Y_axis_threshold) && 
+                (mesh_vertex(M,M.facets.vertex(f,1)).y < Y_axis_threshold) && 
+                (mesh_vertex(M,M.facets.vertex(f,2)).y < Y_axis_threshold) )
+            {
+                to_delete[f] = 1;
+            }
+        }
+    }
+    M.facets.delete_elements(to_delete,true);
+    // mandatory : recompute the vertex-to-facets adjacency 
+    compute_adjacent_facets_of_vertices(M,per_vertex_adj_facets);
+    geo_assert(per_vertex_adj_facets.size() == M.vertices.nb());
+
     // create a vector that will enumerate vertices in the glTF mesh
     std::vector<glTF_vertex<index_t>> glTF_vertices; // for each vertex in the glTF mesh, store the corresponding vertex in M and the label (future texture coordinate) of this glTF vertex
     // create per facet corner attribute to store the glTF mesh vertex index (can be different of the index in M)
