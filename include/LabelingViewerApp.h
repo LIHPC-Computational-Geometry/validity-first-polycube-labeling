@@ -39,6 +39,8 @@
 #define COLORMAP_LABELING       (SIMPLE_APPLICATION_NB_COLORMAPS)
 #define COLORMAP_VALIDITY       ((SIMPLE_APPLICATION_NB_COLORMAPS)+1)
 
+#define BOUNDARIES_WIDTH	6
+
 using namespace GEO;
 
 const float green[4] = {0.0f, 1.0f, 0.0f, 1.0f};
@@ -727,11 +729,11 @@ protected:
 		valid_corners_group_index_ = new_points_group(corners_color_,&corners_size_,true);
 		invalid_corners_group_index_ = new_points_group(corners_color_,&corners_size_,true);
 		turning_points_group_index_ = new_points_group(turning_points_color_,&turning_points_size_,true);
-		X_boundaries_group_index_ = new_edges_group(COLORMAP_LABELING,0.084,6,false); // axis X -> color of label 0 = +X
-		Y_boundaries_group_index_ = new_edges_group(COLORMAP_LABELING,0.417,6,false); // axis Y -> color of label 2 = +Y
-		Z_boundaries_group_index_ = new_edges_group(COLORMAP_LABELING,0.750,6,false); // axis Z -> color of label 4 = +Z
-		invalid_boundaries_group_index_ = new_edges_group(COLORMAP_VALIDITY,0.0,6,false); // color of invalid LabelingGraph components
-		valid_but_axisless_boundaries_group_index_ = new_edges_group(COLORMAP_VALIDITY,1.0,6,false); // color of valid LabelingGraph components
+		X_boundaries_group_index_ = new_edges_group(COLORMAP_LABELING,0.084,BOUNDARIES_WIDTH,false); // axis X -> color of label 0 = +X
+		Y_boundaries_group_index_ = new_edges_group(COLORMAP_LABELING,0.417,BOUNDARIES_WIDTH,false); // axis Y -> color of label 2 = +Y
+		Z_boundaries_group_index_ = new_edges_group(COLORMAP_LABELING,0.750,BOUNDARIES_WIDTH,false); // axis Z -> color of label 4 = +Z
+		invalid_boundaries_group_index_ = new_edges_group(COLORMAP_VALIDITY,0.0,BOUNDARIES_WIDTH,false); // color of invalid LabelingGraph components
+		valid_but_axisless_boundaries_group_index_ = new_edges_group(COLORMAP_VALIDITY,1.0,BOUNDARIES_WIDTH,false); // color of valid LabelingGraph components
 
 		for(std::size_t i = 0; i < static_labeling_graph_.nb_corners(); ++i) {
 			const double* coordinates = mesh_.vertices.point_ptr(
