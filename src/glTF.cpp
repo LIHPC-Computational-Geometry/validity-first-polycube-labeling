@@ -286,22 +286,26 @@ void write_glTF__labeled_triangle_mesh(std::string filename, GEO::Mesh& M, const
     // - label is +Z (=4)
     // and
     // - vertices are near 9000 in the Z axis
-    double Z_axis_threshold = 9000*0.99; // = remove 1% of the delta Z
+    auto remove_facet = [&](index_t facet_index) { // return true if this facet should be remove before glTF export
+        const double Z_axis_threshold = 9000*0.99; // = remove 1% to the delta Z
+        return (
+            (label[facet_index] == 4) &&
+            (mesh_vertex(M,M.facets.vertex(facet_index,0)).z > Z_axis_threshold) && 
+            (mesh_vertex(M,M.facets.vertex(facet_index,1)).z > Z_axis_threshold) && 
+            (mesh_vertex(M,M.facets.vertex(facet_index,2)).z > Z_axis_threshold)
+        );
+    };
+
     std::size_t nb_facets_removed = 0;
     GEO::vector<index_t> to_delete(M.facets.nb(),0);
     FOR(f, M.facets.nb()) {
-        if( label[f] == 4) { // +Z
-            if( (mesh_vertex(M,M.facets.vertex(f,0)).z > Z_axis_threshold) && 
-                (mesh_vertex(M,M.facets.vertex(f,1)).z > Z_axis_threshold) && 
-                (mesh_vertex(M,M.facets.vertex(f,2)).z > Z_axis_threshold) )
-            {
-                to_delete[f] = 1;
-                nb_facets_removed++;
-            }
+        if(remove_facet(f)) {
+            to_delete[f] = 1;
+            nb_facets_removed++;
         }
     }
     M.facets.delete_elements(to_delete,true);
-    fmt::println(Logger::warn("glTF"),"{} facets ({:.2f}) removed before glTF export",nb_facets_removed,((double)nb_facets_removed)/M.facets.nb()); Logger::warn("glTF").flush();
+    fmt::println(Logger::warn("glTF"),"{} facets ({:.2f} %) removed before glTF export",nb_facets_removed,((double)nb_facets_removed)/M.facets.nb()*100); Logger::warn("glTF").flush();
     // mandatory : recompute the vertex-to-facets adjacency 
     compute_adjacent_facets_of_vertices(M,per_vertex_adj_facets);
     geo_assert(per_vertex_adj_facets.size() == M.vertices.nb());
