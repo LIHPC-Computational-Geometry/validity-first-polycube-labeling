@@ -281,24 +281,27 @@ void write_glTF__labeled_triangle_mesh(std::string filename, GEO::Mesh& M, const
     // retreive per facet label
     GEO::Attribute<index_t> label(M.facets.attributes(),attribute_name);
 
-    // Delete some facets for the 'in-volume_twist' model (https://github.com/LIHPC-Computational-Geometry/nightmare_of_polycubes)
+    // Delete some facets for the new 'in-volume_twist' model (https://github.com/LIHPC-Computational-Geometry/nightmare_of_polycubes)
     // Facets whose:
-    // - label is -Y (=3)
+    // - label is +Z (=4)
     // and
-    // - vertices are near 0 in the Y axis
-    double Y_axis_threshold = 11000*0.01; // = 1% of the bounding box length in the Y axis
+    // - vertices are near 9000 in the Z axis
+    double Z_axis_threshold = 9000*0.99; // = remove 1% of the delta Z
+    std::size_t nb_facets_removed = 0;
     GEO::vector<index_t> to_delete(M.facets.nb(),0);
     FOR(f, M.facets.nb()) {
-        if( label[f] == 3) { // -Y
-            if( (mesh_vertex(M,M.facets.vertex(f,0)).y < Y_axis_threshold) && 
-                (mesh_vertex(M,M.facets.vertex(f,1)).y < Y_axis_threshold) && 
-                (mesh_vertex(M,M.facets.vertex(f,2)).y < Y_axis_threshold) )
+        if( label[f] == 4) { // +Z
+            if( (mesh_vertex(M,M.facets.vertex(f,0)).z > Z_axis_threshold) && 
+                (mesh_vertex(M,M.facets.vertex(f,1)).z > Z_axis_threshold) && 
+                (mesh_vertex(M,M.facets.vertex(f,2)).z > Z_axis_threshold) )
             {
                 to_delete[f] = 1;
+                nb_facets_removed++;
             }
         }
     }
     M.facets.delete_elements(to_delete,true);
+    fmt::println(Logger::warn("glTF"),"{} facets ({:.2f}) removed before glTF export",nb_facets_removed,((double)nb_facets_removed)/M.facets.nb()); Logger::warn("glTF").flush();
     // mandatory : recompute the vertex-to-facets adjacency 
     compute_adjacent_facets_of_vertices(M,per_vertex_adj_facets);
     geo_assert(per_vertex_adj_facets.size() == M.vertices.nb());
