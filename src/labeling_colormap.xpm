@@ -1,0 +1,10 @@
+/* XPM */
+static char * labeling_colormap_xpm[] = {
+"6 1 6 1",
+" 	c #FF0000",
+".	c #990000",
+"+	c #FFFFFF",
+"@	c #999999",
+"#	c #0000FF",
+"$	c #000099",
+" .+@#$"};
