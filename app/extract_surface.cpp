@@ -122,7 +122,7 @@ int main(int argc, const char** argv) {
             triangle_mesh.facets.vertex(facet,1),
             triangle_mesh.facets.vertex(facet,2)
         };
-        // retreive on which cell was this facet
+        // retrieve on which cell was this facet
         cell = surface_map[facet];
         // get the 4 vertices of this cell
         v0 = tetra_mesh.cell_corners.vertex(tetra_mesh.cells.corner(cell,0));

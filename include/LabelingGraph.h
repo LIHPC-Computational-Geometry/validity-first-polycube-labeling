@@ -132,7 +132,7 @@ struct Corner {
 
     bool all_adjacent_boundary_edges_are_on_feature_edges(const Mesh& mesh, const std::set<std::pair<index_t,index_t>>& feature_edges) const;
 
-    // retreive near vertices along adjacent boundaries and compute the average coordinate
+    // retrieve near vertices along adjacent boundaries and compute the average coordinate
     vec3 average_coordinates_of_neighborhood(const Mesh& mesh, const StaticLabelingGraph& slg, bool include_itself, size_t max_dist) const;
 
     MeshHalfedges::Halfedge get_most_aligned_boundary_halfedge(const Mesh& mesh, const vec3& reference) const;

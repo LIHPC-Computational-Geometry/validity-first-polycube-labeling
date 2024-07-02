@@ -278,7 +278,7 @@ void write_glTF__labeled_triangle_mesh(std::string filename, GEO::Mesh& M, const
     ASSERT_GARGANTUA_OFF;
     geo_assert(per_vertex_adj_facets.size() == M.vertices.nb());
 
-    // retreive per facet label
+    // retrieve per facet label
     GEO::Attribute<index_t> label(M.facets.attributes(),attribute_name);
 
     // Delete some facets for the new 'in-volume_twist' model (https://github.com/LIHPC-Computational-Geometry/nightmare_of_polycubes)

@@ -523,7 +523,7 @@ TEST_F(HalfedgesTest, ComputeNormals) {
 TEST_F(HalfedgesTest, NaiveLabeling) {
     compute_normals();
     naive_labeling(cube,normals,"label");
-    Attribute<index_t> label(cube.facets.attributes(), "label"); // retreive the labeling
+    Attribute<index_t> label(cube.facets.attributes(), "label"); // retrieve the labeling
     EXPECT_EQ(label.size(),12);
     // facets 0 and 1 are on the front square, toward -Y = 3
     EXPECT_EQ(label[0],3);

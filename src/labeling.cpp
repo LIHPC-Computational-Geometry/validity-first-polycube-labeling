@@ -407,7 +407,7 @@ bool fix_an_invalid_boundary(
     MeshHalfedges::Halfedge current_halfedge;
     for(index_t boundary_index : slg.invalid_boundaries) { // for each invalid boundary
 
-        // get ref to boundary object and retreive geometry and neighborhood info
+        // get ref to boundary object and retrieve geometry and neighborhood info
 
         const Boundary& current_boundary = slg.boundaries[boundary_index];
         MeshHalfedges::Halfedge an_halfedge_of_the_invalid_boundary = current_boundary.halfedges[0];
