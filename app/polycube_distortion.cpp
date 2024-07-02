@@ -95,17 +95,6 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    // ensure the normals are outward
-
-    if(facet_normals_are_inward(input_mesh)) {
-        flip_facet_normals(input_mesh);
-        fmt::println(Logger::warn("I/O"),"Facet normals of {} were inward and have been flipped", filenames[0]); Logger::warn("I/O").flush();
-    }
-    if(facet_normals_are_inward(polycube_mesh)) {
-        flip_facet_normals(polycube_mesh);
-        fmt::println(Logger::warn("I/O"),"Facet normals of {} were inward and have been flipped", filenames[1]); Logger::warn("I/O").flush();
-    }
-
     // check consistency between the meshes
 
     geo_assert(input_mesh.vertices.nb() == polycube_mesh.vertices.nb());
@@ -119,11 +108,6 @@ int main(int argc, char** argv) {
             geo_assert(input_mesh.facets.vertex(f,lv) == polycube_mesh.facets.vertex(f,lv));
         }
     }
-
-    // center and normalize the meshes
-
-    center_mesh(input_mesh,true);
-    center_mesh(polycube_mesh,true);
 
     // compute facets normal
 

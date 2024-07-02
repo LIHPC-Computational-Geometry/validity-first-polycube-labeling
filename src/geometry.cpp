@@ -726,7 +726,7 @@ void triangulate_facets(Mesh& M, std::vector<index_t>& triangle_index_to_old_fac
     M.facets.assign_triangle_mesh(new_corner_vertex_index, true);
 }
 
-void per_facet_local_transfo(const Mesh& M, const std::vector<vec3>& facets_normal, std::vector<mat2>& out) {
+void compute_per_facet_local_transfo(const Mesh& M, const std::vector<vec3>& facets_normal, std::vector<mat2>& out) {
     // Based on https://github.com/LIHPC-Computational-Geometry/evocube/blob/master/src/distortion.cpp#L13
     // There:
     // - F(f_id, 1) is the vertex index at the local vertex 1 -> v1
@@ -787,13 +787,14 @@ void compute_jacobians(const Mesh& M1, const Mesh& M2, const std::vector<vec3>& 
     // compute local transformation
 
     std::vector<mat2> M1_per_facet_local_transfo;
-    per_facet_local_transfo(M1,M1_normals,M1_per_facet_local_transfo);
+    compute_per_facet_local_transfo(M1,M1_normals,M1_per_facet_local_transfo);
 
     std::vector<mat2> M2_per_facet_local_transfo;
-    per_facet_local_transfo(M2,M2_normals,M2_per_facet_local_transfo);
+    compute_per_facet_local_transfo(M2,M2_normals,M2_per_facet_local_transfo);
 
     out.resize(M1.facets.nb());
     FOR(f,M1.facets.nb()) {
-        out[f] = (M2_per_facet_local_transfo[f] * M1_per_facet_local_transfo[f]).inverse();
+        out[f] = M2_per_facet_local_transfo[f] * M1_per_facet_local_transfo[f].inverse();
     }
+}
 }
