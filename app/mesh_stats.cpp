@@ -19,7 +19,7 @@
 
 #include "labeling.h"
 #include "basic_stats.h"
-#include "hex_mesh.h"
+#include "geometry_hexahedra.h" // for compute_scaled_jacobian()
 #include "geometry.h" // for facet_normals_are_inward()
 
 #define CELL_TYPE_KEY_STR(cell_type)  ( ((cell_type) == MESH_TET)       ? "tetrahedra"  : (\

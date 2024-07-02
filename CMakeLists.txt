@@ -18,8 +18,8 @@ set(
   src/containers_Geogram.cpp
   src/dump_mesh.cpp
   src/geometry.cpp
+  src/geometry_hexahedra.cpp
   src/GraphCutLabeling.cpp
-  src/hex_mesh.cpp
   src/labeling.cpp
   src/LabelingGraph.cpp
   src/glTF.cpp

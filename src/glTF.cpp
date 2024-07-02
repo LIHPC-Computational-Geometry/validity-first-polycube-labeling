@@ -19,7 +19,7 @@
 #include "containers_std.h"         // for index_of_last()
 #include "containers_macros.h"      // for VECTOR_MIN(), VECTOR_MAX()
 #include "geometry.h"               // for AdjacentFacetOfVertex
-#include "hex_mesh.h"               // for compute_scaled_jacobian()
+#include "geometry_hexahedra.h"     // for compute_scaled_jacobian()
 #include "dump_mesh.h"              // for dump_edges()
 #include "geometry.h"               // for compute_adjacent_facets_of_vertices()
 

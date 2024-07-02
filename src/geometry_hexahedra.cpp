@@ -10,7 +10,7 @@
 #include <algorithm>    // for std::min()
 #include <ostream>      // for std::endl
 
-#include "hex_mesh.h"
+#include "geometry_hexahedra.h"
 #include "basic_stats.h" // for BasicStats
 
 void compute_scaled_jacobian(GEO::Mesh& M, BasicStats& stats) {

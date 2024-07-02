@@ -17,7 +17,7 @@ Additional functions/macros for containers.
 Axes, comparison operator for geometric objects, distance...
 
 - `geometry.h`
-- `hex_mesh.h` : geometric quality of hexahedra
+- `geometry_hexahedra.h` : geometric quality of hexahedra
 - `CustomMeshHalfedges.h` : extended version of Geogram's [MeshHalfedges](https://github.com/BrunoLevy/geogram/blob/main/src/lib/geogram/mesh/mesh_halfedges.h) class
 
 ## Labeling

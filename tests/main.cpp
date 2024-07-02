@@ -90,7 +90,7 @@ protected:
         // Create a simple triangle mesh of a cube
 
         // create the 8 vertices of the cube
-        // Vertex ordering from the Geogram convention for hexahedra, see include/hex_mesh.h
+        // Vertex ordering from the Geogram convention for hexahedra, see include/geometry_hexahedra.h
         //
         //                  vertex | X | Y | Z |
         //                  -------|---|---|---|

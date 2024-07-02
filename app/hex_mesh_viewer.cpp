@@ -6,7 +6,7 @@
 
 #include <string>
 
-#include "hex_mesh.h"                   // for compute_scaled_jacobian()
+#include "geometry_hexahedra.h"         // for compute_scaled_jacobian()
 #include "SimpleMeshApplicationExt.h"   // for colormaps indices
 #include "basic_stats.h"                // for BasicStats
 
