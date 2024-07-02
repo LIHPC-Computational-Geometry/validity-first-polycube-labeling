@@ -3,12 +3,17 @@
 #include <geogram/basic/numeric.h> // for index_t
 #include <geogram/basic/attributes.h> // for Attribute
 #include <geogram/basic/vecg.h> // for vecng<>
+#include <geogram/basic/geometry.h> // for mat2
 
 #include <algorithm>    // for std::find(), std::min_element(), std::max()
 #include <map>          // for std::map::find()
 #include <iterator>     // for std::iterator_traits, std::distance()
 #include <numeric>      // for std::accumulate()
 #include <limits>       // for std::numeric_limits<>
+#include <iomanip>      // for std::setw()
+
+#include <fmt/core.h>
+#include <fmt/ostream.h>
 
 #define VECTOR_CONTAINS(container,value) (std::find(container.cbegin(),container.cend(),value) != container.cend())
 #define MAP_CONTAINS(container,value) (container.find(value) != container.end())
@@ -18,6 +23,8 @@
 #define VECTOR_MAX(container) (std::max_element(container.begin(),container.end())) // do not work on mesh attributes because they don't have iterators...
 #define VECTOR_MIN_INDEX(container) (std::distance(container.begin(), VECTOR_MIN(container))) // get index of the min value
 #define VECTOR_MAX_INDEX(container) (std::distance(container.begin(), VECTOR_MAX(container))) // get index of the max value
+
+#define VECTOR_SUM(container) (std::accumulate(container.begin(),container.end(),0.0))
 
 using namespace GEO;
 
@@ -117,3 +124,9 @@ bool no_item_in_common(const std::set<T>& a, const std::set<T>& b) {
     }
     return true;
 }
+
+// define how to print a GEO::mat2
+std::ostream& operator<< (std::ostream &out, const GEO::mat2& data);
+// Use the operator<< overloading with {fmt}
+// https://fmt.dev/latest/api.html#std-ostream-support
+template <> struct fmt::formatter<GEO::mat2> : ostream_formatter {};

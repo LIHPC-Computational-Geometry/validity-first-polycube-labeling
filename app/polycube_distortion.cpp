@@ -1,6 +1,6 @@
 // Computes distortion metrics of the polycube deformation
 // Inputs: triangle mesh + polycube mesh (generated with https://github.com/fprotais/fastbndpolycube)
-// Output: stretch, area distortion, angle distortion and isometric distortion - as JSON written on stdout
+// Output: stretch, area distortion, angle distortion and isometric distortion
 // Based on
 // - https://github.com/LIHPC-Computational-Geometry/evocube/blob/master/app/measurement.cpp
 // - https://github.com/LIHPC-Computational-Geometry/evocube/blob/master/src/distortion.cpp
@@ -13,6 +13,9 @@
 // - N_def the per facet normal of the polycube mesh
 // - vecA1 the per facet local transformation of the input mesh
 // - vecA2 the per facet local transformation of the polycube mesh
+//
+// Usage:
+//   ./bin/polycube_distortion path/to/triangle_mesh.obj path/to/polycube_mesh.obj
 
 #include <geogram/mesh/mesh.h>              // for Mesh
 #include <geogram/mesh/mesh_io.h>           // for mesh_load()
@@ -26,11 +29,14 @@
 #include <fmt/core.h>
 #include <fmt/ostream.h>
 
-#include <Eigen/SVD>
+#include <Eigen/SVD> // for Eigen::JacobiSVD<>
 
 #include <vector>
 
-#include "geometry.h" // for facet_normals_are_inward(), flip_facet_normals(), center_mesh(), compute_jacobians()
+#include <dbg.h>
+
+#include "geometry.h" // for compute_jacobians(), compute_stretch(), compute_area_distortion(), compute_angle_distortion(), compute_isometric_distortion()
+#include "containers.h" // for VECTOR_SUM()
 
 using namespace GEO;
 
@@ -95,6 +101,19 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    #ifndef NDEBUG
+        fmt::println("first 5 triangles");
+        FOR(f,5) {
+            index_t v0 = input_mesh.facets.vertex(f,0);
+            index_t v1 = input_mesh.facets.vertex(f,1);
+            index_t v2 = input_mesh.facets.vertex(f,2);
+            fmt::println("v0 = {} = ({}, {}, {})",v0,input_mesh.vertices.point(v0).x,input_mesh.vertices.point(v0).y,input_mesh.vertices.point(v0).z);
+            fmt::println("v1 = {} = ({}, {}, {})",v1,input_mesh.vertices.point(v1).x,input_mesh.vertices.point(v1).y,input_mesh.vertices.point(v1).z);
+            fmt::println("v2 = {} = ({}, {}, {})",v2,input_mesh.vertices.point(v2).x,input_mesh.vertices.point(v2).y,input_mesh.vertices.point(v2).z);
+            fmt::println("");
+        }
+    #endif
+
     // check consistency between the meshes
 
     geo_assert(input_mesh.vertices.nb() == polycube_mesh.vertices.nb());
@@ -129,6 +148,10 @@ int main(int argc, char** argv) {
         input_mesh_per_facet_area[f] = mesh_facet_area(input_mesh,f);
         input_mesh_total_area += input_mesh_per_facet_area[f];
     }
+    #ifndef NDEBUG
+        dbg(input_mesh_total_area);
+        geo_assert(input_mesh_total_area == VECTOR_SUM(input_mesh_per_facet_area));
+    #endif
 
     std::vector<double> polycube_mesh_per_facet_area(polycube_mesh.facets.nb());
     double polycube_mesh_total_area = 0.0;
@@ -136,11 +159,43 @@ int main(int argc, char** argv) {
         polycube_mesh_per_facet_area[f] = mesh_facet_area(polycube_mesh,f);
         polycube_mesh_total_area += polycube_mesh_per_facet_area[f];
     }
+    #ifndef NDEBUG
+        dbg(polycube_mesh_total_area);
+        geo_assert(polycube_mesh_total_area == VECTOR_SUM(polycube_mesh_per_facet_area));
+    #endif
+
+    // scale the polycube mesh so that both meshes have the same total surface area
+
+    FOR(v,polycube_mesh.vertices.nb()) {
+        polycube_mesh.vertices.point(v) *= std::sqrt(input_mesh_total_area / polycube_mesh_total_area);
+    }
+    #ifndef NDEBUG
+        dbg("polycube mesh rescaled");
+    #endif
+
+    // recompute facets area of the polycube mesh
+
+    polycube_mesh_total_area = 0.0;
+    FOR(f,polycube_mesh.facets.nb()) {
+        polycube_mesh_per_facet_area[f] = mesh_facet_area(polycube_mesh,f);
+        polycube_mesh_total_area += polycube_mesh_per_facet_area[f];
+    }
+    #ifndef NDEBUG
+        dbg(polycube_mesh_total_area);
+        geo_assert(polycube_mesh_total_area == VECTOR_SUM(polycube_mesh_per_facet_area));
+    #endif
 
     // compute jacobians
 
     std::vector<mat2> jacobians(input_mesh.facets.nb());
     compute_jacobians(input_mesh,polycube_mesh,input_mesh_per_facet_normals,polycube_mesh_per_facet_normals,jacobians);
+    #ifndef NDEBUG
+        fmt::println("first 5 Jacobians");
+        for(std::vector<mat2>::size_type f_id = 0; f_id < 5; f_id++) {
+            fmt::println("{}",jacobians[f_id]);
+        }
+        fmt::println("");
+    #endif
 
     // compute per facet singular values
     std::vector<std::pair<double, double>> per_facet_singular_values(input_mesh.facets.nb(),{0.0,0.0});
@@ -155,11 +210,25 @@ int main(int argc, char** argv) {
         per_facet_singular_values[f].first = svd.singularValues()(0);
         per_facet_singular_values[f].second = svd.singularValues()(1);
     }
+    #ifndef NDEBUG
+        fmt::println("first 5 singular values");
+        for(std::vector<std::pair<double, double>>::size_type f_id = 0; f_id < 5; f_id++) {
+            fmt::println("{}, {}", per_facet_singular_values[f_id].first, per_facet_singular_values[f_id].second);
+        }
+        fmt::println("");
+    #endif
 
-    // TODO compute Stretch
-    // TODO compute Area distortion
-    // TODO compute Angle distortion
-    // TODO compute Isometric distortion
+    double stretch = compute_stretch(input_mesh_per_facet_area,input_mesh_total_area,polycube_mesh_total_area,per_facet_singular_values);
+    double area_distortion = compute_area_distortion(input_mesh_per_facet_area,input_mesh_total_area,per_facet_singular_values);
+    double angle_distortion = compute_angle_distortion(input_mesh_per_facet_area,input_mesh_total_area,per_facet_singular_values);
+    double isometric_distortion = compute_isometric_distortion(input_mesh_per_facet_area,input_mesh_total_area,per_facet_singular_values);
+
+    #ifndef NDEBUG
+        dbg(stretch);
+        dbg(area_distortion);
+        dbg(angle_distortion);
+        dbg(isometric_distortion);
+    #endif
 
     return 0;
 }

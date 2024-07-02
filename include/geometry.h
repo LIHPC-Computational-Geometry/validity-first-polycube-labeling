@@ -199,3 +199,28 @@ void compute_jacobians(
     const std::vector<vec3>& M2_normals,
     std::vector<mat2>& out
 );
+
+double compute_stretch(
+    const std::vector<double>& input_mesh_per_facet_area,
+    double input_mesh_total_area,
+    double polycube_mesh_total_area,
+    const std::vector<std::pair<double, double>>& per_facet_singular_values
+);
+
+double compute_area_distortion(
+    const std::vector<double>& input_mesh_per_facet_area,
+    double input_mesh_total_area,
+    const std::vector<std::pair<double, double>>& per_facet_singular_values
+);
+
+double compute_angle_distortion(
+    const std::vector<double>& input_mesh_per_facet_area,
+    double input_mesh_total_area,
+    const std::vector<std::pair<double, double>>& per_facet_singular_values
+);
+
+double compute_isometric_distortion(
+    const std::vector<double>& input_mesh_per_facet_area,
+    double input_mesh_total_area,
+    const std::vector<std::pair<double, double>>& per_facet_singular_values
+);

@@ -727,7 +727,8 @@ void triangulate_facets(Mesh& M, std::vector<index_t>& triangle_index_to_old_fac
 }
 
 void compute_per_facet_local_transfo(const Mesh& M, const std::vector<vec3>& facets_normal, std::vector<mat2>& out) {
-    // Based on https://github.com/LIHPC-Computational-Geometry/evocube/blob/master/src/distortion.cpp#L13
+    // Based on Evocube > src/distortion.cpp > localTransfo()
+    // https://github.com/LIHPC-Computational-Geometry/evocube/blob/master/src/distortion.cpp#L13
     // There:
     // - F(f_id, 1) is the vertex index at the local vertex 1 -> v1
     // - F(f_id, 0) is the vertex index at the local vertex 0 -> v0
@@ -768,7 +769,8 @@ void compute_per_facet_local_transfo(const Mesh& M, const std::vector<vec3>& fac
 }
 
 void compute_jacobians(const Mesh& M1, const Mesh& M2, const std::vector<vec3>& M1_normals, const std::vector<vec3>& M2_normals, std::vector<mat2>& out) {
-    // based on https://github.com/LIHPC-Computational-Geometry/evocube/blob/master/src/distortion.cpp#L38
+    // Based on Evocube > src/distortion.cpp > computeJacobians()
+    // https://github.com/LIHPC-Computational-Geometry/evocube/blob/master/src/distortion.cpp#L38
     
     // check consistency between the meshes
 
@@ -797,4 +799,88 @@ void compute_jacobians(const Mesh& M1, const Mesh& M2, const std::vector<vec3>& 
         out[f] = M2_per_facet_local_transfo[f] * M1_per_facet_local_transfo[f].inverse();
     }
 }
+
+double compute_stretch(const std::vector<double>& input_mesh_per_facet_area, double input_mesh_total_area, double polycube_mesh_total_area, const std::vector<std::pair<double, double>>& per_facet_singular_values) {
+    // based on Evocube > src/distortion.cpp > computeStretch()
+    // https://github.com/LIHPC-Computational-Geometry/evocube/blob/master/src/distortion.cpp#L97
+    // "Spherical Parametrization and Remeshing", Praun & Hoppe
+    geo_assert(input_mesh_per_facet_area.size() == per_facet_singular_values.size());
+    double sum = 0.0;
+    double s1 = 0.0;
+    double s2 = 0.0;
+    FOR(f,per_facet_singular_values.size()) {
+        // get singular values of this facet
+        s1 = per_facet_singular_values[f].first;
+        s2 = per_facet_singular_values[f].second;
+        // update sum
+        sum += input_mesh_per_facet_area[f] * (s1 * s1 + s2 * s2) / 2.0;
+    }
+    sum /= input_mesh_total_area;
+    return (input_mesh_total_area / polycube_mesh_total_area) * (1.0 / std::pow(sum, 2));
+}
+
+double compute_area_distortion(
+    const std::vector<double>& input_mesh_per_facet_area, // eq. to A
+    double input_mesh_total_area, // eq. to A.sum()
+    const std::vector<std::pair<double, double>>& per_facet_singular_values // eq. to per_tri_singular_values
+) {
+    // based on Evocube > src/distortion.cpp > computeAreaDisto()
+    // https://github.com/LIHPC-Computational-Geometry/evocube/blob/master/src/distortion.cpp#L113
+    // "PolyCube-Maps", Tarini & Hormann & Cignoni & Montani
+    geo_assert(input_mesh_per_facet_area.size() == per_facet_singular_values.size());
+    double sum = 0.0;
+    double s1 = 0.0;
+    double s2 = 0.0;
+    FOR(f,per_facet_singular_values.size()) {
+        // get singular values of this facet
+        s1 = per_facet_singular_values[f].first;
+        s2 = per_facet_singular_values[f].second;
+        // update sum
+        sum += input_mesh_per_facet_area[f] * 0.5 * (s1 * s2 + 1.0 / (s1 * s2));
+    }
+    return sum / input_mesh_total_area;
+}
+
+double compute_angle_distortion(
+    const std::vector<double>& input_mesh_per_facet_area,
+    double input_mesh_total_area,
+    const std::vector<std::pair<double, double>>& per_facet_singular_values
+) {
+    // based on Evocube > src/distortion.cpp > computeAngleDisto()
+    // https://github.com/LIHPC-Computational-Geometry/evocube/blob/master/src/distortion.cpp#L124
+    // "PolyCube-Maps", Tarini & Hormann & Cignoni & Montani
+    geo_assert(input_mesh_per_facet_area.size() == per_facet_singular_values.size());
+    double sum = 0.0;
+    double s1 = 0.0;
+    double s2 = 0.0;
+    FOR(f,per_facet_singular_values.size()) {
+        // get singular values of this facet
+        s1 = per_facet_singular_values[f].first;
+        s2 = per_facet_singular_values[f].second;
+        // update sum
+        sum += input_mesh_per_facet_area[f] * 0.5 * (s1 / s2 + s2 / s1);
+    }
+    return sum / input_mesh_total_area;
+}
+
+double compute_isometric_distortion(
+    const std::vector<double>& input_mesh_per_facet_area,
+    double input_mesh_total_area,
+    const std::vector<std::pair<double, double>>& per_facet_singular_values
+) {
+    // based on Evocube > src/distortion.cpp > computeIsometricDisto()
+    // https://github.com/LIHPC-Computational-Geometry/evocube/blob/master/src/distortion.cpp#L137
+    // "Computing Surface PolyCube-Maps by Constrained Voxelization", Yang & Fu & Liu
+    geo_assert(input_mesh_per_facet_area.size() == per_facet_singular_values.size());
+    double sum = 0.0;
+    double s1 = 0.0;
+    double s2 = 0.0;
+    FOR(f,per_facet_singular_values.size()) {
+        // get singular values of this facet
+        s1 = per_facet_singular_values[f].first;
+        s2 = per_facet_singular_values[f].second;
+        // update sum
+        sum += std::max(s1, 1.0 / s2) * input_mesh_per_facet_area[f];
+    }
+    return sum / input_mesh_total_area;
 }
