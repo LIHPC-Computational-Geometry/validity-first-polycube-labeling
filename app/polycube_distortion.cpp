@@ -36,7 +36,8 @@
 #include <dbg.h>
 
 #include "geometry.h" // for compute_jacobians(), compute_stretch(), compute_area_distortion(), compute_angle_distortion(), compute_isometric_distortion()
-#include "containers.h" // for VECTOR_SUM()
+#include "containers_macros.h" // for VECTOR_SUM()
+#include "containers_Geogram.h" // to print a GEO::mat2 with {fmt}
 
 using namespace GEO;
 

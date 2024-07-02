@@ -14,8 +14,7 @@
 #include <geogram/basic/file_system.h>          // for FileSystem::initialize()
 #include <geogram/mesh/mesh_halfedges.h>        // for MeshHalfedges::Halfedge
 
-#include "basic_stats.h"            // for BasicStats
-#include "containers.h"             // for std_dev()
+#include "basic_stats.h"            // for BasicStats, std_dev()
 #include "CustomMeshHalfedges.h"    // for CustomMeshHalfedges
 #include "labeling.h"               // for naive_labeling()
 #include "geometry.h"               // for comparison between vec3

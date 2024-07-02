@@ -16,7 +16,7 @@
 #include <array>
 #include <initializer_list>
 
-#include "containers.h"
+#include "containers_std.h" // for index_of_last()
 
 // Indices of SimpleApplication::colormaps_
 // Same ordering as in ext/geogram/src/lib/geogram_gfx/gui/simple_application.cpp init_colormaps()

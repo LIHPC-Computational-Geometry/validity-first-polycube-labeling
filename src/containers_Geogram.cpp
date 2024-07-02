@@ -1,6 +1,10 @@
-#include <algorithm>    // for std::min()
+#include <geogram/basic/numeric.h>      // for index_t
+#include <geogram/basic/attributes.h>   // for Attribute
+#include <geogram/basic/geometry.h>     // for mat2
 
-#include "containers.h"
+#include <algorithm>
+
+using namespace GEO;
 
 index_t min(const Attribute<index_t>& container) {
     index_t min = max_index_t();

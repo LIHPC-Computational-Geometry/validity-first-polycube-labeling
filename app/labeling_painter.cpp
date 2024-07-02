@@ -9,7 +9,7 @@
 
 #include <deque>
 
-#include "containers.h" // for VECTOR_CONTAINS()
+#include "containers_macros.h" // for VECTOR_CONTAINS()
 
 // values for paint_mode_
 #define PAINT_MODE_DISABLED     0

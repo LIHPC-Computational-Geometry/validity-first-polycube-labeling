@@ -1,11 +1,44 @@
 # Source files
 
-- **[containers.h](containers.h)/[.cpp](../src/containers.cpp)** : additional functions & macros for std containers (contains, min, concatenation...)
-- **[CustomMeshHalfedges.h](CustomMeshHalfedges.h)** : modified version of Geogram's [MeshHalfedges](https://github.com/BrunoLevy/geogram/blob/main/src/lib/geogram/mesh/mesh_halfedges.h) class
-- **[geometry.h](geometry.h)/[.cpp](../src/geometry.cpp)** : geometry-related functions (labels & axes, comparison operator for geometric objects, distance)
-- **[GraphCutLabeling.h](GraphCutLabeling.h)/[.cpp](../src/GraphCutLabeling.cpp)** : constrained labeling generation with a Graph-Cut Optimization
-- **[hex_mesh.h](hex_mesh.h)/[.cpp](../src/hex_mesh.cpp)** : hexahedral meshes related functions (quality metric)
-- **[labeling.h](labeling.h)/[.cpp](../src/labeling.cpp)** : operators on labelings
-- **[LabelingGraph.h](LabelingGraph.h)/[.cpp](../src/LabelingGraph.cpp)** : computation of charts/boundaries/corners from a labeling
-- **[LabelingViewerApp.h](LabelingViewerApp.h)** : GUI app to display labelings on triangle meshes
-- **[SimpleMeshApplicationExt.h](SimpleMeshApplicationExt.h)** : modified version of Geogram's [SimpleMeshApplication](https://github.com/BrunoLevy/geogram/blob/main/src/lib/geogram_gfx/gui/simple_mesh_application.h) class
+## Containers
+
+Additional functions/macros for containers.
+
+- `containers_macros.h` : macros for iterators, eg `VECTOR_CONTAINS()`
+- `containers_std.h` : for Standard Library containers, eg `std::vector`
+- `containers_Geogram.h` : for Geogram containers, eg `GEO::vec3`
+
+## Statistics
+
+- `basic_stats.h` : compute min/max/sum/avg/sd
+
+## Geometry
+
+Axes, comparison operator for geometric objects, distance...
+
+- `geometry.h`
+- `hex_mesh.h` : geometric quality of hexahedra
+- `CustomMeshHalfedges.h` : extended version of Geogram's [MeshHalfedges](https://github.com/BrunoLevy/geogram/blob/main/src/lib/geogram/mesh/mesh_halfedges.h) class
+
+## Labeling
+
+Generation of / operations on polycube labelings.
+
+- `labeling.h`
+- `GraphCutLabeling.h` : constrained labeling generation with a Graph-Cut Optimization
+- `LabelingGraph.h` : computation of charts/boundaries/corners from a labeling
+
+## I/O
+
+- `glTF.h` : export a 3D model as glTF
+
+## GUI
+
+Graphical User Interface classes
+
+- `SimpleMeshApplicationExt.h` : extended version of Geogram's [SimpleMeshApplication](https://github.com/BrunoLevy/geogram/blob/main/src/lib/geogram_gfx/gui/simple_mesh_application.h) class
+- `LabelingViewerApp.h` : a GUI app to display labelings on triangle meshes, based on `SimpleMeshApplicationExt`
+
+## Debug
+
+- `dump_mesh.h` : functions to easily write a .geogram containing a vertex/edge/boundary/facet

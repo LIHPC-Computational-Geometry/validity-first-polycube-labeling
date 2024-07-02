@@ -5,6 +5,7 @@
 
 #include "LabelingViewerApp.h"
 #include "labeling.h"
+#include "containers_Geogram.h"	// for max() on a Geogram vector
 
 #include <algorithm>	// for std::max_element(), std::min_element()
 #include <cmath>		// for std::round()

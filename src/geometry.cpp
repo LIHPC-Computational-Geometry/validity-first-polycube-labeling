@@ -20,7 +20,7 @@
 #include "CustomMeshHalfedges.h"
 #include "LabelingGraph.h"
 #include "labeling.h" // for label2vector
-#include "containers.h" // for VECTOR_MAX_INDEX()
+#include "containers_macros.h" // for VECTOR_MAX_INDEX()
 
 void per_facet_distance(const Mesh& mesh, std::map<index_t,unsigned int>& distance) {
     // thank you Trizalio https://stackoverflow.com/a/72437022

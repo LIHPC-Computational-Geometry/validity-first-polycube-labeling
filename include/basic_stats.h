@@ -5,6 +5,8 @@
 #include <algorithm>    // for std::min() and std::max()
 #include <limits>       // for std::numeric_limits<>::min() and max()
 #include <cmath>        // for std::std::pow()
+#include <iterator>     // for std::distance()
+#include <numeric>      // for std::accumulate()
 
 class BasicStats {
 public:
@@ -75,3 +77,16 @@ private:
     double variance_;
     unsigned int count_;
 };
+
+// to compute the standard deviation
+// thank you https://codereview.stackexchange.com/a/123278
+template <typename It, 
+    typename E = typename std::iterator_traits<It>::value_type, 
+    typename R = typename std::common_type<double, E>::type>
+R std_dev(It b, It e)
+{
+    R N          = (R) std::distance(b, e);
+    R const mean = std::accumulate(b, e, R{}) / N;
+    R variance   = std::accumulate(b, e, R{}, [mean](R a, E v)-> R { return a + (v-mean)*(v-mean); });
+    return std::sqrt(variance / N);
+}

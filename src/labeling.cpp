@@ -22,7 +22,8 @@
 
 #include "labeling.h"
 #include "LabelingGraph.h"
-#include "containers.h"
+#include "containers_macros.h" // for VECTOR_CONTAINS(), MAP_CONTAINS()
+#include "containers_std.h"    // for key_at_max_value(), fill_set_with_map_keys()
 #include "GraphCutLabeling.h"
 #include "CustomMeshHalfedges.h"
 #include "basic_stats.h"

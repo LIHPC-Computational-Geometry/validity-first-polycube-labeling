@@ -15,7 +15,7 @@ include(${CMAKE_SOURCE_DIR}/cmake/automatic_polycube.cmake)
 
 set(
   SRCFILES
-  src/containers.cpp
+  src/containers_Geogram.cpp
   src/dump_mesh.cpp
   src/geometry.cpp
   src/GraphCutLabeling.cpp
