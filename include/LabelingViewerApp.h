@@ -1,26 +1,28 @@
 #pragma once
 
-#include <geogram_gfx/gui/application.h> // for set_style()
+#include <geogram_gfx/gui/application.h>                // for set_style()
 #include <geogram_gfx/gui/simple_mesh_application.h>
-#include <geogram/basic/file_system.h> // for is_file(), extension() in load()
-#include <geogram/basic/command_line.h> // for get_arg_bool() in load()
-#include <geogram/mesh/mesh_io.h> // for MeshIOFlags, mesh_load() in load()
-#include <geogram/basic/command_line.h> // for CmdLine::get_arg() and CmdLine::set_arg()
-#include <geogram/basic/string.h> // for String::string_ends_with()
+#include <geogram/basic/file_system.h>                  // for is_file(), extension() in load()
+#include <geogram/basic/command_line.h>                 // for get_arg_bool() in load()
+#include <geogram/mesh/mesh_io.h>                       // for MeshIOFlags, mesh_load() in load()
+#include <geogram/basic/command_line.h>                 // for CmdLine::get_arg() and CmdLine::set_arg()
+#include <geogram/basic/string.h>                       // for String::string_ends_with()
 
 #include <fmt/core.h>
 #include <fmt/ostream.h>
 
 #include <string>
-#include <tuple>	// for std::tie()
+#include <tuple>    // for std::tie()
 #include <set>
-#include <utility>	// for std::pair
+#include <utility>  // for std::pair
 
 #include "SimpleMeshApplicationExt.h"
-#include "LabelingGraph.h"   // for StaticLabelingGraph
-#include "labeling.h"		 // for load_labeling(), naive_labeling(), save_labeling()
-#include "basic_stats.h"	 // for BasicStats
-#include "dump_mesh.h"		 // for dump_all_boundaries()
+#include "LabelingGraph.h"              // for StaticLabelingGraph
+#include "labeling.h"                   // for flip_labeling(), label2vector(), LABEL2STR(), compute_per_facet_fidelity
+#include "labeling_io.h"                // for load_labeling(), save_labeling()
+#include "labeling_generators.h"        // for naive_labeling()
+#include "basic_stats.h"                // for BasicStats
+#include "dump_mesh.h"                  // for dump_all_boundaries()
 
 #define RED_WHITE_BLUE_LABELING_COLORS // better for (most) color-deficient users
 

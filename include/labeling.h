@@ -4,9 +4,10 @@
 
 #include <initializer_list>
 
-#include "LabelingGraph.h"
-#include "basic_stats.h"
+#include "LabelingGraph.h"  // for Boundary
+#include "basic_stats.h"    // for BasicStats
 
+// get the string representation of a label
 #define LABEL2STR(label) ((label==0) ? "+X" : ( \
                           (label==1) ? "-X" : ( \
                           (label==2) ? "+Y" : ( \
@@ -15,38 +16,7 @@
                           (label==5) ? "-Z" :   \
                           "undef."))))))
 
-#define NAIVE_LABELING_TWEAK_SENSITIVITY 0.1 // min difference between the 2 closest labels before the rotation tweak
-#define NAIVE_LABELING_TWEAK_ANGLE 0.1 // angle of rotation of the normal when we cannot choose between 2 or 3 labels
-// https://en.wikipedia.org/wiki/Rotation_matrix#Basic_3D_rotations
-// rotation of NAIVE_LABELING_TWEAK_ANGLE around the x, y and z axes
-const double COS_TILT_ANGLE = cos(NAIVE_LABELING_TWEAK_ANGLE);
-const double SIN_TILT_ANGLE = sin(NAIVE_LABELING_TWEAK_ANGLE);
-const double COS_SQUARED_TILT_ANGLE = COS_TILT_ANGLE*COS_TILT_ANGLE;
-const double SIN_SQUARED_TILT_ANGLE = SIN_TILT_ANGLE*SIN_TILT_ANGLE;
-const double SIN_BY_COS_TILT_ANGLE = SIN_TILT_ANGLE*COS_TILT_ANGLE;
-const mat3 rotation({
-    {
-        COS_SQUARED_TILT_ANGLE,                                 // <=> cos*cos              @ (0,0)
-        SIN_BY_COS_TILT_ANGLE*(SIN_TILT_ANGLE-1),               // <=> sin*sin*cos-cos*sin  @ (0,1)
-        SIN_TILT_ANGLE*(COS_SQUARED_TILT_ANGLE+SIN_TILT_ANGLE)  // <=> cos*sin*cos+sin*sin  @ (0,2)
-    },
-    {
-        SIN_BY_COS_TILT_ANGLE,                                          // <=> cos*sin              @ (1,0)
-        SIN_SQUARED_TILT_ANGLE*SIN_TILT_ANGLE+COS_SQUARED_TILT_ANGLE,   // <=> sin*sin*sin+cos*cos  @ (1,1)
-        SIN_BY_COS_TILT_ANGLE*(SIN_TILT_ANGLE-1)                        // <=> cos*sin*sin-sin*cos  @ (1,2)
-    },
-    {
-        -SIN_TILT_ANGLE,        // <=> -sin     @ (2,0)
-        SIN_BY_COS_TILT_ANGLE,  // <=> sin*cos  @ (2,1)
-        COS_SQUARED_TILT_ANGLE  // <=> cos*cos  @ (2,2)
-    }
-});
-
 using namespace GEO;
-
-bool load_labeling(const std::string& filename, Mesh& mesh, const char* attribute_name);
-
-bool save_labeling(const std::string& filename, Mesh& mesh, const char* attribute_name);
 
 index_t nearest_label(const vec3& normal);
 
@@ -74,82 +44,9 @@ index_t find_optimal_label(std::initializer_list<index_t> forbidden_axes = {}, s
 
 void propagate_label(const Mesh& mesh, const char* attribute_name, index_t new_label, const std::set<index_t>& facets_in, const std::set<index_t> facets_out, const std::vector<index_t>& facet2chart, index_t chart_index);
 
-// assign randomly one of the six labels to each surface facet (useless, unless to show that not all labelings lead to polycubes)
-void random_labeling(GEO::Mesh& mesh, const char* attribute_name);
-
-/**
- * \brief Compute the naive labeling of a given mesh
- * \details Compute the per-facet nearest-to-normal signed direction +/-{X,Y,Z} of a surface mesh
- * and store it in a facet attribute
- * \param[in,out] mesh A surface triangle mesh
- * \param[in] attribute_name The name of the facet attribute in which the labeling will be stored
- */
-void naive_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name);
-
-/*
- * Like naive_labeling() but triangle normals are considered slightly rotated
- * when 2 or 3 labels have almost the same cost (like areas at 45°)
- * -> avoid labeling fragmentation
- */
-void tweaked_naive_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name);
-
-// apply either naive_labeling() or tweaked_naive_labeling() depending on the mesh
-void smart_init_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, const std::set<std::pair<index_t,index_t>>& feature_edges);
-
-void graphcut_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, int compactness_coeff = 1, int fidelity_coeff = 1);
-
 void compute_per_facet_fidelity(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* labeling_attribute_name, const char* fidelity_attribute_name, BasicStats& stats);
-
-size_t remove_surrounded_charts(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg);
-
-// return true if an invalid boundary was processed
-// -> if returned false, no need to call the function again
-bool fix_an_invalid_boundary(GEO::Mesh& mesh, const char* attribute_name, StaticLabelingGraph& slg, const std::vector<vec3>& facet_normals, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<std::vector<index_t>>& adj_facets);
-
-// fix as much invalid corners as possible until the labeling graph needs to be recomputed
-// return the number of invalid corners processed
-// -> if returned 0, no need to call the function again
-size_t fix_as_much_invalid_corners_as_possible(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, StaticLabelingGraph& slg, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<index_t>& facet2chart, const std::vector<std::vector<index_t>>& adj_facets);
-
-// return true if all invalid charts are locked, ie we cannot remove them because they are surrounded by feature edges
-bool remove_invalid_charts(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, const StaticLabelingGraph& slg);
-
-void remove_charts_around_invalid_boundaries(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, const StaticLabelingGraph& slg);
-
-// return true if a chart has been processed
-// -> if returned false, no need to call the function again
-bool increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, StaticLabelingGraph& slg, const std::vector<std::vector<index_t>>& adj_facets, const std::set<std::pair<index_t,index_t>>& feature_edges);
-
-// return true if successfully found a valid labeling
-bool auto_fix_validity(Mesh& mesh, std::vector<vec3>& normals, const char* attribute_name, StaticLabelingGraph& slg, unsigned int max_nb_loop, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<vec3>& facet_normals, const std::vector<std::vector<index_t>>& adj_facets);
-
-// return nb turning-points moved
-size_t move_boundaries_near_turning_points(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg, const std::set<std::pair<index_t,index_t>>& feature_edges);
-
-void straighten_boundary_with_GCO(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, const StaticLabelingGraph& slg, index_t boundary_index);
-
-// return true if successful
-bool straighten_boundary(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg, index_t boundary_index, const std::vector<std::vector<index_t>>& adj_facets);
-
-void straighten_boundaries(GEO::Mesh& mesh, const char* attribute_name, StaticLabelingGraph& slg, const std::vector<std::vector<index_t>>& adj_facets, const std::set<std::pair<index_t,index_t>>& feature_edges);
-
-// Typically called after straighten_boundary()
-// Adjust postion of corners so that they are more aligned with adjacent boundaries
-void move_corners(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<std::vector<index_t>>& adj_facets);
-
-// only for turning-points on feature edges
-// on a non-monotone boundary, find turning-points on feature edges, and for each of them, move the closest corner to the same vertex
-// return true if a turning point was merge with a corner
-// -> if returned false, no need to call the function again
-bool merge_a_turning_point_and_its_closest_corner(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<std::vector<index_t>>& adj_facets);
-
-// return true if a pair of turning-point was processed
-// -> if returned false, no need to call the function again
-bool join_turning_points_pair_with_new_chart(GEO::Mesh& mesh, const char* attribute_name, StaticLabelingGraph& slg, const std::vector<vec3>& normals, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<std::vector<index_t>>& adj_facets);
-
-// return true if we reached 0 turning-point
-bool auto_fix_monotonicity(Mesh& mesh, const char* attribute_name, StaticLabelingGraph& slg, std::vector<std::vector<index_t>>& adj_facets, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<vec3>& normals);
 
 unsigned int count_lost_feature_edges(const CustomMeshHalfedges& mesh_he, const std::set<std::pair<index_t,index_t>>& feature_edges);
 
+// TODO move to LabelingGraph.h
 index_t adjacent_chart_in_common(const Boundary& b0, const Boundary& b1);

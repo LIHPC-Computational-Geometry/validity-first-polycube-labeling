@@ -24,6 +24,10 @@
 #include "basic_stats.h"        // for std_dev()
 #include "LabelingViewerApp.h"
 #include "LabelingGraph.h"
+#include "labeling_io.h"
+#include "labeling_generators.h"
+#include "labeling_operators_on_invalidity.h"
+#include "labeling_operators_on_distortion.h"
 
 #define VIEW_CHARTS_TO_REFINE	((VIEW_INVALID_CORNERS)+1)
 

@@ -11,6 +11,7 @@
 #include <cmath>		// for std::round()
 
 #include "GraphCutLabeling.h"
+#include "labeling_generators.h"
 
 template <typename T>
 struct StatsComponents {

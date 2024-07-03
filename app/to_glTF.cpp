@@ -17,6 +17,7 @@
 #include "CustomMeshHalfedges.h"    // for CustomMeshHalfedges
 #include "glTF.h"
 #include "labeling.h"
+#include "labeling_io.h"
 
 using GEO::index_t; // to use the FOR() macro of Geogram
 

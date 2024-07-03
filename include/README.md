@@ -24,13 +24,20 @@ Axes, comparison operator for geometric objects, distance...
 
 Generation of / operations on polycube labelings.
 
-- `labeling.h`
+- `labeling.h` : core labeling definition and functions
+- `labeling_io.h` : read/write labeling files
+- `labeling_generators.h` : functions to generate a labeling
+- `labeling_operators_on_invalidity.h` : functions to edit a labeling, targeting a valid one
+- `labeling_operators_on_distortion.h` : functions to edit a labeling, targeting a low distortion one
 - `GraphCutLabeling.h` : constrained labeling generation with a Graph-Cut Optimization
 - `LabelingGraph.h` : computation of charts/boundaries/corners from a labeling
 
 ## I/O
 
 - `glTF.h` : export a 3D model as glTF
+- `dump_mesh.h` : functions to easily write a .geogram containing a vertex/edge/boundary/facet
+
+See also `labeling_io.h`.
 
 ## GUI
 
@@ -38,7 +45,3 @@ Graphical User Interface classes
 
 - `SimpleMeshApplicationExt.h` : extended version of Geogram's [SimpleMeshApplication](https://github.com/BrunoLevy/geogram/blob/main/src/lib/geogram_gfx/gui/simple_mesh_application.h) class
 - `LabelingViewerApp.h` : a GUI app to display labelings on triangle meshes, based on `SimpleMeshApplicationExt`
-
-## Debug
-
-- `dump_mesh.h` : functions to easily write a .geogram containing a vertex/edge/boundary/facet

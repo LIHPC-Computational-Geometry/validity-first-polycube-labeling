@@ -16,7 +16,7 @@
 
 #include "basic_stats.h"            // for BasicStats, std_dev()
 #include "CustomMeshHalfedges.h"    // for CustomMeshHalfedges
-#include "labeling.h"               // for naive_labeling()
+#include "labeling_generators.h"    // for naive_labeling()
 #include "geometry.h"               // for comparison between vec3
 
 #define DOUBLE_MAX_ABS_ERROR 10e5

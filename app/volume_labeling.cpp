@@ -15,6 +15,8 @@
 #include <fstream>  // for std::ifstream
 #include <string>   // for std::stoi(), std::getline()
 
+#include "labeling_io.h"
+
 using namespace GEO;
 
 int main(int argc, const char** argv) {

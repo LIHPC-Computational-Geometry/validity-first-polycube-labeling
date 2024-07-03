@@ -1,6 +1,8 @@
 #include <geogram/mesh/mesh.h> // for GEO::Mesh
 #include <geogram/basic/geometry.h>     // for GEO::vec3
 
+#include <fmt/core.h>
+#include <fmt/ostream.h>
 #include <fmt/os.h> // for fmt::output_file
 
 #include <GCoptimization.h>

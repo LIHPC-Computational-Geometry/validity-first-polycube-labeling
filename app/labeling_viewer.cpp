@@ -8,6 +8,8 @@
 #include <vector>
 #include <string>
 
+#include "labeling_io.h"
+
 using namespace GEO;
 
 int main(int argc, char** argv) {

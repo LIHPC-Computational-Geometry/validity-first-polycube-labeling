@@ -10,6 +10,8 @@
 #include <fmt/ostream.h>
 
 #include "labeling.h"
+#include "labeling_generators.h"
+#include "labeling_io.h"
 
 using namespace GEO;
 
