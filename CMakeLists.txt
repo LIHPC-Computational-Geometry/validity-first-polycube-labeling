@@ -19,9 +19,9 @@ set(
   src/dump_mesh.cpp
   src/geometry.cpp
   src/geometry_hexahedra.cpp
-  src/GraphCutLabeling.cpp
   src/labeling.cpp
   src/labeling_io.cpp
+  src/labeling_graphcuts.cpp
   src/labeling_generators.cpp
   src/labeling_operators_on_invalidity.cpp
   src/labeling_operators_on_distortion.cpp

@@ -15,7 +15,7 @@
 
 #include "labeling.h"   // for label2vector
 
-#include "GraphCutLabeling.h"
+#include "labeling_graphcuts.h"
 
 NeighborsCosts::NeighborsCosts() :
     per_site_neighbors_(nullptr),

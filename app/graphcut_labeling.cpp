@@ -10,7 +10,7 @@
 #include <algorithm>	// for std::max_element(), std::min_element()
 #include <cmath>		// for std::round()
 
-#include "GraphCutLabeling.h"
+#include "labeling_graphcuts.h"
 #include "labeling_generators.h"
 
 template <typename T>

@@ -3,7 +3,7 @@
 #include "labeling_operators_on_invalidity.h"
 #include "labeling.h"
 #include "containers_macros.h" // for VECTOR_CONTAINS(), MAP_CONTAINS()
-#include "GraphCutLabeling.h"
+#include "labeling_graphcuts.h"
 #include "dump_mesh.h"
 
 size_t remove_surrounded_charts(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg) {

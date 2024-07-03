@@ -6,7 +6,7 @@
 #include "labeling_generators.h"
 #include "labeling.h"
 #include "containers_std.h" // for key_at_max_value(), fill_set_with_map_keys()
-#include "GraphCutLabeling.h"
+#include "labeling_graphcuts.h"
 
 void random_labeling(GEO::Mesh& mesh, const char* attribute_name) {
     std::random_device rd; // https://en.cppreference.com/w/cpp/numeric/random/random_device

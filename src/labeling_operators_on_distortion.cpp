@@ -2,7 +2,7 @@
 #include "labeling.h"
 #include "containers_macros.h" // for MAP_CONTAINS()
 #include "dump_mesh.h"
-#include "GraphCutLabeling.h"
+#include "labeling_graphcuts.h"
 
 #include <deque>
 
