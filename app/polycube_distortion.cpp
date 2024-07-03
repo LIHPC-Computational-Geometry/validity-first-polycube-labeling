@@ -15,7 +15,12 @@
 // - vecA2 the per facet local transformation of the polycube mesh
 //
 // Usage:
-//   ./bin/polycube_distortion path/to/triangle_mesh.obj path/to/polycube_mesh.obj
+//
+//   ./bin/polycube_distortion triangle_mesh.obj polycube_mesh.obj
+//     -> write to stdout
+//
+//   ./bin/polycube_distortion triangle_mesh.obj polycube_mesh.obj output.json
+//     -> write to output.json
 
 #include <geogram/mesh/mesh.h>              // for Mesh
 #include <geogram/mesh/mesh_io.h>           // for mesh_load()
@@ -32,8 +37,14 @@
 #include <Eigen/SVD> // for Eigen::JacobiSVD<>
 
 #include <vector>
+#include <fstream>
+#include <iomanip> // for std::setw()
 
-#include <dbg.h>
+#include <nlohmann/json.hpp>
+
+#ifndef NDEBUG
+    #include <dbg.h>
+#endif
 
 #include "geometry.h" // for compute_jacobians(), compute_stretch(), compute_area_distortion(), compute_angle_distortion(), compute_isometric_distortion()
 #include "containers_macros.h" // for VECTOR_SUM()
@@ -55,23 +66,14 @@ void fill_Eigen_from_Geogram_matrix(const GEO::Matrix<DIM,T>& in, Eigen::Matrix<
 
 int main(int argc, char** argv) {
     
-    // inside of the GEO::initialize() function, modified to have the logger in the "minimal" mode
-    Environment* env = Environment::instance();
-    env->set_value("version", "inaccessible"); // some code after expects the "version" environment variable to exist
-    env->set_value("release_date", "inaccessible"); // idem
-    env->set_value("SVN revision", "inaccessible"); // idem
-    FileSystem::initialize();
-    Logger::initialize();
-    Logger::instance()->set_minimal(true);
-    CmdLine::initialize();
-    CmdLine::import_arg_group("sys"); // declares sys:compression_level, needed by mesh_save() for .geogram files
+    GEO::initialize();
 
     std::vector<std::string> filenames;
     if(!CmdLine::parse(
 		argc,
 		argv,
 		filenames,
-		"input_mesh polycube_mesh"
+		"input_mesh polycube_mesh <output_JSON>"
 		))
 	{
 		return 1;
@@ -224,12 +226,32 @@ int main(int argc, char** argv) {
     double angle_distortion = compute_angle_distortion(input_mesh_per_facet_area,input_mesh_total_area,per_facet_singular_values);
     double isometric_distortion = compute_isometric_distortion(input_mesh_per_facet_area,input_mesh_total_area,per_facet_singular_values);
 
-    #ifndef NDEBUG
-        dbg(stretch);
-        dbg(area_distortion);
-        dbg(angle_distortion);
-        dbg(isometric_distortion);
-    #endif
+    // write to stdout or file, according to the number of arguments
+
+    if (filenames.size() <= 2) {
+        // no output JSON filename provided
+        fmt::println(Logger::out("distortions"), "             stretch = {}", stretch);
+        fmt::println(Logger::out("distortions"), "     area_distortion = {}", area_distortion);
+        fmt::println(Logger::out("distortions"), "    angle_distortion = {}", angle_distortion);
+        fmt::println(Logger::out("distortions"), "isometric_distortion = {}", isometric_distortion);
+        Logger::out("distortions").flush();
+    }
+    else {
+        // write values in a JSON file
+        nlohmann::json output_JSON;
+        output_JSON["stretch"] = stretch;
+        output_JSON["area_distortion"] = area_distortion;
+        output_JSON["angle_distortion"] = angle_distortion;
+        output_JSON["isometric_distortion"] = isometric_distortion;
+
+        std::fstream ofs(filenames[2],std::ios_base::out);
+        if(ofs.good()) {
+            ofs << std::setw(4) << output_JSON << std::endl;
+        }
+        else {
+            fmt::println(Logger::err("I/O"),"Cannot write into {}",filenames[2]); Logger::err("I/O").flush();
+        }
+    }
 
     return 0;
 }
