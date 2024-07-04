@@ -27,7 +27,7 @@
 #include "containers_std.h"         // for index_of_last(), += on std::vector
 #include "geometry_halfedges.h"     // for MeshHalfedgesExt
 #include "labeling.h"               // for label2vector
-#include "dump_mesh.h"              // for dump_vertex()
+#include "io_dump.h"              // for dump_vertex()
 
 bool Chart::is_surrounded_by_feature_edges(const std::vector<Boundary>& all_boundaries) const {
     geo_assert(!boundaries.empty());

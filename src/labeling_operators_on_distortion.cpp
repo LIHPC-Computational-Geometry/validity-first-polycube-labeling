@@ -1,7 +1,7 @@
 #include "labeling_operators_on_distortion.h"
 #include "labeling.h"
 #include "containers_macros.h" // for MAP_CONTAINS()
-#include "dump_mesh.h"
+#include "io_dump.h"
 #include "labeling_graphcuts.h"
 
 #include <deque>

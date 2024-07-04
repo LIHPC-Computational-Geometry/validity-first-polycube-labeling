@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include "dump_mesh.h"
+#include "io_dump.h"
 #include "LabelingGraph.h"          // for Boundary
 #include "geometry_halfedges.h"     // for MeshHalfedgesExt
 

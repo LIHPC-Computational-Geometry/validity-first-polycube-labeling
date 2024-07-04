@@ -22,7 +22,7 @@
 #include "labeling_io.h"                // for load_labeling(), save_labeling()
 #include "labeling_generators.h"        // for naive_labeling()
 #include "basic_stats.h"                // for BasicStats
-#include "dump_mesh.h"                  // for dump_all_boundaries()
+#include "io_dump.h"                    // for dump_all_boundaries()
 
 #define RED_WHITE_BLUE_LABELING_COLORS // better for (most) color-deficient users
 

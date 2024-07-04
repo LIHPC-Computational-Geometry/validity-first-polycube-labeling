@@ -36,7 +36,7 @@ Generation of / operations on polycube labelings.
 ## I/O
 
 - `io_glTF.h` : export a 3D model as glTF
-- `dump_mesh.h` : functions to easily write a .geogram containing a vertex/edge/boundary/facet
+- `io_dump.h` : functions to dump a vertex/edge/boundary/facet as .geogram file
 
 See also `labeling_io.h`.
 

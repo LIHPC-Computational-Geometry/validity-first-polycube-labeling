@@ -16,7 +16,6 @@ include(${CMAKE_SOURCE_DIR}/cmake/automatic_polycube.cmake)
 set(
   SRCFILES
   src/containers_Geogram.cpp
-  src/dump_mesh.cpp
   src/geometry.cpp
   src/geometry_hexahedra.cpp
   src/geometry_distortion.cpp
@@ -28,6 +27,7 @@ set(
   src/labeling_operators_on_distortion.cpp
   src/LabelingGraph.cpp
   src/io_glTF.cpp
+  src/io_dump.cpp
 )
 
 #################

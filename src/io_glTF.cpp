@@ -20,7 +20,7 @@
 #include "containers_macros.h"      // for VECTOR_MIN(), VECTOR_MAX()
 #include "geometry.h"               // for AdjacentFacetOfVertex
 #include "geometry_hexahedra.h"     // for compute_scaled_jacobian()
-#include "dump_mesh.h"              // for dump_edges()
+#include "io_dump.h"                // for dump_edges()
 #include "geometry.h"               // for compute_adjacent_facets_of_vertices()
 
 void write_glTF__triangle_mesh(std::string filename, GEO::Mesh& M, bool with_wireframe) {
