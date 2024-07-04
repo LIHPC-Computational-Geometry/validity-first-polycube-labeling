@@ -10,7 +10,7 @@
 #include "containers_macros.h" // for VECTOR_CONTAINS(), MAP_CONTAINS()
 #include "containers_std.h"    // for key_at_max_value()
 #include "containers_Geogram.h"
-#include "CustomMeshHalfedges.h"
+#include "geometry_halfedges.h"
 
 
 index_t nearest_label(const vec3& normal) {

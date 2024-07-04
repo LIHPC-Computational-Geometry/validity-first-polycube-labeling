@@ -16,7 +16,7 @@
 
 #include <string>
 
-#include "CustomMeshHalfedges.h"    // for CustomMeshHalfedges
+#include "geometry_halfedges.h"     // for CustomMeshHalfedges
 #include "geometry.h"               // for AdjacentFacetOfVertex
 
 #ifdef GARGANTUA

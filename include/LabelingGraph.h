@@ -31,7 +31,7 @@
 #include <optional>
 
 #include "geometry.h" // for HalfedgeCompare
-#include "CustomMeshHalfedges.h"
+#include "geometry_halfedges.h"
 
 #define FALLOFF_BINARY 1.0 // smaller value -> more turning points. https://github.com/LIHPC-Computational-Geometry/evocube/blob/master/src/graphcut_labeling.cpp#L183
 

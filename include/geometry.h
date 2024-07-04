@@ -9,7 +9,7 @@
 #include <utility>  // for std::pair
 #include <optional>
 
-#include "CustomMeshHalfedges.h"
+#include "geometry_halfedges.h"
 
 #define FEATURE_EDGES_MIN_ANGLE	0.5
 

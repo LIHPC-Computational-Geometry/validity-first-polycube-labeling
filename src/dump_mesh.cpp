@@ -7,7 +7,7 @@
 
 #include "dump_mesh.h"
 #include "LabelingGraph.h"          // for Boundary
-#include "CustomMeshHalfedges.h"    // for CustomMeshHalfedges
+#include "geometry_halfedges.h"     // for CustomMeshHalfedges
 
 bool dump_vertex(std::string filename, vec3 coordinates) {
     Mesh out;

@@ -18,7 +18,7 @@
 #include <string>
 #include <set>
 
-#include "CustomMeshHalfedges.h"    // for CustomMeshHalfedges
+#include "geometry_halfedges.h"     // for CustomMeshHalfedges
 #include "geometry.h"               // for facet_normals_are_inward() & flip_facet_normals()
 
 using namespace GEO;

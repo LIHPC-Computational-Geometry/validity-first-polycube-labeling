@@ -12,7 +12,7 @@
 #include <utility>  // for std::pair
 
 #include "LabelingGraph.h"          // for Boundary
-#include "CustomMeshHalfedges.h"    // for CustomMeshHalfedges
+#include "geometry_halfedges.h"     // for CustomMeshHalfedges
 
 using namespace GEO;
 

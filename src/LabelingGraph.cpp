@@ -25,7 +25,7 @@
 #include "geometry.h"               // for other_axis(), HalfedgeCompare
 #include "containers_macros.h"      // for VECTOR_CONTAINS(), MAP_CONTAINS()
 #include "containers_std.h"         // for index_of_last(), += on std::vector
-#include "CustomMeshHalfedges.h"    // for CustomMeshHalfedges
+#include "geometry_halfedges.h"     // for CustomMeshHalfedges
 #include "labeling.h"               // for label2vector
 #include "dump_mesh.h"              // for dump_vertex()
 

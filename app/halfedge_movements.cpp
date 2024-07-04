@@ -11,7 +11,7 @@
 #include <string>
 
 #include "LabelingViewerApp.h"
-#include "CustomMeshHalfedges.h"
+#include "geometry_halfedges.h"
 #include "geometry.h"               // for facet_normals_are_inward() & flip_facet_normals()
 
 #define TEXT_GREEN  ImVec4(0.0f,0.8f,0.0f,1.0f)

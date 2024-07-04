@@ -27,7 +27,7 @@
 #include "labeling_io.h"
 #include "LabelingGraph.h"
 #include "basic_stats.h"
-#include "CustomMeshHalfedges.h"
+#include "geometry_halfedges.h"
 
 #define LABELING_ATTRIBUTE_NAME "label"
 
