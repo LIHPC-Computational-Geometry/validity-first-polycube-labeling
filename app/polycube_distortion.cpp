@@ -246,6 +246,7 @@ int main(int argc, char** argv) {
 
         std::fstream ofs(filenames[2],std::ios_base::out);
         if(ofs.good()) {
+            fmt::println(Logger::out("I/O"),"Saving file {}...",filenames[2]); Logger::out("I/O").flush();
             ofs << std::setw(4) << output_JSON << std::endl;
         }
         else {

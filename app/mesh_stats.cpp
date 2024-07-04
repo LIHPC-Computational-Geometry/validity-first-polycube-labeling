@@ -1,3 +1,14 @@
+// Usage :
+//
+//   ./bin/mesh_stats input.mesh
+//     -> write to stdout
+//
+//   ./bin/mesh_stats input.mesh output.json
+//     -> write to output.json
+//
+//   ./bin/mesh_stats input.mesh principal_axes=principal_axes.obj
+//     -> export a mesh with the center and the 3 vectors (as edges) of the principal axes
+
 #include <geogram/mesh/mesh.h>              // for Mesh, cell types
 #include <geogram/mesh/mesh_io.h>           // for mesh_load(), mesh_save()
 #include <geogram/mesh/mesh_geometry.h>     // for mesh_facet_area(), mesh_cell_volume()
@@ -38,27 +49,26 @@ using namespace GEO;
 
 int main(int argc, char** argv) {
     
-    // inside of the GEO::initialize() function, modified to have the logger in the "minimal" mode
-    Environment* env = Environment::instance();
-    env->set_value("version", "inaccessible"); // some code after expects the "version" environment variable to exist
-    env->set_value("release_date", "inaccessible"); // idem
-    env->set_value("SVN revision", "inaccessible"); // idem
-    FileSystem::initialize();
-    Logger::initialize();
-    Logger::instance()->set_minimal(true);
-    CmdLine::initialize();
-    CmdLine::import_arg_group("sys"); // declares sys:compression_level, needed by mesh_save() for .geogram files
+    GEO::initialize();
+
+    CmdLine::declare_arg(
+        "principal_axes",
+        "",
+        "path to the output principal axes mesh"
+    );
 
     std::vector<std::string> filenames;
     if(!CmdLine::parse(
 		argc,
 		argv,
 		filenames,
-		"input_mesh <principal_axes.obj>" // second filename is facultative
+		"input_mesh <output_JSON>" // second filename is facultative
 		))
 	{
 		return 1;
 	}
+
+    std::string principal_axes_filename = GEO::CmdLine::get_arg("principal_axes");
 
     if(!FileSystem::is_file(filenames[0])) {
         fmt::println(Logger::err("I/O"),"{} does not exist",filenames[0]); Logger::err("I/O").flush();
@@ -124,7 +134,7 @@ int main(int argc, char** argv) {
                 {"eigenvalue", principal_axes.eigen_value(2) }})
             }
         };
-        if(filenames.size() > 1) { // if another filename was given
+        if(!principal_axes_filename.empty()) {
             Mesh principal_axes_mesh;
             principal_axes_mesh.vertices.create_vertices(4); // {center, first axis tip, second axis tip, third axis tip}
             principal_axes_mesh.vertices.point(VERTEX_ORIGIN) = principal_axes.center();
@@ -140,8 +150,8 @@ int main(int argc, char** argv) {
             principal_axes_mesh.edges.set_vertex(1,1,VERTEX_TIP_2ND_AXIS);
             // edge n°2 : 3rd principal axis
             principal_axes_mesh.edges.set_vertex(2,0,VERTEX_ORIGIN);
-            principal_axes_mesh.edges.set_vertex(2,1,VERTEX_TIP_3RD_AXIS); 
-            mesh_save(principal_axes_mesh,filenames[1]);
+            principal_axes_mesh.edges.set_vertex(2,1,VERTEX_TIP_3RD_AXIS);
+            mesh_save(principal_axes_mesh,principal_axes_filename);
         }
     }
 
@@ -215,7 +225,23 @@ int main(int argc, char** argv) {
         }
     }
 
-    std::cout << std::setw(4) << output_JSON << std::endl;
+    // write to stdout or file, according to the number of arguments
+
+    if(filenames.size() <= 1) {
+        // no output JSON filename provided
+        std::cout << std::setw(4) << output_JSON << std::endl;
+    }
+    else {
+        // write values in a JSON file
+        std::fstream ofs(filenames[1],std::ios_base::out);
+        if(ofs.good()) {
+            fmt::println(Logger::out("I/O"),"Saving file {}...",filenames[1]); Logger::out("I/O").flush();
+            ofs << std::setw(4) << output_JSON << std::endl;
+        }
+        else {
+            fmt::println(Logger::err("I/O"),"Cannot write into {}",filenames[1]); Logger::err("I/O").flush();
+        }
+    }
 
     return 0;
 }
