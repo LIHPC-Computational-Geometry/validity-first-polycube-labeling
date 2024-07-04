@@ -23,7 +23,7 @@
 
 #include "stats.h" // for std_dev()
 #include "LabelingViewerApp.h"
-#include "LabelingGraph.h"
+#include "labeling_graph.h"
 #include "labeling_io.h"
 #include "labeling_generators.h"
 #include "labeling_operators_on_invalidity.h"

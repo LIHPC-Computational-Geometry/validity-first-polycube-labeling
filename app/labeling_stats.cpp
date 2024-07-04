@@ -25,7 +25,7 @@
 
 #include "labeling.h"
 #include "labeling_io.h"
-#include "LabelingGraph.h"
+#include "labeling_graph.h"
 #include "stats.h"
 #include "geometry_halfedges.h"
 

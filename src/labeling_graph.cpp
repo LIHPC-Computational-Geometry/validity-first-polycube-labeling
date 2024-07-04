@@ -21,13 +21,13 @@
 
 #include <nlohmann/json.hpp>
 
-#include "LabelingGraph.h"
+#include "labeling_graph.h"
 #include "geometry.h"               // for other_axis(), HalfedgeCompare
 #include "containers_macros.h"      // for VECTOR_CONTAINS(), MAP_CONTAINS()
 #include "containers_std.h"         // for index_of_last(), += on std::vector
 #include "geometry_halfedges.h"     // for MeshHalfedgesExt
 #include "labeling.h"               // for label2vector
-#include "io_dump.h"              // for dump_vertex()
+#include "io_dump.h"                // for dump_vertex()
 
 bool Chart::is_surrounded_by_feature_edges(const std::vector<Boundary>& all_boundaries) const {
     geo_assert(!boundaries.empty());

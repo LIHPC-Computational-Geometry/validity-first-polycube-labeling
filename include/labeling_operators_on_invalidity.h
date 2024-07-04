@@ -6,7 +6,7 @@
 #include <set>
 #include <utility>  // for std::pair
 
-#include "LabelingGraph.h"  // for StaticLabelingGraph
+#include "labeling_graph.h"  // for StaticLabelingGraph
 
 using namespace GEO;
 

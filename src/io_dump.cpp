@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "io_dump.h"
-#include "LabelingGraph.h"          // for Boundary
+#include "labeling_graph.h"         // for Boundary
 #include "geometry_halfedges.h"     // for MeshHalfedgesExt
 
 bool dump_vertex(std::string filename, vec3 coordinates) {

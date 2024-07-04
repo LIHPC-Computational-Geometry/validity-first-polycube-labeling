@@ -4,7 +4,7 @@
 
 #include <initializer_list>
 
-#include "LabelingGraph.h"  // for Boundary
+#include "labeling_graph.h" // for Boundary
 #include "stats.h"          // for IncrementalStats
 
 // get the string representation of a label
@@ -48,5 +48,5 @@ void compute_per_facet_fidelity(GEO::Mesh& mesh, const std::vector<vec3>& normal
 
 unsigned int count_lost_feature_edges(const MeshHalfedgesExt& mesh_he, const std::set<std::pair<index_t,index_t>>& feature_edges);
 
-// TODO move to LabelingGraph.h
+// TODO move to labeling_graph.h
 index_t adjacent_chart_in_common(const Boundary& b0, const Boundary& b1);

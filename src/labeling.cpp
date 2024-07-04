@@ -6,7 +6,7 @@
 #include <ranges>           // for std::ranges::view::keys()
 
 #include "labeling.h"
-#include "LabelingGraph.h"
+#include "labeling_graph.h"
 #include "containers_macros.h" // for VECTOR_CONTAINS(), MAP_CONTAINS()
 #include "containers_std.h"    // for key_at_max_value()
 #include "containers_Geogram.h"

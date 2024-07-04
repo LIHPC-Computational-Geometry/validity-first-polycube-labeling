@@ -11,7 +11,7 @@
 #include <map>
 #include <utility>  // for std::pair
 
-#include "LabelingGraph.h"          // for Boundary
+#include "labeling_graph.h"         // for Boundary
 #include "geometry_halfedges.h"     // for MeshHalfedgesExt
 
 using namespace GEO;

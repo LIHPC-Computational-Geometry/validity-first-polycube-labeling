@@ -29,9 +29,9 @@ Generation of / operations on polycube labelings.
 - `labeling_io.h` : read/write labeling files
 - `labeling_graphcuts.h` : high-level interface of [GraphCutOptimization](../ext/GraphCutOptimization/), for labeling generation
 - `labeling_generators.h` : functions to generate a labeling
+- `labeling_graph.h` : computation of charts/boundaries/corners from a labeling
 - `labeling_operators_on_invalidity.h` : functions to edit a labeling, targeting a valid one
 - `labeling_operators_on_distortion.h` : functions to edit a labeling, targeting a low distortion one
-- `LabelingGraph.h` : computation of charts/boundaries/corners from a labeling
 
 ## I/O
 

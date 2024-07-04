@@ -1,7 +1,7 @@
 #pragma once
 
 #include <geogram/mesh/mesh.h>      // for GEO::Mesh
-#include "LabelingGraph.h"
+#include "labeling_graph.h"
 
 using namespace GEO;
 

@@ -23,9 +23,9 @@ set(
   src/labeling_io.cpp
   src/labeling_graphcuts.cpp
   src/labeling_generators.cpp
+  src/labeling_graph.cpp
   src/labeling_operators_on_invalidity.cpp
   src/labeling_operators_on_distortion.cpp
-  src/LabelingGraph.cpp
   src/io_glTF.cpp
   src/io_dump.cpp
 )

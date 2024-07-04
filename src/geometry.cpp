@@ -18,7 +18,7 @@
 
 #include "geometry.h"
 #include "geometry_halfedges.h"
-#include "LabelingGraph.h"
+#include "labeling_graph.h"
 #include "labeling.h" // for label2vector
 #include "containers_macros.h" // for VECTOR_MAX_INDEX()
 
