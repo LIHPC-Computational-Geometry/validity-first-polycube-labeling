@@ -15,7 +15,7 @@
 
 #include <array>
 
-#include "basic_stats.h" // for BasicStats
+#include "stats.h" // for BasicStats
 #include "geometry.h"
 
 using namespace GEO;

@@ -10,7 +10,7 @@ Additional functions/macros for containers.
 
 ## Statistics
 
-- `basic_stats.h` : compute min/max/sum/avg/sd
+- `stats.h` : compute min/max/sum/avg/sd
 
 ## Geometry
 

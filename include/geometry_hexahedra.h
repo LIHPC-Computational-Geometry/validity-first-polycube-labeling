@@ -3,7 +3,7 @@
 #include <geogram/basic/numeric.h> // for GEO::index_t
 #include <geogram/mesh/mesh.h>     // for GEO::Mesh
 
-#include "basic_stats.h"
+#include "stats.h"
 
 // Ordering of hexahedron corners
 //

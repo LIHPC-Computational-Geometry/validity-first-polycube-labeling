@@ -29,7 +29,7 @@
 #include <array>
 
 #include "labeling.h"
-#include "basic_stats.h"
+#include "stats.h"
 #include "geometry_hexahedra.h" // for compute_scaled_jacobian()
 #include "geometry.h" // for facet_normals_are_inward()
 

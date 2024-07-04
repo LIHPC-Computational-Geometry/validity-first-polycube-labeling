@@ -21,7 +21,7 @@
 #include <tuple>                // for std::tie()
 #include <deque>
 
-#include "basic_stats.h"        // for std_dev()
+#include "stats.h" // for std_dev()
 #include "LabelingViewerApp.h"
 #include "LabelingGraph.h"
 #include "labeling_io.h"

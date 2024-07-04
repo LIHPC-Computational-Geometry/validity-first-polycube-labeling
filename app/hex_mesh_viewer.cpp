@@ -8,7 +8,7 @@
 
 #include "geometry_hexahedra.h"         // for compute_scaled_jacobian()
 #include "SimpleMeshApplicationExt.h"   // for colormaps indices
-#include "basic_stats.h"                // for BasicStats
+#include "stats.h"                      // for BasicStats
 
 using namespace GEO;
 

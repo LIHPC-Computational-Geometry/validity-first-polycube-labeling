@@ -5,7 +5,7 @@
 #include <initializer_list>
 
 #include "LabelingGraph.h"  // for Boundary
-#include "basic_stats.h"    // for BasicStats
+#include "stats.h"          // for BasicStats
 
 // get the string representation of a label
 #define LABEL2STR(label) ((label==0) ? "+X" : ( \

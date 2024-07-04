@@ -21,7 +21,7 @@
 #include "labeling.h"                   // for flip_labeling(), label2vector(), LABEL2STR(), compute_per_facet_fidelity
 #include "labeling_io.h"                // for load_labeling(), save_labeling()
 #include "labeling_generators.h"        // for naive_labeling()
-#include "basic_stats.h"                // for BasicStats
+#include "stats.h"                      // for BasicStats
 #include "io_dump.h"                    // for dump_all_boundaries()
 
 #define RED_WHITE_BLUE_LABELING_COLORS // better for (most) color-deficient users
