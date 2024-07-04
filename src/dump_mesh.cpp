@@ -7,7 +7,7 @@
 
 #include "dump_mesh.h"
 #include "LabelingGraph.h"          // for Boundary
-#include "geometry_halfedges.h"     // for CustomMeshHalfedges
+#include "geometry_halfedges.h"     // for MeshHalfedgesExt
 
 bool dump_vertex(std::string filename, vec3 coordinates) {
     Mesh out;
@@ -108,7 +108,7 @@ bool dump_boundary_with_halfedges_indices(std::string filename, const Mesh& mesh
     return mesh_save(boundary_mesh,filename + ".geogram");
 }
 
-bool dump_chart_contour(std::string filename, const CustomMeshHalfedges& mesh_he, const StaticLabelingGraph& slg, index_t chart_index) {
+bool dump_chart_contour(std::string filename, const MeshHalfedgesExt& mesh_he, const StaticLabelingGraph& slg, index_t chart_index) {
     geo_assert(chart_index < slg.nb_charts());
     geo_assert(mesh_he.is_using_facet_region());
     const Mesh& mesh = mesh_he.mesh();

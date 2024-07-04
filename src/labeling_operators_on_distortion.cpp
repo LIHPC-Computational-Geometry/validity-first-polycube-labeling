@@ -17,7 +17,7 @@ size_t move_boundaries_near_turning_points(GEO::Mesh& mesh, const char* attribut
     }
 
     Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // get labeling attribute
-    CustomMeshHalfedges mesh_halfedges(mesh); // create an halfedges interface for this mesh
+    MeshHalfedgesExt mesh_halfedges(mesh); // create an halfedges interface for this mesh
     mesh_halfedges.set_use_facet_region(attribute_name);
     MeshHalfedges::Halfedge initial_halfedge, current_halfedge;
     index_t new_label = index_t(-1);
@@ -84,7 +84,7 @@ void straighten_boundary_with_GCO(GEO::Mesh& mesh, const std::vector<vec3>& norm
     index_t right_chart_index = current_boundary.right_chart;
     const Chart& left_chart = slg.charts[left_chart_index];
     const Chart& right_chart = slg.charts[right_chart_index];
-    CustomMeshHalfedges mesh_he(mesh);
+    MeshHalfedgesExt mesh_he(mesh);
 
     #ifndef NDEBUG
         fmt::println("Working on boundary {} -> charts {} and {}",boundary_index,left_chart_index,right_chart_index);
@@ -121,7 +121,7 @@ void straighten_boundary_with_GCO(GEO::Mesh& mesh, const std::vector<vec3>& norm
     // Go through the boundary and set distance of adjacent triangle to 0
     auto boundary_halfedge = current_boundary.halfedges.cbegin(); // get an iterator pointing at the first halfedge
     boundary_halfedge++; // go to the second halfedge (the vertex at the base of the first one has facets of other charts next to it)
-    CustomMeshHalfedges::Halfedge current_halfedge;
+    MeshHalfedgesExt::Halfedge current_halfedge;
     for(; boundary_halfedge != current_boundary.halfedges.cend(); ++boundary_halfedge) { // walk along the boundary, from (boundary) halfedge to (boundary) halfedge
         current_halfedge = (*boundary_halfedge); // copy the boundary halfedge into a mutable variable
         do { // for each facet around the vertex at the base of the current boundary halfedge
@@ -231,7 +231,7 @@ bool straighten_boundary(GEO::Mesh& mesh, const char* attribute_name, const Stat
     index_t right_chart_index = current_boundary.right_chart;
     const Chart& left_chart = slg.charts[left_chart_index];
     const Chart& right_chart = slg.charts[right_chart_index];
-    CustomMeshHalfedges mesh_he(mesh);
+    MeshHalfedgesExt mesh_he(mesh);
 
     index_t target_vertex = halfedge_vertex_index_from(mesh,*current_boundary.halfedges.rbegin()); // origin of laft halfedge
     vec3 target_point = mesh_vertex(mesh,target_vertex);
@@ -376,7 +376,7 @@ void straighten_boundaries(GEO::Mesh& mesh, const char* attribute_name, StaticLa
 
 void move_corners(GEO::Mesh& mesh, const char* attribute_name, const StaticLabelingGraph& slg, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<std::vector<index_t>>& adj_facets) {
     Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // get labeling attribute
-    CustomMeshHalfedges mesh_he(mesh);
+    MeshHalfedgesExt mesh_he(mesh);
     mesh_he.set_use_facet_region(attribute_name);
     std::set<index_t> adjacent_charts_of_corner; // indices of adjacent charts
     std::set<index_t> adjacent_charts_of_new_vertex;
@@ -505,7 +505,7 @@ bool merge_a_turning_point_and_its_closest_corner(GEO::Mesh& mesh, const char* a
 
         // get labeling attribute and instanciate the halfedges API
         Attribute<index_t> label(mesh.facets.attributes(), attribute_name);
-        CustomMeshHalfedges mesh_he(mesh);
+        MeshHalfedgesExt mesh_he(mesh);
         mesh_he.set_use_facet_region(attribute_name);
         index_t first_turning_point_on_feature_edge_vertex = first_turning_point_on_feature_edge.vertex(non_monotone_boundary,mesh);
 
@@ -640,7 +640,7 @@ bool join_turning_points_pair_with_new_chart(GEO::Mesh& mesh, const char* attrib
     // Else do nothing
 
     Attribute<index_t> label(mesh.facets.attributes(), attribute_name);
-    CustomMeshHalfedges mesh_he(mesh);
+    MeshHalfedgesExt mesh_he(mesh);
     mesh_he.set_use_facet_region(attribute_name);
     MeshHalfedges::Halfedge halfedge;
     index_t chart_on_which_the_lost_feature_edge_is = index_t(-1);

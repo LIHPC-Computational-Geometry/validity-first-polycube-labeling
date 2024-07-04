@@ -55,7 +55,7 @@ bool fix_an_invalid_boundary(
     const std::vector<std::vector<index_t>>& adj_facets
 ) {
     Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // get labeling attribute
-    CustomMeshHalfedges mesh_he(mesh); // create an halfedges interface for this mesh
+    MeshHalfedgesExt mesh_he(mesh); // create an halfedges interface for this mesh
     mesh_he.set_use_facet_region(attribute_name);
 
     // For each invalid boundary,
@@ -259,7 +259,7 @@ bool fix_an_invalid_boundary(
 
 size_t fix_as_much_invalid_corners_as_possible(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, StaticLabelingGraph& slg, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<index_t>& facet2chart, const std::vector<std::vector<index_t>>& adj_facets) {
     Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // get labeling attribute
-    CustomMeshHalfedges mesh_he(mesh); // create an halfedges interface for this mesh
+    MeshHalfedgesExt mesh_he(mesh); // create an halfedges interface for this mesh
     mesh_he.set_use_facet_region(attribute_name);
 
     // Replace the labels around invalid corners
@@ -541,7 +541,7 @@ bool increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
             continue; // check next invalid chart
         }
         Attribute<index_t> label(mesh.facets.attributes(), attribute_name);
-        CustomMeshHalfedges mesh_he(mesh);
+        MeshHalfedgesExt mesh_he(mesh);
         mesh_he.set_use_facet_region(attribute_name);
 
         // transform the set of boundaries around `chart` into a vector

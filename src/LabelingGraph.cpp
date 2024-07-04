@@ -25,7 +25,7 @@
 #include "geometry.h"               // for other_axis(), HalfedgeCompare
 #include "containers_macros.h"      // for VECTOR_CONTAINS(), MAP_CONTAINS()
 #include "containers_std.h"         // for index_of_last(), += on std::vector
-#include "geometry_halfedges.h"     // for CustomMeshHalfedges
+#include "geometry_halfedges.h"     // for MeshHalfedgesExt
 #include "labeling.h"               // for label2vector
 #include "dump_mesh.h"              // for dump_vertex()
 
@@ -40,7 +40,7 @@ bool Chart::is_surrounded_by_feature_edges(const std::vector<Boundary>& all_boun
 }
 
 void Chart::counterclockwise_boundaries_order(
-    const CustomMeshHalfedges& mesh_he,
+    const MeshHalfedgesExt& mesh_he,
     const std::map<MeshHalfedges::Halfedge,std::pair<index_t,bool>,HalfedgeCompare> halfedge2boundary,
     const std::vector<Boundary>& all_boundaries,
     std::vector<std::pair<index_t,bool>>& counterclockwise_order) const {
@@ -124,7 +124,7 @@ bool VertexRingWithBoundaries::halfedge_is_in_boundary_edges(const MeshHalfedges
  * \param[in] labeling The facet-to-label association, to detect boundary edges (= edges between 2 labels)
  */
 void VertexRingWithBoundaries::explore(const MeshHalfedges::Halfedge& initial_halfedge,
-                                       const CustomMeshHalfedges& mesh_halfedges) {
+                                       const MeshHalfedgesExt& mesh_halfedges) {
     
     // prepare the vertex exploration
     MeshHalfedges::Halfedge current_halfedge = initial_halfedge; // create another Halfedge that we can modify (we need to keep the initial one)
@@ -138,7 +138,7 @@ void VertexRingWithBoundaries::explore(const MeshHalfedges::Halfedge& initial_ha
     } while ((current_halfedge != initial_halfedge));
 }
 
-void VertexRingWithBoundaries::explore(index_t init_facet_corner, const CustomMeshHalfedges& mesh_halfedges) {
+void VertexRingWithBoundaries::explore(index_t init_facet_corner, const MeshHalfedgesExt& mesh_halfedges) {
     MeshHalfedges::Halfedge initial_halfedge;
     initial_halfedge.facet = mesh_halfedges.mesh().facet_corners.adjacent_facet(init_facet_corner);
     index_t init_vertex = mesh_halfedges.mesh().facet_corners.vertex(init_facet_corner);
@@ -156,7 +156,7 @@ void VertexRingWithBoundaries::explore(index_t init_facet_corner, const CustomMe
     explore(initial_halfedge,mesh_halfedges);
 }
 
-void VertexRingWithBoundaries::check_boundary_edges(const CustomMeshHalfedges& mesh_halfedges) const {
+void VertexRingWithBoundaries::check_boundary_edges(const MeshHalfedgesExt& mesh_halfedges) const {
     for(const auto& be: boundary_edges) {
         geo_assert(mesh_halfedges.halfedge_is_border(be));
     }
@@ -385,7 +385,7 @@ std::ostream& operator<< (std::ostream &out, const Corner& data) {
     return out;
 }
 
-void TurningPoint::fill_from(index_t outgoing_local_halfedge_index, const Boundary& boundary, const CustomMeshHalfedges& mesh_he) {
+void TurningPoint::fill_from(index_t outgoing_local_halfedge_index, const Boundary& boundary, const MeshHalfedgesExt& mesh_he) {
     geo_assert(mesh_he.is_using_facet_region()); // assert a facet region is defined in mesh_he
     outgoing_local_halfedge_index_ = outgoing_local_halfedge_index;
     // Explore clockwise : right side then left side
@@ -409,7 +409,7 @@ void TurningPoint::fill_from(index_t outgoing_local_halfedge_index, const Bounda
     is_towards_right_ = (right_side_sum_of_angles > left_side_sum_of_angles);
 }
 
-index_t TurningPoint::get_closest_corner(const Boundary& boundary, const CustomMeshHalfedges& mesh_he) const {
+index_t TurningPoint::get_closest_corner(const Boundary& boundary, const MeshHalfedgesExt& mesh_he) const {
     // the turning-point is at the base of the halfedge 'outgoing_local_halfedge_index_'
     // compute 2 distances :
     // - from boundary.start_corner to turning point (= first halfedge to outgoing_local_halfedge_index_-1 included)
@@ -455,7 +455,7 @@ bool Boundary::empty() const {
 }
 
 void Boundary::explore(const MeshHalfedges::Halfedge& initial_halfedge,
-                       const CustomMeshHalfedges& mesh_halfedges,
+                       const MeshHalfedgesExt& mesh_halfedges,
                        index_t index_of_self,
                        const std::set<std::pair<index_t,index_t>>& feature_edges,
                        const std::vector<index_t>& facet2chart,
@@ -576,7 +576,7 @@ void Boundary::explore(const MeshHalfedges::Halfedge& initial_halfedge,
     } while (end_corner == index_t(-1)); // continue the exploration until a corner is found
 }
 
-bool Boundary::contains_lower_than_180_degrees_angles(const CustomMeshHalfedges& mesh_halfedges) {
+bool Boundary::contains_lower_than_180_degrees_angles(const MeshHalfedgesExt& mesh_halfedges) {
     for(auto be : halfedges) { // need to be mutable, but will be back on the original halfedge
         if(mesh_halfedges.is_on_lower_than_180_degrees_edge(be)) {
             return true;
@@ -585,7 +585,7 @@ bool Boundary::contains_lower_than_180_degrees_angles(const CustomMeshHalfedges&
     return false;
 }
 
-bool Boundary::compute_validity(bool allow_boundaries_between_opposite_labels, const CustomMeshHalfedges& mesh_halfedges) {
+bool Boundary::compute_validity(bool allow_boundaries_between_opposite_labels, const MeshHalfedgesExt& mesh_halfedges) {
     if (axis==-1) {
         if(contains_lower_than_180_degrees_angles(mesh_halfedges)) {
             is_valid = false;
@@ -603,7 +603,7 @@ bool Boundary::compute_validity(bool allow_boundaries_between_opposite_labels, c
     return is_valid;
 }
 
-bool Boundary::find_turning_points(const CustomMeshHalfedges& mesh_halfedges) {
+bool Boundary::find_turning_points(const MeshHalfedgesExt& mesh_halfedges) {
 
     // based on https://github.com/LIHPC-Computational-Geometry/evocube/blob/master/src/graphcut_labeling.cpp#L142 graphcutTurningPoints()
 
@@ -734,7 +734,7 @@ void Boundary::print_successive_halfedges(fmt::v9::ostream& out, Mesh& mesh) {
         out.print("--{{{},{}}}--> ",halfedges[he_index].facet,halfedges[he_index].corner);
     }
     // print last vertex of the boundary
-    CustomMeshHalfedges mesh_halfedges(mesh);
+    MeshHalfedgesExt mesh_halfedges(mesh);
     out.print("{}\n",Geom::halfedge_vertex_index_to(mesh,*(halfedges.rbegin()))); // get vertex at extremity of last halfedge = last vertex
 }
 
@@ -751,7 +751,7 @@ bool Boundary::halfedge_has_turning_point_at_base(index_t local_halfedge_index) 
     return false;
 }
 
-index_t Boundary::get_closest_boundary_of_turning_point(const TurningPoint& turning_point, index_t closest_corner, const CustomMeshHalfedges& mesh_he, const std::map<MeshHalfedges::Halfedge,std::pair<index_t,bool>,HalfedgeCompare>& halfedge2boundary, const std::vector<Corner>& corners) const {
+index_t Boundary::get_closest_boundary_of_turning_point(const TurningPoint& turning_point, index_t closest_corner, const MeshHalfedgesExt& mesh_he, const std::map<MeshHalfedges::Halfedge,std::pair<index_t,bool>,HalfedgeCompare>& halfedge2boundary, const std::vector<Corner>& corners) const {
     geo_assert(mesh_he.is_using_facet_region()); // assert a facet region is defined in mesh_he
 
     // find the closest corner if not already done in parent function
@@ -975,7 +975,7 @@ void StaticLabelingGraph::fill_from(
 
     facet2chart.resize(mesh.facets.nb()); // important: memory allocation allowing to call ds.getSetsMap() on the underlying array
     vertex2corner.resize(mesh.vertices.nb(),index_t(-1)); // contrary to facet2chart where all facets are associated to a chart, not all vertices are associated to a corner
-    CustomMeshHalfedges mesh_half_edges_(mesh); // Half edges API
+    MeshHalfedgesExt mesh_half_edges_(mesh); // Half edges API
 
     // STEP 1 : Aggregate adjacent triangles of same label as chart
 
@@ -1005,7 +1005,7 @@ void StaticLabelingGraph::fill_from(
     // for each of them, explore adjacent facets to compute valence (number of boundary edges).
     // But I don't know how to get the adjacent facets of a given vertex.
     // What I can do, with half-edges, is to iterate over all facet corners, get the vertex at this corner,
-    // and go around the vertex ring with CustomMeshHalfedges::move_to_next_around_vertex(). See VertexRingWithBoundaries::explore()
+    // and go around the vertex ring with MeshHalfedgesExt::move_to_next_around_vertex(). See VertexRingWithBoundaries::explore()
     // This works for shapes having several solids connected by a vertex only
 
     mesh_half_edges_.set_use_facet_region(facet_attribute); // indicate to Geogram the attribute with the charts (= regions for Geogram) from which we want to find the boundaries (= borders for Geogram)

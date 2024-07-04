@@ -15,7 +15,7 @@
 #include <vector>
 
 #include "io_glTF.h"
-#include "geometry_halfedges.h"     // for CustomMeshHalfedges
+#include "geometry_halfedges.h"     // for MeshHalfedgesExt
 #include "containers_std.h"         // for index_of_last()
 #include "containers_macros.h"      // for VECTOR_MIN(), VECTOR_MAX()
 #include "geometry.h"               // for AdjacentFacetOfVertex
@@ -32,7 +32,7 @@ void write_glTF__triangle_mesh(std::string filename, GEO::Mesh& M, bool with_wir
 
     std::set<std::set<index_t>> wireframe_edges_as_set;
     if(with_wireframe) {
-        GEO::CustomMeshHalfedges mesh_he(M);
+        GEO::MeshHalfedgesExt mesh_he(M);
         GEO::MeshHalfedges::Halfedge H;
         index_t H_v0 = index_t(-1);
         index_t H_v1 = index_t(-1);
@@ -1024,7 +1024,7 @@ void write_glTF__hex_mesh_surface(std::string filename, const GEO::Mesh& hex_mes
     // 4.
 
     std::set<std::set<index_t>> wireframe_edges_as_set;
-    GEO::CustomMeshHalfedges mesh_he(mesh);
+    GEO::MeshHalfedgesExt mesh_he(mesh);
     GEO::MeshHalfedges::Halfedge H;
     index_t H_v0 = index_t(-1);
     index_t H_v1 = index_t(-1);

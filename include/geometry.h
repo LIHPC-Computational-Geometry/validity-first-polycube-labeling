@@ -117,7 +117,7 @@ bool halfedge_is_on_feature_edge(const Mesh& mesh, const MeshHalfedges::Halfedge
 
 bool local_edge_is_on_feature_edge(const Mesh& mesh, index_t facet_index, index_t local_edge, const std::set<std::pair<index_t,index_t>>& feature_edges);
 
-bool move_to_next_halfedge_on_feature_edge(const CustomMeshHalfedges& mesh_he, MeshHalfedges::Halfedge& H, const std::set<std::pair<index_t,index_t>>& feature_edges);
+bool move_to_next_halfedge_on_feature_edge(const MeshHalfedgesExt& mesh_he, MeshHalfedges::Halfedge& H, const std::set<std::pair<index_t,index_t>>& feature_edges);
 
 void rotate_mesh_according_to_principal_axes(Mesh& mesh);
 
@@ -127,15 +127,15 @@ void rotate_mesh_according_to_principal_axes(Mesh& mesh);
 // as long as `vertex_index` is at its origin
 MeshHalfedges::Halfedge get_an_outgoing_halfedge_of_vertex(const Mesh& mesh, const std::vector<std::vector<index_t>>& adj_facets, index_t vertex_index);
 
-MeshHalfedges::Halfedge get_halfedge_between_two_vertices(const CustomMeshHalfedges& mesh_he, const std::vector<std::vector<index_t>>& adj_facets, index_t origin_vertex, index_t extremity_vertex);
+MeshHalfedges::Halfedge get_halfedge_between_two_vertices(const MeshHalfedgesExt& mesh_he, const std::vector<std::vector<index_t>>& adj_facets, index_t origin_vertex, index_t extremity_vertex);
 
 // the vertex around which halfedges will be tested is the origin vertex of `init_halfedge` 
-MeshHalfedges::Halfedge get_most_aligned_halfedge_around_vertex(const MeshHalfedges::Halfedge& init_halfedge, const CustomMeshHalfedges& mesh_he, const vec3& reference);
+MeshHalfedges::Halfedge get_most_aligned_halfedge_around_vertex(const MeshHalfedges::Halfedge& init_halfedge, const MeshHalfedgesExt& mesh_he, const vec3& reference);
 
 void get_adjacent_facets_conditional(const Mesh& mesh, index_t facet_index, index_t which_chart, const std::vector<index_t>& facet2chart, std::set<index_t>& out);
 
 // for given 3D coodinates and a start vertex not too far, find the nearest vertex
-index_t get_nearest_vertex_of_coordinates(const CustomMeshHalfedges& mesh_he, const std::vector<std::vector<index_t>>& adj_facets, vec3 target_coordinates, index_t start_vertex, size_t max_dist);
+index_t get_nearest_vertex_of_coordinates(const MeshHalfedgesExt& mesh_he, const std::vector<std::vector<index_t>>& adj_facets, vec3 target_coordinates, index_t start_vertex, size_t max_dist);
 
 index_t nearest_axis_of_edges(const Mesh& mesh, std::initializer_list<MeshHalfedges::Halfedge> edges, std::initializer_list<index_t> forbidden_axes);
 
@@ -145,7 +145,7 @@ double dot_product_between_halfedge_and_axis(const Mesh& mesh, MeshHalfedges::Ha
 // return value between 0 and pi
 double angle_between_halfedge_and_axis(const Mesh& mesh, MeshHalfedges::Halfedge halfedge, index_t axis);
 
-void trace_path_on_chart(const CustomMeshHalfedges& mesh_he, const std::vector<std::vector<index_t>>& adj_facets, const std::vector<index_t>& facet2chart, const std::map<index_t,std::vector<std::pair<index_t,index_t>>>& turning_point_vertices, index_t start_vertex, vec3 direction, std::set<index_t>& facets_at_left, std::set<index_t>& facets_at_right, std::vector<MeshHalfedges::Halfedge>& halfedges);
+void trace_path_on_chart(const MeshHalfedgesExt& mesh_he, const std::vector<std::vector<index_t>>& adj_facets, const std::vector<index_t>& facet2chart, const std::map<index_t,std::vector<std::pair<index_t,index_t>>>& turning_point_vertices, index_t start_vertex, vec3 direction, std::set<index_t>& facets_at_left, std::set<index_t>& facets_at_right, std::vector<MeshHalfedges::Halfedge>& halfedges);
 
 vec3 average_facets_normal(const std::vector<vec3>& normals, const std::set<index_t>& facets);
 
@@ -153,10 +153,10 @@ double average_dot_product(const std::vector<vec3>& normals, const std::set<inde
 
 double average_angle(const std::vector<vec3>& normals, const std::set<index_t>& facets, vec3 reference);
 
-bool vertex_has_lost_feature_edge_in_neighborhood(const CustomMeshHalfedges& mesh_he, const std::vector<std::vector<index_t>>& adj_facets, const std::set<std::pair<index_t,index_t>>& feature_edges, index_t vertex, MeshHalfedges::Halfedge& outgoing_halfedge_on_feature_edges);
+bool vertex_has_lost_feature_edge_in_neighborhood(const MeshHalfedgesExt& mesh_he, const std::vector<std::vector<index_t>>& adj_facets, const std::set<std::pair<index_t,index_t>>& feature_edges, index_t vertex, MeshHalfedges::Halfedge& outgoing_halfedge_on_feature_edges);
 
 // return last halfedge on the feature edge that is still on the same chart, or the last halfedge before unsuccessful move
-MeshHalfedges::Halfedge follow_feature_edge_on_chart(const CustomMeshHalfedges& mesh_he, MeshHalfedges::Halfedge halfedge, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<index_t>& facet2chart, std::set<index_t>& facets_at_left, std::set<index_t>& facets_at_right);
+MeshHalfedges::Halfedge follow_feature_edge_on_chart(const MeshHalfedgesExt& mesh_he, MeshHalfedges::Halfedge halfedge, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<index_t>& facet2chart, std::set<index_t>& facets_at_left, std::set<index_t>& facets_at_right);
 
 bool is_a_facet_to_tilt(const vec3& facet_normal, double sensitivity);
 

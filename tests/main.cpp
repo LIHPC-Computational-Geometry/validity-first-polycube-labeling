@@ -15,7 +15,7 @@
 #include <geogram/mesh/mesh_halfedges.h>        // for MeshHalfedges::Halfedge
 
 #include "basic_stats.h"            // for BasicStats, std_dev()
-#include "geometry_halfedges.h"     // for CustomMeshHalfedges
+#include "geometry_halfedges.h"     // for MeshHalfedgesExt
 #include "labeling_generators.h"    // for naive_labeling()
 #include "geometry.h"               // for comparison between vec3
 
@@ -246,7 +246,7 @@ protected:
     }
 
     Mesh cube;
-    CustomMeshHalfedges mesh_halfedges;
+    MeshHalfedgesExt mesh_halfedges;
     MeshHalfedges::Halfedge halfedge;
     std::vector<vec3> normals;
 };

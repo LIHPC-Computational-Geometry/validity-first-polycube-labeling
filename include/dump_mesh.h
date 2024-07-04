@@ -12,7 +12,7 @@
 #include <utility>  // for std::pair
 
 #include "LabelingGraph.h"          // for Boundary
-#include "geometry_halfedges.h"     // for CustomMeshHalfedges
+#include "geometry_halfedges.h"     // for MeshHalfedgesExt
 
 using namespace GEO;
 
@@ -61,7 +61,7 @@ bool dump_boundary(std::string filename, const Mesh& mesh, const Boundary& bound
 
 bool dump_boundary_with_halfedges_indices(std::string filename, const Mesh& mesh, const Boundary& boundary);
 
-bool dump_chart_contour(std::string filename, const CustomMeshHalfedges& mesh_he, const StaticLabelingGraph& slg, index_t chart_index);
+bool dump_chart_contour(std::string filename, const MeshHalfedgesExt& mesh_he, const StaticLabelingGraph& slg, index_t chart_index);
 
 bool dump_all_boundaries(std::string filename, const Mesh& mesh, const std::vector<Boundary>& boundaries);
 

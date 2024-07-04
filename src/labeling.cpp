@@ -142,7 +142,7 @@ void propagate_label(const Mesh& mesh, const char* attribute_name, index_t new_l
     }
 }
 
-unsigned int count_lost_feature_edges(const CustomMeshHalfedges& mesh_he, const std::set<std::pair<index_t,index_t>>& feature_edges) {
+unsigned int count_lost_feature_edges(const MeshHalfedgesExt& mesh_he, const std::set<std::pair<index_t,index_t>>& feature_edges) {
     // parse all facet
     // parse all local vertex for each facet (= facet corners)
     // get halfedge

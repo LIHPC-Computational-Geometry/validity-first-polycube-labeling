@@ -64,7 +64,7 @@ struct Chart {
     //// Methods //////////////////
 
     bool is_surrounded_by_feature_edges(const std::vector<Boundary>& all_boundaries) const;
-    void counterclockwise_boundaries_order(const CustomMeshHalfedges& mesh_he, const std::map<MeshHalfedges::Halfedge,std::pair<index_t,bool>,HalfedgeCompare> halfedge2boundary, const std::vector<Boundary>& all_boundaries, std::vector<std::pair<index_t,bool>>& counterclockwise_order) const; // `counterclockwise_order` list boundary indices & whether or not the boundary is in the same direction when going counterclockwise
+    void counterclockwise_boundaries_order(const MeshHalfedgesExt& mesh_he, const std::map<MeshHalfedges::Halfedge,std::pair<index_t,bool>,HalfedgeCompare> halfedge2boundary, const std::vector<Boundary>& all_boundaries, std::vector<std::pair<index_t,bool>>& counterclockwise_order) const; // `counterclockwise_order` list boundary indices & whether or not the boundary is in the same direction when going counterclockwise
 };
 
 std::ostream& operator<< (std::ostream &out, const Chart& data);
@@ -86,12 +86,12 @@ struct VertexRingWithBoundaries {
     bool halfedge_is_in_boundary_edges(const MeshHalfedges::Halfedge& halfedge) const;
 
     void explore(const MeshHalfedges::Halfedge& initial_halfedge,
-                 const CustomMeshHalfedges& mesh_halfedges);
+                 const MeshHalfedgesExt& mesh_halfedges);
 
     // Is it possible to get a facet corner from a vertex ? If so, use a vertex index as first argument
-    void explore(index_t init_facet_corner, const CustomMeshHalfedges& mesh_halfedges);
+    void explore(index_t init_facet_corner, const MeshHalfedgesExt& mesh_halfedges);
 
-    void check_boundary_edges(const CustomMeshHalfedges& mesh_halfedges) const;
+    void check_boundary_edges(const MeshHalfedgesExt& mesh_halfedges) const;
 
     std::size_t circular_previous(std::size_t index) const;
 
@@ -156,12 +156,12 @@ struct TurningPoint {
     index_t outgoing_local_halfedge_index_; // index in Boundary::halfedges
     bool is_towards_right_;
     
-    void fill_from(index_t outgoing_local_halfedge_index, const Boundary& boundary, const CustomMeshHalfedges& mesh_he); // important : mesh_he must use facet region (on the labeling)
+    void fill_from(index_t outgoing_local_halfedge_index, const Boundary& boundary, const MeshHalfedgesExt& mesh_he); // important : mesh_he must use facet region (on the labeling)
     bool is_towards_left() const  { return is_towards_right_ == false; }
     bool is_towards_right() const { return is_towards_right_; }
 
     // `boundary` must be the boundary on which the turning point is
-    index_t get_closest_corner(const Boundary& boundary, const CustomMeshHalfedges& mesh_he) const;
+    index_t get_closest_corner(const Boundary& boundary, const MeshHalfedgesExt& mesh_he) const;
     index_t vertex(const Boundary& boundary, const Mesh& mesh) const; // get the vertex on which the turning point is
 };
 
@@ -206,7 +206,7 @@ struct Boundary {
     bool empty() const;
 
     void explore(const MeshHalfedges::Halfedge& initial_halfedge,
-                 const CustomMeshHalfedges& mesh_halfedges,
+                 const MeshHalfedgesExt& mesh_halfedges,
                  index_t index_of_self,
                  const std::set<std::pair<index_t,index_t>>& feature_edges,
                  const std::vector<index_t>& facet2chart,
@@ -216,11 +216,11 @@ struct Boundary {
                  std::map<MeshHalfedges::Halfedge,std::pair<index_t,bool>,HalfedgeCompare>& halfedge2boundary,
                  std::vector<MeshHalfedges::Halfedge>& boundary_edges_to_explore);
 
-    bool contains_lower_than_180_degrees_angles(const CustomMeshHalfedges& mesh_halfedges);
+    bool contains_lower_than_180_degrees_angles(const MeshHalfedgesExt& mesh_halfedges);
 
-    bool compute_validity(bool allow_boundaries_between_opposite_labels, const CustomMeshHalfedges& mesh_halfedges);
+    bool compute_validity(bool allow_boundaries_between_opposite_labels, const MeshHalfedgesExt& mesh_halfedges);
 
-    bool find_turning_points(const CustomMeshHalfedges& mesh_halfedges); // return true if the boundary contains turning-points
+    bool find_turning_points(const MeshHalfedgesExt& mesh_halfedges); // return true if the boundary contains turning-points
 
     index_t chart_at_other_side(index_t origin_chart) const;
 
@@ -234,7 +234,7 @@ struct Boundary {
 
     bool halfedge_has_turning_point_at_base(index_t local_halfedge_index) const;
 
-    index_t get_closest_boundary_of_turning_point(const TurningPoint& turning_point, index_t closest_corner, const CustomMeshHalfedges& mesh_he, const std::map<MeshHalfedges::Halfedge,std::pair<index_t,bool>,HalfedgeCompare>& halfedge2boundary, const std::vector<Corner>& corners) const;
+    index_t get_closest_boundary_of_turning_point(const TurningPoint& turning_point, index_t closest_corner, const MeshHalfedgesExt& mesh_he, const std::map<MeshHalfedges::Halfedge,std::pair<index_t,bool>,HalfedgeCompare>& halfedge2boundary, const std::vector<Corner>& corners) const;
 
     vec3 vector_between_corners(const Mesh& mesh, const std::vector<Corner>& corners) const;
 

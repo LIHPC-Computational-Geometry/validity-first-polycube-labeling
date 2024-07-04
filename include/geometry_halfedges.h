@@ -1,9 +1,9 @@
 /* Extended halfedges interface of Geogram
  * 
- * CustomMeshHalfedges is the interface itself
- * CustomMeshHalfedges::Halfedge is an oriented edge, which stores a facet index and a facet corner index
- * CustomMeshHalfedges::Halfedge.facet is the facet at the left of the halfedge (assuming outgoing facet normal -> right hand rule)
- * CustomMeshHalfedges::Halfedge.corner is the corner of the facet that is along the halfedge origin
+ * MeshHalfedgesExt is the interface itself
+ * MeshHalfedgesExt::Halfedge is an oriented edge, which stores a facet index and a facet corner index
+ * MeshHalfedgesExt::Halfedge.facet is the facet at the left of the halfedge (assuming outgoing facet normal -> right hand rule)
+ * MeshHalfedgesExt::Halfedge.corner is the corner of the facet that is along the halfedge origin
  * 
  *        o
  *       / \
@@ -41,10 +41,10 @@ using namespace GEO::Geom;
 
 namespace GEO {
 
-    class CustomMeshHalfedges : public MeshHalfedges {
+    class MeshHalfedgesExt : public MeshHalfedges {
     public:
 
-        CustomMeshHalfedges(Mesh& mesh) : MeshHalfedges(mesh) {}
+        MeshHalfedgesExt(Mesh& mesh) : MeshHalfedges(mesh) {}
 
         // re-expose this method from MeshHalfedges
         void set_use_facet_region(std::string attribute_name) {
@@ -387,4 +387,4 @@ namespace GEO {
 
 // Use the operator<< overloading with {fmt}
 // https://fmt.dev/latest/api.html#std-ostream-support
-template <> struct fmt::formatter<CustomMeshHalfedges::Halfedge> : ostream_formatter {};
+template <> struct fmt::formatter<MeshHalfedgesExt::Halfedge> : ostream_formatter {};

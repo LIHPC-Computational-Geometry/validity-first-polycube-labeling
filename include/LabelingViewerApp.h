@@ -324,7 +324,7 @@ protected:
 					fmt::println(Logger::out("I/O"),"Exported to StaticLabelingGraph.json"); Logger::out("I/O").flush();
 				}
 				if(ImGui::MenuItem("Dump boundaries as mesh")) {
-					CustomMeshHalfedges mesh_he(mesh_);
+					MeshHalfedgesExt mesh_he(mesh_);
 					dump_all_boundaries_with_indices_and_axes("boundaries",mesh_,static_labeling_graph_);
 				}
 				if (ImGui::MenuItem("Show ImGui demo window", NULL, show_ImGui_demo_window_)) {
