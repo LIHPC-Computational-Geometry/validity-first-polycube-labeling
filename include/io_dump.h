@@ -61,11 +61,11 @@ bool dump_boundary(std::string filename, const Mesh& mesh, const Boundary& bound
 
 bool dump_boundary_with_halfedges_indices(std::string filename, const Mesh& mesh, const Boundary& boundary);
 
-bool dump_chart_contour(std::string filename, const MeshHalfedgesExt& mesh_he, const StaticLabelingGraph& slg, index_t chart_index);
+bool dump_chart_contour(std::string filename, const MeshHalfedgesExt& mesh_he, const LabelingGraph& lg, index_t chart_index);
 
 bool dump_all_boundaries(std::string filename, const Mesh& mesh, const std::vector<Boundary>& boundaries);
 
-bool dump_all_boundaries_with_indices_and_axes(std::string filename, const Mesh& mesh, const StaticLabelingGraph& slg);
+bool dump_all_boundaries_with_indices_and_axes(std::string filename, const Mesh& mesh, const LabelingGraph& lg);
 
 // 2D
 

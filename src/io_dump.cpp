@@ -108,17 +108,17 @@ bool dump_boundary_with_halfedges_indices(std::string filename, const Mesh& mesh
     return mesh_save(boundary_mesh,filename + ".geogram");
 }
 
-bool dump_chart_contour(std::string filename, const MeshHalfedgesExt& mesh_he, const StaticLabelingGraph& slg, index_t chart_index) {
-    geo_assert(chart_index < slg.nb_charts());
+bool dump_chart_contour(std::string filename, const MeshHalfedgesExt& mesh_he, const LabelingGraph& lg, index_t chart_index) {
+    geo_assert(chart_index < lg.nb_charts());
     geo_assert(mesh_he.is_using_facet_region());
     const Mesh& mesh = mesh_he.mesh();
     std::vector<std::pair<index_t,bool>> counterclockwise_order;
-    slg.charts[chart_index].counterclockwise_boundaries_order(mesh_he,slg.halfedge2boundary,slg.boundaries,counterclockwise_order);
+    lg.charts[chart_index].counterclockwise_boundaries_order(mesh_he,lg.halfedge2boundary,lg.boundaries,counterclockwise_order);
     geo_assert(!counterclockwise_order.empty());
     std::map<std::pair<index_t,index_t>,index_t> counterclockwise_halfedges_around_chart;
     index_t halfedge_count = 0;
     for(const auto& [b,same_order] : counterclockwise_order) {
-        const Boundary& boundary = slg.boundaries[b];
+        const Boundary& boundary = lg.boundaries[b];
         if(same_order) {
             for(auto it = boundary.halfedges.begin(); it != boundary.halfedges.end(); ++it) {
                 counterclockwise_halfedges_around_chart[
@@ -161,14 +161,14 @@ bool dump_all_boundaries(std::string filename, const Mesh& mesh, const std::vect
     return mesh_save(boundaries_mesh,filename + ".geogram");
 }
 
-bool dump_all_boundaries_with_indices_and_axes(std::string filename, const Mesh& mesh, const StaticLabelingGraph& slg) {
+bool dump_all_boundaries_with_indices_and_axes(std::string filename, const Mesh& mesh, const LabelingGraph& lg) {
     // index_t edges_counter = 0;
     Mesh boundaries_mesh;
     boundaries_mesh.copy(mesh,false,MESH_VERTICES); // keep only vertices
     Attribute<index_t> attr_index(boundaries_mesh.edges.attributes(),"index");
     Attribute<int> attr_axis(boundaries_mesh.edges.attributes(),"axis");
-    FOR(boundary_index,slg.boundaries.size()) { // for each boundary of the labeling graph
-        const Boundary& b = slg.boundaries[boundary_index];
+    FOR(boundary_index,lg.boundaries.size()) { // for each boundary of the labeling graph
+        const Boundary& b = lg.boundaries[boundary_index];
         index_t edge_index = boundaries_mesh.edges.create_edges((index_t) b.halfedges.size()); // create as many edges as they are halfedges in the current boundary
         for(const auto& he : b.halfedges) { // for each halfedge of the current boundary
             boundaries_mesh.edges.set_vertex(edge_index,0,Geom::halfedge_vertex_index_from(mesh,he)); // get the vertex at the base of 'halfedge', set as 1st vertex

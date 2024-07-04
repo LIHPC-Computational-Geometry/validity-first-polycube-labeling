@@ -52,17 +52,17 @@ protected:
 			Attribute<double> per_chart_stddev_validity(mesh_.facets.attributes(),"per_chart_stddev_validity"); // create new facet attribute
 			std::vector<double> per_chart_fidelity_values;
 			double global_max = Numeric::min_float64(); // will store the max std dev of all facets
-			FOR(c,static_labeling_graph_.nb_charts()) { // for each chart
+			FOR(c,lg_.nb_charts()) { // for each chart
 				double stddev = 0.0;
-				per_chart_fidelity_values.resize(static_labeling_graph_.charts[c].facets.size());
+				per_chart_fidelity_values.resize(lg_.charts[c].facets.size());
 				index_t count_facets = 0;
-				for(auto f : static_labeling_graph_.charts[c].facets) { // for each facet in this chart
+				for(auto f : lg_.charts[c].facets) { // for each facet in this chart
 					per_chart_fidelity_values[count_facets] = (GEO::dot(normals_[f],label2vector[labeling[f]]) - 1.0)/0.2; // compute fidelity
 					count_facets++;
 				}
 				stddev = std_dev(per_chart_fidelity_values.begin(),per_chart_fidelity_values.end());
 				// write this value for all facets on the current chart
-				for(auto f : static_labeling_graph_.charts[c].facets) {
+				for(auto f : lg_.charts[c].facets) {
 					per_chart_stddev_validity[f] = stddev;
 				}
 				global_max = std::max(global_max,stddev);
@@ -75,14 +75,14 @@ protected:
 #else
 			Attribute<double> per_chart_min_validity(mesh_.facets.attributes(),"per_chart_min_validity"); // create new facet attribute
 			double global_min = 0.0, min_fidelity = 0.0, fidelity = 0.0;
-			FOR(c,static_labeling_graph_.nb_charts()) { // for each chart
+			FOR(c,lg_.nb_charts()) { // for each chart
 				min_fidelity = 0.0; // will store the min fidelity of all facets
-				for(auto f : static_labeling_graph_.charts[c].facets) { // for each facet in this chart
+				for(auto f : lg_.charts[c].facets) { // for each facet in this chart
 					fidelity = (GEO::dot(normals_[f],label2vector[labeling[f]]) - 1.0)/0.2;
 					min_fidelity = std::min(fidelity,min_fidelity);
 				}
 				// write this value for all facets on the current chart
-				for(auto f : static_labeling_graph_.charts[c].facets) { // for each facet in this chart
+				for(auto f : lg_.charts[c].facets) { // for each facet in this chart
 					per_chart_min_validity[f] = min_fidelity;
 				}
 				global_min = std::min(global_min,min_fidelity);
@@ -124,7 +124,7 @@ protected:
 			ImGui::SeparatorText("Fix labeling");
 
 			if(ImGui::Button("Remove surrounded charts")) {
-				size_t nb_invalid_charts_processed = remove_surrounded_charts(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_);
+				size_t nb_invalid_charts_processed = remove_surrounded_charts(mesh_,LABELING_ATTRIBUTE_NAME,lg_);
 				fmt::println(Logger::out("fix_labeling"),"{} invalid charts processed",nb_invalid_charts_processed); Logger::out("fix_labeling").flush();
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
@@ -134,7 +134,7 @@ protected:
 				if(adj_facets_.empty()) {
 					compute_adjacent_facets_of_vertices(mesh_,adj_facets_);
 				}
-				bool chart_processed = increase_chart_valence(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,adj_facets_,feature_edges_);
+				bool chart_processed = increase_chart_valence(mesh_,normals_,LABELING_ATTRIBUTE_NAME,lg_,adj_facets_,feature_edges_);
 				fmt::println(Logger::out("fix_labeling"),"{} invalid charts processed",size_t(chart_processed)); Logger::out("fix_labeling").flush();
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
@@ -147,25 +147,25 @@ protected:
 				if(adj_facets_.empty()) {
 					compute_adjacent_facets_of_vertices(mesh_,adj_facets_);
 				}
-				size_t nb_invalid_boundaries_processed = (size_t) fix_an_invalid_boundary(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,normals_,feature_edges_,adj_facets_);
+				size_t nb_invalid_boundaries_processed = (size_t) fix_an_invalid_boundary(mesh_,LABELING_ATTRIBUTE_NAME,lg_,normals_,feature_edges_,adj_facets_);
 				fmt::println(Logger::out("fix_labeling"),"{} invalid boundaries processed",nb_invalid_boundaries_processed); Logger::out("fix_labeling").flush();
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 
 			if(ImGui::Button("Fix invalid corners (as much as possible)")) {
-				size_t nb_invalid_corners_processed = fix_as_much_invalid_corners_as_possible(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,feature_edges_,static_labeling_graph_.facet2chart,adj_facets_);
+				size_t nb_invalid_corners_processed = fix_as_much_invalid_corners_as_possible(mesh_,normals_,LABELING_ATTRIBUTE_NAME,lg_,feature_edges_,lg_.facet2chart,adj_facets_);
 				fmt::println(Logger::out("fix_labeling"),"{} invalid corners processed",nb_invalid_corners_processed); Logger::out("fix_labeling").flush();
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 
 			if(ImGui::Button("Remove invalid charts")) {
-				remove_invalid_charts(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_);
+				remove_invalid_charts(mesh_,normals_,LABELING_ATTRIBUTE_NAME,lg_);
 				fmt::println(Logger::out("fix_labeling"),"invalid charts removed using gco"); Logger::out("fix_labeling").flush();
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 
 			if(ImGui::Button("Remove charts around invalid boundaries")) {
-				remove_charts_around_invalid_boundaries(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_);
+				remove_charts_around_invalid_boundaries(mesh_,normals_,LABELING_ATTRIBUTE_NAME,lg_);
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 
@@ -177,7 +177,7 @@ protected:
 				if(adj_facets_.empty()) {
 					compute_adjacent_facets_of_vertices(mesh_,adj_facets_);
 				}
-				auto_fix_validity(mesh_,normals_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,100,feature_edges_,normals_,adj_facets_);
+				auto_fix_validity(mesh_,normals_,LABELING_ATTRIBUTE_NAME,lg_,100,feature_edges_,normals_,adj_facets_);
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 			ImGui::PopStyleColor(3);
@@ -189,7 +189,7 @@ protected:
 				if(adj_facets_.empty()) {
 					compute_adjacent_facets_of_vertices(mesh_,adj_facets_);
 				}
-				join_turning_points_pair_with_new_chart(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,normals_,feature_edges_,adj_facets_);
+				join_turning_points_pair_with_new_chart(mesh_,LABELING_ATTRIBUTE_NAME,lg_,normals_,feature_edges_,adj_facets_);
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 
@@ -198,7 +198,7 @@ protected:
 				if(adj_facets_.empty()) {
 					compute_adjacent_facets_of_vertices(mesh_,adj_facets_);
 				}
-				bool a_non_monotone_boundary_was_processed = merge_a_turning_point_and_its_closest_corner(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,feature_edges_,adj_facets_);
+				bool a_non_monotone_boundary_was_processed = merge_a_turning_point_and_its_closest_corner(mesh_,LABELING_ATTRIBUTE_NAME,lg_,feature_edges_,adj_facets_);
 				fmt::println(Logger::out("monotonicity"),"{} non-monotone boundaries processed",(size_t) a_non_monotone_boundary_was_processed); Logger::out("monotonicity").flush();
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
@@ -207,7 +207,7 @@ protected:
 			ImGui::SetItemTooltip("Parse non-monotone boundaries, and if one of them has a turning-point on a feature edge, try to pull the closest corner so that they coincide");
 
 			if(ImGui::Button("Move boundaries near turning points")) {
-				size_t nb_turning_points_processed = move_boundaries_near_turning_points(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,feature_edges_);
+				size_t nb_turning_points_processed = move_boundaries_near_turning_points(mesh_,LABELING_ATTRIBUTE_NAME,lg_,feature_edges_);
 				fmt::println(Logger::out("monotonicity"),"{} turning-points processed",nb_turning_points_processed); Logger::out("monotonicity").flush();
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
@@ -217,7 +217,7 @@ protected:
 				if(adj_facets_.empty()) {
 					compute_adjacent_facets_of_vertices(mesh_,adj_facets_);
 				}
-				straighten_boundaries(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,adj_facets_,feature_edges_);
+				straighten_boundaries(mesh_,LABELING_ATTRIBUTE_NAME,lg_,adj_facets_,feature_edges_);
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 			ImGui::SameLine();
@@ -229,7 +229,7 @@ protected:
 				if(adj_facets_.empty()) {
 					compute_adjacent_facets_of_vertices(mesh_,adj_facets_);
 				}
-				move_corners(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,feature_edges_,adj_facets_);
+				move_corners(mesh_,LABELING_ATTRIBUTE_NAME,lg_,feature_edges_,adj_facets_);
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 
@@ -237,7 +237,7 @@ protected:
 			ImGui::PushStyleColor(ImGuiCol_ButtonHovered,	ImVec4(0.3f, 0.8f, 0.3f, 1.0f)); // darker green
 			ImGui::PushStyleColor(ImGuiCol_ButtonActive,	ImVec4(0.0f, 0.8f, 0.0f, 1.0f));
 			if(ImGui::Button("Auto fix monotonicity")) {
-				auto_fix_monotonicity(mesh_,LABELING_ATTRIBUTE_NAME,static_labeling_graph_,adj_facets_,feature_edges_,normals_);
+				auto_fix_monotonicity(mesh_,LABELING_ATTRIBUTE_NAME,lg_,adj_facets_,feature_edges_,normals_);
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 			ImGui::PopStyleColor(3);
@@ -342,16 +342,16 @@ int main(int argc, char** argv) {
 	// Construct charts, boundaries & corners
 	//////////////////////////////////////////////////
 
-	StaticLabelingGraph slg;
-	slg.fill_from(M,LABELING_ATTRIBUTE_NAME,feature_edges,allow_boundaries_between_opposite_labels);
+	LabelingGraph lg;
+	lg.fill_from(M,LABELING_ATTRIBUTE_NAME,feature_edges,allow_boundaries_between_opposite_labels);
 
 	//////////////////////////////////////////////////
 	// Validity & monotonicity correction
 	//////////////////////////////////////////////////
 
-	if(auto_fix_validity(M,normals,LABELING_ATTRIBUTE_NAME,slg,100,feature_edges,normals,adj_facets)) {
+	if(auto_fix_validity(M,normals,LABELING_ATTRIBUTE_NAME,lg,100,feature_edges,normals,adj_facets)) {
 		// auto-fix the monotonicity only if the validity was fixed
-		auto_fix_monotonicity(M,LABELING_ATTRIBUTE_NAME,slg,adj_facets,feature_edges,normals);
+		auto_fix_monotonicity(M,LABELING_ATTRIBUTE_NAME,lg,adj_facets,feature_edges,normals);
 	}
 
 	//////////////////////////////////////////////////

@@ -266,7 +266,7 @@ bool Corner::all_adjacent_boundary_edges_are_on_feature_edges(const Mesh& mesh, 
     return true;
 }
 
-vec3 Corner::average_coordinates_of_neighborhood(const Mesh& mesh, const StaticLabelingGraph& slg, bool include_itself, size_t max_dist) const {
+vec3 Corner::average_coordinates_of_neighborhood(const Mesh& mesh, const LabelingGraph& lg, bool include_itself, size_t max_dist) const {
     geo_assert(vertex != index_t(-1));
     geo_assert(max_dist >= 1);
     geo_assert(mesh.vertices.double_precision());
@@ -285,8 +285,8 @@ vec3 Corner::average_coordinates_of_neighborhood(const Mesh& mesh, const StaticL
 
     for(const auto& vr : vertex_rings_with_boundaries) {
         for(auto first_boundary_halfedge : vr.boundary_edges) {
-            std::tie(boundary_index,same_direction) = slg.halfedge2boundary.at(first_boundary_halfedge);
-            const Boundary& boundary = slg.boundaries.at(boundary_index);
+            std::tie(boundary_index,same_direction) = lg.halfedge2boundary.at(first_boundary_halfedge);
+            const Boundary& boundary = lg.boundaries.at(boundary_index);
             if(same_direction) { // the corner is the start_corner of `boundary`
                 dist = 1;
                 for(auto boundary_halfedge : boundary.halfedges) { // go accross the boundary
@@ -953,7 +953,7 @@ std::ostream& operator<< (std::ostream &out, const Boundary& data) {
     return out;
 }
 
-void StaticLabelingGraph::fill_from(
+void LabelingGraph::fill_from(
     Mesh& mesh,
     std::string facet_attribute,
     const std::set<std::pair<index_t,index_t>>& feature_edges,
@@ -1147,7 +1147,7 @@ void StaticLabelingGraph::fill_from(
     }
 }
 
-void StaticLabelingGraph::clear() {
+void LabelingGraph::clear() {
     charts.clear();
     boundaries.clear();
     corners.clear();
@@ -1163,57 +1163,57 @@ void StaticLabelingGraph::clear() {
     // note : the mesh attributes will not be removed, because we no longer have a ref/pointer to the mesh
 }
 
-bool StaticLabelingGraph::is_valid() {
+bool LabelingGraph::is_valid() {
     return (nb_invalid_charts()==0) && 
 		   (nb_invalid_boundaries()==0) && 
 		   (nb_invalid_corners()==0);
 }
 
-std::size_t StaticLabelingGraph::nb_charts() const {
+std::size_t LabelingGraph::nb_charts() const {
     return charts.size();
 }
 
-std::size_t StaticLabelingGraph::nb_boundaries() const {
+std::size_t LabelingGraph::nb_boundaries() const {
     return boundaries.size();
 }
 
-std::size_t StaticLabelingGraph::nb_corners() const {
+std::size_t LabelingGraph::nb_corners() const {
     return corners.size();
 }
 
-std::size_t StaticLabelingGraph::nb_facets() const {
+std::size_t LabelingGraph::nb_facets() const {
     return facet2chart.size();
 }
 
-std::size_t StaticLabelingGraph::nb_vertices() const {
+std::size_t LabelingGraph::nb_vertices() const {
     return vertex2corner.size();
 }
 
-std::size_t StaticLabelingGraph::nb_invalid_charts() const {
+std::size_t LabelingGraph::nb_invalid_charts() const {
     return invalid_charts.size();
 }
 
-std::size_t StaticLabelingGraph::nb_invalid_boundaries() const {
+std::size_t LabelingGraph::nb_invalid_boundaries() const {
     return invalid_boundaries.size();
 }
 
-std::size_t StaticLabelingGraph::nb_invalid_corners() const {
+std::size_t LabelingGraph::nb_invalid_corners() const {
     return invalid_corners.size();
 }
 
-std::size_t StaticLabelingGraph::nb_non_monotone_boundaries() const {
+std::size_t LabelingGraph::nb_non_monotone_boundaries() const {
     return non_monotone_boundaries.size();
 }
 
-std::size_t StaticLabelingGraph::nb_turning_points() const {
+std::size_t LabelingGraph::nb_turning_points() const {
     return turning_point_vertices.size();
 }
 
-bool StaticLabelingGraph::is_allowing_boundaries_between_opposite_labels() const {
+bool LabelingGraph::is_allowing_boundaries_between_opposite_labels() const {
     return allow_boundaries_between_opposite_labels_;
 }
 
-bool StaticLabelingGraph::vertex_is_only_surrounded_by(index_t vertex_index, std::vector<index_t> expected_charts, const std::vector<std::vector<index_t>>& vertex_to_adj_facets) const {
+bool LabelingGraph::vertex_is_only_surrounded_by(index_t vertex_index, std::vector<index_t> expected_charts, const std::vector<std::vector<index_t>>& vertex_to_adj_facets) const {
     geo_assert(!vertex_to_adj_facets.empty());
     for(auto adj_facet : vertex_to_adj_facets.at(vertex_index)) { // for each adjacent facet of `vertex_index`
         if (!VECTOR_CONTAINS(expected_charts,facet2chart.at(adj_facet))) { // if the chart index of this facet is not among the `expected_charts`
@@ -1223,7 +1223,7 @@ bool StaticLabelingGraph::vertex_is_only_surrounded_by(index_t vertex_index, std
     return true;
 }
 
-void StaticLabelingGraph::get_adjacent_charts_of_vertex(index_t vertex_index, const std::vector<std::vector<index_t>>& vertex_to_adj_facets, std::set<index_t>& adjacent_charts) const {
+void LabelingGraph::get_adjacent_charts_of_vertex(index_t vertex_index, const std::vector<std::vector<index_t>>& vertex_to_adj_facets, std::set<index_t>& adjacent_charts) const {
     geo_assert(vertex_index < vertex_to_adj_facets.size());
     adjacent_charts.clear();
     for(index_t adj_facet : vertex_to_adj_facets[vertex_index]) {
@@ -1232,7 +1232,7 @@ void StaticLabelingGraph::get_adjacent_charts_of_vertex(index_t vertex_index, co
     }
 }
 
-void StaticLabelingGraph::dump_to_text_file(const char* filename, Mesh& mesh) {
+void LabelingGraph::dump_to_text_file(const char* filename, Mesh& mesh) {
     auto out = fmt::output_file(filename);
     out.print("{}",(*this));
 
@@ -1243,7 +1243,7 @@ void StaticLabelingGraph::dump_to_text_file(const char* filename, Mesh& mesh) {
     }
 }
 
-void StaticLabelingGraph::dump_to_D3_graph(const char* filename) {
+void LabelingGraph::dump_to_D3_graph(const char* filename) {
     nlohmann::json graph;
     // export nodes. group 1 = chart, 2 = boundary, 3 = corner
     FOR(chart_index,nb_charts()) {
@@ -1271,7 +1271,7 @@ void StaticLabelingGraph::dump_to_D3_graph(const char* filename) {
     }
 }
 
-std::ostream& operator<< (std::ostream &out, const StaticLabelingGraph& data) {
+std::ostream& operator<< (std::ostream &out, const LabelingGraph& data) {
 
     // write charts
 

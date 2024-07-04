@@ -79,8 +79,8 @@ int main(int argc, char** argv) {
         exit(1);
     }
 
-    StaticLabelingGraph slg;
-    slg.fill_from(input_mesh,LABELING_ATTRIBUTE_NAME,feature_edges,CmdLine::get_arg_bool("allow-opposite-labels"));
+    LabelingGraph lg;
+    lg.fill_from(input_mesh,LABELING_ATTRIBUTE_NAME,feature_edges,CmdLine::get_arg_bool("allow-opposite-labels"));
     MeshHalfedgesExt mesh_he(input_mesh);
     mesh_he.set_use_facet_region(LABELING_ATTRIBUTE_NAME);
 
@@ -90,35 +90,35 @@ int main(int argc, char** argv) {
     // Parameter
     ////////////////////////////////
     
-    output_JSON["is_allowing_boundaries_between_opposite_labels"] = slg.is_allowing_boundaries_between_opposite_labels();
+    output_JSON["is_allowing_boundaries_between_opposite_labels"] = lg.is_allowing_boundaries_between_opposite_labels();
 
     ////////////////////////////////
     // Charts
     ////////////////////////////////
 
-    output_JSON["charts"]["nb"] = slg.nb_charts();
-    output_JSON["charts"]["invalid"] = slg.nb_invalid_charts();
+    output_JSON["charts"]["nb"] = lg.nb_charts();
+    output_JSON["charts"]["invalid"] = lg.nb_invalid_charts();
 
     ////////////////////////////////
     // Boundaries
     ////////////////////////////////
 
-    output_JSON["boundaries"]["nb"] = slg.nb_boundaries();
-    output_JSON["boundaries"]["invalid"] = slg.nb_invalid_boundaries();
-    output_JSON["boundaries"]["non-monotone"] = slg.nb_non_monotone_boundaries();
+    output_JSON["boundaries"]["nb"] = lg.nb_boundaries();
+    output_JSON["boundaries"]["invalid"] = lg.nb_invalid_boundaries();
+    output_JSON["boundaries"]["non-monotone"] = lg.nb_non_monotone_boundaries();
 
     ////////////////////////////////
     // Corners
     ////////////////////////////////
 
-    output_JSON["corners"]["nb"] = slg.nb_corners();
-    output_JSON["corners"]["invalid"] = slg.nb_invalid_corners();
+    output_JSON["corners"]["nb"] = lg.nb_corners();
+    output_JSON["corners"]["invalid"] = lg.nb_invalid_corners();
 
     ////////////////////////////////
     // Turning-points
     ////////////////////////////////
 
-    output_JSON["turning-points"]["nb"] = slg.nb_turning_points();
+    output_JSON["turning-points"]["nb"] = lg.nb_turning_points();
 
     ////////////////////////////////
     // Fidelity

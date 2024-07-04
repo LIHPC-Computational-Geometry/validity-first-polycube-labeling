@@ -6,9 +6,6 @@
  *  - corners (a corner is a vertex where several boundaries are meeting)
  * 
  * Warning : in the context of meshes in Geogram, a corner is a vertex seen from a facet or a cell https://github.com/BrunoLevy/geogram/wiki/Mesh
- * 
- * StaticLabelingGraph is a LabelingGraph computed from a labeling, that is rather read-only. If you update the labeling, you need to re-compute the whole LabelingGraph.
- * Maybe one day there will be a DynamicLabelingGraph with operators on charts, locally updating charts/boundaries/corners.
  */
 
 #pragma once
@@ -104,7 +101,7 @@ std::ostream& operator<< (std::ostream &out, const VertexRingWithBoundaries& dat
 // https://fmt.dev/latest/api.html#std-ostream-support
 template <> struct fmt::formatter<VertexRingWithBoundaries> : ostream_formatter {};
 
-struct StaticLabelingGraph; // defined later
+struct LabelingGraph; // defined later
 
 // A vertex where 3 or more boundaries are meeting
 // based on https://github.com/LIHPC-Computational-Geometry/genomesh/blob/main/include/flagging.h#L126
@@ -133,7 +130,7 @@ struct Corner {
     bool all_adjacent_boundary_edges_are_on_feature_edges(const Mesh& mesh, const std::set<std::pair<index_t,index_t>>& feature_edges) const;
 
     // retrieve near vertices along adjacent boundaries and compute the average coordinate
-    vec3 average_coordinates_of_neighborhood(const Mesh& mesh, const StaticLabelingGraph& slg, bool include_itself, size_t max_dist) const;
+    vec3 average_coordinates_of_neighborhood(const Mesh& mesh, const LabelingGraph& lg, bool include_itself, size_t max_dist) const;
 
     MeshHalfedges::Halfedge get_most_aligned_boundary_halfedge(const Mesh& mesh, const vec3& reference) const;
 
@@ -261,7 +258,7 @@ template <> struct fmt::formatter<Boundary> : ostream_formatter {};
 
 // A labeling stored with charts, boundaries and corners
 // based on https://github.com/LIHPC-Computational-Geometry/genomesh/blob/main/include/flagging.h#L135
-struct StaticLabelingGraph {
+struct LabelingGraph {
 
     //// LabelingGraph features //////////////////
 
@@ -323,8 +320,8 @@ struct StaticLabelingGraph {
     void dump_to_D3_graph(const char* filename); // not tested
 };
 
-std::ostream& operator<< (std::ostream &out, const StaticLabelingGraph& data);
+std::ostream& operator<< (std::ostream &out, const LabelingGraph& data);
 
 // Use the operator<< overloading with {fmt}
 // https://fmt.dev/latest/api.html#std-ostream-support
-template <> struct fmt::formatter<StaticLabelingGraph> : ostream_formatter {};
+template <> struct fmt::formatter<LabelingGraph> : ostream_formatter {};

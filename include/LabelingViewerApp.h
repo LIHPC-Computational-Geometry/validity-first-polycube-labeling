@@ -17,7 +17,7 @@
 #include <utility>  // for std::pair
 
 #include "SimpleMeshApplicationExt.h"
-#include "labeling_graph.h"             // for StaticLabelingGraph
+#include "labeling_graph.h"             // for LabelingGraph
 #include "labeling.h"                   // for flip_labeling(), label2vector(), LABEL2STR(), compute_per_facet_fidelity
 #include "labeling_io.h"                // for load_labeling(), save_labeling()
 #include "labeling_generators.h"        // for naive_labeling()
@@ -88,7 +88,7 @@ public:
 		surface_color_ =   vec4f(0.9f, 0.9f, 0.9f, 1.0f); // light grey. default is bleu-ish vec4f(0.5f, 0.5f, 1.0f, 1.0f)
 
         // init own variables
-        allow_boundaries_between_opposite_labels_ = false; // parameter of StaticLabelingGraph::fill_from()
+        allow_boundaries_between_opposite_labels_ = false; // parameter of LabelingGraph::fill_from()
 
         // corners in black by default
 		corners_color_[0] = 0.0f;
@@ -316,16 +316,16 @@ protected:
 		if(ImGui::BeginMainMenuBar()) {
 			if(ImGui::BeginMenu("Debug")) {
 				if(ImGui::MenuItem("Dump labeling graph as text file")) {
-					static_labeling_graph_.dump_to_text_file("StaticLabelingGraph.txt",mesh_);
-					fmt::println(Logger::out("I/O"),"Exported to StaticLabelingGraph.txt"); Logger::out("I/O").flush();
+					lg_.dump_to_text_file("LabelingGraph.txt",mesh_);
+					fmt::println(Logger::out("I/O"),"Exported to LabelingGraph.txt"); Logger::out("I/O").flush();
 				}
 				if(ImGui::MenuItem("Dump labeling graph as D3 graph")) {
-					static_labeling_graph_.dump_to_D3_graph("StaticLabelingGraph.json");
-					fmt::println(Logger::out("I/O"),"Exported to StaticLabelingGraph.json"); Logger::out("I/O").flush();
+					lg_.dump_to_D3_graph("LabelingGraph.json");
+					fmt::println(Logger::out("I/O"),"Exported to LabelingGraph.json"); Logger::out("I/O").flush();
 				}
 				if(ImGui::MenuItem("Dump boundaries as mesh")) {
 					MeshHalfedgesExt mesh_he(mesh_);
-					dump_all_boundaries_with_indices_and_axes("boundaries",mesh_,static_labeling_graph_);
+					dump_all_boundaries_with_indices_and_axes("boundaries",mesh_,lg_);
 				}
 				if (ImGui::MenuItem("Show ImGui demo window", NULL, show_ImGui_demo_window_)) {
 					show_ImGui_demo_window_ = !show_ImGui_demo_window_;
@@ -436,7 +436,7 @@ protected:
 			ImGui::TextDisabled("(?)");
 			ImGui::SetItemTooltip("If on, boundaries between opposite labels (e.g. +X and -X)\ncan be considered valid if they only contain > 180° angles");
 
-			ImGui::BeginDisabled( allow_boundaries_between_opposite_labels_ == static_labeling_graph_.is_allowing_boundaries_between_opposite_labels() ); // allow to recompute only if the UI control value changed
+			ImGui::BeginDisabled( allow_boundaries_between_opposite_labels_ == lg_.is_allowing_boundaries_between_opposite_labels() ); // allow to recompute only if the UI control value changed
 			if(ImGui::Button("Recompute labeling graph")) {
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
@@ -492,13 +492,13 @@ protected:
 			ImGui::TextDisabled("(?)");
 			ImGui::SetItemTooltip("Show the charts, the boundaries, the corners and the turning-points computed from the labeling");
 
-			ImGui::Text("%ld charts, %ld boundaries",static_labeling_graph_.nb_charts(),static_labeling_graph_.nb_boundaries());
+			ImGui::Text("%ld charts, %ld boundaries",lg_.nb_charts(),lg_.nb_boundaries());
 
 			ImGui::BeginDisabled(labeling_visu_mode_!=VIEW_LABELING_GRAPH);
 
 			ImGui::ColorEdit4WithPalette("Corners", corners_color_);
 			ImGui::SameLine();
-			ImGui::Text("(%ld)",static_labeling_graph_.nb_corners());
+			ImGui::Text("(%ld)",lg_.nb_corners());
 			ImGui::SliderFloat("Corners size", &corners_size_, 0.0f, 50.0f, "%.1f");
 
 			ImGui::ColorEdit4WithPalette("Turning points", turning_points_color_);
@@ -519,17 +519,17 @@ protected:
 			if(ImGui::RadioButton("View invalid charts",&labeling_visu_mode_,VIEW_INVALID_CHARTS))
 				labeling_visu_mode_transition(VIEW_INVALID_CHARTS);
 			ImGui::SameLine();
-			ImGui::Text("(%ld)",static_labeling_graph_.nb_invalid_charts());
+			ImGui::Text("(%ld)",lg_.nb_invalid_charts());
 
 			if(ImGui::RadioButton("View invalid boundaries",&labeling_visu_mode_,VIEW_INVALID_BOUNDARIES))
 				labeling_visu_mode_transition(VIEW_INVALID_BOUNDARIES);
 			ImGui::SameLine();
-			ImGui::Text("(%ld)",static_labeling_graph_.nb_invalid_boundaries());
+			ImGui::Text("(%ld)",lg_.nb_invalid_boundaries());
 
 			if(ImGui::RadioButton("View invalid corners",&labeling_visu_mode_,VIEW_INVALID_CORNERS))
 				labeling_visu_mode_transition(VIEW_INVALID_CORNERS);
 			ImGui::SameLine();
-			ImGui::Text("(%ld)",static_labeling_graph_.nb_invalid_corners());
+			ImGui::Text("(%ld)",lg_.nb_invalid_corners());
 			
 			ImGui::BeginDisabled( (labeling_visu_mode_!=VIEW_INVALID_CHARTS) && 
 								  (labeling_visu_mode_!=VIEW_INVALID_BOUNDARIES) && 
@@ -550,7 +550,7 @@ protected:
 			ImGui::SetItemTooltip("Color of valid charts/boundaries/corners");
 			ImGui::EndDisabled();
 
-			if(static_labeling_graph_.is_valid()) {
+			if(lg_.is_valid()) {
 				ImGui::TextColored(ImVec4(0.0f,0.5f,0.0f,1.0f),"Valid labeling");
 				ImGui::SameLine();
 				ImGui::TextDisabled("(?)");
@@ -723,8 +723,8 @@ protected:
     virtual void update_static_labeling_graph(bool allow_boundaries_between_opposite_labels) {
 
 		// compute charts, boundaries and corners of the labeling
-		static_labeling_graph_.fill_from(mesh_,LABELING_ATTRIBUTE_NAME,feature_edges_,allow_boundaries_between_opposite_labels);
-		nb_turning_points_ = static_labeling_graph_.nb_turning_points();
+		lg_.fill_from(mesh_,LABELING_ATTRIBUTE_NAME,feature_edges_,allow_boundaries_between_opposite_labels);
+		nb_turning_points_ = lg_.nb_turning_points();
 
 		clear_scene_overlay();
 
@@ -737,23 +737,23 @@ protected:
 		invalid_boundaries_group_index_ = new_edges_group(COLORMAP_VALIDITY,0.0,BOUNDARIES_WIDTH,false); // color of invalid LabelingGraph components
 		valid_but_axisless_boundaries_group_index_ = new_edges_group(COLORMAP_VALIDITY,1.0,BOUNDARIES_WIDTH,false); // color of valid LabelingGraph components
 
-		for(std::size_t i = 0; i < static_labeling_graph_.nb_corners(); ++i) {
+		for(std::size_t i = 0; i < lg_.nb_corners(); ++i) {
 			const double* coordinates = mesh_.vertices.point_ptr(
-				static_labeling_graph_.corners[i].vertex
+				lg_.corners[i].vertex
 			);
-			add_point_to_group(static_labeling_graph_.corners[i].is_valid ? valid_corners_group_index_ : invalid_corners_group_index_,coordinates[0], coordinates[1], coordinates[2]);
+			add_point_to_group(lg_.corners[i].is_valid ? valid_corners_group_index_ : invalid_corners_group_index_,coordinates[0], coordinates[1], coordinates[2]);
 		}
 
-		for(index_t i : static_labeling_graph_.non_monotone_boundaries) {
-			FOR(j,static_labeling_graph_.boundaries[i].turning_points.size()) {
-				vec3 coordinates = mesh_vertex(mesh_,static_labeling_graph_.boundaries[i].turning_point_vertex(j,mesh_));
+		for(index_t i : lg_.non_monotone_boundaries) {
+			FOR(j,lg_.boundaries[i].turning_points.size()) {
+				vec3 coordinates = mesh_vertex(mesh_,lg_.boundaries[i].turning_point_vertex(j,mesh_));
 				add_point_to_group(turning_points_group_index_,coordinates.x,coordinates.y,coordinates.z);
 			}
 		}
 
 		std::size_t group_index;
-		for(std::size_t i = 0; i < static_labeling_graph_.nb_boundaries(); ++i) {
-			const Boundary& boundary = static_labeling_graph_.boundaries[i];
+		for(std::size_t i = 0; i < lg_.nb_boundaries(); ++i) {
+			const Boundary& boundary = lg_.boundaries[i];
 			for(const auto& be : boundary.halfedges) { // for each boundary edge of this boundary
 				const double* coordinates_first_point = halfedge_vertex_from(mesh_,be).data();
 				const double* coordinates_second_point = halfedge_vertex_to(mesh_,be).data();
@@ -806,7 +806,7 @@ protected:
 	float turning_points_color_[4];
 	std::size_t nb_turning_points_;
 	ColorArray validity_colors_;
-	StaticLabelingGraph static_labeling_graph_;
+	LabelingGraph lg_;
 	State state_; // should only be modified by state_transition()
 	int labeling_visu_mode_; // not a enum, to be used in ImGui. should only be modified by labeling_visu_mode_transition() and ImGui::RadioButton
 	std::size_t valid_corners_group_index_;

@@ -196,7 +196,7 @@ protected:
 				auto gcl = GraphCutLabeling(mesh_,normals_);
 				gcl.smooth_cost__set__custom(smooth_cost_);
 				gcl.neighbors__set__compactness_based(compactness_coeff_);
-				for(index_t f : static_labeling_graph_.charts[selected_chart_].facets) { // for each facet of the current chart
+				for(index_t f : lg_.charts[selected_chart_].facets) { // for each facet of the current chart
 					FOR(l,6) {
 						GraphCutLabeling::shift_data_cost(data_cost_,(GCoptimization::SiteID) f,(GCoptimization::LabelID) l,per_label_shift[l]); // modify the local data cost vector
 					}
@@ -223,10 +223,10 @@ protected:
 			}
 			else {
 				// get the chart index of the picked facet
-				selected_chart_ = static_labeling_graph_.facet2chart[facet_index];
+				selected_chart_ = lg_.facet2chart[facet_index];
 				// compute data cost stats for the current chart
 				vec6i current_facet_data_cost;
-				for(index_t f : static_labeling_graph_.charts[selected_chart_].facets) { // for each facet of the selected chart
+				for(index_t f : lg_.charts[selected_chart_].facets) { // for each facet of the selected chart
 					current_facet_data_cost = GraphCutLabeling::per_siteID_data_cost_as_vector(data_cost_,(GCoptimization::SiteID) f,6,mesh_.facets.nb());
 					selected_chart_data_cost_stats_.avg += (vec6f) current_facet_data_cost; // add per-label data cost of current facet
 					FOR(label,6) {
@@ -256,8 +256,8 @@ protected:
 		LabelingViewerApp::update_static_labeling_graph(allow_boundaries_between_opposite_labels);
 		// update data cost sliders upper bound
 		float global_max = 0.0f; // max of all data costs, for all facets and all labels
-		FOR(chart_index,static_labeling_graph_.nb_charts()) { // for each chart
-			for(index_t f : static_labeling_graph_.charts[chart_index].facets) { // for each facet of the current chart
+		FOR(chart_index,lg_.nb_charts()) { // for each chart
+			for(index_t f : lg_.charts[chart_index].facets) { // for each facet of the current chart
 				global_max = std::max(global_max,(float) max(GraphCutLabeling::per_siteID_data_cost_as_vector(data_cost_,(GCoptimization::SiteID) f,6,mesh_.facets.nb())));
 			}
 		}
