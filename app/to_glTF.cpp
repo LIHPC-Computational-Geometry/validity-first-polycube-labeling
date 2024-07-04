@@ -15,7 +15,7 @@
 #include <vector>
 
 #include "CustomMeshHalfedges.h"    // for CustomMeshHalfedges
-#include "glTF.h"
+#include "io_glTF.h"
 #include "labeling.h"
 #include "labeling_io.h"
 

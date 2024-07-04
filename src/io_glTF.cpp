@@ -14,7 +14,7 @@
 #include <set>
 #include <vector>
 
-#include "glTF.h"
+#include "io_glTF.h"
 #include "CustomMeshHalfedges.h"    // for CustomMeshHalfedges
 #include "containers_std.h"         // for index_of_last()
 #include "containers_macros.h"      // for VECTOR_MIN(), VECTOR_MAX()

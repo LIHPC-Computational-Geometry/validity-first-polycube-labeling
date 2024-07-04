@@ -26,7 +26,7 @@ set(
   src/labeling_operators_on_invalidity.cpp
   src/labeling_operators_on_distortion.cpp
   src/LabelingGraph.cpp
-  src/glTF.cpp
+  src/io_glTF.cpp
 )
 
 #################
