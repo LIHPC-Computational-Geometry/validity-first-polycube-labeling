@@ -1,3 +1,11 @@
+// Usage :
+//
+//   ./bin/labeling_stats input_mesh.obj labeling.txt
+//     -> write to stdout
+//
+//   ./bin/labeling_stats input_mesh.obj labeling.txt output.json
+//     -> write to output.json
+
 #include <geogram/mesh/mesh.h>              // for Mesh
 #include <geogram/mesh/mesh_io.h>           // for mesh_load(), mesh_save()
 #include <geogram/basic/file_system.h>      // for FileSystem::is_file()
@@ -27,16 +35,7 @@ using namespace GEO;
 
 int main(int argc, char** argv) {
     
-    // inside of the GEO::initialize() function, modified to have the logger in the "minimal" mode
-    Environment* env = Environment::instance();
-    env->set_value("version", "inaccessible"); // some code after expects the "version" environment variable to exist
-    env->set_value("release_date", "inaccessible"); // idem
-    env->set_value("SVN revision", "inaccessible"); // idem
-    FileSystem::initialize();
-    Logger::initialize();
-    Logger::instance()->set_minimal(true);
-    CmdLine::initialize();
-    CmdLine::import_arg_group("sys"); // declares sys:compression_level, needed by mesh_save() for .geogram files
+    GEO::initialize();
 
     CmdLine::declare_arg("allow-opposite-labels",true,"Allow boundaries between opposite labels");
 
@@ -45,7 +44,7 @@ int main(int argc, char** argv) {
 		argc,
 		argv,
 		filenames,
-		"input_mesh input_surface_labeling" // second filename is facultative
+		"input_mesh input_surface_labeling <output_JSON>" // third filename is facultative
 		))
 	{
         fmt::println(Logger::err("I/O"),"Usage should be\n{} input_mesh input_surface_labeling",argv[0]); Logger::err("I/O").flush();
@@ -62,7 +61,6 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    mesh_io_initialize();
     Mesh input_mesh;
     if(!mesh_load(filenames[0],input_mesh)) {
         fmt::println(Logger::err("I/O"),"Unable to load the mesh from {}",filenames[0]); Logger::err("I/O").flush();
@@ -149,7 +147,23 @@ int main(int argc, char** argv) {
     output_JSON["feature-edges"]["lost"] = nb_lost;
     output_JSON["feature-edges"]["preserved"] = feature_edges.size() - nb_lost;
 
-    std::cout << std::setw(4) << output_JSON << std::endl;
+    // write to stdout or file, according to the number of arguments
+
+    if (filenames.size() <= 2) {
+        // no output JSON filename provided
+        std::cout << std::setw(4) << output_JSON << std::endl;
+    }
+    else {
+        // write values in a JSON file
+        std::fstream ofs(filenames[2],std::ios_base::out);
+        if(ofs.good()) {
+            fmt::println(Logger::out("I/O"),"Saving file {}...",filenames[2]); Logger::out("I/O").flush();
+            ofs << std::setw(4) << output_JSON << std::endl;
+        }
+        else {
+            fmt::println(Logger::err("I/O"),"Cannot write into {}",filenames[2]); Logger::err("I/O").flush();
+        }
+    }
 
     return 0;
 }
