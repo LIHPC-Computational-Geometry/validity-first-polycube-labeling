@@ -546,8 +546,8 @@ bool merge_a_turning_point_and_its_closest_corner(GEO::Mesh& mesh, const char* a
             index_t(-1) // in case no match
         )));
         geo_assert(chart_on_which_the_new_boundary_will_be != index_t(-1));
-        const std::set<index_t>& facets_of_the_chart_on_which_the_new_boundary_will_be = slg.charts[chart_on_which_the_new_boundary_will_be].facets;
         #ifndef NDEBUG
+            const std::set<index_t>& facets_of_the_chart_on_which_the_new_boundary_will_be = slg.charts[chart_on_which_the_new_boundary_will_be].facets;
             dump_facets("facets_of_the_chart_on_which_the_new_boundary_will_be",mesh,facets_of_the_chart_on_which_the_new_boundary_will_be);
         #endif
         index_t new_label = index_t(-1);
