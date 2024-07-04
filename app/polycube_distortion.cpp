@@ -46,7 +46,7 @@
     #include <dbg.h>
 #endif
 
-#include "geometry.h" // for compute_jacobians(), compute_stretch(), compute_area_distortion(), compute_angle_distortion(), compute_isometric_distortion()
+#include "geometry_distortion.h" // for compute_jacobians(), compute_stretch(), compute_area_distortion(), compute_angle_distortion(), compute_isometric_distortion()
 #include "containers_macros.h" // for VECTOR_SUM()
 #include "containers_Geogram.h" // to print a GEO::mat2 with {fmt}
 
@@ -148,7 +148,7 @@ int main(int argc, char** argv) {
     std::vector<double> input_mesh_per_facet_area(input_mesh.facets.nb());
     double input_mesh_total_area = 0.0;
     FOR(f,input_mesh.facets.nb()) {
-        input_mesh_per_facet_area[f] = mesh_facet_area(input_mesh,f);
+        input_mesh_per_facet_area[f] = Geom::mesh_facet_area(input_mesh,f);
         input_mesh_total_area += input_mesh_per_facet_area[f];
     }
     #ifndef NDEBUG
@@ -159,7 +159,7 @@ int main(int argc, char** argv) {
     std::vector<double> polycube_mesh_per_facet_area(polycube_mesh.facets.nb());
     double polycube_mesh_total_area = 0.0;
     FOR(f,polycube_mesh.facets.nb()) {
-        polycube_mesh_per_facet_area[f] = mesh_facet_area(polycube_mesh,f);
+        polycube_mesh_per_facet_area[f] = Geom::mesh_facet_area(polycube_mesh,f);
         polycube_mesh_total_area += polycube_mesh_per_facet_area[f];
     }
     #ifndef NDEBUG
@@ -180,7 +180,7 @@ int main(int argc, char** argv) {
 
     polycube_mesh_total_area = 0.0;
     FOR(f,polycube_mesh.facets.nb()) {
-        polycube_mesh_per_facet_area[f] = mesh_facet_area(polycube_mesh,f);
+        polycube_mesh_per_facet_area[f] = Geom::mesh_facet_area(polycube_mesh,f);
         polycube_mesh_total_area += polycube_mesh_per_facet_area[f];
     }
     #ifndef NDEBUG

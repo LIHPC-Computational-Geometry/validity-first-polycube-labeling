@@ -19,6 +19,7 @@ set(
   src/dump_mesh.cpp
   src/geometry.cpp
   src/geometry_hexahedra.cpp
+  src/geometry_distortion.cpp
   src/labeling.cpp
   src/labeling_io.cpp
   src/labeling_graphcuts.cpp

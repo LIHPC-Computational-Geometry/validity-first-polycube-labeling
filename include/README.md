@@ -18,6 +18,7 @@ Axes, comparison operator for geometric objects, distance...
 
 - `geometry.h`
 - `geometry_hexahedra.h` : geometric quality of hexahedra
+- `geometry_distortion.h` : computation of mapping distortion metrics
 - `CustomMeshHalfedges.h` : extended version of Geogram's [MeshHalfedges](https://github.com/BrunoLevy/geogram/blob/main/src/lib/geogram/mesh/mesh_halfedges.h) class
 
 ## Labeling
