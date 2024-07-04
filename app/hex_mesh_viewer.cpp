@@ -8,7 +8,7 @@
 
 #include "geometry_hexahedra.h"         // for compute_scaled_jacobian()
 #include "SimpleMeshApplicationExt.h"   // for colormaps indices
-#include "stats.h"                      // for BasicStats
+#include "stats.h"                      // for IncrementalStats
 
 using namespace GEO;
 
@@ -85,7 +85,7 @@ private:
 
     bool show_SJ_;
     bool drawing_settings_dirty_;
-    BasicStats SJ_stats_;
+    IncrementalStats SJ_stats_;
 };
 
 int main(int argc, char** argv) {

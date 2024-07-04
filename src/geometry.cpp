@@ -679,7 +679,7 @@ size_t get_facets_to_tilt(const Mesh& mesh, const std::vector<vec3>& normals, st
 }
 
 double sd_adjacent_facets_area(const Mesh& mesh, const std::vector<std::vector<index_t>>& adj_facets, index_t vertex_index) {
-    BasicStats stats;
+    IncrementalStats stats;
     for(index_t f : adj_facets[vertex_index]) {
         stats.insert(mesh_facet_area(mesh,f));
     }

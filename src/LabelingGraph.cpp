@@ -363,7 +363,7 @@ bool Corner::is_adjacent_to_an_invalid_boundary(const std::vector<Boundary>& all
 }
 
 double Corner::sd_boundary_angles(const Mesh& mesh) const {
-    BasicStats stats;
+    IncrementalStats stats;
     index_t nb_boundary_edges_in_vertex_ring = index_t(-1);
     for(const auto& vr : vertex_rings_with_boundaries) {
         nb_boundary_edges_in_vertex_ring = (index_t) vr.boundary_edges.size();

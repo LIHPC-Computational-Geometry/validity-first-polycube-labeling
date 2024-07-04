@@ -14,7 +14,7 @@
 #include <geogram/basic/file_system.h>          // for FileSystem::initialize()
 #include <geogram/mesh/mesh_halfedges.h>        // for MeshHalfedges::Halfedge
 
-#include "stats.h"                  // for BasicStats, std_dev()
+#include "stats.h"                  // for IncrementalStats, std_dev()
 #include "geometry_halfedges.h"     // for MeshHalfedgesExt
 #include "labeling_generators.h"    // for naive_labeling()
 #include "geometry.h"               // for comparison between vec3
@@ -23,8 +23,8 @@
 
 using namespace GEO;
 
-TEST(BasicStats, HardCoded) {
-    BasicStats stats;
+TEST(IncrementalStats, HardCoded) {
+    IncrementalStats stats;
     std::array<double,10> values = {
         2.3,
         6.7,
@@ -49,8 +49,8 @@ TEST(BasicStats, HardCoded) {
     EXPECT_NEAR(2.2831776102616, stats.sd(), DOUBLE_MAX_ABS_ERROR);
 }
 
-TEST(BasicStats, Random_1000_sd) { // test the standard deviation computation on 1000 random values
-    BasicStats stats;
+TEST(IncrementalStats, Random_1000_sd) { // test the standard deviation computation on 1000 random values
+    IncrementalStats stats;
     std::array<double,1000> values;
     std::random_device rd;
     std::mt19937 gen(rd());

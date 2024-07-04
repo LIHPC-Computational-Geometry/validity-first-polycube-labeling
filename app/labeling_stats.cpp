@@ -130,7 +130,7 @@ int main(int argc, char** argv) {
         normals[f] = normalize(Geom::mesh_facet_normal(input_mesh,f));
     }
     // compute fidelity
-    BasicStats fidelity_stats;
+    IncrementalStats fidelity_stats;
     compute_per_facet_fidelity(input_mesh, normals, LABELING_ATTRIBUTE_NAME,"fidelity",fidelity_stats);
     // fill JSON
     output_JSON["fidelity"]["min"] = fidelity_stats.min();

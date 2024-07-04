@@ -21,7 +21,7 @@
 #include "labeling.h"                   // for flip_labeling(), label2vector(), LABEL2STR(), compute_per_facet_fidelity
 #include "labeling_io.h"                // for load_labeling(), save_labeling()
 #include "labeling_generators.h"        // for naive_labeling()
-#include "stats.h"                      // for BasicStats
+#include "stats.h"                      // for IncrementalStats
 #include "io_dump.h"                    // for dump_all_boundaries()
 
 #define RED_WHITE_BLUE_LABELING_COLORS // better for (most) color-deficient users
@@ -792,7 +792,7 @@ protected:
 		set_edges_group_visibility(Y_boundaries_group_index_,true);
 		set_edges_group_visibility(Z_boundaries_group_index_,true);
 
-		BasicStats stats;
+		IncrementalStats stats;
 		compute_per_facet_fidelity(mesh_,normals_,LABELING_ATTRIBUTE_NAME,"fidelity",stats);
 		fidelity_text_label_ = fmt::format("min={:.4f} | max={:.4f} | avg={:.4f}",stats.min(),stats.max(),stats.avg());
 	}

@@ -107,7 +107,7 @@ void graphcut_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, const 
     gcl.compute_solution(label);
 }
 
-void compute_per_facet_fidelity(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* labeling_attribute_name, const char* fidelity_attribute_name, BasicStats& stats) {
+void compute_per_facet_fidelity(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* labeling_attribute_name, const char* fidelity_attribute_name, IncrementalStats& stats) {
     // goal of the fidelity metric : measure how close the assigned direction (label) is from the triangle normal
     //   fidelity=1 (high fidelity) -> label equal to the normal      ex: triangle is oriented towards +X and we assign +X
     //   fidelity=0 (low fidelity)  -> label opposite to the normal   ex: triangle is oriented towards +X and we assign -X

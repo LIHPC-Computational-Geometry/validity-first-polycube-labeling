@@ -8,10 +8,10 @@
 #include <iterator>     // for std::distance()
 #include <numeric>      // for std::accumulate()
 
-class BasicStats {
+class IncrementalStats {
 public:
 
-    BasicStats() {
+    IncrementalStats() {
         reset();
     }
 

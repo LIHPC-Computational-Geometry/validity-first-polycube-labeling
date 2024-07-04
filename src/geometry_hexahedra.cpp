@@ -11,9 +11,9 @@
 #include <ostream>      // for std::endl
 
 #include "geometry_hexahedra.h"
-#include "stats.h" // for BasicStats
+#include "stats.h" // for IncrementalStats
 
-void compute_scaled_jacobian(GEO::Mesh& M, BasicStats& stats) {
+void compute_scaled_jacobian(GEO::Mesh& M, IncrementalStats& stats) {
     M.vertices.set_double_precision(); // in order to use M.vertices.point()
     GEO::Attribute<double> SJ(M.cells.attributes(), "SJ");
     stats.reset();

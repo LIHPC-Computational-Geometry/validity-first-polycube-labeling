@@ -90,9 +90,9 @@ int main(int argc, char** argv) {
     
     output_JSON["vertices"]["nb"] = input_mesh.vertices.nb();
     if(input_mesh.vertices.nb()!=0) {
-        BasicStats dim_x_stats,
-                   dim_y_stats,
-                   dim_z_stats;
+        IncrementalStats dim_x_stats,
+                         dim_y_stats,
+                         dim_z_stats;
         PrincipalAxes3d principal_axes;
         principal_axes.begin();
         vec3 coordinates;
@@ -161,7 +161,7 @@ int main(int argc, char** argv) {
 
     output_JSON["edges"]["nb"] = input_mesh.edges.nb();
     if(input_mesh.edges.nb()!=0) {
-        BasicStats edges_length_stats;
+        IncrementalStats edges_length_stats;
         FOR(e,input_mesh.edges.nb()) {
             edges_length_stats.insert(length(
                 input_mesh.vertices.point(input_mesh.edges.vertex(e,1)) -
@@ -180,7 +180,7 @@ int main(int argc, char** argv) {
 
     output_JSON["facets"]["nb"] = input_mesh.facets.nb();
     if(input_mesh.facets.nb()!=0) {
-        BasicStats facets_area_stats;
+        IncrementalStats facets_area_stats;
         FOR(f,input_mesh.facets.nb()) {
             facets_area_stats.insert(mesh_facet_area(input_mesh,f));
         }
@@ -200,7 +200,7 @@ int main(int argc, char** argv) {
     if(input_mesh.cells.nb()!=0) {
         std::array<unsigned int,MESH_NB_CELL_TYPES> per_type_count;
         per_type_count.fill(0);
-        BasicStats cells_volume_stats;
+        IncrementalStats cells_volume_stats;
         FOR(c,input_mesh.cells.nb()) {
             cells_volume_stats.insert(mesh_cell_volume(input_mesh,c));
             per_type_count[input_mesh.cells.type(c)]++;
@@ -216,7 +216,7 @@ int main(int argc, char** argv) {
             }
         }
         if(per_type_count[MESH_HEX]!=0) {
-            BasicStats scaled_jacobian_stats;
+            IncrementalStats scaled_jacobian_stats;
             compute_scaled_jacobian(input_mesh,scaled_jacobian_stats);
             output_JSON["cells"]["quality"]["hex_SJ"]["min"] = scaled_jacobian_stats.min();
             output_JSON["cells"]["quality"]["hex_SJ"]["max"] = scaled_jacobian_stats.max();

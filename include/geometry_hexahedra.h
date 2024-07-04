@@ -50,4 +50,4 @@ constexpr GEO::index_t HEX_CORNER_SPLITTING[8][4] = {
 
 // compute the Scaled Jacobian of each cell
 // in a cell attribute 'SJ' of M
-void compute_scaled_jacobian(GEO::Mesh& M, BasicStats& stats);
+void compute_scaled_jacobian(GEO::Mesh& M, IncrementalStats& stats);

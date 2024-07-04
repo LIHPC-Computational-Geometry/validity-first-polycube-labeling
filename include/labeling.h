@@ -5,7 +5,7 @@
 #include <initializer_list>
 
 #include "LabelingGraph.h"  // for Boundary
-#include "stats.h"          // for BasicStats
+#include "stats.h"          // for IncrementalStats
 
 // get the string representation of a label
 #define LABEL2STR(label) ((label==0) ? "+X" : ( \
@@ -44,7 +44,7 @@ index_t find_optimal_label(std::initializer_list<index_t> forbidden_axes = {}, s
 
 void propagate_label(const Mesh& mesh, const char* attribute_name, index_t new_label, const std::set<index_t>& facets_in, const std::set<index_t> facets_out, const std::vector<index_t>& facet2chart, index_t chart_index);
 
-void compute_per_facet_fidelity(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* labeling_attribute_name, const char* fidelity_attribute_name, BasicStats& stats);
+void compute_per_facet_fidelity(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* labeling_attribute_name, const char* fidelity_attribute_name, IncrementalStats& stats);
 
 unsigned int count_lost_feature_edges(const MeshHalfedgesExt& mesh_he, const std::set<std::pair<index_t,index_t>>& feature_edges);
 

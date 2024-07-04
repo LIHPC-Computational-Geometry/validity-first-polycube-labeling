@@ -991,7 +991,7 @@ void write_glTF__hex_mesh_surface(std::string filename, const GEO::Mesh& hex_mes
 
     // 1.
 
-    BasicStats SJ_stats;
+    IncrementalStats SJ_stats;
     compute_scaled_jacobian(mesh,SJ_stats); // creates a "SJ" cell attribute, of type double
     GEO::Attribute<double> SJ(mesh.cells.attributes(), "SJ"); // retrieve the attribute
 
