@@ -146,10 +146,6 @@ add_executable(graphcut_labeling app/graphcut_labeling.cpp)
 target_include_directories(graphcut_labeling PRIVATE include)
 target_link_libraries(graphcut_labeling PRIVATE automatic_polycube_lib ${EXTERNAL_LIBS})
 
-add_executable(ovm_io app/ovm_io.cpp)
-target_include_directories(ovm_io PRIVATE include)
-target_link_libraries(ovm_io PRIVATE automatic_polycube_lib ${EXTERNAL_LIBS})
-
 add_executable(areas_to_tilt app/areas_to_tilt.cpp)
 target_include_directories(areas_to_tilt PRIVATE include)
 target_link_libraries(areas_to_tilt PRIVATE automatic_polycube_lib ${EXTERNAL_LIBS})
