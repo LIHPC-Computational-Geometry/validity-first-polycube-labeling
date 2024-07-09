@@ -24,9 +24,9 @@
 #include "stats.h"                      // for IncrementalStats
 #include "io_dump.h"                    // for dump_all_boundaries()
 
-#define RED_WHITE_BLUE_LABELING_COLORS // better for (most) color-deficient users
+#define RED_WHITE_BLUE_LABELING_COLORS // red-white-blue instead of red-green-blue. better for (most) color-deficient users
 
-#define LABELING_ATTRIBUTE_NAME "label"
+#define LABELING_ATTRIBUTE_NAME "label" // name of the per-facet attribute in which the polycube labeling will be stored
 
 // values for *_labeling_visu_mode_
 #define VIEW_TRIANGLE_MESH		0
@@ -49,75 +49,68 @@ class LabelingViewerApp : public SimpleMeshApplicationExt {
 public:
 
     enum State {
-        empty,
-        triangle_mesh,
-        labeling
+        empty, // no file loaded
+        triangle_mesh, // a mesh has been loaded
+        labeling // a mesh has been loaded and a labeling has been loaded/computed
 	};
 
-    LabelingViewerApp(const std::string name = "labeling_viewer", bool auto_flip_normals = true) : SimpleMeshApplicationExt(name),
-						     labeling_colors_({
-								{1.0f, 0.0f, 0.0f, 1.0f}, // label 0 -> red
-								{0.6f, 0.0f, 0.0f, 1.0f}, // label 1 -> darker red
-							#ifdef RED_WHITE_BLUE_LABELING_COLORS
-								{1.0f, 1.0f, 1.0f, 1.0f}, // label 2 -> white
-								{0.6f, 0.6f, 0.6f, 1.0f}, // label 3 -> grey
-							#else
-								{0.0f, 1.0f, 0.0f, 1.0f}, // label 2 -> green
-								{0.0f, 0.6f, 0.0f, 1.0f}, // label 3 -> darker green
-							#endif
-								{0.0f, 0.0f, 1.0f, 1.0f}, // label 4 -> blue
-								{0.0f, 0.0f, 0.6f, 1.0f}  // label 5 -> darker blue
-						   	 }),
-							 validity_colors_({
-								{1.0f, 0.25f, 0.25f, 1.0f}, // invalid charts/boundaries/corners in light red
-								{0.25f, 0.25f, 1.0f, 1.0f}  // valid charts/boundaries/corners in light blue
-							 }),
-							 auto_flip_normals_(auto_flip_normals)
-							 {
-
-		show_ImGui_demo_window_ = false;
+    LabelingViewerApp(const std::string name = "labeling_viewer", bool auto_flip_normals = true) :
+		SimpleMeshApplicationExt(name),
+		labeling_colors_({
+		{1.0f, 0.0f, 0.0f, 1.0f}, // label 0 -> red
+		{0.6f, 0.0f, 0.0f, 1.0f}, // label 1 -> darker red
+	#ifdef RED_WHITE_BLUE_LABELING_COLORS
+		{1.0f, 1.0f, 1.0f, 1.0f}, // label 2 -> white
+		{0.6f, 0.6f, 0.6f, 1.0f}, // label 3 -> grey
+	#else
+		{0.0f, 1.0f, 0.0f, 1.0f}, // label 2 -> green
+		{0.0f, 0.6f, 0.0f, 1.0f}, // label 3 -> darker green
+	#endif
+		{0.0f, 0.0f, 1.0f, 1.0f}, // label 4 -> blue
+		{0.0f, 0.0f, 0.6f, 1.0f}  // label 5 -> darker blue
+		}),
+		validity_colors_({
+		{ 1.0f, 0.25f, 0.25f, 1.0f}, // invalid charts/boundaries/corners in light red
+		{0.25f, 0.25f,  1.0f, 1.0f}  // valid charts/boundaries/corners in light blue
+		}),
+		auto_flip_normals_(auto_flip_normals)
+	{
+		// init some inherited variables
 
 		show_vertices_ = false;
         show_surface_ = true;
         show_mesh_ = true;
         show_surface_borders_ = false;
         show_volume_ = false;
-		surface_color_ =   vec4f(0.9f, 0.9f, 0.9f, 1.0f); // light grey. default is bleu-ish vec4f(0.5f, 0.5f, 1.0f, 1.0f)
+		surface_color_ = vec4f(0.9f, 0.9f, 0.9f, 1.0f); // light grey. default is blue-ish vec4f(0.5f, 0.5f, 1.0f, 1.0f)
 
         // init own variables
-        allow_boundaries_between_opposite_labels_ = false; // parameter of LabelingGraph::fill_from()
 
-		// facet normals in green by default
-		normals_color_[0] = 0.0f;
-		normals_color_[1] = 1.0f;
-		normals_color_[2] = 0.0f;
-		normals_length_factor_ = 0.1f;
-
-        // corners in black by default
-		show_corners_ = false;
-		corners_color_[0] = 0.0f;
-		corners_color_[1] = 0.0f;
-		corners_color_[2] = 0.0f;
-		corners_size_ = 10.0f;
-
-		// turning points in yellow by default
-		show_turning_points_ = false;
-		turning_points_color_[0] = 1.0f;
-		turning_points_color_[1] = 1.0f;
-		turning_points_color_[2] = 0.0f;
-		turning_points_size_ = 10.0f;
-
-		nb_turning_points_ = 0;
-
-		fidelity_text_label_ = "";
-
+		show_ImGui_demo_window_ = false;
 		show_normals_ = false;
-
+		normals_color_ = vec3f(0.0f,1.0f,0.0f); // facet normals in green by default
+		normals_length_factor_ = 0.1f;
+		// facet_center_ and normal_tip_ init to 0.0,0.0,0.0 by default
 		show_feature_edges_ = true;
 		feature_edges_width_ = 5;
-
+        allow_boundaries_between_opposite_labels_ = false; // parameter of LabelingGraph::fill_from()
 		show_boundaries_ = false;
 		boundaries_width_ = 6;
+		X_boundaries_group_index_ = 0;
+		Y_boundaries_group_index_ = 0;
+		Z_boundaries_group_index_ = 0;
+		axisless_and_invalid_boundaries_group_index = 0;
+		axisless_but_valid_boundaries_group_index_ = 0;
+		show_corners_ = false;
+		corners_color_ = vec3f(0.0f,0.0f,0.0f); // corners in black by default
+		corners_size_ = 10.0f;
+		show_turning_points_ = false;
+		turning_points_color_ = vec3f(1.0f,1.0f,0.0f); // turning-points in yellow by default
+		turning_points_size_ = 10.0f;
+		turning_points_group_index_ = 0;
+		valid_corners_group_index_ = 0;
+		invalid_corners_group_index_ = 0;
+		fidelity_text_label_ = "";
 
 		state_transition(empty);
     }
@@ -167,8 +160,8 @@ protected:
 				set_edges_group_color(X_boundaries_group_index_,COLORMAP_LABELING,0.084); // axis X -> color of label 0 = +X
 				set_edges_group_color(Y_boundaries_group_index_,COLORMAP_LABELING,0.417); // axis Y -> color of label 2 = +Y
 				set_edges_group_color(Z_boundaries_group_index_,COLORMAP_LABELING,0.750); // axis Z -> color of label 4 = +Z
-				set_edges_group_color(invalid_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0); // axisless boundaries in black
-				set_edges_group_color(valid_but_axisless_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0); // axisless boundaries in black
+				set_edges_group_color(axisless_and_invalid_boundaries_group_index,COLORMAP_BLACK_WHITE,0.0); // axisless boundaries in black
+				set_edges_group_color(axisless_but_valid_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0); // axisless boundaries in black
 				show_corners_ = false;
 				show_turning_points_ = false;
 				break;
@@ -186,8 +179,8 @@ protected:
 				set_edges_group_color(X_boundaries_group_index_,COLORMAP_LABELING,0.084); // axis X -> color of label 0 = +X
 				set_edges_group_color(Y_boundaries_group_index_,COLORMAP_LABELING,0.417); // axis Y -> color of label 2 = +Y
 				set_edges_group_color(Z_boundaries_group_index_,COLORMAP_LABELING,0.750); // axis Z -> color of label 4 = +Z
-				set_edges_group_color(invalid_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0); // axisless boundaries in black
-				set_edges_group_color(valid_but_axisless_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0); // axisless boundaries in black
+				set_edges_group_color(axisless_and_invalid_boundaries_group_index,COLORMAP_BLACK_WHITE,0.0); // axisless boundaries in black
+				set_edges_group_color(axisless_but_valid_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0); // axisless boundaries in black
 				show_corners_ = false;
 				show_turning_points_ = false;
 				break;
@@ -210,8 +203,8 @@ protected:
 				set_edges_group_color(X_boundaries_group_index_,COLORMAP_LABELING,0.084); // axis X -> color of label 0 = +X
 				set_edges_group_color(Y_boundaries_group_index_,COLORMAP_LABELING,0.417); // axis Y -> color of label 2 = +Y
 				set_edges_group_color(Z_boundaries_group_index_,COLORMAP_LABELING,0.750); // axis Z -> color of label 4 = +Z
-				set_edges_group_color(invalid_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0); // axisless boundaries in black
-				set_edges_group_color(valid_but_axisless_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0); // axisless boundaries in black
+				set_edges_group_color(axisless_and_invalid_boundaries_group_index,COLORMAP_BLACK_WHITE,0.0); // axisless boundaries in black
+				set_edges_group_color(axisless_but_valid_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0); // axisless boundaries in black
 				show_corners_ = true;
 				show_turning_points_ = true;
 				break;
@@ -229,8 +222,8 @@ protected:
 				set_edges_group_color(X_boundaries_group_index_,COLORMAP_LABELING,0.084); // axis X -> color of label 0 = +X
 				set_edges_group_color(Y_boundaries_group_index_,COLORMAP_LABELING,0.417); // axis Y -> color of label 2 = +Y
 				set_edges_group_color(Z_boundaries_group_index_,COLORMAP_LABELING,0.750); // axis Z -> color of label 4 = +Z
-				set_edges_group_color(invalid_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0); // axisless boundaries in black
-				set_edges_group_color(valid_but_axisless_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0); // axisless boundaries in black
+				set_edges_group_color(axisless_and_invalid_boundaries_group_index,COLORMAP_BLACK_WHITE,0.0); // axisless boundaries in black
+				set_edges_group_color(axisless_but_valid_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0); // axisless boundaries in black
 				show_corners_ = false;
 				show_turning_points_ = false;
 				break;
@@ -253,8 +246,8 @@ protected:
 				set_edges_group_color(X_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0);
 				set_edges_group_color(Y_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0);
 				set_edges_group_color(Z_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0);
-				set_edges_group_color(invalid_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0);
-				set_edges_group_color(valid_but_axisless_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0);
+				set_edges_group_color(axisless_and_invalid_boundaries_group_index,COLORMAP_BLACK_WHITE,0.0);
+				set_edges_group_color(axisless_but_valid_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0);
 				show_corners_ = false;
 				show_turning_points_ = false;
 				break;
@@ -266,8 +259,8 @@ protected:
 				set_edges_group_color(X_boundaries_group_index_,COLORMAP_VALIDITY,1.0); // apply the color of valid LabelingGraph components
 				set_edges_group_color(Y_boundaries_group_index_,COLORMAP_VALIDITY,1.0); // apply the color of valid LabelingGraph components
 				set_edges_group_color(Z_boundaries_group_index_,COLORMAP_VALIDITY,1.0); // apply the color of valid LabelingGraph components
-				set_edges_group_color(invalid_boundaries_group_index_,COLORMAP_VALIDITY,0.0);
-				set_edges_group_color(valid_but_axisless_boundaries_group_index_,COLORMAP_VALIDITY,1.0);
+				set_edges_group_color(axisless_and_invalid_boundaries_group_index,COLORMAP_VALIDITY,0.0);
+				set_edges_group_color(axisless_but_valid_boundaries_group_index_,COLORMAP_VALIDITY,1.0);
 				show_boundaries_ = true;
 				show_corners_ = false;
 				show_turning_points_ = false;
@@ -284,8 +277,8 @@ protected:
 				set_edges_group_color(X_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0);
 				set_edges_group_color(Y_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0);
 				set_edges_group_color(Z_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0);
-				set_edges_group_color(invalid_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0);
-				set_edges_group_color(valid_but_axisless_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0);
+				set_edges_group_color(axisless_and_invalid_boundaries_group_index,COLORMAP_BLACK_WHITE,0.0);
+				set_edges_group_color(axisless_but_valid_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0);
 				show_corners_ = true;
 				show_turning_points_ = false;
 				break;
@@ -504,7 +497,7 @@ protected:
 				ImGui::SetNextItemWidth(IMGUI_SLIDERS_WIDTH);
 				ImGui::SliderFloat("##Turning points size", &turning_points_size_, 1.0f, 50.0f, "%.1f");
 				ImGui::SameLine();
-				ImGui::Text("Turning-points (nb=%ld)",nb_turning_points_);
+				ImGui::Text("Turning-points (nb=%ld)",lg_.nb_turning_points());
 			}
 			else if (
 				(state_ == labeling) && (labeling_visu_mode_ == VIEW_FIDELITY)
@@ -722,7 +715,7 @@ protected:
 				ImGui::SetItemTooltip("The current labeling is not valid polycube representation.\nValence or adjacency of some components (charts, boundaries, corners) cannot turn into polycube components.");
 			}
 
-			if(nb_turning_points_==0) {
+			if(lg_.nb_turning_points()==0) {
 				ImGui::TextColored(ImVec4(0.0f,0.5f,0.0f,1.0f),"All monotone boundaries");
 				ImGui::SameLine();
 				ImGui::TextDisabled("(?)");
@@ -883,24 +876,18 @@ protected:
 
 		// compute charts, boundaries and corners of the labeling
 		lg_.fill_from(mesh_,LABELING_ATTRIBUTE_NAME,feature_edges_,allow_boundaries_between_opposite_labels);
-		nb_turning_points_ = lg_.nb_turning_points();
 
 		clear_scene_overlay();
 
 		valid_corners_group_index_ = new_points_group(corners_color_.data(),&corners_size_,&show_corners_);
 		invalid_corners_group_index_ = new_points_group(corners_color_.data(),&corners_size_,&show_corners_);
 		turning_points_group_index_ = new_points_group(turning_points_color_.data(),&turning_points_size_,&show_turning_points_);
-		// There is 5 (mutually-exclusive) types of boundaries:
-		// - assigned to the X axis, valid
-		// - assigned to the Y axis, valid
-		// - assigned to the Z axis, valid
-		// - not assigned to an axis, but still valid
-		// - not assigned to an axis, and invalid
+
 		X_boundaries_group_index_ = new_edges_group(COLORMAP_LABELING,0.084,&boundaries_width_,&show_boundaries_); // axis X -> use the color of label 0 = +X
 		Y_boundaries_group_index_ = new_edges_group(COLORMAP_LABELING,0.417,&boundaries_width_,&show_boundaries_); // axis Y -> use the color of label 2 = +Y
 		Z_boundaries_group_index_ = new_edges_group(COLORMAP_LABELING,0.750,&boundaries_width_,&show_boundaries_); // axis Z -> use the color of label 4 = +Z
-		invalid_boundaries_group_index_ = new_edges_group(COLORMAP_VALIDITY,0.0,&boundaries_width_,&show_boundaries_); // use the color of invalid LabelingGraph components
-		valid_but_axisless_boundaries_group_index_ = new_edges_group(COLORMAP_VALIDITY,1.0,&boundaries_width_,&show_boundaries_); // use the color of valid LabelingGraph components
+		axisless_and_invalid_boundaries_group_index = new_edges_group(COLORMAP_VALIDITY,0.0,&boundaries_width_,&show_boundaries_); // use the color of invalid LabelingGraph components
+		axisless_but_valid_boundaries_group_index_ = new_edges_group(COLORMAP_VALIDITY,1.0,&boundaries_width_,&show_boundaries_); // use the color of valid LabelingGraph components
 
 		for(std::size_t i = 0; i < lg_.nb_corners(); ++i) {
 			const double* coordinates = mesh_.vertices.point_ptr(
@@ -925,10 +912,10 @@ protected:
 				switch(boundary.axis) {
 					case -1: // may or may not be invalid
 						if(boundary.is_valid) {
-							group_index = valid_but_axisless_boundaries_group_index_;
+							group_index = axisless_but_valid_boundaries_group_index_;
 						}
 						else {
-							group_index = invalid_boundaries_group_index_;
+							group_index = axisless_and_invalid_boundaries_group_index;
 						}
 						break;
 					case 0: // always valid
@@ -958,42 +945,51 @@ protected:
 
 protected:
 
-	bool show_ImGui_demo_window_;
-    bool allow_boundaries_between_opposite_labels_;
-	ColorArray labeling_colors_;
-	vec3f corners_color_;
-	vec3f turning_points_color_;
-	std::size_t nb_turning_points_;
-	ColorArray validity_colors_;
-	LabelingGraph lg_;
+	// variables to declare first, because first init in constructor
+	ColorArray labeling_colors_; // per label colors
+	ColorArray validity_colors_; // colors for valid and invalid labeling graph components
+
+	// Core variables
+
+	bool auto_flip_normals_; // if the app should ensure outward facet normals
+	LabelingGraph lg_; // labeling seen as charts, boundaries and corners
 	State state_; // should only be modified by state_transition()
 	int labeling_visu_mode_; // not a enum, to be used in ImGui. should only be modified by labeling_visu_mode_transition() and ImGui::RadioButton
-	std::size_t valid_corners_group_index_;
-	std::size_t invalid_corners_group_index_;
-	float corners_size_;
-	std::size_t turning_points_group_index_;
-	float turning_points_size_;
-	std::size_t X_boundaries_group_index_;
-	std::size_t Y_boundaries_group_index_;
-	std::size_t Z_boundaries_group_index_;
-	std::size_t invalid_boundaries_group_index_;
-	std::size_t valid_but_axisless_boundaries_group_index_;
+	// Additional geometry info
 	std::vector<vec3> normals_; // facet normals
-	std::string fidelity_text_label_;
-	bool show_normals_; // optional visu overlay when state_ is triangle_mesh
-	vec3f normals_color_;
-	vec3 facet_center_;
-	vec3 normal_tip_;
-	float normals_length_factor_;
-	bool auto_flip_normals_;
-	bool show_feature_edges_;
-	int feature_edges_width_;
 	std::vector<std::vector<index_t>> adj_facets_; // for each vertex, store adjacent facets. no ordering
-	std::set<std::pair<index_t,index_t>> feature_edges_;
-	bool show_boundaries_;
-	int boundaries_width_;
-	bool show_corners_;
-	bool show_turning_points_;
+	std::set<std::pair<index_t,index_t>> feature_edges_; // significant feature edges (with include/geometry.h > FEATURE_EDGES_MIN_ANGLE as threshold)
+
+	// GUI
+
+	bool show_ImGui_demo_window_; // if the ImGui demo window is currently displayed
+	// Related to the triangle mesh
+	bool show_normals_; // display facet normals as segments + vertices at the tips
+	vec3f normals_color_; // color of the facet normals
+	float normals_length_factor_; // length of the facet normals. multiplier of the normalized facet normal
+	vec3 facet_center_; // last facet center computed
+	vec3 normal_tip_; // last normal tip computed
+	bool show_feature_edges_; // display feature edges
+	int feature_edges_width_; // width of feature edges
+	// Related to labelings
+	bool allow_boundaries_between_opposite_labels_; // if boundaries between charts labeled to the same axis, but on > 180° angles, are allowed (when computing the labeling graph)
+	bool show_boundaries_; // display labeling graph boundaries
+	int boundaries_width_; // width of labeling graph boundaries
+	std::size_t X_boundaries_group_index_; // index of the edges group in the overlay storing edges of boundaries mapped to the X axis
+	std::size_t Y_boundaries_group_index_; // index of the edges group in the overlay storing edges of boundaries mapped to the Y axis
+	std::size_t Z_boundaries_group_index_; // index of the edges group in the overlay storing edges of boundaries mapped to the Z axis
+	std::size_t axisless_and_invalid_boundaries_group_index; // index of the edges group in the overlay storing axisless and invalid boundary edges
+	std::size_t axisless_but_valid_boundaries_group_index_; // index of the edges group in the overlay storing axisless but valid boundary edges
+	bool show_corners_; // display labeling graph corners
+	vec3f corners_color_; // color of labeling graph corners
+	float corners_size_; // size of labeling graph corners
+	bool show_turning_points_; // display labeling graph turning-points
+	vec3f turning_points_color_; // color of labeling graph turning-points
+	float turning_points_size_; // size of labeling graph turning-points
+	std::size_t turning_points_group_index_; // index of the points group in the overlay storing turning-points
+	std::size_t valid_corners_group_index_; // index of the points group in the overlay storing valid corners
+	std::size_t invalid_corners_group_index_;  // index of the points group in the overlay storing invalid corners
+	std::string fidelity_text_label_; // text label describing per-facet fidelity stats
 };
 
 // print specialization of LabelingViewerApp::State for {fmt}
