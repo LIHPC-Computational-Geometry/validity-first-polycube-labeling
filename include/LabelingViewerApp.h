@@ -47,8 +47,6 @@
 
 using namespace GEO;
 
-const float dark_blue[4] = {0.0f, 0.0f, 5.0f, 1.0f};
-
 class LabelingViewerApp : public SimpleMeshApplicationExt {
 public:
 
@@ -116,6 +114,7 @@ public:
 		show_normals_ = false;
 
 		show_feature_edges_ = true;
+		feature_edges_width_ = 5;
 
 		state_transition(empty);
     }
@@ -295,8 +294,7 @@ protected:
 			glupTextureType(GLUP_TEXTURE_2D);
 			glupTextureMode(GLUP_TEXTURE_REPLACE);
 			glupPrivateTexCoord1d(0.0);
-			// thick lines
-			glupSetMeshWidth(5);
+			glupSetMeshWidth(feature_edges_width_);
 			glupBegin(GLUP_LINES);
 			for(const std::pair<index_t,index_t>& edge : feature_edges_) { // for each edge in the set of feature edges
 				glupPrivateVertex3dv(mesh_.vertices.point_ptr(edge.first)); // draw first vertex
@@ -389,14 +387,16 @@ protected:
 				ImGui::TextDisabled("(?)");
 				ImGui::SetItemTooltip("Draw facet normals as segments. The point is the tip of the vector.");
 				// Feature edges
-				ImGui::Checkbox("Show feature edges",&show_feature_edges_);
+				ImGui::Checkbox("##Show feature edges",&show_feature_edges_);
 				ImGui::SameLine();
-				ImGui::Text("(%ld)",feature_edges_.size());
+				ImGui::SetNextItemWidth(IMGUI_SLIDERS_WIDTH);
+				ImGui::SliderInt("##Feature edges width",&feature_edges_width_,1,30);
+				ImGui::SameLine();
+				ImGui::Text("Feature edges (%ld)",feature_edges_.size());
 				ImGui::SameLine();
 				ImGui::TextDisabled("(?)");
 				ImGui::SetItemTooltip("Draw feature edges in blue on top of the mesh");
-				// TODO allow to tweak feature edges width
-				// TODO allow to change feature edges color
+				// Feature edges color (thick lines color in general) cannot be easily changed, because we have to use a colormap coordinate, not just a float[3]
 			}
 			else if (
 				((state_ == labeling) && (labeling_visu_mode_ == VIEW_RAW_LABELING)) || 
@@ -909,6 +909,7 @@ protected:
 	float normals_length_factor_;
 	bool auto_flip_normals_;
 	bool show_feature_edges_;
+	int feature_edges_width_;
 	std::vector<std::vector<index_t>> adj_facets_; // for each vertex, store adjacent facets. no ordering
 	std::set<std::pair<index_t,index_t>> feature_edges_;
 };
