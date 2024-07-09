@@ -29,8 +29,6 @@
 #include "labeling_operators_on_invalidity.h"
 #include "labeling_operators_on_distortion.h"
 
-#define VIEW_CHARTS_TO_REFINE	((VIEW_INVALID_CORNERS)+1)
-
 #define STDDEV_BASED_CHART_REFINEMENT
 
 class AutomaticPolycubeApp : public LabelingViewerApp {
@@ -43,83 +41,10 @@ public:
 
 protected:
 
-	void labeling_visu_mode_transition(int new_mode) override {
-		// handle new option "View charts to refine"
-		if(new_mode == VIEW_CHARTS_TO_REFINE) {
-			Attribute<index_t> labeling(mesh_.facets.attributes(),LABELING_ATTRIBUTE_NAME); // access the labeling
-			vec3 facet_normal(0.0,0.0,0.0);
-#ifdef STDDEV_BASED_CHART_REFINEMENT
-			Attribute<double> per_chart_stddev_validity(mesh_.facets.attributes(),"per_chart_stddev_validity"); // create new facet attribute
-			std::vector<double> per_chart_fidelity_values;
-			double global_max = Numeric::min_float64(); // will store the max std dev of all facets
-			FOR(c,lg_.nb_charts()) { // for each chart
-				double stddev = 0.0;
-				per_chart_fidelity_values.resize(lg_.charts[c].facets.size());
-				index_t count_facets = 0;
-				for(auto f : lg_.charts[c].facets) { // for each facet in this chart
-					per_chart_fidelity_values[count_facets] = (GEO::dot(normals_[f],label2vector[labeling[f]]) - 1.0)/0.2; // compute fidelity
-					count_facets++;
-				}
-				stddev = std_dev(per_chart_fidelity_values.begin(),per_chart_fidelity_values.end());
-				// write this value for all facets on the current chart
-				for(auto f : lg_.charts[c].facets) {
-					per_chart_stddev_validity[f] = stddev;
-				}
-				global_max = std::max(global_max,stddev);
-			}
-
-			attribute_ = "facets.per_chart_stddev_validity";
-			attribute_name_ = "per_chart_stddev_validity";
-			attribute_min_ = (float) global_max;	// in black
-			attribute_max_ = 0;						// in white
-#else
-			Attribute<double> per_chart_min_validity(mesh_.facets.attributes(),"per_chart_min_validity"); // create new facet attribute
-			double global_min = 0.0, min_fidelity = 0.0, fidelity = 0.0;
-			FOR(c,lg_.nb_charts()) { // for each chart
-				min_fidelity = 0.0; // will store the min fidelity of all facets
-				for(auto f : lg_.charts[c].facets) { // for each facet in this chart
-					fidelity = (GEO::dot(normals_[f],label2vector[labeling[f]]) - 1.0)/0.2;
-					min_fidelity = std::min(fidelity,min_fidelity);
-				}
-				// write this value for all facets on the current chart
-				for(auto f : lg_.charts[c].facets) { // for each facet in this chart
-					per_chart_min_validity[f] = min_fidelity;
-				}
-				global_min = std::min(global_min,min_fidelity);
-			}
-
-			attribute_ = "facets.per_chart_min_validity";
-			attribute_name_ = "per_chart_min_validity";
-			attribute_min_ = (float) global_min;	// in black
-			attribute_max_ = 0;						// in white
-#endif
-			show_mesh_ = false;
-			lighting_ = false;
-			show_attributes_ = true;
-			current_colormap_index_ = COLORMAP_BLACK_WHITE;
-			attribute_subelements_ = MESH_FACETS;
-			
-			// points in overlay
-			points_groups_show_only({}); // show none
-			// edges in overlay
-			set_edges_group_color(X_boundaries_group_index_,colormaps_[COLORMAP_LABELING].texture,0.084); // axis X -> color of label 0 = +X
-			set_edges_group_color(Y_boundaries_group_index_,colormaps_[COLORMAP_LABELING].texture,0.417); // axis Y -> color of label 2 = +Y
-			set_edges_group_color(Z_boundaries_group_index_,colormaps_[COLORMAP_LABELING].texture,0.750); // axis Z -> color of label 4 = +Z
-			edges_groups_show_only({X_boundaries_group_index_, Y_boundaries_group_index_, Z_boundaries_group_index_});
-			labeling_visu_mode_ = VIEW_CHARTS_TO_REFINE;
-		}
-		else {
-			LabelingViewerApp::labeling_visu_mode_transition(new_mode);
-		}
-	}
-
 	// add buttons for labeling operators on the "object properties" panel
     void draw_object_properties() override {
 		LabelingViewerApp::draw_object_properties();
 		if(state_ == LabelingViewerApp::State::labeling) {
-			if(ImGui::RadioButton("View charts to refine",&labeling_visu_mode_,VIEW_CHARTS_TO_REFINE)) {
-				labeling_visu_mode_transition(VIEW_CHARTS_TO_REFINE);
-			}
 
 			ImGui::SeparatorText("Fix labeling");
 
