@@ -345,21 +345,118 @@ protected:
 	}
 
     void draw_object_properties() override {
+
+		if(ImGui::Button(icon_UTF8("sliders-h") + "graphics settings")) {
+			ImGui::OpenPopup("Graphics settings");
+		}
+		ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f)); // Always center the modal when appearing
+		if(ImGui::BeginPopupModal("Graphics settings", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+		{
+			if (
+				(state_ == empty) || 
+				(state_ == triangle_mesh) || 
+				((state_ == labeling) && (labeling_visu_mode_ == VIEW_TRIANGLE_MESH))
+			) {
+				// TODO allow to change normals color
+				ImGui::Checkbox("Show normals",&show_normals_);
+				ImGui::SameLine();
+				ImGui::TextDisabled("(?)");
+				ImGui::SetItemTooltip("Draw facet normals as segments. The point is the tip of the vector.");
+				ImGui::SliderFloat("Normals length factor",&normals_length_factor_,0.0f,50.0f);
+				ImGui::Checkbox("Show feature edges",&show_feature_edges_);
+				ImGui::SameLine();
+				ImGui::Text("(%ld)",feature_edges_.size());
+				ImGui::SameLine();
+				ImGui::TextDisabled("(?)");
+				ImGui::SetItemTooltip("Draw feature edges in blue on top of the mesh");
+				// TODO allow to tweak feature edges width
+				// TODO allow to change feature edges color
+			}
+			else if (
+				((state_ == labeling) && (labeling_visu_mode_ == VIEW_RAW_LABELING)) || 
+				((state_ == labeling) && (labeling_visu_mode_ == VIEW_LABELING_GRAPH))
+			) {
+				// TODO allow to show/hide mesh wireframe
+				if(ImGui::ColorEdit4WithPalette("Label 0 = +X", labeling_colors_.color_as_floats(0))) {
+					labeling_colors_.update_chars_of_color(0);
+					update_GL_texture(COLORMAP_LABELING,6,1,labeling_colors_.as_chars());
+				}
+				if(ImGui::ColorEdit4WithPalette("Label 1 = -X", labeling_colors_.color_as_floats(1))) {
+					labeling_colors_.update_chars_of_color(1);
+					update_GL_texture(COLORMAP_LABELING,6,1,labeling_colors_.as_chars());
+				}
+				if(ImGui::ColorEdit4WithPalette("Label 2 = +Y", labeling_colors_.color_as_floats(2))) {
+					labeling_colors_.update_chars_of_color(2);
+					update_GL_texture(COLORMAP_LABELING,6,1,labeling_colors_.as_chars());
+				}
+				if(ImGui::ColorEdit4WithPalette("Label 3 = -Y", labeling_colors_.color_as_floats(3))) {
+					labeling_colors_.update_chars_of_color(3);
+					update_GL_texture(COLORMAP_LABELING,6,1,labeling_colors_.as_chars());
+				}
+				if(ImGui::ColorEdit4WithPalette("Label 4 = +Z", labeling_colors_.color_as_floats(4))) {
+					labeling_colors_.update_chars_of_color(4);
+					update_GL_texture(COLORMAP_LABELING,6,1,labeling_colors_.as_chars());
+				}
+				if(ImGui::ColorEdit4WithPalette("Label 5 = -Z", labeling_colors_.color_as_floats(5))) {
+					labeling_colors_.update_chars_of_color(5);
+					update_GL_texture(COLORMAP_LABELING,6,1,labeling_colors_.as_chars());
+				}
+				// TODO allow to show/hide boundaries
+				// TODO allow to change boundaries width
+				// TODO allow to show/hide corners
+				ImGui::ColorEdit4WithPalette("Corners", corners_color_);
+				ImGui::SameLine();
+				ImGui::Text("(%ld)",lg_.nb_corners());
+				ImGui::SliderFloat("Corners size", &corners_size_, 0.0f, 50.0f, "%.1f");
+				// TODO allow to show/hide turning-points
+				ImGui::ColorEdit4WithPalette("Turning points", turning_points_color_);
+				ImGui::SameLine();
+				ImGui::Text("(%ld)",nb_turning_points_);
+				ImGui::SliderFloat("Turning points size", &turning_points_size_, 0.0f, 50.0f, "%.1f");
+			}
+			else if (
+				(state_ == labeling) && (labeling_visu_mode_ == VIEW_FIDELITY)
+			) {
+				// TODO allow to change colormap?
+			}
+			else if (
+				((state_ == labeling) && (labeling_visu_mode_ == VIEW_INVALID_CHARTS)) ||
+				((state_ == labeling) && (labeling_visu_mode_ == VIEW_INVALID_BOUNDARIES)) ||
+				((state_ == labeling) && (labeling_visu_mode_ == VIEW_INVALID_CORNERS))
+			) {
+				if(ImGui::ColorEdit4WithPalette("Invalid", validity_colors_.color_as_floats(0))) {
+					validity_colors_.update_chars_of_color(0);
+					update_GL_texture(COLORMAP_VALIDITY,2,1,validity_colors_.as_chars());
+				}
+				ImGui::SameLine();
+				ImGui::TextDisabled("(?)");
+				ImGui::SetItemTooltip("Color of invalid charts/boundaries/corners");
+				if(ImGui::ColorEdit4WithPalette("Valid", validity_colors_.color_as_floats(1))) {
+					validity_colors_.update_chars_of_color(1);
+					update_GL_texture(COLORMAP_VALIDITY,2,1,validity_colors_.as_chars());
+				}
+				ImGui::SameLine();
+				ImGui::TextDisabled("(?)");
+				ImGui::SetItemTooltip("Color of valid charts/boundaries/corners");
+				// TODO allow to change boundaries width
+				// TODO allow to change corners size
+			}
+			
+
+			if(ImGui::Button("Close", ImVec2(120, 0))) {
+				ImGui::CloseCurrentPopup();
+			}
+			ImGui::EndPopup();
+		}
+
+		ImGui::Separator();
+
         switch (state_) {
 
 		case triangle_mesh:
 
-			ImGui::Checkbox("Show normals",&show_normals_);
-			ImGui::SameLine();
-			ImGui::TextDisabled("(?)");
-			ImGui::SetItemTooltip("Draw facet normals as segments. The point is the tip of the vector.");
-			ImGui::SliderFloat("Normals length factor",&normals_length_factor_,0.0f,50.0f);
-			ImGui::Checkbox("Show feature edges",&show_feature_edges_);
-			ImGui::SameLine();
-			ImGui::Text("(%ld)",feature_edges_.size());
-			ImGui::SameLine();
-			ImGui::TextDisabled("(?)");
-			ImGui::SetItemTooltip("Draw feature edges in blue on top of the mesh");
+			ImGui::TextUnformatted("Mesh transformation");
+
 			if(ImGui::Button("Rotate mesh according to principal axes")) {
 				rotate_mesh_according_to_principal_axes(mesh_);
 				mesh_gfx_.set_mesh(&mesh_); // re-link the MeshGfx to the mesh
@@ -373,6 +470,7 @@ protected:
 			ImGui::SetItemTooltip("Compute principal axes of the point cloud and rotate the mesh to be aligned with them");
 
 			ImGui::Separator();
+			ImGui::TextUnformatted("Labeling generation");
 
 			ImGui::Checkbox("Allow boundaries between opposite labels",&allow_boundaries_between_opposite_labels_);
 			ImGui::SameLine();
@@ -459,33 +557,6 @@ protected:
 			ImGui::TextDisabled("(?)");
 			ImGui::SetItemTooltip("Show the triangle mesh and the labeling");
 
-			ImGui::BeginDisabled( (labeling_visu_mode_!=VIEW_RAW_LABELING) && (labeling_visu_mode_!=VIEW_LABELING_GRAPH) );
-			if(ImGui::ColorEdit4WithPalette("Label 0 = +X", labeling_colors_.color_as_floats(0))) {
-				labeling_colors_.update_chars_of_color(0);
-				update_GL_texture(COLORMAP_LABELING,6,1,labeling_colors_.as_chars());
-			}
-			if(ImGui::ColorEdit4WithPalette("Label 1 = -X", labeling_colors_.color_as_floats(1))) {
-				labeling_colors_.update_chars_of_color(1);
-				update_GL_texture(COLORMAP_LABELING,6,1,labeling_colors_.as_chars());
-			}
-			if(ImGui::ColorEdit4WithPalette("Label 2 = +Y", labeling_colors_.color_as_floats(2))) {
-				labeling_colors_.update_chars_of_color(2);
-				update_GL_texture(COLORMAP_LABELING,6,1,labeling_colors_.as_chars());
-			}
-			if(ImGui::ColorEdit4WithPalette("Label 3 = -Y", labeling_colors_.color_as_floats(3))) {
-				labeling_colors_.update_chars_of_color(3);
-				update_GL_texture(COLORMAP_LABELING,6,1,labeling_colors_.as_chars());
-			}
-			if(ImGui::ColorEdit4WithPalette("Label 4 = +Z", labeling_colors_.color_as_floats(4))) {
-				labeling_colors_.update_chars_of_color(4);
-				update_GL_texture(COLORMAP_LABELING,6,1,labeling_colors_.as_chars());
-			}
-			if(ImGui::ColorEdit4WithPalette("Label 5 = -Z", labeling_colors_.color_as_floats(5))) {
-				labeling_colors_.update_chars_of_color(5);
-				update_GL_texture(COLORMAP_LABELING,6,1,labeling_colors_.as_chars());
-			}
-			ImGui::EndDisabled();
-
 			if(ImGui::RadioButton("View labeling graph",&labeling_visu_mode_,VIEW_LABELING_GRAPH))
 				labeling_visu_mode_transition(VIEW_LABELING_GRAPH);
 			ImGui::SameLine();
@@ -493,20 +564,6 @@ protected:
 			ImGui::SetItemTooltip("Show the charts, the boundaries, the corners and the turning-points computed from the labeling");
 
 			ImGui::Text("%ld charts, %ld boundaries",lg_.nb_charts(),lg_.nb_boundaries());
-
-			ImGui::BeginDisabled(labeling_visu_mode_!=VIEW_LABELING_GRAPH);
-
-			ImGui::ColorEdit4WithPalette("Corners", corners_color_);
-			ImGui::SameLine();
-			ImGui::Text("(%ld)",lg_.nb_corners());
-			ImGui::SliderFloat("Corners size", &corners_size_, 0.0f, 50.0f, "%.1f");
-
-			ImGui::ColorEdit4WithPalette("Turning points", turning_points_color_);
-			ImGui::SameLine();
-			ImGui::Text("(%ld)",nb_turning_points_);
-			ImGui::SliderFloat("Turning points size", &turning_points_size_, 0.0f, 50.0f, "%.1f");
-
-			ImGui::EndDisabled();
 
 			if(ImGui::RadioButton("View fidelity",&labeling_visu_mode_,VIEW_FIDELITY))
 				labeling_visu_mode_transition(VIEW_FIDELITY);
@@ -530,25 +587,6 @@ protected:
 				labeling_visu_mode_transition(VIEW_INVALID_CORNERS);
 			ImGui::SameLine();
 			ImGui::Text("(%ld)",lg_.nb_invalid_corners());
-			
-			ImGui::BeginDisabled( (labeling_visu_mode_!=VIEW_INVALID_CHARTS) && 
-								  (labeling_visu_mode_!=VIEW_INVALID_BOUNDARIES) && 
-								  (labeling_visu_mode_!=VIEW_INVALID_CORNERS) );
-			if(ImGui::ColorEdit4WithPalette("Invalid", validity_colors_.color_as_floats(0))) {
-				validity_colors_.update_chars_of_color(0);
-				update_GL_texture(COLORMAP_VALIDITY,2,1,validity_colors_.as_chars());
-			}
-			ImGui::SameLine();
-			ImGui::TextDisabled("(?)");
-			ImGui::SetItemTooltip("Color of invalid charts/boundaries/corners");
-			if(ImGui::ColorEdit4WithPalette("Valid", validity_colors_.color_as_floats(1))) {
-				validity_colors_.update_chars_of_color(1);
-				update_GL_texture(COLORMAP_VALIDITY,2,1,validity_colors_.as_chars());
-			}
-			ImGui::SameLine();
-			ImGui::TextDisabled("(?)");
-			ImGui::SetItemTooltip("Color of valid charts/boundaries/corners");
-			ImGui::EndDisabled();
 
 			if(lg_.is_valid()) {
 				ImGui::TextColored(ImVec4(0.0f,0.5f,0.0f,1.0f),"Valid labeling");
