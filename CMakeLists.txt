@@ -28,6 +28,7 @@ set(
   src/labeling_operators_on_distortion.cpp
   src/io_glTF.cpp
   src/io_dump.cpp
+  src/gui_labeling.cpp
 )
 
 #################
