@@ -100,7 +100,7 @@ inline index_t* facet_vertex_index_ptr(GEO::Mesh& M, index_t f, index_t lv) {
 
 void write_glTF__triangle_mesh(std::string filename, GEO::Mesh& M, bool with_wireframe);
 
-void write_glTF__labeled_triangle_mesh(std::string filename, GEO::Mesh& M, const char* attribute_name, std::vector<std::vector<AdjacentFacetOfVertex>> per_vertex_adj_facets, std::function<bool(const Mesh& M, const Attribute<index_t>& label, index_t facet_index)> remove_facet_fx = [](const Mesh& M, const Attribute<index_t>& label, index_t facet_index){ return false; });
+void write_glTF__labeled_triangle_mesh(std::string filename, GEO::Mesh& M, const char* attribute_name, std::vector<std::vector<AdjacentFacetOfVertex>> per_vertex_adj_facets, std::function<bool(const Mesh& M, const Attribute<index_t>& label, index_t facet_index)> remove_facet_fx);
 
 void write_glTF__labeled_triangle_mesh_with_polycube_animation(std::string filename, GEO::Mesh& M, GEO::Mesh& polycube, const char* attribute_name, const std::vector<std::vector<AdjacentFacetOfVertex>>& per_vertex_adj_facets);
 

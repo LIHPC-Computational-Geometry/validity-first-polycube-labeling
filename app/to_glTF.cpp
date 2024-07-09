@@ -109,6 +109,9 @@ int main(int argc, char **argv)
             // Delete some facets for the new 'in-volume_knot' model (https://github.com/LIHPC-Computational-Geometry/nightmare_of_polycubes)
             // TODO
         #else
+            geo_argused(M);
+            geo_argused(label);
+            geo_argused(facet_index);
             return false; // remove no facets
         #endif
         };
