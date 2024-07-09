@@ -41,8 +41,6 @@
 #define COLORMAP_LABELING       (SIMPLE_APPLICATION_NB_COLORMAPS)
 #define COLORMAP_VALIDITY       ((SIMPLE_APPLICATION_NB_COLORMAPS)+1)
 
-#define BOUNDARIES_WIDTH	6
-
 #define IMGUI_SLIDERS_WIDTH	100.0f
 
 using namespace GEO;
@@ -116,6 +114,9 @@ public:
 		show_feature_edges_ = true;
 		feature_edges_width_ = 5;
 
+		show_boundaries_ = false;
+		boundaries_width_ = 6;
+
 		state_transition(empty);
     }
 
@@ -161,7 +162,12 @@ protected:
 				lighting_ = true;
 				show_attributes_ = false;
 				points_groups_show_only({}); // show none
-				edges_groups_show_only({}); // show none
+				show_boundaries_ = false;
+				set_edges_group_color(X_boundaries_group_index_,COLORMAP_LABELING,0.084); // axis X -> color of label 0 = +X
+				set_edges_group_color(Y_boundaries_group_index_,COLORMAP_LABELING,0.417); // axis Y -> color of label 2 = +Y
+				set_edges_group_color(Z_boundaries_group_index_,COLORMAP_LABELING,0.750); // axis Z -> color of label 4 = +Z
+				set_edges_group_color(invalid_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0); // axisless boundaries in black
+				set_edges_group_color(valid_but_axisless_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0); // axisless boundaries in black
 				break;
 			case VIEW_RAW_LABELING:
 				show_mesh_ = true;
@@ -174,7 +180,12 @@ protected:
 				attribute_min_ = -0.5f;
 				attribute_max_ = 5.5f;
 				points_groups_show_only({}); // show none
-				edges_groups_show_only({}); // show none
+				show_boundaries_ = false;
+				set_edges_group_color(X_boundaries_group_index_,COLORMAP_LABELING,0.084); // axis X -> color of label 0 = +X
+				set_edges_group_color(Y_boundaries_group_index_,COLORMAP_LABELING,0.417); // axis Y -> color of label 2 = +Y
+				set_edges_group_color(Z_boundaries_group_index_,COLORMAP_LABELING,0.750); // axis Z -> color of label 4 = +Z
+				set_edges_group_color(invalid_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0); // axisless boundaries in black
+				set_edges_group_color(valid_but_axisless_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0); // axisless boundaries in black
 				break;
 			case VIEW_LABELING_GRAPH:
 				show_mesh_ = false;
@@ -192,10 +203,12 @@ protected:
 				set_points_group_color(invalid_corners_group_index_,corners_color_.data()); // no distinction between valid and invalid corners in this view
 				points_groups_show_only({valid_corners_group_index_, invalid_corners_group_index_, turning_points_group_index_});
 				// edges in overlay
+				show_boundaries_ = true;
 				set_edges_group_color(X_boundaries_group_index_,COLORMAP_LABELING,0.084); // axis X -> color of label 0 = +X
 				set_edges_group_color(Y_boundaries_group_index_,COLORMAP_LABELING,0.417); // axis Y -> color of label 2 = +Y
 				set_edges_group_color(Z_boundaries_group_index_,COLORMAP_LABELING,0.750); // axis Z -> color of label 4 = +Z
-				edges_groups_show_only({X_boundaries_group_index_, Y_boundaries_group_index_, Z_boundaries_group_index_});
+				set_edges_group_color(invalid_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0); // axisless boundaries in black
+				set_edges_group_color(valid_but_axisless_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0); // axisless boundaries in black
 				break;
 			case VIEW_FIDELITY:
 				show_mesh_ = false;
@@ -208,7 +221,12 @@ protected:
 				attribute_min_ = 0.0f; // the fidelity should not be in [0:0.5] (label too far from the normal), so setting 0.5 as the min of the colormap allows to focus the range of interest [0.5:1], but will display all values in [0:0.5] in black...
 				attribute_max_ = 1.0f;
 				points_groups_show_only({}); // show none
-				edges_groups_show_only({}); // show none
+				show_boundaries_ = false;
+				set_edges_group_color(X_boundaries_group_index_,COLORMAP_LABELING,0.084); // axis X -> color of label 0 = +X
+				set_edges_group_color(Y_boundaries_group_index_,COLORMAP_LABELING,0.417); // axis Y -> color of label 2 = +Y
+				set_edges_group_color(Z_boundaries_group_index_,COLORMAP_LABELING,0.750); // axis Z -> color of label 4 = +Z
+				set_edges_group_color(invalid_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0); // axisless boundaries in black
+				set_edges_group_color(valid_but_axisless_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0); // axisless boundaries in black
 				break;
 			case VIEW_INVALID_CHARTS:
 				show_mesh_ = false;
@@ -226,10 +244,13 @@ protected:
 				set_edges_group_color(X_boundaries_group_index_,COLORMAP_VALIDITY,1.0); // apply the color of valid LabelingGraph components
 				set_edges_group_color(Y_boundaries_group_index_,COLORMAP_VALIDITY,1.0); // apply the color of valid LabelingGraph components
 				set_edges_group_color(Z_boundaries_group_index_,COLORMAP_VALIDITY,1.0); // apply the color of valid LabelingGraph components
-				edges_groups_show_only({X_boundaries_group_index_, Y_boundaries_group_index_, Z_boundaries_group_index_});
-
-				// use mesh_gfx_.draw_surface_borders() ?
-
+				show_boundaries_ = false;
+				// all boundaries in black
+				set_edges_group_color(X_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0);
+				set_edges_group_color(Y_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0);
+				set_edges_group_color(Z_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0);
+				set_edges_group_color(invalid_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0);
+				set_edges_group_color(valid_but_axisless_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0);
 				break;
 			case VIEW_INVALID_BOUNDARIES:
 				show_mesh_ = false;
@@ -241,7 +262,9 @@ protected:
 				set_edges_group_color(X_boundaries_group_index_,COLORMAP_VALIDITY,1.0); // apply the color of valid LabelingGraph components
 				set_edges_group_color(Y_boundaries_group_index_,COLORMAP_VALIDITY,1.0); // apply the color of valid LabelingGraph components
 				set_edges_group_color(Z_boundaries_group_index_,COLORMAP_VALIDITY,1.0); // apply the color of valid LabelingGraph components
-				edges_groups_show_only({X_boundaries_group_index_, Y_boundaries_group_index_, Z_boundaries_group_index_, invalid_boundaries_group_index_, valid_but_axisless_boundaries_group_index_});
+				set_edges_group_color(invalid_boundaries_group_index_,COLORMAP_VALIDITY,0.0);
+				set_edges_group_color(valid_but_axisless_boundaries_group_index_,COLORMAP_VALIDITY,1.0);
+				show_boundaries_ = true;
 				break;
 			case VIEW_INVALID_CORNERS:
 				show_mesh_ = false;
@@ -251,14 +274,13 @@ protected:
 				set_points_group_color(valid_corners_group_index_,validity_colors_.color_as_floats(1)); // apply the color of valid LabelingGraph components
 				set_points_group_color(invalid_corners_group_index_,validity_colors_.color_as_floats(0)); // apply the color of invalid LabelingGraph components
 				points_groups_show_only({valid_corners_group_index_, invalid_corners_group_index_});
-				// edges in overlay
-				set_edges_group_color(X_boundaries_group_index_,COLORMAP_VALIDITY,1.0); // apply the color of valid LabelingGraph components
-				set_edges_group_color(Y_boundaries_group_index_,COLORMAP_VALIDITY,1.0); // apply the color of valid LabelingGraph components
-				set_edges_group_color(Z_boundaries_group_index_,COLORMAP_VALIDITY,1.0); // apply the color of valid LabelingGraph components
-				edges_groups_show_only({X_boundaries_group_index_, Y_boundaries_group_index_, Z_boundaries_group_index_});
-
-				// use mesh_gfx_.draw_surface_borders() ?
-				
+				show_boundaries_ = true;
+				// all boundaries in black
+				set_edges_group_color(X_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0);
+				set_edges_group_color(Y_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0);
+				set_edges_group_color(Z_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0);
+				set_edges_group_color(invalid_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0);
+				set_edges_group_color(valid_but_axisless_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0);
 				break;
 			default:
 				geo_assert_not_reached;
@@ -402,6 +424,7 @@ protected:
 				((state_ == labeling) && (labeling_visu_mode_ == VIEW_RAW_LABELING)) || 
 				((state_ == labeling) && (labeling_visu_mode_ == VIEW_LABELING_GRAPH))
 			) {
+				// Mesh wireframe
 				ImGui::Checkbox("##Show mesh wireframe",&show_mesh_);
 				ImGui::SameLine();
 				ImGui::ColorEdit3WithPalette("##Mesh wireframe color", mesh_color_.data());
@@ -410,6 +433,7 @@ protected:
 				ImGui::SliderFloat("##Mesh wireframe width", &mesh_width_, 0.1f, 2.0f, "%.1f");
 				ImGui::SameLine();
 				ImGui::TextUnformatted("Mesh wireframe");
+				// Per label color
 				if(ImGui::ColorEdit3WithPalette("Label 0 = +X", labeling_colors_.color_as_floats(0))) {
 					labeling_colors_.update_chars_of_color(0);
 					update_GL_texture(COLORMAP_LABELING,6,1,labeling_colors_.as_chars());
@@ -434,8 +458,13 @@ protected:
 					labeling_colors_.update_chars_of_color(5);
 					update_GL_texture(COLORMAP_LABELING,6,1,labeling_colors_.as_chars());
 				}
-				// TODO allow to show/hide boundaries
-				// TODO allow to change boundaries width
+				// Boundaries
+				ImGui::Checkbox("##Show boundaries",&show_boundaries_);
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(IMGUI_SLIDERS_WIDTH);
+				ImGui::SliderInt("##Boundaries width",&boundaries_width_,1,30);
+				ImGui::SameLine();
+				ImGui::TextUnformatted("Boundaries");
 				// TODO allow to show/hide corners
 				ImGui::ColorEdit3WithPalette("Corners", corners_color_.data());
 				ImGui::SameLine();
@@ -467,6 +496,20 @@ protected:
 				((state_ == labeling) && (labeling_visu_mode_ == VIEW_INVALID_BOUNDARIES)) ||
 				((state_ == labeling) && (labeling_visu_mode_ == VIEW_INVALID_CORNERS))
 			) {
+				// Surface
+				ImGui::Checkbox("##Show surface",&show_surface_);
+				ImGui::SameLine();
+				ImGui::ColorEdit3WithPalette("##Surface color", surface_color_.data());
+				ImGui::SameLine();
+				ImGui::TextUnformatted("Surface");
+				// Boundaries
+				ImGui::Checkbox("##Show boundaries",&show_boundaries_);
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(IMGUI_SLIDERS_WIDTH);
+				ImGui::SliderInt("##Boundaries width",&boundaries_width_,1,30);
+				ImGui::SameLine();
+				ImGui::TextUnformatted("Boundaries");
+				// color for invalid components
 				if(ImGui::ColorEdit3WithPalette("Invalid", validity_colors_.color_as_floats(0))) {
 					validity_colors_.update_chars_of_color(0);
 					update_GL_texture(COLORMAP_VALIDITY,2,1,validity_colors_.as_chars());
@@ -474,6 +517,7 @@ protected:
 				ImGui::SameLine();
 				ImGui::TextDisabled("(?)");
 				ImGui::SetItemTooltip("Color of invalid charts/boundaries/corners");
+				// color for valid components
 				if(ImGui::ColorEdit3WithPalette("Valid", validity_colors_.color_as_floats(1))) {
 					validity_colors_.update_chars_of_color(1);
 					update_GL_texture(COLORMAP_VALIDITY,2,1,validity_colors_.as_chars());
@@ -481,7 +525,6 @@ protected:
 				ImGui::SameLine();
 				ImGui::TextDisabled("(?)");
 				ImGui::SetItemTooltip("Color of valid charts/boundaries/corners");
-				// TODO allow to change boundaries width
 				// TODO allow to change corners size
 			}
 			
@@ -812,11 +855,17 @@ protected:
 		valid_corners_group_index_ = new_points_group(corners_color_.data(),&corners_size_,true);
 		invalid_corners_group_index_ = new_points_group(corners_color_.data(),&corners_size_,true);
 		turning_points_group_index_ = new_points_group(turning_points_color_.data(),&turning_points_size_,true);
-		X_boundaries_group_index_ = new_edges_group(COLORMAP_LABELING,0.084,BOUNDARIES_WIDTH,false); // axis X -> color of label 0 = +X
-		Y_boundaries_group_index_ = new_edges_group(COLORMAP_LABELING,0.417,BOUNDARIES_WIDTH,false); // axis Y -> color of label 2 = +Y
-		Z_boundaries_group_index_ = new_edges_group(COLORMAP_LABELING,0.750,BOUNDARIES_WIDTH,false); // axis Z -> color of label 4 = +Z
-		invalid_boundaries_group_index_ = new_edges_group(COLORMAP_VALIDITY,0.0,BOUNDARIES_WIDTH,false); // color of invalid LabelingGraph components
-		valid_but_axisless_boundaries_group_index_ = new_edges_group(COLORMAP_VALIDITY,1.0,BOUNDARIES_WIDTH,false); // color of valid LabelingGraph components
+		// There is 5 (mutually-exclusive) types of boundaries:
+		// - assigned to the X axis, valid
+		// - assigned to the Y axis, valid
+		// - assigned to the Z axis, valid
+		// - not assigned to an axis, but still valid
+		// - not assigned to an axis, and invalid
+		X_boundaries_group_index_ = new_edges_group(COLORMAP_LABELING,0.084,&boundaries_width_,&show_boundaries_); // axis X -> use the color of label 0 = +X
+		Y_boundaries_group_index_ = new_edges_group(COLORMAP_LABELING,0.417,&boundaries_width_,&show_boundaries_); // axis Y -> use the color of label 2 = +Y
+		Z_boundaries_group_index_ = new_edges_group(COLORMAP_LABELING,0.750,&boundaries_width_,&show_boundaries_); // axis Z -> use the color of label 4 = +Z
+		invalid_boundaries_group_index_ = new_edges_group(COLORMAP_VALIDITY,0.0,&boundaries_width_,&show_boundaries_); // use the color of invalid LabelingGraph components
+		valid_but_axisless_boundaries_group_index_ = new_edges_group(COLORMAP_VALIDITY,1.0,&boundaries_width_,&show_boundaries_); // use the color of valid LabelingGraph components
 
 		for(std::size_t i = 0; i < lg_.nb_corners(); ++i) {
 			const double* coordinates = mesh_.vertices.point_ptr(
@@ -869,9 +918,6 @@ protected:
 
 		set_points_group_visibility(valid_corners_group_index_,true);
 		set_points_group_visibility(invalid_corners_group_index_,true);
-		set_edges_group_visibility(X_boundaries_group_index_,true);
-		set_edges_group_visibility(Y_boundaries_group_index_,true);
-		set_edges_group_visibility(Z_boundaries_group_index_,true);
 
 		IncrementalStats stats;
 		compute_per_facet_fidelity(mesh_,normals_,LABELING_ATTRIBUTE_NAME,"fidelity",stats);
@@ -912,6 +958,8 @@ protected:
 	int feature_edges_width_;
 	std::vector<std::vector<index_t>> adj_facets_; // for each vertex, store adjacent facets. no ordering
 	std::set<std::pair<index_t,index_t>> feature_edges_;
+	bool show_boundaries_;
+	int boundaries_width_;
 };
 
 // print specialization of LabelingViewerApp::State for {fmt}

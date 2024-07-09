@@ -52,10 +52,10 @@ public:
         std::vector<std::pair<vec3,vec3>> edges;
         unsigned int colormap_index = 0;
         double texture_coordinate = 0.0;
-        unsigned int width = 1;
-        bool show = false;
-        EdgesGroup(unsigned int colormap_index, double texture_coordinate, unsigned int width, bool show) : colormap_index(colormap_index), texture_coordinate(texture_coordinate), width(width), show(show) {}
-        void clear() { edges.clear(); colormap_index = 0; texture_coordinate = 0.0; width = 1; show = false; }
+        int* width = nullptr;
+        bool* show = nullptr;
+        EdgesGroup(unsigned int colormap_index, double texture_coordinate, int* width, bool* show) : colormap_index(colormap_index), texture_coordinate(texture_coordinate), width(width), show(show) {}
+        void clear() { edges.clear(); colormap_index = 0; texture_coordinate = 0.0; width = nullptr; show = nullptr; }
     };
 
     // both float (for ImGui) and char (for OpenGL textures) representations
@@ -143,7 +143,7 @@ public:
         return index_of_last(points_groups_);
     }
 
-    std::size_t new_edges_group(unsigned int colormap_index, double texture_coordinate, unsigned int width, bool show) {
+    std::size_t new_edges_group(unsigned int colormap_index, double texture_coordinate, int* width, bool* show) {
         edges_groups_.push_back(EdgesGroup(colormap_index,texture_coordinate,width,show));
         return index_of_last(edges_groups_);
     }
@@ -171,10 +171,6 @@ public:
         points_groups_.at(index).show = visible;
     }
 
-    void set_edges_group_visibility(std::size_t index, bool visible) {
-        edges_groups_.at(index).show = visible;
-    }
-
     void points_groups_show_only(std::initializer_list<std::size_t> indices) {
         // hide all groups
         for(PointsGroup& group : points_groups_) {
@@ -183,17 +179,6 @@ public:
         // show selected groups
         for(std::size_t group_index : indices) {
             points_groups_.at(group_index).show = true;
-        }
-    }
-
-    void edges_groups_show_only(std::initializer_list<std::size_t> indices) {
-        // hide all groups
-        for(EdgesGroup& group : edges_groups_) {
-            group.show = false;
-        }
-        // show selected groups
-        for(std::size_t group_index : indices) {
-            edges_groups_.at(group_index).show = true;
         }
     }
 
@@ -216,14 +201,14 @@ public:
 
         // draw edges groups
         for(const auto& group : edges_groups_) {
-            if(group.show) {
+            if(*group.show) {
                 glupEnable(GLUP_TEXTURING);
                 glActiveTexture(GL_TEXTURE0 + GLUP_TEXTURE_2D_UNIT);
                 glBindTexture(GL_TEXTURE_2D, (GLuint) colormaps_[group.colormap_index].texture);
                 glupTextureType(GLUP_TEXTURE_2D);
                 glupTextureMode(GLUP_TEXTURE_REPLACE);
                 glupPrivateTexCoord1d(group.texture_coordinate);
-                glupSetMeshWidth((GLUPint) group.width);
+                glupSetMeshWidth(*group.width);
                 glupBegin(GLUP_LINES);
                 for(const auto& edge : group.edges) { // for each edge in this group
                     glupPrivateVertex3dv(edge.first.data()); // give a pointer to the coordinates to GLUP
