@@ -46,5 +46,5 @@ See also [`labeling_io.h`](labeling_io.h).
 
 Graphical User Interface classes
 
-- [`SimpleMeshApplicationExt.h`](SimpleMeshApplicationExt.h) : extended version of Geogram's [SimpleMeshApplication](https://github.com/BrunoLevy/geogram/blob/main/src/lib/geogram_gfx/gui/simple_mesh_application.h) class
-- [`gui_labeling.h`](gui_labeling.h) : a GUI app to display labelings on triangle meshes, based on `SimpleMeshApplicationExt`
+- [`gui_base.h`](gui_base.h) : base GUI app, used as foundation for some `app/*.cpp`. Extended version of Geogram's [SimpleMeshApplication](https://github.com/BrunoLevy/geogram/blob/main/src/lib/geogram_gfx/gui/simple_mesh_application.h) class.
+- [`gui_labeling.h`](gui_labeling.h) : a GUI app to display labelings on triangle meshes

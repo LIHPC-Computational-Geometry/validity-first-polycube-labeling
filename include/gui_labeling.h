@@ -16,7 +16,7 @@
 #include <set>
 #include <utility>  // for std::pair
 
-#include "SimpleMeshApplicationExt.h"
+#include "gui_base.h"					// for SimpleMeshApplicationExt
 #include "labeling_graph.h"             // for LabelingGraph
 #include "labeling.h"                   // for flip_labeling(), label2vector(), LABEL2STR(), compute_per_facet_fidelity
 #include "labeling_io.h"                // for load_labeling(), save_labeling()

@@ -19,8 +19,8 @@
 #include <utility> // for std::pair<>
 #include <algorithm> // for std::random_shuffle(), std::sort
 
-#include "SimpleMeshApplicationExt.h"   // for colormaps indices
-#include "geometry.h"                   // for is_a_facet_to_tilt()
+#include "gui_base.h" // for SimpleMeshApplicationExt, colormaps indices
+#include "geometry.h" // for is_a_facet_to_tilt()
 
 using namespace GEO;
 

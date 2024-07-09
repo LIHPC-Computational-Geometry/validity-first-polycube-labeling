@@ -6,9 +6,9 @@
 
 #include <string>
 
-#include "geometry_hexahedra.h"         // for compute_scaled_jacobian()
-#include "SimpleMeshApplicationExt.h"   // for colormaps indices
-#include "stats.h"                      // for IncrementalStats
+#include "geometry_hexahedra.h" // for compute_scaled_jacobian()
+#include "gui_base.h"           // for SimpleMeshApplicationExt, colormaps indices
+#include "stats.h"              // for IncrementalStats
 
 using namespace GEO;
 
