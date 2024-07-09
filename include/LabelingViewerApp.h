@@ -357,6 +357,13 @@ protected:
 				(state_ == triangle_mesh) || 
 				((state_ == labeling) && (labeling_visu_mode_ == VIEW_TRIANGLE_MESH))
 			) {
+				ImGui::Checkbox("##Show mesh wireframe",&show_mesh_);
+				ImGui::SameLine();
+				ImGui::ColorEdit3WithPalette("##Mesh wireframe color", mesh_color_.data());
+				ImGui::SameLine();
+				ImGui::SliderFloat("##Mesh wireframe width", &mesh_width_, 0.1f, 2.0f, "%.1f");
+				ImGui::SameLine();
+				ImGui::TextUnformatted("Mesh wireframe");
 				// TODO allow to change normals color
 				ImGui::Checkbox("Show normals",&show_normals_);
 				ImGui::SameLine();
@@ -376,7 +383,13 @@ protected:
 				((state_ == labeling) && (labeling_visu_mode_ == VIEW_RAW_LABELING)) || 
 				((state_ == labeling) && (labeling_visu_mode_ == VIEW_LABELING_GRAPH))
 			) {
-				// TODO allow to show/hide mesh wireframe
+				ImGui::Checkbox("##Show mesh wireframe",&show_mesh_);
+				ImGui::SameLine();
+				ImGui::ColorEdit3WithPalette("##Mesh wireframe color", mesh_color_.data());
+				ImGui::SameLine();
+				ImGui::SliderFloat("##Mesh wireframe width", &mesh_width_, 0.1f, 2.0f, "%.1f");
+				ImGui::SameLine();
+				ImGui::TextUnformatted("Mesh wireframe");
 				if(ImGui::ColorEdit4WithPalette("Label 0 = +X", labeling_colors_.color_as_floats(0))) {
 					labeling_colors_.update_chars_of_color(0);
 					update_GL_texture(COLORMAP_LABELING,6,1,labeling_colors_.as_chars());
@@ -417,6 +430,13 @@ protected:
 			else if (
 				(state_ == labeling) && (labeling_visu_mode_ == VIEW_FIDELITY)
 			) {
+				ImGui::Checkbox("##Show mesh wireframe",&show_mesh_);
+				ImGui::SameLine();
+				ImGui::ColorEdit3WithPalette("##Mesh wireframe color", mesh_color_.data());
+				ImGui::SameLine();
+				ImGui::SliderFloat("##Mesh wireframe width", &mesh_width_, 0.1f, 2.0f, "%.1f");
+				ImGui::SameLine();
+				ImGui::TextUnformatted("Mesh wireframe");
 				// TODO allow to change colormap?
 			}
 			else if (
