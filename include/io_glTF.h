@@ -15,6 +15,7 @@
 #include <fmt/ostream.h>
 
 #include <string>
+#include <functional> 
 
 #include "geometry_halfedges.h"     // for MeshHalfedgesExt
 #include "geometry.h"               // for AdjacentFacetOfVertex
@@ -58,7 +59,7 @@ using GEO::index_t; // to use the FOR() macro of Geogram
 //
 const vec2f LABELING_TO_TEXTURE_COORDINATES[6] = {{0.188f, 0.5f},  // = 0/8 + 3/16, 1/2 -> texture coordinate of +X
                                                   {0.312f, 0.5f},  // = 1/8 + 3/16, 1/2 -> texture coordinate of -X
-                                                  {0.438f, 0.5f},  // = 2/8 + 3/16, 1/2 -> texture coordinate of Y
+                                                  {0.438f, 0.5f},  // = 2/8 + 3/16, 1/2 -> texture coordinate of +Y
                                                   {0.563f, 0.5f},  // = 3/8 + 3/16, 1/2 -> texture coordinate of -Y
                                                   {0.688f, 0.5f},  // = 4/8 + 3/16, 1/2 -> texture coordinate of +Z
                                                   {0.813f, 0.5f}}; // = 5/8 + 3/16, 1/2 -> texture coordinate of -Z
@@ -99,7 +100,7 @@ inline index_t* facet_vertex_index_ptr(GEO::Mesh& M, index_t f, index_t lv) {
 
 void write_glTF__triangle_mesh(std::string filename, GEO::Mesh& M, bool with_wireframe);
 
-void write_glTF__labeled_triangle_mesh(std::string filename, GEO::Mesh& M, const char* attribute_name, std::vector<std::vector<AdjacentFacetOfVertex>> per_vertex_adj_facets);
+void write_glTF__labeled_triangle_mesh(std::string filename, GEO::Mesh& M, const char* attribute_name, std::vector<std::vector<AdjacentFacetOfVertex>> per_vertex_adj_facets, std::function<bool(const Mesh& M, const Attribute<index_t>& label, index_t facet_index)> remove_facet_fx = [](const Mesh& M, const Attribute<index_t>& label, index_t facet_index){ return false; });
 
 void write_glTF__labeled_triangle_mesh_with_polycube_animation(std::string filename, GEO::Mesh& M, GEO::Mesh& polycube, const char* attribute_name, const std::vector<std::vector<AdjacentFacetOfVertex>>& per_vertex_adj_facets);
 

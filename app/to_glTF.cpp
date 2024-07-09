@@ -1,4 +1,5 @@
 // Define these only in *one* .cc file.
+// from ext/tinygltf/README.md > Loading glTF 2.0 model
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -18,6 +19,10 @@
 #include "io_glTF.h"
 #include "labeling.h"
 #include "labeling_io.h"
+
+// To see the inside of some 3D model, remove specific facets
+// #define REMOVE_FACETS_FOR_IN_VOLUME_TWIST_MODEL
+// #define REMOVE_FACETS_FOR_IN_VOLUME_KNOT_MODEL
 
 using GEO::index_t; // to use the FOR() macro of Geogram
 
@@ -85,7 +90,30 @@ int main(int argc, char **argv)
     compute_adjacent_facets_of_vertices(M,per_vertex_adj_facets);
 
     if(polycube_filename.empty()) {
-        write_glTF__labeled_triangle_mesh(filenames[1],M,"label",per_vertex_adj_facets);
+
+        auto remove_facet_fx = [](const Mesh& M, const Attribute<index_t>& label, index_t facet_index) { // return true if the facet at `facet_index` should be remove before glTF export
+        #ifdef REMOVE_FACETS_FOR_IN_VOLUME_TWIST_MODEL
+            // Delete some facets for the new 'in-volume_twist' model (https://github.com/LIHPC-Computational-Geometry/nightmare_of_polycubes)
+            // Facets whose:
+            // - label is +Z (=4)
+            // and
+            // - vertices are near 9000 in the Z axis
+            const double Z_axis_threshold = 9000*0.99; // = remove 1% to the delta Z
+            return (
+                (label[facet_index] == 4) &&
+                (mesh_vertex(M,M.facets.vertex(facet_index,0)).z > Z_axis_threshold) && 
+                (mesh_vertex(M,M.facets.vertex(facet_index,1)).z > Z_axis_threshold) && 
+                (mesh_vertex(M,M.facets.vertex(facet_index,2)).z > Z_axis_threshold)
+            );
+        #elif REMOVE_FACETS_FOR_IN_VOLUME_KNOT_MODEL
+            // Delete some facets for the new 'in-volume_knot' model (https://github.com/LIHPC-Computational-Geometry/nightmare_of_polycubes)
+            // TODO
+        #else
+            return false; // remove no facets
+        #endif
+        };
+        
+        write_glTF__labeled_triangle_mesh(filenames[1],M,"label",per_vertex_adj_facets,remove_facet_fx);
         return 0;
     }
     //else: the user provided a polycube
