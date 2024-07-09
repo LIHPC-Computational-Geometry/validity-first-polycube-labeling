@@ -43,6 +43,8 @@
 
 #define BOUNDARIES_WIDTH	6
 
+#define IMGUI_SLIDERS_WIDTH	100.0f
+
 using namespace GEO;
 
 const float green[4] = {0.0f, 1.0f, 0.0f, 1.0f};
@@ -368,6 +370,7 @@ protected:
 				ImGui::SameLine();
 				ImGui::ColorEdit3WithPalette("##Mesh wireframe color", mesh_color_.data());
 				ImGui::SameLine();
+				ImGui::SetNextItemWidth(IMGUI_SLIDERS_WIDTH);
 				ImGui::SliderFloat("##Mesh wireframe width", &mesh_width_, 0.1f, 2.0f, "%.1f");
 				ImGui::SameLine();
 				ImGui::TextUnformatted("Mesh wireframe");
@@ -376,6 +379,7 @@ protected:
 				ImGui::SameLine();
 				ImGui::TextDisabled("(?)");
 				ImGui::SetItemTooltip("Draw facet normals as segments. The point is the tip of the vector.");
+				ImGui::SetNextItemWidth(IMGUI_SLIDERS_WIDTH);
 				ImGui::SliderFloat("Normals length factor",&normals_length_factor_,0.0f,50.0f);
 				ImGui::Checkbox("Show feature edges",&show_feature_edges_);
 				ImGui::SameLine();
@@ -394,44 +398,47 @@ protected:
 				ImGui::SameLine();
 				ImGui::ColorEdit3WithPalette("##Mesh wireframe color", mesh_color_.data());
 				ImGui::SameLine();
+				ImGui::SetNextItemWidth(IMGUI_SLIDERS_WIDTH);
 				ImGui::SliderFloat("##Mesh wireframe width", &mesh_width_, 0.1f, 2.0f, "%.1f");
 				ImGui::SameLine();
 				ImGui::TextUnformatted("Mesh wireframe");
-				if(ImGui::ColorEdit4WithPalette("Label 0 = +X", labeling_colors_.color_as_floats(0))) {
+				if(ImGui::ColorEdit3WithPalette("Label 0 = +X", labeling_colors_.color_as_floats(0))) {
 					labeling_colors_.update_chars_of_color(0);
 					update_GL_texture(COLORMAP_LABELING,6,1,labeling_colors_.as_chars());
 				}
-				if(ImGui::ColorEdit4WithPalette("Label 1 = -X", labeling_colors_.color_as_floats(1))) {
+				if(ImGui::ColorEdit3WithPalette("Label 1 = -X", labeling_colors_.color_as_floats(1))) {
 					labeling_colors_.update_chars_of_color(1);
 					update_GL_texture(COLORMAP_LABELING,6,1,labeling_colors_.as_chars());
 				}
-				if(ImGui::ColorEdit4WithPalette("Label 2 = +Y", labeling_colors_.color_as_floats(2))) {
+				if(ImGui::ColorEdit3WithPalette("Label 2 = +Y", labeling_colors_.color_as_floats(2))) {
 					labeling_colors_.update_chars_of_color(2);
 					update_GL_texture(COLORMAP_LABELING,6,1,labeling_colors_.as_chars());
 				}
-				if(ImGui::ColorEdit4WithPalette("Label 3 = -Y", labeling_colors_.color_as_floats(3))) {
+				if(ImGui::ColorEdit3WithPalette("Label 3 = -Y", labeling_colors_.color_as_floats(3))) {
 					labeling_colors_.update_chars_of_color(3);
 					update_GL_texture(COLORMAP_LABELING,6,1,labeling_colors_.as_chars());
 				}
-				if(ImGui::ColorEdit4WithPalette("Label 4 = +Z", labeling_colors_.color_as_floats(4))) {
+				if(ImGui::ColorEdit3WithPalette("Label 4 = +Z", labeling_colors_.color_as_floats(4))) {
 					labeling_colors_.update_chars_of_color(4);
 					update_GL_texture(COLORMAP_LABELING,6,1,labeling_colors_.as_chars());
 				}
-				if(ImGui::ColorEdit4WithPalette("Label 5 = -Z", labeling_colors_.color_as_floats(5))) {
+				if(ImGui::ColorEdit3WithPalette("Label 5 = -Z", labeling_colors_.color_as_floats(5))) {
 					labeling_colors_.update_chars_of_color(5);
 					update_GL_texture(COLORMAP_LABELING,6,1,labeling_colors_.as_chars());
 				}
 				// TODO allow to show/hide boundaries
 				// TODO allow to change boundaries width
 				// TODO allow to show/hide corners
-				ImGui::ColorEdit4WithPalette("Corners", corners_color_);
+				ImGui::ColorEdit3WithPalette("Corners", corners_color_);
 				ImGui::SameLine();
 				ImGui::Text("(%ld)",lg_.nb_corners());
+				ImGui::SetNextItemWidth(IMGUI_SLIDERS_WIDTH);
 				ImGui::SliderFloat("Corners size", &corners_size_, 0.0f, 50.0f, "%.1f");
 				// TODO allow to show/hide turning-points
-				ImGui::ColorEdit4WithPalette("Turning points", turning_points_color_);
+				ImGui::ColorEdit3WithPalette("Turning points", turning_points_color_);
 				ImGui::SameLine();
 				ImGui::Text("(%ld)",nb_turning_points_);
+				ImGui::SetNextItemWidth(IMGUI_SLIDERS_WIDTH);
 				ImGui::SliderFloat("Turning points size", &turning_points_size_, 0.0f, 50.0f, "%.1f");
 			}
 			else if (
@@ -441,6 +448,7 @@ protected:
 				ImGui::SameLine();
 				ImGui::ColorEdit3WithPalette("##Mesh wireframe color", mesh_color_.data());
 				ImGui::SameLine();
+				ImGui::SetNextItemWidth(IMGUI_SLIDERS_WIDTH);
 				ImGui::SliderFloat("##Mesh wireframe width", &mesh_width_, 0.1f, 2.0f, "%.1f");
 				ImGui::SameLine();
 				ImGui::TextUnformatted("Mesh wireframe");
@@ -451,14 +459,14 @@ protected:
 				((state_ == labeling) && (labeling_visu_mode_ == VIEW_INVALID_BOUNDARIES)) ||
 				((state_ == labeling) && (labeling_visu_mode_ == VIEW_INVALID_CORNERS))
 			) {
-				if(ImGui::ColorEdit4WithPalette("Invalid", validity_colors_.color_as_floats(0))) {
+				if(ImGui::ColorEdit3WithPalette("Invalid", validity_colors_.color_as_floats(0))) {
 					validity_colors_.update_chars_of_color(0);
 					update_GL_texture(COLORMAP_VALIDITY,2,1,validity_colors_.as_chars());
 				}
 				ImGui::SameLine();
 				ImGui::TextDisabled("(?)");
 				ImGui::SetItemTooltip("Color of invalid charts/boundaries/corners");
-				if(ImGui::ColorEdit4WithPalette("Valid", validity_colors_.color_as_floats(1))) {
+				if(ImGui::ColorEdit3WithPalette("Valid", validity_colors_.color_as_floats(1))) {
 					validity_colors_.update_chars_of_color(1);
 					update_GL_texture(COLORMAP_VALIDITY,2,1,validity_colors_.as_chars());
 				}
