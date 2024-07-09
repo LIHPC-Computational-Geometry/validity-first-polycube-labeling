@@ -357,6 +357,13 @@ protected:
 				(state_ == triangle_mesh) || 
 				((state_ == labeling) && (labeling_visu_mode_ == VIEW_TRIANGLE_MESH))
 			) {
+				// Surface
+				ImGui::Checkbox("##Show surface",&show_surface_);
+				ImGui::SameLine();
+				ImGui::ColorEdit3WithPalette("##Surface color", surface_color_.data());
+				ImGui::SameLine();
+				ImGui::TextUnformatted("Surface");
+				// Mesh wireframe
 				ImGui::Checkbox("##Show mesh wireframe",&show_mesh_);
 				ImGui::SameLine();
 				ImGui::ColorEdit3WithPalette("##Mesh wireframe color", mesh_color_.data());
