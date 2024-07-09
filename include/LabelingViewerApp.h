@@ -421,7 +421,7 @@ protected:
 				ImGui::SetNextItemWidth(IMGUI_SLIDERS_WIDTH);
 				ImGui::SliderInt("##Feature edges width",&feature_edges_width_,1,30);
 				ImGui::SameLine();
-				ImGui::Text("Feature edges (%ld)",feature_edges_.size());
+				ImGui::Text("Feature edges (nb=%ld)",feature_edges_.size());
 				ImGui::SameLine();
 				ImGui::TextDisabled("(?)");
 				ImGui::SetItemTooltip("Draw feature edges in blue on top of the mesh");
@@ -442,6 +442,8 @@ protected:
 				ImGui::TextUnformatted("Mesh wireframe");
 				// Charts & per label color
 				ImGui::Checkbox("Show charts",&show_surface_);
+				ImGui::SameLine();
+				ImGui::Text("(nb=%ld)",lg_.nb_charts());
 				ImGui::Dummy(ImVec2(ImGui::GetFrameHeight(),ImGui::GetFrameHeight()));
 				ImGui::SameLine();
 				if(ImGui::ColorEdit3WithPalette("Label 0 = +X", labeling_colors_.color_as_floats(0))) {
@@ -484,7 +486,7 @@ protected:
 				ImGui::SetNextItemWidth(IMGUI_SLIDERS_WIDTH);
 				ImGui::SliderInt("##Boundaries width",&boundaries_width_,1,30);
 				ImGui::SameLine();
-				ImGui::TextUnformatted("Boundaries");
+				ImGui::Text("Boundaries (nb=%ld)",lg_.nb_boundaries());
 				// Corners
 				ImGui::Checkbox("##Show corners",&show_corners_);
 				ImGui::SameLine();
@@ -493,7 +495,7 @@ protected:
 				ImGui::SetNextItemWidth(IMGUI_SLIDERS_WIDTH);
 				ImGui::SliderFloat("##Corners size", &corners_size_, 1.0f, 50.0f, "%.1f");
 				ImGui::SameLine();
-				ImGui::Text("Corners (%ld)",lg_.nb_corners());
+				ImGui::Text("Corners (nb=%ld)",lg_.nb_corners());
 				// Turning-points
 				ImGui::Checkbox("##Show turning-points",&show_turning_points_);
 				ImGui::SameLine();
@@ -502,7 +504,7 @@ protected:
 				ImGui::SetNextItemWidth(IMGUI_SLIDERS_WIDTH);
 				ImGui::SliderFloat("##Turning points size", &turning_points_size_, 1.0f, 50.0f, "%.1f");
 				ImGui::SameLine();
-				ImGui::Text("Turning-points (%ld)",nb_turning_points_);
+				ImGui::Text("Turning-points (nb=%ld)",nb_turning_points_);
 			}
 			else if (
 				(state_ == labeling) && (labeling_visu_mode_ == VIEW_FIDELITY)
@@ -534,14 +536,14 @@ protected:
 				ImGui::SetNextItemWidth(IMGUI_SLIDERS_WIDTH);
 				ImGui::SliderInt("##Boundaries width",&boundaries_width_,1,30);
 				ImGui::SameLine();
-				ImGui::TextUnformatted("Boundaries");
+				ImGui::Text("Boundaries (nb=%ld)",lg_.nb_boundaries());
 				// Corners
 				ImGui::Checkbox("##Show corners",&show_corners_);
 				ImGui::SameLine();
 				ImGui::SetNextItemWidth(IMGUI_SLIDERS_WIDTH);
 				ImGui::SliderFloat("##Corners size", &corners_size_, 1.0f, 50.0f, "%.1f");
 				ImGui::SameLine();
-				ImGui::Text("Corners (%ld)",lg_.nb_corners());
+				ImGui::Text("Corners (nb=%ld)",lg_.nb_corners());
 				// color for invalid components
 				if(ImGui::ColorEdit3WithPalette("Invalid", validity_colors_.color_as_floats(0))) {
 					validity_colors_.update_chars_of_color(0);
@@ -668,6 +670,7 @@ protected:
 			ImGui::SameLine();
 			ImGui::TextDisabled("(?)");
 			ImGui::SetItemTooltip("Show the triangle mesh without the labeling");
+			ImGui::Text("%d vertices, %d facets, %ld feature edges",mesh_.vertices.nb(),mesh_.facets.nb(),feature_edges_.size());
 
 			if(ImGui::RadioButton("View raw labeling",&labeling_visu_mode_,VIEW_RAW_LABELING))
 				labeling_visu_mode_transition(VIEW_RAW_LABELING);
@@ -681,7 +684,7 @@ protected:
 			ImGui::TextDisabled("(?)");
 			ImGui::SetItemTooltip("Show the charts, the boundaries, the corners and the turning-points computed from the labeling");
 
-			ImGui::Text("%ld charts, %ld boundaries",lg_.nb_charts(),lg_.nb_boundaries());
+			ImGui::Text("%ld charts, %ld boundaries, %ld corners, %ld turning-points",lg_.nb_charts(),lg_.nb_boundaries(),lg_.nb_corners(),lg_.nb_turning_points());
 
 			if(ImGui::RadioButton("View fidelity",&labeling_visu_mode_,VIEW_FIDELITY))
 				labeling_visu_mode_transition(VIEW_FIDELITY);
@@ -694,17 +697,17 @@ protected:
 			if(ImGui::RadioButton("View invalid charts",&labeling_visu_mode_,VIEW_INVALID_CHARTS))
 				labeling_visu_mode_transition(VIEW_INVALID_CHARTS);
 			ImGui::SameLine();
-			ImGui::Text("(%ld)",lg_.nb_invalid_charts());
+			ImGui::Text("(nb=%ld)",lg_.nb_invalid_charts());
 
 			if(ImGui::RadioButton("View invalid boundaries",&labeling_visu_mode_,VIEW_INVALID_BOUNDARIES))
 				labeling_visu_mode_transition(VIEW_INVALID_BOUNDARIES);
 			ImGui::SameLine();
-			ImGui::Text("(%ld)",lg_.nb_invalid_boundaries());
+			ImGui::Text("(nb=%ld)",lg_.nb_invalid_boundaries());
 
 			if(ImGui::RadioButton("View invalid corners",&labeling_visu_mode_,VIEW_INVALID_CORNERS))
 				labeling_visu_mode_transition(VIEW_INVALID_CORNERS);
 			ImGui::SameLine();
-			ImGui::Text("(%ld)",lg_.nb_invalid_corners());
+			ImGui::Text("(nb=%ld)",lg_.nb_invalid_corners());
 
 			if(lg_.is_valid()) {
 				ImGui::TextColored(ImVec4(0.0f,0.5f,0.0f,1.0f),"Valid labeling");
