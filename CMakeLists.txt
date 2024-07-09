@@ -29,6 +29,7 @@ set(
   src/io_glTF.cpp
   src/io_dump.cpp
   src/gui_labeling.cpp
+  src/gui_base.cpp
 )
 
 #################
