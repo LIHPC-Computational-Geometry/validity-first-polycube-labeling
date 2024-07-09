@@ -10,7 +10,7 @@
 
 #include <string>
 
-#include "LabelingViewerApp.h"
+#include "gui_labeling.h"
 #include "geometry_halfedges.h"
 #include "geometry.h"               // for facet_normals_are_inward() & flip_facet_normals()
 

@@ -2,12 +2,11 @@
 #include <geogram/basic/command_line_args.h>	// for CmdLine::import_arg_group()
 #include <geogram/basic/command_line.h>			// for CmdLine::parse()
 
-#include "LabelingViewerApp.h"
-#include "labeling.h"
-
 #include <vector>
 #include <string>
 
+#include "gui_labeling.h"
+#include "labeling.h"
 #include "labeling_io.h"
 
 using namespace GEO;

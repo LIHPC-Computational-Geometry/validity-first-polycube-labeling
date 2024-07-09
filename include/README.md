@@ -33,6 +33,8 @@ Generation of / operations on polycube labelings.
 - [`labeling_operators_on_invalidity.h`](labeling_operators_on_invalidity.h) : functions to edit a labeling, targeting a valid one
 - [`labeling_operators_on_distortion.h`](labeling_operators_on_distortion.h) : functions to edit a labeling, targeting a low distortion one
 
+See also [`gui_labeling.h`](gui_labeling.h).
+
 ## I/O
 
 - [`io_glTF.h`](io_glTF.h) : export a 3D model as glTF
@@ -45,4 +47,4 @@ See also [`labeling_io.h`](labeling_io.h).
 Graphical User Interface classes
 
 - [`SimpleMeshApplicationExt.h`](SimpleMeshApplicationExt.h) : extended version of Geogram's [SimpleMeshApplication](https://github.com/BrunoLevy/geogram/blob/main/src/lib/geogram_gfx/gui/simple_mesh_application.h) class
-- [`LabelingViewerApp.h`](LabelingViewerApp.h) : a GUI app to display labelings on triangle meshes, based on `SimpleMeshApplicationExt`
+- [`gui_labeling.h`](gui_labeling.h) : a GUI app to display labelings on triangle meshes, based on `SimpleMeshApplicationExt`

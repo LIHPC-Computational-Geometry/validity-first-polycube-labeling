@@ -22,7 +22,7 @@
 #include <deque>
 
 #include "stats.h" // for std_dev()
-#include "LabelingViewerApp.h"
+#include "gui_labeling.h"
 #include "labeling_graph.h"
 #include "labeling_io.h"
 #include "labeling_generators.h"

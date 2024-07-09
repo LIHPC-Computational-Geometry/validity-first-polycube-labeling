@@ -3,7 +3,7 @@
 #include <geogram_gfx/GLUP/GLUP.h>      // for glupUnProject()
 #include <geogram/basic/attributes.h>   // for Attribute
 
-#include "LabelingViewerApp.h"
+#include "gui_labeling.h"
 
 #include <fmt/core.h>
 

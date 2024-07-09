@@ -3,15 +3,14 @@
 
 // TODO do not lauch GUI if both parameters are given by CLI
 
-#include "LabelingViewerApp.h"
-#include "labeling.h"
-#include "containers_Geogram.h"	// for max() on a Geogram vector
-
 #include <algorithm>	// for std::max_element(), std::min_element()
 #include <cmath>		// for std::round()
 
 #include "labeling_graphcuts.h"
 #include "labeling_generators.h"
+#include "gui_labeling.h"
+#include "labeling.h"
+#include "containers_Geogram.h"	// for max() on a Geogram vector
 
 template <typename T>
 struct StatsComponents {
