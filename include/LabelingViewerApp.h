@@ -433,27 +433,40 @@ protected:
 				ImGui::SliderFloat("##Mesh wireframe width", &mesh_width_, 0.1f, 2.0f, "%.1f");
 				ImGui::SameLine();
 				ImGui::TextUnformatted("Mesh wireframe");
-				// Per label color
+				// Charts & per label color
+				ImGui::Checkbox("Show charts",&show_surface_);
+				ImGui::Dummy(ImVec2(ImGui::GetFrameHeight(),ImGui::GetFrameHeight()));
+				ImGui::SameLine();
 				if(ImGui::ColorEdit3WithPalette("Label 0 = +X", labeling_colors_.color_as_floats(0))) {
 					labeling_colors_.update_chars_of_color(0);
 					update_GL_texture(COLORMAP_LABELING,6,1,labeling_colors_.as_chars());
 				}
+				ImGui::Dummy(ImVec2(ImGui::GetFrameHeight(),ImGui::GetFrameHeight()));
+				ImGui::SameLine();
 				if(ImGui::ColorEdit3WithPalette("Label 1 = -X", labeling_colors_.color_as_floats(1))) {
 					labeling_colors_.update_chars_of_color(1);
 					update_GL_texture(COLORMAP_LABELING,6,1,labeling_colors_.as_chars());
 				}
+				ImGui::Dummy(ImVec2(ImGui::GetFrameHeight(),ImGui::GetFrameHeight()));
+				ImGui::SameLine();
 				if(ImGui::ColorEdit3WithPalette("Label 2 = +Y", labeling_colors_.color_as_floats(2))) {
 					labeling_colors_.update_chars_of_color(2);
 					update_GL_texture(COLORMAP_LABELING,6,1,labeling_colors_.as_chars());
 				}
+				ImGui::Dummy(ImVec2(ImGui::GetFrameHeight(),ImGui::GetFrameHeight()));
+				ImGui::SameLine();
 				if(ImGui::ColorEdit3WithPalette("Label 3 = -Y", labeling_colors_.color_as_floats(3))) {
 					labeling_colors_.update_chars_of_color(3);
 					update_GL_texture(COLORMAP_LABELING,6,1,labeling_colors_.as_chars());
 				}
+				ImGui::Dummy(ImVec2(ImGui::GetFrameHeight(),ImGui::GetFrameHeight()));
+				ImGui::SameLine();
 				if(ImGui::ColorEdit3WithPalette("Label 4 = +Z", labeling_colors_.color_as_floats(4))) {
 					labeling_colors_.update_chars_of_color(4);
 					update_GL_texture(COLORMAP_LABELING,6,1,labeling_colors_.as_chars());
 				}
+				ImGui::Dummy(ImVec2(ImGui::GetFrameHeight(),ImGui::GetFrameHeight()));
+				ImGui::SameLine();
 				if(ImGui::ColorEdit3WithPalette("Label 5 = -Z", labeling_colors_.color_as_floats(5))) {
 					labeling_colors_.update_chars_of_color(5);
 					update_GL_texture(COLORMAP_LABELING,6,1,labeling_colors_.as_chars());
