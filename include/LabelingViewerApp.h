@@ -94,12 +94,14 @@ public:
 		normals_length_factor_ = 0.1f;
 
         // corners in black by default
+		show_corners_ = false;
 		corners_color_[0] = 0.0f;
 		corners_color_[1] = 0.0f;
 		corners_color_[2] = 0.0f;
 		corners_size_ = 10.0f;
 
 		// turning points in yellow by default
+		show_turning_points_ = false;
 		turning_points_color_[0] = 1.0f;
 		turning_points_color_[1] = 1.0f;
 		turning_points_color_[2] = 0.0f;
@@ -161,13 +163,14 @@ protected:
 				show_mesh_ = true;
 				lighting_ = true;
 				show_attributes_ = false;
-				points_groups_show_only({}); // show none
 				show_boundaries_ = false;
 				set_edges_group_color(X_boundaries_group_index_,COLORMAP_LABELING,0.084); // axis X -> color of label 0 = +X
 				set_edges_group_color(Y_boundaries_group_index_,COLORMAP_LABELING,0.417); // axis Y -> color of label 2 = +Y
 				set_edges_group_color(Z_boundaries_group_index_,COLORMAP_LABELING,0.750); // axis Z -> color of label 4 = +Z
 				set_edges_group_color(invalid_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0); // axisless boundaries in black
 				set_edges_group_color(valid_but_axisless_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0); // axisless boundaries in black
+				show_corners_ = false;
+				show_turning_points_ = false;
 				break;
 			case VIEW_RAW_LABELING:
 				show_mesh_ = true;
@@ -179,13 +182,14 @@ protected:
 				attribute_name_ = LABELING_ATTRIBUTE_NAME;
 				attribute_min_ = -0.5f;
 				attribute_max_ = 5.5f;
-				points_groups_show_only({}); // show none
 				show_boundaries_ = false;
 				set_edges_group_color(X_boundaries_group_index_,COLORMAP_LABELING,0.084); // axis X -> color of label 0 = +X
 				set_edges_group_color(Y_boundaries_group_index_,COLORMAP_LABELING,0.417); // axis Y -> color of label 2 = +Y
 				set_edges_group_color(Z_boundaries_group_index_,COLORMAP_LABELING,0.750); // axis Z -> color of label 4 = +Z
 				set_edges_group_color(invalid_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0); // axisless boundaries in black
 				set_edges_group_color(valid_but_axisless_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0); // axisless boundaries in black
+				show_corners_ = false;
+				show_turning_points_ = false;
 				break;
 			case VIEW_LABELING_GRAPH:
 				show_mesh_ = false;
@@ -201,7 +205,6 @@ protected:
 				// points in overlay
 				set_points_group_color(valid_corners_group_index_,corners_color_.data());
 				set_points_group_color(invalid_corners_group_index_,corners_color_.data()); // no distinction between valid and invalid corners in this view
-				points_groups_show_only({valid_corners_group_index_, invalid_corners_group_index_, turning_points_group_index_});
 				// edges in overlay
 				show_boundaries_ = true;
 				set_edges_group_color(X_boundaries_group_index_,COLORMAP_LABELING,0.084); // axis X -> color of label 0 = +X
@@ -209,6 +212,8 @@ protected:
 				set_edges_group_color(Z_boundaries_group_index_,COLORMAP_LABELING,0.750); // axis Z -> color of label 4 = +Z
 				set_edges_group_color(invalid_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0); // axisless boundaries in black
 				set_edges_group_color(valid_but_axisless_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0); // axisless boundaries in black
+				show_corners_ = true;
+				show_turning_points_ = true;
 				break;
 			case VIEW_FIDELITY:
 				show_mesh_ = false;
@@ -220,13 +225,14 @@ protected:
 				attribute_name_ = "fidelity";
 				attribute_min_ = 0.0f; // the fidelity should not be in [0:0.5] (label too far from the normal), so setting 0.5 as the min of the colormap allows to focus the range of interest [0.5:1], but will display all values in [0:0.5] in black...
 				attribute_max_ = 1.0f;
-				points_groups_show_only({}); // show none
 				show_boundaries_ = false;
 				set_edges_group_color(X_boundaries_group_index_,COLORMAP_LABELING,0.084); // axis X -> color of label 0 = +X
 				set_edges_group_color(Y_boundaries_group_index_,COLORMAP_LABELING,0.417); // axis Y -> color of label 2 = +Y
 				set_edges_group_color(Z_boundaries_group_index_,COLORMAP_LABELING,0.750); // axis Z -> color of label 4 = +Z
 				set_edges_group_color(invalid_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0); // axisless boundaries in black
 				set_edges_group_color(valid_but_axisless_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0); // axisless boundaries in black
+				show_corners_ = false;
+				show_turning_points_ = false;
 				break;
 			case VIEW_INVALID_CHARTS:
 				show_mesh_ = false;
@@ -238,8 +244,6 @@ protected:
 				attribute_name_ = "on_invalid_chart";
 				attribute_min_ = 1.5;
 				attribute_max_ = -0.5;
-				// points in overlay
-				points_groups_show_only({}); // show none
 				// edges in overlay
 				set_edges_group_color(X_boundaries_group_index_,COLORMAP_VALIDITY,1.0); // apply the color of valid LabelingGraph components
 				set_edges_group_color(Y_boundaries_group_index_,COLORMAP_VALIDITY,1.0); // apply the color of valid LabelingGraph components
@@ -251,13 +255,13 @@ protected:
 				set_edges_group_color(Z_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0);
 				set_edges_group_color(invalid_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0);
 				set_edges_group_color(valid_but_axisless_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0);
+				show_corners_ = false;
+				show_turning_points_ = false;
 				break;
 			case VIEW_INVALID_BOUNDARIES:
 				show_mesh_ = false;
 				lighting_ = false;
 				show_attributes_ = false;
-				// points in overlay
-				points_groups_show_only({}); // show none
 				// edges in overlay
 				set_edges_group_color(X_boundaries_group_index_,COLORMAP_VALIDITY,1.0); // apply the color of valid LabelingGraph components
 				set_edges_group_color(Y_boundaries_group_index_,COLORMAP_VALIDITY,1.0); // apply the color of valid LabelingGraph components
@@ -265,6 +269,8 @@ protected:
 				set_edges_group_color(invalid_boundaries_group_index_,COLORMAP_VALIDITY,0.0);
 				set_edges_group_color(valid_but_axisless_boundaries_group_index_,COLORMAP_VALIDITY,1.0);
 				show_boundaries_ = true;
+				show_corners_ = false;
+				show_turning_points_ = false;
 				break;
 			case VIEW_INVALID_CORNERS:
 				show_mesh_ = false;
@@ -273,7 +279,6 @@ protected:
 				// points in overlay
 				set_points_group_color(valid_corners_group_index_,validity_colors_.color_as_floats(1)); // apply the color of valid LabelingGraph components
 				set_points_group_color(invalid_corners_group_index_,validity_colors_.color_as_floats(0)); // apply the color of invalid LabelingGraph components
-				points_groups_show_only({valid_corners_group_index_, invalid_corners_group_index_});
 				show_boundaries_ = true;
 				// all boundaries in black
 				set_edges_group_color(X_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0);
@@ -281,6 +286,8 @@ protected:
 				set_edges_group_color(Z_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0);
 				set_edges_group_color(invalid_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0);
 				set_edges_group_color(valid_but_axisless_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0);
+				show_corners_ = true;
+				show_turning_points_ = false;
 				break;
 			default:
 				geo_assert_not_reached;
@@ -478,18 +485,24 @@ protected:
 				ImGui::SliderInt("##Boundaries width",&boundaries_width_,1,30);
 				ImGui::SameLine();
 				ImGui::TextUnformatted("Boundaries");
-				// TODO allow to show/hide corners
-				ImGui::ColorEdit3WithPalette("Corners", corners_color_.data());
+				// Corners
+				ImGui::Checkbox("##Show corners",&show_corners_);
 				ImGui::SameLine();
-				ImGui::Text("(%ld)",lg_.nb_corners());
-				ImGui::SetNextItemWidth(IMGUI_SLIDERS_WIDTH);
-				ImGui::SliderFloat("Corners size", &corners_size_, 0.0f, 50.0f, "%.1f");
-				// TODO allow to show/hide turning-points
-				ImGui::ColorEdit3WithPalette("Turning points", turning_points_color_.data());
+				ImGui::ColorEdit3WithPalette("##Corners color", corners_color_.data());
 				ImGui::SameLine();
-				ImGui::Text("(%ld)",nb_turning_points_);
 				ImGui::SetNextItemWidth(IMGUI_SLIDERS_WIDTH);
-				ImGui::SliderFloat("Turning points size", &turning_points_size_, 0.0f, 50.0f, "%.1f");
+				ImGui::SliderFloat("##Corners size", &corners_size_, 1.0f, 50.0f, "%.1f");
+				ImGui::SameLine();
+				ImGui::Text("Corners (%ld)",lg_.nb_corners());
+				// Turning-points
+				ImGui::Checkbox("##Show turning-points",&show_turning_points_);
+				ImGui::SameLine();
+				ImGui::ColorEdit3WithPalette("##Turning-points color", turning_points_color_.data());
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(IMGUI_SLIDERS_WIDTH);
+				ImGui::SliderFloat("##Turning points size", &turning_points_size_, 1.0f, 50.0f, "%.1f");
+				ImGui::SameLine();
+				ImGui::Text("Turning-points (%ld)",nb_turning_points_);
 			}
 			else if (
 				(state_ == labeling) && (labeling_visu_mode_ == VIEW_FIDELITY)
@@ -522,6 +535,13 @@ protected:
 				ImGui::SliderInt("##Boundaries width",&boundaries_width_,1,30);
 				ImGui::SameLine();
 				ImGui::TextUnformatted("Boundaries");
+				// Corners
+				ImGui::Checkbox("##Show corners",&show_corners_);
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(IMGUI_SLIDERS_WIDTH);
+				ImGui::SliderFloat("##Corners size", &corners_size_, 1.0f, 50.0f, "%.1f");
+				ImGui::SameLine();
+				ImGui::Text("Corners (%ld)",lg_.nb_corners());
 				// color for invalid components
 				if(ImGui::ColorEdit3WithPalette("Invalid", validity_colors_.color_as_floats(0))) {
 					validity_colors_.update_chars_of_color(0);
@@ -538,7 +558,6 @@ protected:
 				ImGui::SameLine();
 				ImGui::TextDisabled("(?)");
 				ImGui::SetItemTooltip("Color of valid charts/boundaries/corners");
-				// TODO allow to change corners size
 			}
 			
 
@@ -865,9 +884,9 @@ protected:
 
 		clear_scene_overlay();
 
-		valid_corners_group_index_ = new_points_group(corners_color_.data(),&corners_size_,true);
-		invalid_corners_group_index_ = new_points_group(corners_color_.data(),&corners_size_,true);
-		turning_points_group_index_ = new_points_group(turning_points_color_.data(),&turning_points_size_,true);
+		valid_corners_group_index_ = new_points_group(corners_color_.data(),&corners_size_,&show_corners_);
+		invalid_corners_group_index_ = new_points_group(corners_color_.data(),&corners_size_,&show_corners_);
+		turning_points_group_index_ = new_points_group(turning_points_color_.data(),&turning_points_size_,&show_turning_points_);
 		// There is 5 (mutually-exclusive) types of boundaries:
 		// - assigned to the X axis, valid
 		// - assigned to the Y axis, valid
@@ -929,9 +948,6 @@ protected:
 			}
 		}
 
-		set_points_group_visibility(valid_corners_group_index_,true);
-		set_points_group_visibility(invalid_corners_group_index_,true);
-
 		IncrementalStats stats;
 		compute_per_facet_fidelity(mesh_,normals_,LABELING_ATTRIBUTE_NAME,"fidelity",stats);
 		fidelity_text_label_ = fmt::format("min={:.4f} | max={:.4f} | avg={:.4f}",stats.min(),stats.max(),stats.avg());
@@ -973,6 +989,8 @@ protected:
 	std::set<std::pair<index_t,index_t>> feature_edges_;
 	bool show_boundaries_;
 	int boundaries_width_;
+	bool show_corners_;
+	bool show_turning_points_;
 };
 
 // print specialization of LabelingViewerApp::State for {fmt}

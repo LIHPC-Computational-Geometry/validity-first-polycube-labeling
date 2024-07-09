@@ -43,9 +43,9 @@ public:
         std::vector<vec3> points;
         const float* color = nullptr; // storing a pointer allows for direct color modification from the GUI
         const float* size = nullptr;
-        bool show = false;
-        PointsGroup(const float* rgba, const float* size, bool show) : color(rgba), size(size), show(show) {}
-        void clear() { points.clear(); color = nullptr; size = nullptr; show = false; }
+        bool* show = nullptr;
+        PointsGroup(const float* rgba, const float* size, bool* show) : color(rgba), size(size), show(show) {}
+        void clear() { points.clear(); color = nullptr; size = nullptr; show = nullptr; }
     };
 
     struct EdgesGroup {
@@ -138,7 +138,7 @@ public:
         edges_groups_.clear();
     }
 
-    std::size_t new_points_group(const float* rgba, const float* size, bool show) {
+    std::size_t new_points_group(const float* rgba, const float* size, bool* show) {
         points_groups_.push_back(PointsGroup(rgba,size,show));
         return index_of_last(points_groups_);
     }
@@ -167,27 +167,12 @@ public:
         edges_groups_.at(index).texture_coordinate = new_texture_coordinate;
     }
 
-    void set_points_group_visibility(std::size_t index, bool visible) {
-        points_groups_.at(index).show = visible;
-    }
-
-    void points_groups_show_only(std::initializer_list<std::size_t> indices) {
-        // hide all groups
-        for(PointsGroup& group : points_groups_) {
-            group.show = false;
-        }
-        // show selected groups
-        for(std::size_t group_index : indices) {
-            points_groups_.at(group_index).show = true;
-        }
-    }
-
     void draw_scene() override {
         SimpleMeshApplication::draw_scene();
 
         // draw points groups
         for(const PointsGroup& group : points_groups_) {
-            if(group.show) {
+            if(*group.show) {
                 geo_assert(group.color != nullptr);
                 glupSetColor4fv(GLUP_FRONT_COLOR, group.color); // use the color of this group of points
                 glupSetPointSize(*group.size);
