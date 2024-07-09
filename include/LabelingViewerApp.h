@@ -47,7 +47,6 @@
 
 using namespace GEO;
 
-const float green[4] = {0.0f, 1.0f, 0.0f, 1.0f};
 const float dark_blue[4] = {0.0f, 0.0f, 5.0f, 1.0f};
 
 class LabelingViewerApp : public SimpleMeshApplicationExt {
@@ -92,18 +91,22 @@ public:
         // init own variables
         allow_boundaries_between_opposite_labels_ = false; // parameter of LabelingGraph::fill_from()
 
+		// facet normals in green by default
+		normals_color_[0] = 0.0f;
+		normals_color_[1] = 1.0f;
+		normals_color_[2] = 0.0f;
+		normals_length_factor_ = 0.1f;
+
         // corners in black by default
 		corners_color_[0] = 0.0f;
 		corners_color_[1] = 0.0f;
 		corners_color_[2] = 0.0f;
-		corners_color_[3] = 1.0f;
 		corners_size_ = 10.0f;
 
 		// turning points in yellow by default
 		turning_points_color_[0] = 1.0f;
 		turning_points_color_[1] = 1.0f;
 		turning_points_color_[2] = 0.0f;
-		turning_points_color_[3] = 1.0f;
 		turning_points_size_ = 10.0f;
 
 		nb_turning_points_ = 0;
@@ -111,7 +114,6 @@ public:
 		fidelity_text_label_ = "";
 
 		show_normals_ = false;
-		normals_length_factor_ = 0.1f;
 
 		show_feature_edges_ = true;
 
@@ -187,8 +189,8 @@ protected:
 				attribute_min_ = -0.5f;
 				attribute_max_ = 5.5f;
 				// points in overlay
-				set_points_group_color(valid_corners_group_index_,corners_color_);
-				set_points_group_color(invalid_corners_group_index_,corners_color_); // no 	distinction between valid and invalid corners in this view
+				set_points_group_color(valid_corners_group_index_,corners_color_.data());
+				set_points_group_color(invalid_corners_group_index_,corners_color_.data()); // no distinction between valid and invalid corners in this view
 				points_groups_show_only({valid_corners_group_index_, invalid_corners_group_index_, turning_points_group_index_});
 				// edges in overlay
 				set_edges_group_color(X_boundaries_group_index_,COLORMAP_LABELING,0.084); // axis X -> color of label 0 = +X
@@ -268,7 +270,7 @@ protected:
 	void draw_scene() override {
 		SimpleMeshApplicationExt::draw_scene();
 		if((state_ == triangle_mesh) && show_normals_) {
-			glupSetColor4fv(GLUP_FRONT_COLOR, green);
+			glupSetColor4fv(GLUP_FRONT_COLOR, normals_color_.data());
 			glupSetPointSize(10.0);
 			FOR(f,mesh_.facets.nb()) { // for each 
 				facet_center_ = mesh_facet_center(mesh_,f);
@@ -374,13 +376,19 @@ protected:
 				ImGui::SliderFloat("##Mesh wireframe width", &mesh_width_, 0.1f, 2.0f, "%.1f");
 				ImGui::SameLine();
 				ImGui::TextUnformatted("Mesh wireframe");
-				// TODO allow to change normals color
-				ImGui::Checkbox("Show normals",&show_normals_);
+				// Facet normals
+				ImGui::Checkbox("##Show normals",&show_normals_);
+				ImGui::SameLine();
+				ImGui::ColorEdit3WithPalette("##Normals color", normals_color_.data());
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(IMGUI_SLIDERS_WIDTH);
+				ImGui::SliderFloat("##Normals length factor",&normals_length_factor_,0.0f,5.0f,"%.1f");
+				ImGui::SameLine();
+				ImGui::TextUnformatted("Facet normals");
 				ImGui::SameLine();
 				ImGui::TextDisabled("(?)");
 				ImGui::SetItemTooltip("Draw facet normals as segments. The point is the tip of the vector.");
-				ImGui::SetNextItemWidth(IMGUI_SLIDERS_WIDTH);
-				ImGui::SliderFloat("Normals length factor",&normals_length_factor_,0.0f,50.0f);
+				// Feature edges
 				ImGui::Checkbox("Show feature edges",&show_feature_edges_);
 				ImGui::SameLine();
 				ImGui::Text("(%ld)",feature_edges_.size());
@@ -429,13 +437,13 @@ protected:
 				// TODO allow to show/hide boundaries
 				// TODO allow to change boundaries width
 				// TODO allow to show/hide corners
-				ImGui::ColorEdit3WithPalette("Corners", corners_color_);
+				ImGui::ColorEdit3WithPalette("Corners", corners_color_.data());
 				ImGui::SameLine();
 				ImGui::Text("(%ld)",lg_.nb_corners());
 				ImGui::SetNextItemWidth(IMGUI_SLIDERS_WIDTH);
 				ImGui::SliderFloat("Corners size", &corners_size_, 0.0f, 50.0f, "%.1f");
 				// TODO allow to show/hide turning-points
-				ImGui::ColorEdit3WithPalette("Turning points", turning_points_color_);
+				ImGui::ColorEdit3WithPalette("Turning points", turning_points_color_.data());
 				ImGui::SameLine();
 				ImGui::Text("(%ld)",nb_turning_points_);
 				ImGui::SetNextItemWidth(IMGUI_SLIDERS_WIDTH);
@@ -801,9 +809,9 @@ protected:
 
 		clear_scene_overlay();
 
-		valid_corners_group_index_ = new_points_group(corners_color_,&corners_size_,true);
-		invalid_corners_group_index_ = new_points_group(corners_color_,&corners_size_,true);
-		turning_points_group_index_ = new_points_group(turning_points_color_,&turning_points_size_,true);
+		valid_corners_group_index_ = new_points_group(corners_color_.data(),&corners_size_,true);
+		invalid_corners_group_index_ = new_points_group(corners_color_.data(),&corners_size_,true);
+		turning_points_group_index_ = new_points_group(turning_points_color_.data(),&turning_points_size_,true);
 		X_boundaries_group_index_ = new_edges_group(COLORMAP_LABELING,0.084,BOUNDARIES_WIDTH,false); // axis X -> color of label 0 = +X
 		Y_boundaries_group_index_ = new_edges_group(COLORMAP_LABELING,0.417,BOUNDARIES_WIDTH,false); // axis Y -> color of label 2 = +Y
 		Z_boundaries_group_index_ = new_edges_group(COLORMAP_LABELING,0.750,BOUNDARIES_WIDTH,false); // axis Z -> color of label 4 = +Z
@@ -875,8 +883,8 @@ protected:
 	bool show_ImGui_demo_window_;
     bool allow_boundaries_between_opposite_labels_;
 	ColorArray labeling_colors_;
-	float corners_color_[4];
-	float turning_points_color_[4];
+	vec3f corners_color_;
+	vec3f turning_points_color_;
 	std::size_t nb_turning_points_;
 	ColorArray validity_colors_;
 	LabelingGraph lg_;
@@ -895,6 +903,7 @@ protected:
 	std::vector<vec3> normals_; // facet normals
 	std::string fidelity_text_label_;
 	bool show_normals_; // optional visu overlay when state_ is triangle_mesh
+	vec3f normals_color_;
 	vec3 facet_center_;
 	vec3 normal_tip_;
 	float normals_length_factor_;
