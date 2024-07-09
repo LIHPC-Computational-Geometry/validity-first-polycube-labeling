@@ -16,7 +16,6 @@ int main(int argc, char** argv) {
 
     std::vector<std::string> filenames;
 	initialize();
-    CmdLine::import_arg_group("sys"); // declares sys:compression_level, needed by mesh_save() for .geogram files
 	if(!CmdLine::parse(
 		argc,
 		argv,
