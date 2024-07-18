@@ -28,6 +28,7 @@ LabelingViewerApp::LabelingViewerApp(const std::string name, bool auto_flip_norm
     show_mesh_ = true;
     show_surface_borders_ = false;
     show_volume_ = false;
+    lighting_ = false;
     surface_color_ = vec4f(0.9f, 0.9f, 0.9f, 1.0f); // light grey. default is blue-ish vec4f(0.5f, 0.5f, 1.0f, 1.0f)
 
     // init own variables
@@ -76,9 +77,15 @@ void LabelingViewerApp::state_transition(State new_state) {
         case empty:
             break;
         case triangle_mesh:
+            show_surface_ = true;
             show_mesh_ = true;
+            show_normals_ = false;
+            show_feature_edges_ = true;
             lighting_ = true;
             show_attributes_ = false;
+            show_boundaries_ = false;
+            show_corners_ = false;
+            show_turning_points_ = false;
             break;
         case labeling:
             labeling_visu_mode_transition(VIEW_LABELING_GRAPH);
@@ -97,20 +104,21 @@ void LabelingViewerApp::labeling_visu_mode_transition(int new_mode) {
     }
     switch(new_mode) {
         case VIEW_TRIANGLE_MESH:
+            show_surface_ = true;
             show_mesh_ = true;
+            show_normals_ = false;
+            show_feature_edges_ = true;
             lighting_ = true;
             show_attributes_ = false;
             show_boundaries_ = false;
-            set_edges_group_color(X_boundaries_group_index_,COLORMAP_LABELING,0.084); // axis X -> color of label 0 = +X
-            set_edges_group_color(Y_boundaries_group_index_,COLORMAP_LABELING,0.417); // axis Y -> color of label 2 = +Y
-            set_edges_group_color(Z_boundaries_group_index_,COLORMAP_LABELING,0.750); // axis Z -> color of label 4 = +Z
-            set_edges_group_color(axisless_and_invalid_boundaries_group_index,COLORMAP_BLACK_WHITE,0.0); // axisless boundaries in black
-            set_edges_group_color(axisless_but_valid_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0); // axisless boundaries in black
             show_corners_ = false;
             show_turning_points_ = false;
             break;
         case VIEW_RAW_LABELING:
+            show_surface_ = true;
             show_mesh_ = true;
+            show_normals_ = false;
+            show_feature_edges_ = false;
             lighting_ = false;
             show_attributes_ = true;
             current_colormap_index_ = COLORMAP_LABELING;
@@ -120,16 +128,14 @@ void LabelingViewerApp::labeling_visu_mode_transition(int new_mode) {
             attribute_min_ = -0.5f;
             attribute_max_ = 5.5f;
             show_boundaries_ = false;
-            set_edges_group_color(X_boundaries_group_index_,COLORMAP_LABELING,0.084); // axis X -> color of label 0 = +X
-            set_edges_group_color(Y_boundaries_group_index_,COLORMAP_LABELING,0.417); // axis Y -> color of label 2 = +Y
-            set_edges_group_color(Z_boundaries_group_index_,COLORMAP_LABELING,0.750); // axis Z -> color of label 4 = +Z
-            set_edges_group_color(axisless_and_invalid_boundaries_group_index,COLORMAP_BLACK_WHITE,0.0); // axisless boundaries in black
-            set_edges_group_color(axisless_but_valid_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0); // axisless boundaries in black
             show_corners_ = false;
             show_turning_points_ = false;
             break;
         case VIEW_LABELING_GRAPH:
+            show_surface_ = true;
             show_mesh_ = false;
+            show_normals_ = false;
+            show_feature_edges_ = false;
             lighting_ = false;
             show_attributes_ = true;
             geo_assert(COLORMAP_LABELING < colormaps_.size());
@@ -153,7 +159,10 @@ void LabelingViewerApp::labeling_visu_mode_transition(int new_mode) {
             show_turning_points_ = true;
             break;
         case VIEW_FIDELITY:
+            show_surface_ = true;
             show_mesh_ = false;
+            show_normals_ = false;
+            show_feature_edges_ = false;
             lighting_ = false;
             show_attributes_ = true;
             current_colormap_index_ = COLORMAP_INFERNO;
@@ -172,7 +181,10 @@ void LabelingViewerApp::labeling_visu_mode_transition(int new_mode) {
             show_turning_points_ = false;
             break;
         case VIEW_INVALID_CHARTS:
+            show_surface_ = true;
             show_mesh_ = false;
+            show_normals_ = false;
+            show_feature_edges_ = false;
             lighting_ = false;
             show_attributes_ = true;
             current_colormap_index_ = COLORMAP_VALIDITY;
@@ -181,11 +193,7 @@ void LabelingViewerApp::labeling_visu_mode_transition(int new_mode) {
             attribute_name_ = "on_invalid_chart";
             attribute_min_ = 1.5;
             attribute_max_ = -0.5;
-            // edges in overlay
-            set_edges_group_color(X_boundaries_group_index_,COLORMAP_VALIDITY,1.0); // apply the color of valid LabelingGraph components
-            set_edges_group_color(Y_boundaries_group_index_,COLORMAP_VALIDITY,1.0); // apply the color of valid LabelingGraph components
-            set_edges_group_color(Z_boundaries_group_index_,COLORMAP_VALIDITY,1.0); // apply the color of valid LabelingGraph components
-            show_boundaries_ = false;
+            show_boundaries_ = true;
             // all boundaries in black
             set_edges_group_color(X_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0);
             set_edges_group_color(Y_boundaries_group_index_,COLORMAP_BLACK_WHITE,0.0);
@@ -196,21 +204,26 @@ void LabelingViewerApp::labeling_visu_mode_transition(int new_mode) {
             show_turning_points_ = false;
             break;
         case VIEW_INVALID_BOUNDARIES:
+            show_surface_ = true;
             show_mesh_ = false;
+            show_normals_ = false;
+            show_feature_edges_ = false;
             lighting_ = false;
             show_attributes_ = false;
-            // edges in overlay
+            show_boundaries_ = true;
             set_edges_group_color(X_boundaries_group_index_,COLORMAP_VALIDITY,1.0); // apply the color of valid LabelingGraph components
             set_edges_group_color(Y_boundaries_group_index_,COLORMAP_VALIDITY,1.0); // apply the color of valid LabelingGraph components
             set_edges_group_color(Z_boundaries_group_index_,COLORMAP_VALIDITY,1.0); // apply the color of valid LabelingGraph components
             set_edges_group_color(axisless_and_invalid_boundaries_group_index,COLORMAP_VALIDITY,0.0);
             set_edges_group_color(axisless_but_valid_boundaries_group_index_,COLORMAP_VALIDITY,1.0);
-            show_boundaries_ = true;
             show_corners_ = false;
             show_turning_points_ = false;
             break;
         case VIEW_INVALID_CORNERS:
+            show_surface_ = true;
             show_mesh_ = false;
+            show_normals_ = false;
+            show_feature_edges_ = false;
             lighting_ = false;
             show_attributes_ = false;
             // points in overlay
