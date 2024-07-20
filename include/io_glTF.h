@@ -17,8 +17,7 @@
 #include <string>
 #include <functional> 
 
-#include "geometry_halfedges.h"     // for MeshHalfedgesExt
-#include "geometry.h"               // for AdjacentFacetOfVertex
+#include "geometry_mesh_ext.h"
 
 #ifdef GARGANTUA
     #define ASSERT_GARGANTUA_OFF (fmt::println("Cannot export to glTF in GARGANTUA mode, indices must have 32 bits"); geo_assert_not_reached;)
@@ -98,10 +97,10 @@ inline index_t* facet_vertex_index_ptr(GEO::Mesh& M, index_t f, index_t lv) {
     return M.facet_corners.vertex_index_ptr(M.facets.corner(f,lv));
 }
 
-void write_glTF__triangle_mesh(std::string filename, GEO::Mesh& M, bool with_wireframe);
+void write_glTF__triangle_mesh(std::string filename, MeshExt& M, bool with_wireframe);
 
-void write_glTF__labeled_triangle_mesh(std::string filename, GEO::Mesh& M, const char* attribute_name, std::vector<std::vector<AdjacentFacetOfVertex>> per_vertex_adj_facets, std::function<bool(const Mesh& M, const Attribute<index_t>& label, index_t facet_index)> remove_facet_fx);
+void write_glTF__labeled_triangle_mesh(std::string filename, MeshExt& M, Attribute<index_t>& labeling, std::function<bool(const Mesh& M, const Attribute<index_t>& label, index_t facet_index)> remove_facet_fx);
 
-void write_glTF__labeled_triangle_mesh_with_polycube_animation(std::string filename, GEO::Mesh& M, GEO::Mesh& polycube, const char* attribute_name, const std::vector<std::vector<AdjacentFacetOfVertex>>& per_vertex_adj_facets);
+void write_glTF__labeled_triangle_mesh_with_polycube_animation(std::string filename, MeshExt& M, GEO::Mesh& polycube, Attribute<index_t>& labeling);
 
 void write_glTF__hex_mesh_surface(std::string filename, const GEO::Mesh& hex_mesh);

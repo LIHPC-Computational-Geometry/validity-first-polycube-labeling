@@ -255,10 +255,10 @@ bool Corner::compute_validity(bool allow_boundaries_between_opposite_labels, con
     return is_valid;
 }
 
-bool Corner::all_adjacent_boundary_edges_are_on_feature_edges(const Mesh& mesh, const std::set<std::pair<index_t,index_t>>& feature_edges) const {
+bool Corner::all_adjacent_boundary_edges_are_on_feature_edges(const MeshExt& mesh) const {
     for(const auto& vr : vertex_rings_with_boundaries) {
         for(const auto& boundary_edge : vr.boundary_edges) {
-            if(!halfedge_is_on_feature_edge(mesh,boundary_edge,feature_edges)) {
+            if(!mesh.feature_edges.contain_halfedge(boundary_edge)) {
                 return false;
             }
         }
@@ -337,14 +337,14 @@ MeshHalfedges::Halfedge Corner::get_most_aligned_boundary_halfedge(const Mesh& m
     return most_aligned_halfedge;    
 }
 
-void Corner::get_outgoing_halfedges_on_feature_edge(const Mesh& mesh, const std::set<std::pair<index_t,index_t>>& all_feature_edges, std::vector<MeshHalfedges::Halfedge>& outgoing_halfedges_on_feature_edge) const {
+void Corner::get_outgoing_halfedges_on_feature_edge(const MeshExt& mesh, std::vector<MeshHalfedges::Halfedge>& outgoing_halfedges_on_feature_edge) const {
     outgoing_halfedges_on_feature_edge.clear();
-    if(all_feature_edges.empty()) {
+    if(mesh.feature_edges.nb()==0) {
         return;
     }
     for(const auto& vr : vertex_rings_with_boundaries) {
         for(const auto& boundary_halfedge : vr.boundary_edges) {
-            if(halfedge_is_on_feature_edge(mesh,boundary_halfedge,all_feature_edges)) {
+            if(mesh.feature_edges.contain_halfedge(boundary_halfedge)) {
                 outgoing_halfedges_on_feature_edge.push_back(boundary_halfedge);
             }
         }
@@ -454,10 +454,9 @@ bool Boundary::empty() const {
     );
 }
 
-void Boundary::explore(const MeshHalfedges::Halfedge& initial_halfedge,
-                       const MeshHalfedgesExt& mesh_halfedges,
+void Boundary::explore(const MeshExt& mesh, // contains both the halfedges API and the feature edges
+                       const MeshHalfedges::Halfedge& initial_halfedge,
                        index_t index_of_self,
-                       const std::set<std::pair<index_t,index_t>>& feature_edges,
                        const std::vector<index_t>& facet2chart,
                        std::vector<index_t>& vertex2corner,
                        std::vector<Chart>& charts,
@@ -476,19 +475,18 @@ void Boundary::explore(const MeshHalfedges::Halfedge& initial_halfedge,
 
     // initialization
     index_t current_vertex = index_t(-1);
-    const Mesh& mesh = mesh_halfedges.mesh();
     MeshHalfedges::Halfedge current_halfedge = initial_halfedge; // create a modifiable halfedge
-    if(feature_edges.empty()) { // if this mesh doesn't have feature edges
+    if(mesh.feature_edges.nb() == 0) { // if this mesh doesn't have feature edges
         on_feature_edge = false; // this boundary is not on a feature edge
     }
 
-    geo_assert(mesh_halfedges.halfedge_is_border(current_halfedge));
+    geo_assert(mesh.halfedges.halfedge_is_border(current_halfedge));
     halfedges.push_back(current_halfedge);
     halfedge2boundary[current_halfedge] = {index_of_self,true}; // mark this halfedge, link it to the current boundary
-    mesh_halfedges.move_to_opposite(current_halfedge); // switch orientation
+    mesh.halfedges.move_to_opposite(current_halfedge); // switch orientation
     halfedge2boundary[current_halfedge] = {index_of_self,false}; // mark this halfedge, link it to the current boundary (opposite orientation)
-    mesh_halfedges.move_to_opposite(current_halfedge); // switch orientation
-    if(!halfedge_is_on_feature_edge(mesh_halfedges.mesh(),current_halfedge,feature_edges)) {
+    mesh.halfedges.move_to_opposite(current_halfedge); // switch orientation
+    if(!mesh.feature_edges.contain_halfedge(current_halfedge)) {
         on_feature_edge = false;
     }
 
@@ -520,12 +518,12 @@ void Boundary::explore(const MeshHalfedges::Halfedge& initial_halfedge,
         // compute the valence of the extremity_vertex
         //mesh_halfedges.move_to_opposite(current_halfedge); // flip current_halfedge so than extremity_vertex is at its base
         VertexRingWithBoundaries current_vertex_ring;
-        current_vertex_ring.explore(Geom::halfedge_top_right_corner(mesh,current_halfedge),mesh_halfedges); // explore the halfedges around the extremity vertex
+        current_vertex_ring.explore(Geom::halfedge_top_right_corner(mesh,current_halfedge),mesh.halfedges); // explore the halfedges around the extremity vertex
 
         if(current_vertex_ring.valence() < 3) {
             // Not a corner. At least, from the point of view of this vertex ring
 
-            mesh_halfedges.move_to_next_around_border(current_halfedge); // cross current_vertex
+            mesh.halfedges.move_to_next_around_border(current_halfedge); // cross current_vertex
 
             if(VECTOR_CONTAINS(halfedges,current_halfedge)) {
                 // we went back on our steps
@@ -537,15 +535,15 @@ void Boundary::explore(const MeshHalfedges::Halfedge& initial_halfedge,
             halfedge2boundary[current_halfedge] = {index_of_self,true}; // mark this halfedge, link it to the current boundary
             halfedges.push_back(current_halfedge); // append to the list of halfedges composing the current boundary
 
-            mesh_halfedges.move_to_opposite(current_halfedge); // switch orientation
+            mesh.halfedges.move_to_opposite(current_halfedge); // switch orientation
             halfedge2boundary[current_halfedge] = {index_of_self,false}; // mark this halfedge, link it to the current boundary (opposite orientation)
-            mesh_halfedges.move_to_opposite(current_halfedge); // switch orientation
+            mesh.halfedges.move_to_opposite(current_halfedge); // switch orientation
 
             // update the averge normal of the boundary
             average_normal += halfedge_normal(mesh,current_halfedge);
 
             // check if we (still) are on a feature edge
-            if(!halfedge_is_on_feature_edge(mesh_halfedges.mesh(),current_halfedge,feature_edges)) {
+            if(!mesh.feature_edges.contain_halfedge(current_halfedge)) {
                 on_feature_edge = false;
             }
 
@@ -954,9 +952,8 @@ std::ostream& operator<< (std::ostream &out, const Boundary& data) {
 }
 
 void LabelingGraph::fill_from(
-    Mesh& mesh,
-    std::string facet_attribute,
-    const std::set<std::pair<index_t,index_t>>& feature_edges,
+    const MeshExt& mesh,
+    Attribute<index_t>& labeling,
     std::optional<bool> allow_boundaries_between_opposite_labels
 ) {
 
@@ -975,11 +972,10 @@ void LabelingGraph::fill_from(
 
     facet2chart.resize(mesh.facets.nb()); // important: memory allocation allowing to call ds.getSetsMap() on the underlying array
     vertex2corner.resize(mesh.vertices.nb(),index_t(-1)); // contrary to facet2chart where all facets are associated to a chart, not all vertices are associated to a corner
-    MeshHalfedgesExt mesh_half_edges_(mesh); // Half edges API
 
     // STEP 1 : Aggregate adjacent triangles of same label as chart
 
-    Attribute<index_t> labeling(mesh.facets.attributes(),facet_attribute); // read and store the facets attribute corresponding to the labeling
+    geo_debug_assert(labeling.is_bound());
 
     DisjointSet<index_t> ds(labeling.size()); // create a disjoint-set data structure to group facets by labels
     for(index_t f: mesh.facets) { // for each facet of the mesh
@@ -1008,7 +1004,7 @@ void LabelingGraph::fill_from(
     // and go around the vertex ring with MeshHalfedgesExt::move_to_next_around_vertex(). See VertexRingWithBoundaries::explore()
     // This works for shapes having several solids connected by a vertex only
 
-    mesh_half_edges_.set_use_facet_region(facet_attribute); // indicate to Geogram the attribute with the charts (= regions for Geogram) from which we want to find the boundaries (= borders for Geogram)
+    geo_assert(mesh.halfedges.is_using_facet_region());
     std::vector<MeshHalfedges::Halfedge> boundary_edges_to_explore; // vector of boundary edges we encountered, and that must be explored later
 
     index_t current_vertex = index_t(-1);
@@ -1019,7 +1015,7 @@ void LabelingGraph::fill_from(
         
         // (re)explore this vertex, because maybe it was explored from another solid of the same shape (multiple vertex rings)
         VertexRingWithBoundaries current_vertex_ring;
-        current_vertex_ring.explore(halfedge,mesh_half_edges_);
+        current_vertex_ring.explore(halfedge,mesh.halfedges);
         if(current_vertex_ring.valence() < 3) {
             // Not a corner. At least, from the point of view of this vertex ring
             continue;            
@@ -1058,20 +1054,19 @@ void LabelingGraph::fill_from(
             boundaries.push_back(Boundary()); // create a new boundary
             boundaries.back().start_corner = vertex2corner[mesh.facet_corners.vertex(halfedge.corner)]; // link this boundary to the corner at the beginning
             // explore it, edge by edge
-            boundaries.back().explore(halfedge,
-                                       mesh_half_edges_,
-                                       (index_t) index_of_last(boundaries), // get the index of this boundary
-                                       feature_edges,
-                                       facet2chart,
-                                       vertex2corner,
-                                       charts,
-                                       corners,
-                                       halfedge2boundary,
-                                       boundary_edges_to_explore);
-            if(boundaries.back().find_turning_points(mesh_half_edges_)) {
+            boundaries.back().explore(mesh,
+                                      halfedge,
+                                      (index_t) index_of_last(boundaries), // get the index of this boundary
+                                      facet2chart,
+                                      vertex2corner,
+                                      charts,
+                                      corners,
+                                      halfedge2boundary,
+                                      boundary_edges_to_explore);
+            if(boundaries.back().find_turning_points(mesh.halfedges)) {
                 non_monotone_boundaries.push_back((index_t) index_of_last(boundaries));
             }
-            if(boundaries.back().compute_validity(allow_boundaries_between_opposite_labels_,mesh_half_edges_)==false) {
+            if(boundaries.back().compute_validity(allow_boundaries_between_opposite_labels_,mesh.halfedges)==false) {
                 invalid_boundaries.push_back((index_t) index_of_last(boundaries));
             }
         }
@@ -1089,7 +1084,7 @@ void LabelingGraph::fill_from(
             continue;
         }
 
-        if (!mesh_half_edges_.halfedge_is_border(halfedge)) {
+        if (!mesh.halfedges.halfedge_is_border(halfedge)) {
             // halfedge is inside a chart
             continue;
         }
@@ -1097,20 +1092,19 @@ void LabelingGraph::fill_from(
         boundaries.push_back(Boundary()); // create a new boundary
         boundaries.back().start_corner = index_t(-1); // no corner at the beginning
         // explore it, edge by edge
-        boundaries.back().explore(halfedge,
-                                  mesh_half_edges_,
+        boundaries.back().explore(mesh,
+                                  halfedge,
                                   (index_t) index_of_last(boundaries), // get the index of this boundary
-                                  feature_edges,
                                   facet2chart,
                                   vertex2corner,
                                   charts,
                                   corners,
                                   halfedge2boundary,
                                   boundary_edges_to_explore);
-        if(boundaries.back().find_turning_points(mesh_half_edges_)) {
+        if(boundaries.back().find_turning_points(mesh.halfedges)) {
             non_monotone_boundaries.push_back((index_t) index_of_last(boundaries));
         }
-        if(boundaries.back().compute_validity(allow_boundaries_between_opposite_labels_,mesh_half_edges_)==false) {
+        if(boundaries.back().compute_validity(allow_boundaries_between_opposite_labels_,mesh.halfedges)==false) {
             invalid_boundaries.push_back((index_t) index_of_last(boundaries));
         }
     }}
@@ -1213,22 +1207,22 @@ bool LabelingGraph::is_allowing_boundaries_between_opposite_labels() const {
     return allow_boundaries_between_opposite_labels_;
 }
 
-bool LabelingGraph::vertex_is_only_surrounded_by(index_t vertex_index, std::vector<index_t> expected_charts, const std::vector<std::vector<index_t>>& vertex_to_adj_facets) const {
-    geo_assert(!vertex_to_adj_facets.empty());
-    for(auto adj_facet : vertex_to_adj_facets.at(vertex_index)) { // for each adjacent facet of `vertex_index`
-        if (!VECTOR_CONTAINS(expected_charts,facet2chart.at(adj_facet))) { // if the chart index of this facet is not among the `expected_charts`
+bool LabelingGraph::vertex_is_only_surrounded_by(const MeshExt& mesh, index_t vertex_index, std::vector<index_t> expected_charts) const {
+    geo_assert(mesh.adj_facet_corners.size_matches_nb_vertices());
+    for(const auto& adj_facet_corner : mesh.adj_facet_corners.of_vertex(vertex_index)) { // for each adjacent facet corner of `vertex_index`
+        if (!VECTOR_CONTAINS(expected_charts,facet2chart.at(adj_facet_corner.facet_index))) { // if the chart index of this facet is not among the `expected_charts`
             return false;
         }
     }
     return true;
 }
 
-void LabelingGraph::get_adjacent_charts_of_vertex(index_t vertex_index, const std::vector<std::vector<index_t>>& vertex_to_adj_facets, std::set<index_t>& adjacent_charts) const {
-    geo_assert(vertex_index < vertex_to_adj_facets.size());
+void LabelingGraph::get_adjacent_charts_of_vertex(const MeshExt& mesh, index_t vertex_index, std::set<index_t>& adjacent_charts) const {
+    geo_assert(vertex_index < mesh.adj_facet_corners.as_vector().size());
     adjacent_charts.clear();
-    for(index_t adj_facet : vertex_to_adj_facets[vertex_index]) {
-        geo_assert(adj_facet < facet2chart.size());
-        adjacent_charts.insert(facet2chart[adj_facet]);
+    for(const auto& adj_facet_corner : mesh.adj_facet_corners.of_vertex(vertex_index)) {
+        geo_assert(adj_facet_corner.facet_index < facet2chart.size());
+        adjacent_charts.insert(facet2chart[adj_facet_corner.facet_index]);
     }
 }
 

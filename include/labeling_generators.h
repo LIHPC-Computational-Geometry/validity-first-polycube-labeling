@@ -1,9 +1,10 @@
 #pragma once
 
 #include <geogram/basic/geometry.h> // for GEO::mat3
-#include <geogram/mesh/mesh.h>      // for GEO::Mesh
 
-#include <cmath>            // for std::pow(), std::abs()
+#include <cmath> // for std::pow(), std::abs()
+
+#include <geometry_mesh_ext.h> // for MeshExt
 
 #define NAIVE_LABELING_TWEAK_SENSITIVITY 0.1 // min difference between the 2 closest labels before the rotation tweak
 #define NAIVE_LABELING_TWEAK_ANGLE 0.1 // angle of rotation of the normal when we cannot choose between 2 or 3 labels
@@ -36,25 +37,25 @@ const mat3 rotation({
 });
 
 // assign randomly one of the six labels to each surface facet (useless, unless to show that not all labelings lead to polycubes)
-void random_labeling(GEO::Mesh& mesh, const char* attribute_name);
+void random_labeling(const Mesh& mesh, Attribute<index_t>& labeling);
 
 /**
  * \brief Compute the naive labeling of a given mesh
  * \details Compute the per-facet nearest-to-normal signed direction +/-{X,Y,Z} of a surface mesh
  * and store it in a facet attribute
- * \param[in,out] mesh A surface triangle mesh
+ * \param[in,out] mesh_ext A surface triangle mesh
  * \param[in] attribute_name The name of the facet attribute in which the labeling will be stored
  */
-void naive_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name);
+void naive_labeling(const MeshExt& mesh_ext, Attribute<index_t>& labeling);
 
 /*
  * Like naive_labeling() but triangle normals are considered slightly rotated
  * when 2 or 3 labels have almost the same cost (like areas at 45°)
  * -> avoid labeling fragmentation
  */
-void tweaked_naive_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name);
+void tweaked_naive_labeling(const MeshExt& mesh_ext, Attribute<index_t>& labeling);
 
 // apply either naive_labeling() or tweaked_naive_labeling() depending on the mesh
-void smart_init_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, const std::set<std::pair<index_t,index_t>>& feature_edges);
+void smart_init_labeling(const MeshExt& mesh_ext, Attribute<index_t>& labeling);
 
-void graphcut_labeling(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, int compactness_coeff = 1, int fidelity_coeff = 1);
+void graphcut_labeling(const MeshExt& mesh_ext, Attribute<index_t>& labeling, int compactness_coeff = 1, int fidelity_coeff = 1);

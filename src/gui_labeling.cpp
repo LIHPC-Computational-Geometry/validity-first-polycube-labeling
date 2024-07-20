@@ -19,7 +19,8 @@ LabelingViewerApp::LabelingViewerApp(const std::string name, bool auto_flip_norm
     { 1.0f, 0.25f, 0.25f, 1.0f}, // invalid charts/boundaries/corners in light red
     {0.25f, 0.25f,  1.0f, 1.0f}  // valid charts/boundaries/corners in light blue
     }),
-    auto_flip_normals_(auto_flip_normals)
+    auto_flip_normals_(auto_flip_normals),
+    mesh_ext_(mesh_)
 {
     // init some inherited variables
 
@@ -252,7 +253,7 @@ void LabelingViewerApp::draw_scene() {
         glupSetPointSize(10.0);
         FOR(f,mesh_.facets.nb()) { // for each 
             facet_center_ = mesh_facet_center(mesh_,f);
-            normal_tip_ = facet_center_ + normals_[f] * normals_length_factor_;
+            normal_tip_ = facet_center_ + mesh_ext_.facet_normals[f] * normals_length_factor_;
             glupBegin(GLUP_LINES);
             glupPrivateVertex3dv(facet_center_.data());
             glupPrivateVertex3dv(normal_tip_.data());
@@ -275,7 +276,7 @@ void LabelingViewerApp::draw_scene() {
         glupPrivateTexCoord1d(0.0);
         glupSetMeshWidth(feature_edges_width_);
         glupBegin(GLUP_LINES);
-        for(const std::pair<index_t,index_t>& edge : feature_edges_) { // for each edge in the set of feature edges
+        for(const std::pair<index_t,index_t>& edge : mesh_ext_.feature_edges) { // for each edge in the set of feature edges
             glupPrivateVertex3dv(mesh_.vertices.point_ptr(edge.first)); // draw first vertex
             glupPrivateVertex3dv(mesh_.vertices.point_ptr(edge.second)); // draw second vertex
         }
@@ -310,12 +311,15 @@ void LabelingViewerApp::draw_menu_bar() {
             if (ImGui::MenuItem("Show ImGui demo window", NULL, show_ImGui_demo_window_)) {
                 show_ImGui_demo_window_ = !show_ImGui_demo_window_;
             }
-            if (ImGui::MenuItem("Flip labeling")) {
-                flip_labeling(mesh_,LABELING_ATTRIBUTE_NAME);
-                update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+            if(state_ == labeling) {
+                if (ImGui::MenuItem("Flip labeling")) {
+                    flip_labeling(mesh_,labeling_);
+                    update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+                }
             }
             if (ImGui::MenuItem("Random labeling")) {
-                random_labeling(mesh_,LABELING_ATTRIBUTE_NAME);
+                random_labeling(mesh_,labeling_);
+                mesh_ext_.halfedges.set_use_facet_region(LABELING_ATTRIBUTE_NAME);
                 update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
             }
             ImGui::EndMenu();
@@ -370,7 +374,7 @@ void LabelingViewerApp::draw_object_properties() {
             ImGui::SetNextItemWidth(IMGUI_SLIDERS_WIDTH);
             ImGui::SliderInt("##Feature edges width",&feature_edges_width_,1,30);
             ImGui::SameLine();
-            ImGui::Text("Feature edges (nb=%ld)",feature_edges_.size());
+            ImGui::Text("Feature edges (nb=%d)",mesh_ext_.feature_edges.nb());
             ImGui::SameLine();
             ImGui::TextDisabled("(?)");
             ImGui::SetItemTooltip("Draw feature edges in blue on top of the mesh");
@@ -529,10 +533,7 @@ void LabelingViewerApp::draw_object_properties() {
         if(ImGui::Button("Rotate mesh according to principal axes")) {
             rotate_mesh_according_to_principal_axes(mesh_);
             mesh_gfx_.set_mesh(&mesh_); // re-link the MeshGfx to the mesh
-            // update normals
-            FOR(f,mesh_.facets.nb()) {
-                normals_[f] = normalize(Geom::mesh_facet_normal(mesh_,f));
-            }
+            mesh_ext_.facet_normals.recompute();
         }
         ImGui::SameLine();
         ImGui::TextDisabled("(?)");
@@ -547,7 +548,8 @@ void LabelingViewerApp::draw_object_properties() {
         ImGui::SetItemTooltip("If on, boundaries between opposite labels (e.g. +X and -X)\ncan be considered valid if they only contain > 180° angles");
 
         if(ImGui::Button("Compute naive labeling")) {
-            naive_labeling(mesh_,normals_,LABELING_ATTRIBUTE_NAME);
+            naive_labeling(mesh_ext_,labeling_);
+            mesh_ext_.halfedges.set_use_facet_region(LABELING_ATTRIBUTE_NAME);
             update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
             state_transition(labeling);
         }
@@ -556,7 +558,8 @@ void LabelingViewerApp::draw_object_properties() {
         ImGui::SetItemTooltip("Associate each facet to the label the closest to its normal");
 
         if(ImGui::Button("Compute tweaked naive labeling")) {
-            tweaked_naive_labeling(mesh_,normals_,LABELING_ATTRIBUTE_NAME);
+            tweaked_naive_labeling(mesh_ext_,labeling_);
+            mesh_ext_.halfedges.set_use_facet_region(LABELING_ATTRIBUTE_NAME);
             update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
             state_transition(labeling);
         }
@@ -565,7 +568,8 @@ void LabelingViewerApp::draw_object_properties() {
         ImGui::SetItemTooltip("Like the naive labeling, but facets normals close to multiple labels\nare slightly rotated before choosing the closest label,\nto avoid labeling fragmentation on subsurfaces\npoorly aligned with XY, XZ, YZ planes");
         
         if(ImGui::Button("Smart init labeling")) {
-            smart_init_labeling(mesh_,normals_,LABELING_ATTRIBUTE_NAME,feature_edges_);
+            smart_init_labeling(mesh_ext_,labeling_);
+            mesh_ext_.halfedges.set_use_facet_region(LABELING_ATTRIBUTE_NAME);
             update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
             state_transition(labeling);
         }
@@ -619,7 +623,7 @@ void LabelingViewerApp::draw_object_properties() {
         ImGui::SameLine();
         ImGui::TextDisabled("(?)");
         ImGui::SetItemTooltip("Show the triangle mesh without the labeling");
-        ImGui::Text("%d vertices, %d facets, %ld feature edges",mesh_.vertices.nb(),mesh_.facets.nb(),feature_edges_.size());
+        ImGui::Text("%d vertices, %d facets, %d feature edges",mesh_.vertices.nb(),mesh_.facets.nb(),mesh_ext_.feature_edges.nb());
 
         if(ImGui::RadioButton("View raw labeling",&labeling_visu_mode_,VIEW_RAW_LABELING))
             labeling_visu_mode_transition(VIEW_RAW_LABELING);
@@ -707,7 +711,7 @@ bool LabelingViewerApp::load(const std::string& filename) {
             return false;
         }
 
-        if(!load_labeling(filename,mesh_,LABELING_ATTRIBUTE_NAME)) {
+        if(!load_labeling(filename,mesh_,labeling_)) {
             fmt::println("load_labeling() not ok"); fflush(stdout);
             // Should the labeling be removed ?
             // If a labeling was already displayed, it should be restored...
@@ -717,17 +721,29 @@ bool LabelingViewerApp::load(const std::string& filename) {
             return false;
         }
 
+        mesh_ext_.halfedges.set_use_facet_region(LABELING_ATTRIBUTE_NAME);
         update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
         state_transition(labeling);
         return true;
     }
 
     mesh_gfx_.set_mesh(nullptr);
-    feature_edges_.clear();
+    mesh_ext_.clear();
+    if(labeling_.is_bound()) {
+        labeling_.unbind();
+        // labeling_.unregister_me(mesh_.facets.attributes().find_attribute_store(LABELING_ATTRIBUTE_NAME));
+    }
     mesh_.clear(false,true);
     MeshIOFlags flags;
     if(!mesh_load(filename, mesh_, flags)) {
         state_transition(empty); // added
+        mesh_ext_.facet_normals.clear(); // added
+        mesh_ext_.adj_facet_corners.clear(); // added
+        mesh_ext_.feature_edges.clear(); // added
+        if(labeling_.is_bound()) {
+            labeling_.unbind();
+            // labeling_.unregister_me(mesh_.facets.attributes().find_attribute_store(LABELING_ATTRIBUTE_NAME));
+        }
         return false;
     }
     mesh_gfx_.set_animate(false);
@@ -755,21 +771,14 @@ bool LabelingViewerApp::load(const std::string& filename) {
         }
     }
 
-    // compute facet normals
-    // TODO use geogram's compute_normals() ? in mesh/mesh_geometry.h
-    normals_.resize(mesh_.facets.nb());
-    FOR(f,mesh_.facets.nb()) {
-        normals_[f] = normalize(Geom::mesh_facet_normal(mesh_,f));
+    if(labeling_.is_bound()) {
+        labeling_.unbind();
+        // labeling_.unregister_me(mesh_.facets.attributes().find_attribute_store(LABELING_ATTRIBUTE_NAME));
     }
-
-    if(mesh_.edges.nb() > 0) {
-        // the loaded mesh contains edges -> expect they are feature edges
-        adj_facets_.clear();
-        remove_feature_edges_with_low_dihedral_angle(mesh_,adj_facets_);
-
-        // transfert feature edges from mesh_.edges to the feature_edges_ set
-        transfer_feature_edges(mesh_,feature_edges_);
-    }
+    labeling_.bind(mesh_.facets.attributes(),LABELING_ATTRIBUTE_NAME);
+    mesh_ext_.facet_normals.recompute();
+    mesh_ext_.adj_facet_corners.recompute();
+    mesh_ext_.feature_edges.recompute();
 
     clear_scene_overlay();
     state_transition(triangle_mesh);
@@ -783,7 +792,7 @@ std::string LabelingViewerApp::supported_write_file_extensions() {
 
 bool LabelingViewerApp::save(const std::string& filename) {
     if(String::string_ends_with(filename,".txt")) { // bypass inherited save behavior in case of a .txt file -> save the labeling only
-        save_labeling(filename,mesh_,LABELING_ATTRIBUTE_NAME);
+        save_labeling(filename,mesh_,labeling_);
         fmt::println(Logger::out("I/O"),"Labeling saved to {}",filename); Logger::out("I/O").flush();
         return true;
     }
@@ -812,9 +821,9 @@ void LabelingViewerApp::mouse_button_callback(int button, int action, int mods, 
                 vec3 label_direction = label2vector[label[facet_index]];
                 fmt::println(Logger::out("fidelity"),"facet #{} : normal=({:.4f},{:.4f},{:.4f}), label={}=({:.4f},{:.4f},{:.4f}) -> fidelity={:.4f}",
                     facet_index,
-                    normals_[facet_index].x,
-                    normals_[facet_index].y,
-                    normals_[facet_index].z,
+                    mesh_ext_.facet_normals[facet_index].x,
+                    mesh_ext_.facet_normals[facet_index].y,
+                    mesh_ext_.facet_normals[facet_index].z,
                     LABEL2STR(label[facet_index]),
                     label_direction.x,
                     label_direction.y,
@@ -831,7 +840,8 @@ void LabelingViewerApp::mouse_button_callback(int button, int action, int mods, 
 void LabelingViewerApp::update_static_labeling_graph(bool allow_boundaries_between_opposite_labels) {
 
     // compute charts, boundaries and corners of the labeling
-    lg_.fill_from(mesh_,LABELING_ATTRIBUTE_NAME,feature_edges_,allow_boundaries_between_opposite_labels);
+    mesh_ext_.halfedges.set_use_facet_region(LABELING_ATTRIBUTE_NAME);
+    lg_.fill_from(mesh_ext_,labeling_,allow_boundaries_between_opposite_labels);
 
     clear_scene_overlay();
 
@@ -895,6 +905,6 @@ void LabelingViewerApp::update_static_labeling_graph(bool allow_boundaries_betwe
     }
 
     IncrementalStats stats;
-    compute_per_facet_fidelity(mesh_,normals_,LABELING_ATTRIBUTE_NAME,"fidelity",stats);
+    compute_per_facet_fidelity(mesh_ext_,labeling_,"fidelity",stats);
     fidelity_text_label_ = fmt::format("min={:.4f} | max={:.4f} | avg={:.4f}",stats.min(),stats.max(),stats.avg());
 }

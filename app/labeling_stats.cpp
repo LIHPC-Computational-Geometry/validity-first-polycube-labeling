@@ -67,22 +67,16 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    // remove feature edges on edge with small angle
-    unsigned int init_nb_feature_edges = input_mesh.edges.nb();
-	std::vector<std::vector<index_t>> adj_facets; // for each vertex, store adjacent facets. no ordering
-	remove_feature_edges_with_low_dihedral_angle(input_mesh,adj_facets);
-	// store them as a set
-	std::set<std::pair<index_t,index_t>> feature_edges;
-	transfer_feature_edges(input_mesh,feature_edges);
+    MeshExt mesh_ext(input_mesh); // compute normals, vertex-facets adjacency, feature edges
 
-    if (!load_labeling(filenames[1],input_mesh,LABELING_ATTRIBUTE_NAME)) {
+    Attribute<index_t> labeling(input_mesh.facets.attributes(),LABELING_ATTRIBUTE_NAME);
+    if (!load_labeling(filenames[1],input_mesh,labeling)) {
         exit(1);
     }
 
     LabelingGraph lg;
-    lg.fill_from(input_mesh,LABELING_ATTRIBUTE_NAME,feature_edges,CmdLine::get_arg_bool("allow-opposite-labels"));
-    MeshHalfedgesExt mesh_he(input_mesh);
-    mesh_he.set_use_facet_region(LABELING_ATTRIBUTE_NAME);
+    lg.fill_from(input_mesh,labeling,CmdLine::get_arg_bool("allow-opposite-labels"));
+    mesh_ext.halfedges.set_use_facet_region(LABELING_ATTRIBUTE_NAME);
 
     nlohmann::json output_JSON;
 
@@ -131,7 +125,7 @@ int main(int argc, char** argv) {
     }
     // compute fidelity
     IncrementalStats fidelity_stats;
-    compute_per_facet_fidelity(input_mesh, normals, LABELING_ATTRIBUTE_NAME,"fidelity",fidelity_stats);
+    compute_per_facet_fidelity(mesh_ext, labeling,"fidelity",fidelity_stats);
     // fill JSON
     output_JSON["fidelity"]["min"] = fidelity_stats.min();
     output_JSON["fidelity"]["max"] = fidelity_stats.max();
@@ -142,10 +136,10 @@ int main(int argc, char** argv) {
     // Feature edges preservation
     ///////////////////////////////
 
-    unsigned int nb_lost = count_lost_feature_edges(mesh_he,feature_edges);
-    output_JSON["feature-edges"]["removed"] = init_nb_feature_edges - feature_edges.size();
+    unsigned int nb_lost = count_lost_feature_edges(mesh_ext);
+    output_JSON["feature-edges"]["removed"] = input_mesh.edges.nb() - mesh_ext.feature_edges.nb();
     output_JSON["feature-edges"]["lost"] = nb_lost;
-    output_JSON["feature-edges"]["preserved"] = feature_edges.size() - nb_lost;
+    output_JSON["feature-edges"]["preserved"] = mesh_ext.feature_edges.nb() - nb_lost;
 
     // write to stdout or file, according to the number of arguments
 

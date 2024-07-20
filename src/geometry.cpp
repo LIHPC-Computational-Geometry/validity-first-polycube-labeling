@@ -207,98 +207,6 @@ void center_mesh(Mesh& mesh, bool normalize) {
     }
 }
 
-void compute_adjacent_facets_of_vertices(const Mesh& mesh, std::vector<std::vector<index_t>>& adj_facets) {
-    adj_facets.clear();
-    adj_facets.resize(mesh.vertices.nb());
-
-    // link each facet to adjacent vertices
-    FOR(f,mesh.facets.nb()) {
-        FOR(lv,mesh.facets.nb_vertices(f)) { // for each local vertices of the facet f
-            adj_facets[mesh.facets.vertex(f,lv)].push_back(f);
-        }
-    }
-}
-
-void compute_adjacent_facets_of_vertices(const Mesh& mesh, std::vector<std::vector<AdjacentFacetOfVertex>>& adj_facet_corners) {
-    adj_facet_corners.clear();
-    adj_facet_corners.resize(mesh.vertices.nb());
-
-    // link each facet to adjacent vertices
-    FOR(f,mesh.facets.nb()) {
-        FOR(lv,mesh.facets.nb_vertices(f)) { // for each local vertices of the facet f
-            adj_facet_corners[mesh.facets.vertex(f,lv)].push_back(AdjacentFacetOfVertex{f,lv});
-        }
-    }
-}
-
-void remove_feature_edges_with_low_dihedral_angle(Mesh& mesh, std::vector<std::vector<index_t>>& adj_facets) {
-    // Remove feature edges with low dihedral angle
-    // We need facets at each side of edge e to compute angle between their normals
-    // Issue : no adjecency between edges and facets
-    // -> find an halfedge (oriented edge) which is on this edge. halfedges have adjacency with facets
-    // issue : we need a facet index and a facet corner index to construct an halfedge
-    // -> find the facet and the facet corner from the two vertices of the edge e
-    // issue : no adjacency between vertices and facets
-    // -> call compute_adjacent_facets_of_vertices() if not already done
-
-    index_t nb_edges = mesh.edges.nb(),
-            v0_index = index_t(-1),
-            v1_index = index_t(-1),
-            facet_corner_on_v0 = index_t(-1),
-            facet_at_left = index_t(-1),
-            facet_at_right = index_t(-1);
-    GEO::vector<index_t> to_remove(nb_edges,0); // for each edge, store 0 = keep or 1 = remove
-    MeshHalfedgesExt mesh_he(mesh);
-    unsigned int nb_edges_removed = 0;
-    MeshHalfedgesExt::Halfedge outgoing_halfedge;
-
-    if (adj_facets.empty()) {
-        compute_adjacent_facets_of_vertices(mesh,adj_facets);
-    }
-
-    FOR(e,nb_edges) {
-        // get indices of the 2 vertices of the current edge
-        v0_index = mesh.edges.vertex(e,0);
-        v1_index = mesh.edges.vertex(e,1);
-        // parse adjacent facets of v0 until we found an halfedge
-        // whose origin is on v0 and tip on v1
-        for(index_t f : adj_facets[v0_index]) {
-            FOR(lv,mesh.facets.nb_vertices(f)) {
-                facet_corner_on_v0 = mesh.facets.corner(f,lv);
-                if(mesh.facet_corners.vertex(facet_corner_on_v0) == v0_index) {
-                    break; // we found which facet corner is on v0
-                }
-            }
-            // now that we have a facet and a facet cornet, we can have an halfedge going out of v0
-            outgoing_halfedge.facet = f;
-            outgoing_halfedge.corner = facet_corner_on_v0;
-            geo_assert(halfedge_vertex_index_from(mesh,outgoing_halfedge) == v0_index)
-            // check of the vertex at the tip is v1
-            if(halfedge_vertex_index_to(mesh,outgoing_halfedge) == v1_index) {
-                break;
-            }
-            // else : continue and check another adjacent facet
-        }
-        facet_at_left = halfedge_facet_left(mesh,outgoing_halfedge);
-        facet_at_right = halfedge_facet_right(mesh,outgoing_halfedge);
-        if(angle(mesh_facet_normal(mesh,facet_at_left),mesh_facet_normal(mesh,facet_at_right)) < FEATURE_EDGES_MIN_ANGLE) {
-            to_remove[e] = 1;
-            nb_edges_removed++;
-        }
-        // else : keep this feature edge because significant angle
-    }
-    
-    mesh.edges.delete_elements(to_remove,false);
-
-    fmt::println(
-        Logger::out("feature edges"),
-        "{} feature edge(s) removed ({:.1f}%) because dihedral angle < {}",
-        nb_edges_removed,
-        (nb_edges_removed * 100.0) / (double) nb_edges,
-        FEATURE_EDGES_MIN_ANGLE);
-    Logger::out("feature edges").flush();
-}
-
 void transfer_feature_edges(Mesh& mesh, std::set<std::pair<index_t,index_t>>& feature_edges) {
     feature_edges.clear();
     index_t v0 = index_t(-1),
@@ -314,40 +222,18 @@ void transfer_feature_edges(Mesh& mesh, std::set<std::pair<index_t,index_t>>& fe
     mesh.edges.clear();
 }
 
-bool halfedge_is_on_feature_edge(const Mesh& mesh, const MeshHalfedges::Halfedge& H, const std::set<std::pair<index_t,index_t>>& feature_edges) {
-    index_t v0 = halfedge_vertex_index_from(mesh,H),
-            v1 = halfedge_vertex_index_to(mesh,H);
-    return feature_edges.contains(std::make_pair(
-        std::min(v0,v1),
-        std::max(v0,v1)
-    ));
-}
-
-bool local_edge_is_on_feature_edge(const Mesh& mesh, index_t facet_index, index_t local_edge, const std::set<std::pair<index_t,index_t>>& feature_edges) {
-    // local edge k is the one between local vertices k and (k+1)%3
-    // see https://github.com/BrunoLevy/geogram/wiki/Mesh#triangulated-and-polygonal-meshes
-    geo_assert(facet_index < mesh.facets.nb());
-    geo_assert(local_edge < 3);
-    index_t v0 = mesh.facets.vertex(facet_index,local_edge),
-            v1 = mesh.facets.vertex(facet_index,(local_edge+1)%3);
-    return feature_edges.contains(std::make_pair(
-        std::min(v0,v1),
-        std::max(v0,v1)
-    ));
-}
-
 // return true if success
-bool move_to_next_halfedge_on_feature_edge(const MeshHalfedgesExt& mesh_he, MeshHalfedges::Halfedge& H, const std::set<std::pair<index_t,index_t>>& feature_edges) {
-    geo_assert(halfedge_is_on_feature_edge(mesh_he.mesh(),H,feature_edges));
-    mesh_he.move_to_opposite(H);
+bool move_to_next_halfedge_on_feature_edge(const MeshExt& mesh, MeshHalfedges::Halfedge& H) {
+    geo_assert(mesh.feature_edges.contain_halfedge(H));
+    mesh.halfedges.move_to_opposite(H);
     MeshHalfedges::Halfedge init_H = H;
     do {
-        mesh_he.move_clockwise_around_vertex(H,true);
-    } while(!halfedge_is_on_feature_edge(mesh_he.mesh(),H,feature_edges));
+        mesh.halfedges.move_clockwise_around_vertex(H,true);
+    } while(!mesh.feature_edges.contain_halfedge(H));
     // we found an halfedge on a feature edge !
     if(H == init_H) {
         // it's the same halfedge...
-        mesh_he.move_to_opposite(H); // restore orientation
+        mesh.halfedges.move_to_opposite(H); // restore orientation
         return false;
     }
     // we found a *NEW* halfedge on a feature edge !
@@ -415,9 +301,9 @@ void rotate_mesh_according_to_principal_axes(Mesh& mesh) {
 
 }
 
-MeshHalfedges::Halfedge get_an_outgoing_halfedge_of_vertex(const Mesh& mesh, const std::vector<std::vector<index_t>>& adj_facets, index_t vertex_index) {
+MeshHalfedges::Halfedge get_an_outgoing_halfedge_of_vertex(const MeshExt& mesh, index_t vertex_index) {
     MeshHalfedges::Halfedge output;
-    output.facet = adj_facets[vertex_index][0];
+    output.facet = mesh.adj_facet_corners.of_vertex(vertex_index)[0].facet_index;
     for(index_t facet_corner : mesh.facets.corners(output.facet)) { // for each facet corner of `output.facet`
         output.corner = facet_corner;
         if(halfedge_vertex_index_from(mesh,output) == vertex_index) {
@@ -427,34 +313,34 @@ MeshHalfedges::Halfedge get_an_outgoing_halfedge_of_vertex(const Mesh& mesh, con
     geo_assert_not_reached;
 }
 
-MeshHalfedges::Halfedge get_halfedge_between_two_vertices(const MeshHalfedgesExt& mesh_he, const std::vector<std::vector<index_t>>& adj_facets, index_t origin_vertex, index_t extremity_vertex) {
-    MeshHalfedges::Halfedge init_halfedge = get_an_outgoing_halfedge_of_vertex(mesh_he.mesh(),adj_facets,origin_vertex);
+MeshHalfedges::Halfedge get_halfedge_between_two_vertices(const MeshExt& mesh, index_t origin_vertex, index_t extremity_vertex) {
+    MeshHalfedges::Halfedge init_halfedge = get_an_outgoing_halfedge_of_vertex(mesh,origin_vertex);
     MeshHalfedges::Halfedge current_halfedge = init_halfedge;
     index_t current_extremity_vertex = index_t(-1);
 
     do {
-        current_extremity_vertex = halfedge_vertex_index_to(mesh_he.mesh(),current_halfedge);
+        current_extremity_vertex = halfedge_vertex_index_to(mesh,current_halfedge);
         if(current_extremity_vertex == extremity_vertex) {
             return current_halfedge;
         }
-        mesh_he.move_counterclockwise_around_vertex(current_halfedge,true); // ignore borders
+        mesh.halfedges.move_counterclockwise_around_vertex(current_halfedge,true); // ignore borders
     } while(current_halfedge != init_halfedge);
     geo_assert_not_reached;
 }
 
-MeshHalfedges::Halfedge get_most_aligned_halfedge_around_vertex(const MeshHalfedges::Halfedge& init_halfedge, const MeshHalfedgesExt& mesh_he, const vec3& reference) {
+MeshHalfedges::Halfedge get_most_aligned_halfedge_around_vertex(const MeshExt& mesh, const MeshHalfedges::Halfedge& init_halfedge, const vec3& reference) {
     vec3 normalized_reference = normalize(reference);
     MeshHalfedges::Halfedge current_halfedge = init_halfedge;
     MeshHalfedges::Halfedge most_aligned_halfedge; // init value is (NO_FACET,NO_CORNER)
     double current_cost = 0.0,
            min_cost = Numeric::max_float64();
     do {
-        mesh_he.move_clockwise_around_vertex(current_halfedge,true);
+        mesh.halfedges.move_clockwise_around_vertex(current_halfedge,true);
         // dot product = 1  -> cost = 0
         // dot product = 0  -> cost = 0.5
         // dot product = -1 -> cost = 1
         // -> flip (*-1), halve range (*0.5) and shift (+0.5)
-        current_cost = dot(normalize(halfedge_vector(mesh_he.mesh(),current_halfedge)),normalized_reference)*(-0.5)+0.5;
+        current_cost = dot(normalize(halfedge_vector(mesh,current_halfedge)),normalized_reference)*(-0.5)+0.5;
         if (current_cost < min_cost) {
             min_cost = current_cost;
             most_aligned_halfedge = current_halfedge;
@@ -479,8 +365,7 @@ void get_adjacent_facets_conditional(const Mesh& mesh, index_t facet_index, inde
     }
 }
 
-index_t get_nearest_vertex_of_coordinates(const MeshHalfedgesExt& mesh_he, const std::vector<std::vector<index_t>>& adj_facets, vec3 target_coordinates, index_t start_vertex, size_t max_dist) {
-    const Mesh& mesh = mesh_he.mesh();
+index_t get_nearest_vertex_of_coordinates(const MeshExt& mesh, vec3 target_coordinates, index_t start_vertex, size_t max_dist) {
     geo_assert(mesh.vertices.double_precision());
     geo_assert(max_dist >= 1); // if max_dist==0, only `start_vertex` can be returned...
 
@@ -488,7 +373,7 @@ index_t get_nearest_vertex_of_coordinates(const MeshHalfedgesExt& mesh_he, const
     MeshHalfedges::Halfedge previous_halfedge;
     double previous_distance = nanf64("");
     index_t current_vertex = start_vertex;
-    MeshHalfedges::Halfedge current_halfedge = get_an_outgoing_halfedge_of_vertex(mesh,adj_facets,start_vertex);
+    MeshHalfedges::Halfedge current_halfedge = get_an_outgoing_halfedge_of_vertex(mesh,start_vertex);
     double current_distance = distance(mesh.vertices.point(start_vertex),target_coordinates);
     size_t dist = 0;
 
@@ -497,8 +382,8 @@ index_t get_nearest_vertex_of_coordinates(const MeshHalfedgesExt& mesh_he, const
         previous_vertex = current_vertex;
         previous_distance = current_distance;
         dist++;
-        current_halfedge = get_most_aligned_halfedge_around_vertex(previous_halfedge,mesh_he,target_coordinates-mesh.vertices.point(previous_vertex));
-        mesh_he.move_to_opposite(current_halfedge);
+        current_halfedge = get_most_aligned_halfedge_around_vertex(mesh,previous_halfedge,target_coordinates-mesh.vertices.point(previous_vertex));
+        mesh.halfedges.move_to_opposite(current_halfedge);
         current_vertex = halfedge_vertex_index_from(mesh,current_halfedge);
         current_distance = distance(mesh.vertices.point(current_vertex),target_coordinates);
     } while ((previous_distance > current_distance) && (dist < max_dist));
@@ -544,16 +429,15 @@ double angle_between_halfedge_and_axis(const Mesh& mesh, MeshHalfedges::Halfedge
     );
 }
 
-void trace_path_on_chart(const MeshHalfedgesExt& mesh_he, const std::vector<std::vector<index_t>>& adj_facets, const std::vector<index_t>& facet2chart, const std::map<index_t,std::vector<std::pair<index_t,index_t>>>& turning_point_vertices, index_t start_vertex, vec3 direction, std::set<index_t>& facets_at_left, std::set<index_t>& facets_at_right, std::vector<MeshHalfedges::Halfedge>& halfedges) {
+void trace_path_on_chart(const MeshExt& mesh, const std::vector<index_t>& facet2chart, const std::map<index_t,std::vector<std::pair<index_t,index_t>>>& turning_point_vertices, index_t start_vertex, vec3 direction, std::set<index_t>& facets_at_left, std::set<index_t>& facets_at_right, std::vector<MeshHalfedges::Halfedge>& halfedges) {
     // From `start_vertex`, move edge by edge in the given `direction`
     // To not drift away from this direction, we aim a target point, and not the same vector each time
     // To allow to go further than the init target point, we move the target point away at each step
-    const Mesh& mesh = mesh_he.mesh();
     vec3 target_point = mesh_vertex(mesh,start_vertex) + direction;
     vec3 normalized_direction = normalize(direction);
-    MeshHalfedges::Halfedge current_halfedge = get_an_outgoing_halfedge_of_vertex(mesh, adj_facets, start_vertex),
+    MeshHalfedges::Halfedge current_halfedge = get_an_outgoing_halfedge_of_vertex(mesh, start_vertex),
                             next_halfedge;
-    next_halfedge = get_most_aligned_halfedge_around_vertex(current_halfedge,mesh_he,direction);
+    next_halfedge = get_most_aligned_halfedge_around_vertex(mesh,current_halfedge,direction);
     // get which chart is around this halfedge
     index_t supporting_chart = index_t(-1); // will be computed at the 2nd halfedge
     // start walking
@@ -568,8 +452,8 @@ void trace_path_on_chart(const MeshHalfedgesExt& mesh_he, const std::vector<std:
         if(turning_point_vertices.contains(halfedge_vertex_index_to(mesh,current_halfedge))) {
             break;
         }
-        mesh_he.move_to_opposite(current_halfedge); // flip `current_halfedge` so that its origin vertex is the origin vertex of the next halfedge
-        next_halfedge = get_most_aligned_halfedge_around_vertex(current_halfedge,mesh_he,target_point - halfedge_vertex_from(mesh,current_halfedge)); // reference vector = vector toward the `target_point`
+        mesh.halfedges.move_to_opposite(current_halfedge); // flip `current_halfedge` so that its origin vertex is the origin vertex of the next halfedge
+        next_halfedge = get_most_aligned_halfedge_around_vertex(mesh,current_halfedge,target_point - halfedge_vertex_from(mesh,current_halfedge)); // reference vector = vector toward the `target_point`
         geo_assert(next_halfedge != current_halfedge); // assert the previous halfedge is not the one the best aligned. else we are backtracking
         target_point += normalized_direction * length(halfedge_vector(mesh,current_halfedge)); // move the target forward
         if(supporting_chart == index_t(-1)) {
@@ -613,28 +497,26 @@ double average_angle(const std::vector<vec3>& normals, const std::set<index_t>& 
     return sum / (double) facets.size();
 }
 
-bool vertex_has_lost_feature_edge_in_neighborhood(const MeshHalfedgesExt& mesh_he, const std::vector<std::vector<index_t>>& adj_facets, const std::set<std::pair<index_t,index_t>>& feature_edges, index_t vertex, MeshHalfedges::Halfedge& outgoing_halfedge_on_feature_edges) {
-    geo_assert(mesh_he.is_using_facet_region()); // we need the labeling to be stored as facet region in `mesh_he`, so that halfedges on borders are defined
-    if(feature_edges.empty()) {
+bool vertex_has_lost_feature_edge_in_neighborhood(const MeshExt& mesh, index_t vertex, MeshHalfedges::Halfedge& outgoing_halfedge_on_feature_edges) {
+    geo_assert(mesh.halfedges.is_using_facet_region()); // we need the labeling to be stored as facet region in `mesh_he`, so that halfedges on borders are defined
+    if(mesh.feature_edges.nb() == 0) {
         return false;
     }
-    const Mesh& mesh = mesh_he.mesh();
-    MeshHalfedges::Halfedge init_halfedge = get_an_outgoing_halfedge_of_vertex(mesh,adj_facets,vertex);
+    MeshHalfedges::Halfedge init_halfedge = get_an_outgoing_halfedge_of_vertex(mesh,vertex);
     MeshHalfedges::Halfedge current_halfedge = init_halfedge;
     do { // explore all outgoing halfedges of this vertex, starting with `init_halfedge`
-        if(halfedge_is_on_feature_edge(mesh,current_halfedge,feature_edges) && !mesh_he.halfedge_is_border(current_halfedge)) {
+        if(mesh.feature_edges.contain_halfedge(current_halfedge) && !mesh.halfedges.halfedge_is_border(current_halfedge)) {
             // `current_halfedge` is on a "lost" feature edge
             outgoing_halfedge_on_feature_edges = current_halfedge;
             return true;
         }
-        mesh_he.move_clockwise_around_vertex(current_halfedge,true); // go to next halfedge clockwise & ignore borders
+        mesh.halfedges.move_clockwise_around_vertex(current_halfedge,true); // go to next halfedge clockwise & ignore borders
     } while(current_halfedge != init_halfedge);
     return false; // found no lost feature edge
 }
 
-MeshHalfedges::Halfedge follow_feature_edge_on_chart(const MeshHalfedgesExt& mesh_he, MeshHalfedges::Halfedge halfedge, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<index_t>& facet2chart, std::set<index_t>& facets_at_left, std::set<index_t>& facets_at_right) {
-    const Mesh& mesh = mesh_he.mesh();
-    geo_assert(halfedge_is_on_feature_edge(mesh,halfedge,feature_edges));
+MeshHalfedges::Halfedge follow_feature_edge_on_chart(const MeshExt& mesh, MeshHalfedges::Halfedge halfedge, const std::vector<index_t>& facet2chart, std::set<index_t>& facets_at_left, std::set<index_t>& facets_at_right) {
+    geo_assert(mesh.feature_edges.contain_halfedge(halfedge));
     MeshHalfedges::Halfedge previous_halfedge;
     index_t chart_on_which_the_lost_feature_edge_is = facet2chart[halfedge_facet_left(mesh,halfedge)];
     geo_assert(chart_on_which_the_lost_feature_edge_is == facet2chart[halfedge_facet_right(mesh,halfedge)]);
@@ -644,8 +526,8 @@ MeshHalfedges::Halfedge follow_feature_edge_on_chart(const MeshHalfedgesExt& mes
         facets_at_left.insert(halfedge_facet_left(mesh,halfedge));
         facets_at_right.insert(halfedge_facet_right(mesh,halfedge));
         previous_halfedge = halfedge;
-        move_successful = move_to_next_halfedge_on_feature_edge(mesh_he,halfedge,feature_edges);
-        geo_assert(halfedge_is_on_feature_edge(mesh,halfedge,feature_edges));
+        move_successful = move_to_next_halfedge_on_feature_edge(mesh,halfedge);
+        geo_assert(mesh.feature_edges.contain_halfedge(halfedge));
     } while(
         move_successful && 
         (facet2chart[halfedge_facet_left(mesh,halfedge)] == chart_on_which_the_lost_feature_edge_is) &&
@@ -667,10 +549,10 @@ bool is_a_facet_to_tilt(const vec3& facet_normal, double sensitivity) {
     return std::fabs(per_label_weights[5].first-per_label_weights[4].first) < sensitivity;
 }
 
-size_t get_facets_to_tilt(const Mesh& mesh, const std::vector<vec3>& normals, std::set<index_t>& facets_to_tilt, double sensitivity) {
+size_t get_facets_to_tilt(const MeshExt& mesh_ext, std::set<index_t>& facets_to_tilt, double sensitivity) {
     facets_to_tilt.clear();
-    FOR(f,mesh.facets.nb()) { // for each facet
-        if(is_a_facet_to_tilt(normals[f],sensitivity)) {
+    FOR(f,mesh_ext.facets.nb()) { // for each facet
+        if(is_a_facet_to_tilt(mesh_ext.facet_normals[f],sensitivity)) {
             // the 2 labels with the most weight are too close
             facets_to_tilt.insert(f);
         }

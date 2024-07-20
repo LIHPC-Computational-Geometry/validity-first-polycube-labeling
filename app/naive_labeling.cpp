@@ -35,15 +35,13 @@ int main(int argc, const char** argv) {
     geo_assert(triangle_mesh.cells.nb()==0); // must be a surface only mesh
     geo_assert(triangle_mesh.facets.are_simplices()); // must be a triangle mesh
 
-    std::vector<vec3> normals(triangle_mesh.facets.nb());
-    FOR(f,triangle_mesh.facets.nb()) {
-        normals[f] = normalize(Geom::mesh_facet_normal(triangle_mesh,f));
-    }
+    MeshExt mesh_ext(triangle_mesh); // will compute facet normals
 
-    naive_labeling(triangle_mesh,normals,"label");
+    Attribute<index_t> labeling(triangle_mesh.facets.attributes(),LABELING_ATTRIBUTE_NAME);
+    naive_labeling(mesh_ext,labeling);
 
     fmt::println(Logger::out("I/O"),"Writing {}",argv[2]); Logger::out("I/O").flush();
-    save_labeling(argv[2],triangle_mesh,"label");
+    save_labeling(argv[2],triangle_mesh,labeling);
 
     return 0;
 }

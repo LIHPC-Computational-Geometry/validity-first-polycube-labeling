@@ -29,6 +29,7 @@
 
 #include "geometry.h" // for HalfedgeCompare
 #include "geometry_halfedges.h"
+#include "geometry_mesh_ext.h" // for MeshExt
 
 #define FALLOFF_BINARY 1.0 // smaller value -> more turning points. https://github.com/LIHPC-Computational-Geometry/evocube/blob/master/src/graphcut_labeling.cpp#L183
 
@@ -127,14 +128,14 @@ struct Corner {
 
     bool compute_validity(bool allow_boundaries_between_opposite_labels, const std::vector<Boundary>& boundaries, const std::map<MeshHalfedges::Halfedge,std::pair<index_t,bool>,HalfedgeCompare>& halfedge2boundary);
 
-    bool all_adjacent_boundary_edges_are_on_feature_edges(const Mesh& mesh, const std::set<std::pair<index_t,index_t>>& feature_edges) const;
+    bool all_adjacent_boundary_edges_are_on_feature_edges(const MeshExt& mesh) const;
 
     // retrieve near vertices along adjacent boundaries and compute the average coordinate
     vec3 average_coordinates_of_neighborhood(const Mesh& mesh, const LabelingGraph& lg, bool include_itself, size_t max_dist) const;
 
     MeshHalfedges::Halfedge get_most_aligned_boundary_halfedge(const Mesh& mesh, const vec3& reference) const;
 
-    void get_outgoing_halfedges_on_feature_edge(const Mesh& mesh, const std::set<std::pair<index_t,index_t>>& all_feature_edges, std::vector<MeshHalfedges::Halfedge>& outgoing_halfedges_on_feature_edge) const;
+    void get_outgoing_halfedges_on_feature_edge(const MeshExt& mesh, std::vector<MeshHalfedges::Halfedge>& outgoing_halfedges_on_feature_edge) const;
 
     bool is_adjacent_to_an_invalid_boundary(const std::vector<Boundary>& all_boundaries, const std::map<MeshHalfedges::Halfedge,std::pair<index_t,bool>,HalfedgeCompare>& halfedge2boundary) const;
 
@@ -202,10 +203,9 @@ struct Boundary {
 
     bool empty() const;
 
-    void explore(const MeshHalfedges::Halfedge& initial_halfedge,
-                 const MeshHalfedgesExt& mesh_halfedges,
+    void explore(const MeshExt& mesh,
+                 const MeshHalfedges::Halfedge& initial_halfedge,
                  index_t index_of_self,
-                 const std::set<std::pair<index_t,index_t>>& feature_edges,
                  const std::vector<index_t>& facet2chart,
                  std::vector<index_t>& vertex2corner,
                  std::vector<Chart>& charts,
@@ -285,7 +285,7 @@ struct LabelingGraph {
 
     //// Fill & clear //////////////////
 
-    void fill_from(Mesh& mesh, std::string facet_attribute, const std::set<std::pair<index_t,index_t>>& feature_edges, std::optional<bool> allow_boundaries_between_opposite_labels = std::nullopt);
+    void fill_from(const MeshExt& mesh, Attribute<index_t>& labeling, std::optional<bool> allow_boundaries_between_opposite_labels = std::nullopt);
     void clear();
 
     //// Validity //////////////////
@@ -311,8 +311,8 @@ struct LabelingGraph {
 
     //// Other getters //////////////////
 
-    bool vertex_is_only_surrounded_by(index_t vertex_index, std::vector<index_t> expected_charts, const std::vector<std::vector<index_t>>& vertex_to_adj_facets) const;
-    void get_adjacent_charts_of_vertex(index_t vertex_index, const std::vector<std::vector<index_t>>& vertex_to_adj_facets, std::set<index_t>& adjacent_charts) const;
+    bool vertex_is_only_surrounded_by(const MeshExt& mesh, index_t vertex_index, std::vector<index_t> expected_charts) const;
+    void get_adjacent_charts_of_vertex(const MeshExt& mesh, index_t vertex_index, std::set<index_t>& adjacent_charts) const;
 
     //// Export //////////////////
 

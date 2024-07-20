@@ -5,7 +5,8 @@
 #include "labeling_io.h"
 #include "labeling.h"
 
-bool load_labeling(const std::string& filename, Mesh& mesh, const char* attribute_name) {
+bool load_labeling(const std::string& filename, const Mesh& mesh, Attribute<index_t>& labeling) {
+    geo_debug_assert(labeling.is_bound());
 
     //open the file
     std::ifstream ifs(filename);
@@ -20,10 +21,6 @@ bool load_labeling(const std::string& filename, Mesh& mesh, const char* attribut
     unsigned long current_label; // necessary type for string to unsigned int conversion (stoul)
     index_t current_line_number = 0;
     index_t facets_number = mesh.facets.nb(); // expected line number (one line per facet)
-
-    // Add an attribute on facets. see https://github.com/BrunoLevy/geogram/wiki/Mesh#attributes
-    // The type must be Attribute<index_t> to be used with geogram/mesh/mesh_halfedges.h . See MeshHalfedges::facet_region_
-    Attribute<index_t> label(mesh.facets.attributes(), attribute_name);
 
     //fill the attribute
     while (ifs >> current_line) {
@@ -44,7 +41,7 @@ bool load_labeling(const std::string& filename, Mesh& mesh, const char* attribut
             fmt::println(Logger::err("I/O"),"Number of facets = {}",facets_number); Logger::err("I/O").flush();
             return false;
         }
-        label[current_line_number] = (index_t) current_label;
+        labeling[current_line_number] = (index_t) current_label;
         current_line_number++;
     }
 
@@ -61,11 +58,11 @@ bool load_labeling(const std::string& filename, Mesh& mesh, const char* attribut
     return true;
 }
 
-bool save_labeling(const std::string& filename, Mesh& mesh, const char* attribute_name) {
-    Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // fetch the labeling
+bool save_labeling(const std::string& filename, const Mesh& mesh, Attribute<index_t>& labeling) {
+    geo_debug_assert(labeling.is_bound());
     auto out = fmt::output_file(filename);
     FOR(f,mesh.facets.nb()) {
-        out.print("{}",label[f]);
+        out.print("{}",labeling[f]);
         if(f != mesh.facets.nb()-1)
             out.print("\n");
     }

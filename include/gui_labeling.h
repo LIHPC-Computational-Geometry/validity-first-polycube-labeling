@@ -26,8 +26,6 @@
 
 #define RED_WHITE_BLUE_LABELING_COLORS // red-white-blue instead of red-green-blue. better for (most) color-deficient users
 
-#define LABELING_ATTRIBUTE_NAME "label" // name of the per-facet attribute in which the polycube labeling will be stored
-
 // values for *_labeling_visu_mode_
 #define VIEW_TRIANGLE_MESH		0
 #define VIEW_RAW_LABELING		1
@@ -93,13 +91,11 @@ protected:
 	// Core variables
 
 	bool auto_flip_normals_; // if the app should ensure outward facet normals
+	Attribute<index_t> labeling_;
 	LabelingGraph lg_; // labeling seen as charts, boundaries and corners
 	State state_; // should only be modified by state_transition()
 	int labeling_visu_mode_; // not a enum, to be used in ImGui. should only be modified by labeling_visu_mode_transition() and ImGui::RadioButton
-	// Additional geometry info
-	std::vector<vec3> normals_; // facet normals
-	std::vector<std::vector<index_t>> adj_facets_; // for each vertex, store adjacent facets. no ordering
-	std::set<std::pair<index_t,index_t>> feature_edges_; // significant feature edges (with include/geometry.h > FEATURE_EDGES_MIN_ANGLE as threshold)
+	MeshExt mesh_ext_; // additional mesh geometry info
 
 	// GUI
 

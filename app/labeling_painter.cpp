@@ -198,15 +198,13 @@ private:
                 return;
             }
 
-            Attribute<index_t> label(mesh_.facets.attributes(),LABELING_ATTRIBUTE_NAME); // fetch labeling
-
             if(paint_mode_ == PAINT_MODE_PIPETTE) {
-                selected_label_ = label[picked_facet_id_];
+                selected_label_ = labeling_[picked_facet_id_];
                 return;
             }
 
-            index_t previous_label = label[picked_facet_id_];
-            label[picked_facet_id_] = selected_label_; // change label of picked facet
+            index_t previous_label = labeling_[picked_facet_id_];
+            labeling_[picked_facet_id_] = selected_label_; // change label of picked facet
             fmt::println(Logger::out("painting"),"Label of facet {} changed from {} to {}",picked_facet_id_,previous_label,selected_label_); Logger::out("painting").flush();
 
             if(paint_mode_ != PAINT_MODE_BUCKET_FILL) {
@@ -226,7 +224,7 @@ private:
 
             FOR(le,3) {
                 adjacent_facet = mesh_.facets.adjacent(current_facet,le);
-                if((label[adjacent_facet] == previous_label) && !VECTOR_CONTAINS(facets_to_paint,adjacent_facet)) {
+                if((labeling_[adjacent_facet] == previous_label) && !VECTOR_CONTAINS(facets_to_paint,adjacent_facet)) {
                     facets_to_paint.push_back(adjacent_facet);
                 }
             }
@@ -235,12 +233,12 @@ private:
                 current_facet = facets_to_paint.front();
                 facets_to_paint.pop_front();
 
-                label[current_facet] = selected_label_; // change label of picked facet
+                labeling_[current_facet] = selected_label_; // change label of picked facet
                 count_facets_changed++;
 
                 FOR(le,3) {
                     adjacent_facet = mesh_.facets.adjacent(current_facet,le);
-                    if((label[adjacent_facet] == previous_label) && !VECTOR_CONTAINS(facets_to_paint,adjacent_facet)) {
+                    if((labeling_[adjacent_facet] == previous_label) && !VECTOR_CONTAINS(facets_to_paint,adjacent_facet)) {
                         facets_to_paint.push_back(adjacent_facet);
                     }
                 }

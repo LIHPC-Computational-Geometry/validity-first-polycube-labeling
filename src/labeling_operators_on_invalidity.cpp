@@ -6,10 +6,10 @@
 #include "labeling_graphcuts.h"
 #include "io_dump.h"
 
-size_t remove_surrounded_charts(GEO::Mesh& mesh, const char* attribute_name, const LabelingGraph& lg) {
-    Attribute<index_t> label(mesh.facets.attributes(), attribute_name);
+size_t remove_surrounded_charts(Attribute<index_t>& labeling, const LabelingGraph& lg) {
+    geo_debug_assert(labeling.is_bound());
 
-    // Get charts surronded by only 1 label
+    // Get charts surrounded by only 1 label
     // Broader fix than just looking at charts having 1 boundary
 
     size_t nb_invalid_charts_processed = 0;
@@ -34,7 +34,7 @@ size_t remove_surrounded_charts(GEO::Mesh& mesh, const char* attribute_name, con
 
         // if we are here, the goto was not used, so the only label around is surrounding_label
         for(index_t facet_index : lg.charts[chart_index].facets) {
-            label[facet_index] = surrounding_label;
+            labeling[facet_index] = surrounding_label;
         }
         nb_invalid_charts_processed++;
 
@@ -47,16 +47,12 @@ size_t remove_surrounded_charts(GEO::Mesh& mesh, const char* attribute_name, con
 }
 
 bool fix_an_invalid_boundary(
-    GEO::Mesh& mesh,
-    const char* attribute_name,
-    LabelingGraph& lg,
-    const std::vector<vec3>& facet_normals,
-    const std::set<std::pair<index_t,index_t>>& feature_edges,
-    const std::vector<std::vector<index_t>>& adj_facets
+    const MeshExt& mesh,
+    Attribute<index_t>& labeling,
+    LabelingGraph& lg
 ) {
-    Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // get labeling attribute
-    MeshHalfedgesExt mesh_he(mesh); // create an halfedges interface for this mesh
-    mesh_he.set_use_facet_region(attribute_name);
+    geo_debug_assert(labeling.is_bound());
+    geo_assert(mesh.halfedges.is_using_facet_region());
 
     // For each invalid boundary,
     // Get facets at left and right
@@ -96,18 +92,18 @@ bool fix_an_invalid_boundary(
         // Don't manage case where both sides are equally suited,
         // because the boundary could be on a feature edge, and we shouldn't de-capture it
         
-        double average_dot_product_left = average_angle(facet_normals,left_facets_along_boundary,new_label_as_vector);
-        double average_dot_product_right = average_angle(facet_normals,right_facets_along_boundary,new_label_as_vector);
+        double average_dot_product_left = average_angle(mesh.facet_normals.as_vector(),left_facets_along_boundary,new_label_as_vector);
+        double average_dot_product_right = average_angle(mesh.facet_normals.as_vector(),right_facets_along_boundary,new_label_as_vector);
         // comparison
         if (average_dot_product_left < average_dot_product_right) { // on average, the left side is a better place to put the new chart
             for(index_t f : left_facets_along_boundary) {
-                label[f] = new_label;
+                labeling[f] = new_label;
             }
             a_facet_on_new_chart = *left_facets_along_boundary.begin();
         }
         else { // on average, the right side is a better place to put the new chart
             for(index_t f : right_facets_along_boundary) {
-                label[f] = new_label;
+                labeling[f] = new_label;
             }
             a_facet_on_new_chart = *right_facets_along_boundary.begin();
         }
@@ -119,10 +115,10 @@ bool fix_an_invalid_boundary(
         // See MAMBO B13 model for example
         // https://gitlab.com/franck.ledoux/mambo
 
-        geo_assert(!adj_facets.empty()); // we need adjacency between vertices and facets for this part
+        geo_assert(mesh.adj_facet_corners.size_matches_nb_vertices()); // we need adjacency between vertices and facets for this part
 
-        lg.fill_from(mesh,attribute_name,feature_edges);
-        mesh_he.set_use_facet_region(attribute_name); // update facet regions
+        lg.fill_from(mesh,labeling);
+        // should mesh.halfedges regions be updated?
 
         geo_assert(lg.boundaries[lg.halfedge2boundary[an_halfedge_of_the_invalid_boundary].first].axis != -1);
         index_t axis_of_just_fixed_boundary = (index_t) lg.boundaries[lg.halfedge2boundary[an_halfedge_of_the_invalid_boundary].first].axis;
@@ -168,8 +164,7 @@ bool fix_an_invalid_boundary(
         std::set<index_t> facets_at_left;
         std::set<index_t> facets_at_right;
         trace_path_on_chart(
-            mesh_he,
-            adj_facets,
+            mesh,
             lg.facet2chart,
             lg.turning_point_vertices,
             turning_point_at_max_coordinate_on_axis.vertex(lg.boundaries[non_monotone_boundary],mesh),
@@ -186,7 +181,7 @@ bool fix_an_invalid_boundary(
             // facets_at_left -> new chart
             propagate_label(
                 mesh,
-                attribute_name,
+                labeling,
                 created_chart.label,
                 facets_at_left,
                 facets_at_right,
@@ -199,7 +194,7 @@ bool fix_an_invalid_boundary(
             // facets_at_left -> wall
             propagate_label(
                 mesh,
-                attribute_name,
+                labeling,
                 created_chart.label,
                 facets_at_right,
                 facets_at_left,
@@ -212,8 +207,7 @@ bool fix_an_invalid_boundary(
         facets_at_left.clear();
         facets_at_right.clear();
         trace_path_on_chart(
-            mesh_he,
-            adj_facets,
+            mesh,
             lg.facet2chart,
             lg.turning_point_vertices,
             turning_point_at_min_coordinate_on_axis.vertex(lg.boundaries[non_monotone_boundary],mesh),
@@ -230,7 +224,7 @@ bool fix_an_invalid_boundary(
             // facets_at_left -> new chart
             propagate_label(
                 mesh,
-                attribute_name,
+                labeling,
                 created_chart.label,
                 facets_at_left,
                 facets_at_right,
@@ -243,7 +237,7 @@ bool fix_an_invalid_boundary(
             // facets_at_left -> wall
             propagate_label(
                 mesh,
-                attribute_name,
+                labeling,
                 created_chart.label,
                 facets_at_right,
                 facets_at_left,
@@ -257,10 +251,9 @@ bool fix_an_invalid_boundary(
     return false;
 }
 
-size_t fix_as_much_invalid_corners_as_possible(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, LabelingGraph& lg, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<index_t>& facet2chart, const std::vector<std::vector<index_t>>& adj_facets) {
-    Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // get labeling attribute
-    MeshHalfedgesExt mesh_he(mesh); // create an halfedges interface for this mesh
-    mesh_he.set_use_facet_region(attribute_name);
+size_t fix_as_much_invalid_corners_as_possible(const MeshExt& mesh, Attribute<index_t>& labeling, LabelingGraph& lg) {
+    geo_debug_assert(labeling.is_bound());
+    geo_assert(mesh.halfedges.is_using_facet_region());
 
     // Replace the labels around invalid corners
     // by the nearest one from the vertex normal
@@ -272,7 +265,7 @@ size_t fix_as_much_invalid_corners_as_possible(GEO::Mesh& mesh, const std::vecto
     for(index_t corner_index : lg.invalid_corners) { // for each invalid corner
 
         // check if there is a feature edge along the corner
-        lg.corners[corner_index].get_outgoing_halfedges_on_feature_edge(mesh,feature_edges,outgoing_halfedges_on_feature_edge);
+        lg.corners[corner_index].get_outgoing_halfedges_on_feature_edge(mesh,outgoing_halfedges_on_feature_edge);
         // also compute the evenness of angles between adj boundaries
         double sd_boundary_angles = lg.corners[corner_index].sd_boundary_angles(mesh);
         if(outgoing_halfedges_on_feature_edge.empty() || sd_boundary_angles < 0.02) {
@@ -280,19 +273,19 @@ size_t fix_as_much_invalid_corners_as_possible(GEO::Mesh& mesh, const std::vecto
             // cone-like, or pyramid-like (MAMBO B20) invalid corner
             // compute the normal by adding normals of adjacent facets
 
-            geo_assert(!adj_facets.empty());
+            geo_assert(mesh.adj_facet_corners.size_matches_nb_vertices());
             vertex_normal = {0,0,0};
-            for(index_t f : adj_facets[lg.corners[corner_index].vertex]) {
-                vertex_normal += normals[f];
+            for(const auto& facet_corner : mesh.adj_facet_corners.of_vertex(lg.corners[corner_index].vertex)) {
+                vertex_normal += mesh.facet_normals[facet_corner.facet_index];
             }
-            vertex_normal /= (double) adj_facets[lg.corners[corner_index].vertex].size();
+            vertex_normal /= (double) mesh.adj_facet_corners.of_vertex(lg.corners[corner_index].vertex).size();
 
             // compute new label
             new_label = nearest_label(vertex_normal);
 
             // change the label of adjacent facets
-            for(index_t f : adj_facets[lg.corners[corner_index].vertex]) {
-                label[f] = new_label;
+            for(const auto& facet_corner : mesh.adj_facet_corners.of_vertex(lg.corners[corner_index].vertex)) {
+                labeling[facet_corner.facet_index] = new_label;
             }
 
             nb_invalid_corners_processed++;
@@ -301,7 +294,7 @@ size_t fix_as_much_invalid_corners_as_possible(GEO::Mesh& mesh, const std::vecto
             // there is some kind of feature-edges pinching
 
             MeshHalfedges::Halfedge halfedge;
-            if(vertex_has_lost_feature_edge_in_neighborhood(mesh_he,adj_facets,feature_edges,lg.corners[corner_index].vertex,halfedge)) {
+            if(vertex_has_lost_feature_edge_in_neighborhood(mesh,lg.corners[corner_index].vertex,halfedge)) {
 
                 // There is an outgoing feature edge not captured (ie same label on both sides),
                 // Follow the feature edge.
@@ -313,16 +306,16 @@ size_t fix_as_much_invalid_corners_as_possible(GEO::Mesh& mesh, const std::vecto
                 index_t current_chart = lg.facet2chart[halfedge_facet_left(mesh,halfedge)];
                 index_t label_of_current_chart = lg.charts[current_chart].label;
                 index_t new_label = index_t(-1);
-                geo_assert(label_of_current_chart == label[halfedge_facet_right(mesh,halfedge)]);
+                geo_assert(label_of_current_chart == labeling[halfedge_facet_right(mesh,halfedge)]);
                 std::set<index_t> facets_at_left;
                 std::set<index_t> facets_at_right;
                 index_t adjacent_facet = index_t(-1);
-                halfedge = follow_feature_edge_on_chart(mesh_he,halfedge,feature_edges,lg.facet2chart,facets_at_left,facets_at_right);
+                halfedge = follow_feature_edge_on_chart(mesh,halfedge,lg.facet2chart,facets_at_left,facets_at_right);
                 index_t corner_found = lg.vertex2corner[halfedge_vertex_index_to(mesh,halfedge)]; // can be -1
                 if( (corner_found != index_t(-1)) && VECTOR_CONTAINS(lg.invalid_corners,corner_found) ) {
                     // we found a lost feature edge between 2 invalid corners
-                    vec3 avg_normal_at_left = average_facets_normal(normals,facets_at_left);
-                    vec3 avg_normal_at_right = average_facets_normal(normals,facets_at_right);
+                    vec3 avg_normal_at_left = average_facets_normal(mesh.facet_normals.as_vector(),facets_at_left);
+                    vec3 avg_normal_at_right = average_facets_normal(mesh.facet_normals.as_vector(),facets_at_right);
                     if(dot(avg_normal_at_left,label2vector[label_of_current_chart]) < dot(avg_normal_at_right,label2vector[label_of_current_chart])) {
                         // better to change the label of `facets_at_left`
                         new_label = find_optimal_label(
@@ -334,14 +327,14 @@ size_t fix_as_much_invalid_corners_as_possible(GEO::Mesh& mesh, const std::vecto
                         geo_assert(new_label != label_of_current_chart);
                         // change the label of the facets at the left & their neighbors
                         for(auto f : facets_at_left) {
-                            label[f] = new_label;
+                            labeling[f] = new_label;
                             FOR(le,3) { // for each local edge of facet f
                                 adjacent_facet = mesh.facets.adjacent(f,le);
                                 if(facets_at_right.contains(adjacent_facet)) {
                                     continue;
                                 }
                                 if(lg.facet2chart[adjacent_facet] == current_chart) {
-                                    label[adjacent_facet] = new_label; // also change the label of the adjacent facet
+                                    labeling[adjacent_facet] = new_label; // also change the label of the adjacent facet
                                 }
                             }
                         }
@@ -357,20 +350,20 @@ size_t fix_as_much_invalid_corners_as_possible(GEO::Mesh& mesh, const std::vecto
                         geo_assert(new_label != label_of_current_chart);
                         // change the label of the facets at the left & their neighbors
                         for(auto f : facets_at_right) {
-                            label[f] = new_label;
+                            labeling[f] = new_label;
                             FOR(le,3) { // for each local edge of facet f
                                 adjacent_facet = mesh.facets.adjacent(f,le);
                                 if(facets_at_left.contains(adjacent_facet)) {
                                     continue;
                                 }
                                 if(lg.facet2chart[adjacent_facet] == current_chart) {
-                                    label[adjacent_facet] = new_label; // also change the label of the adjacent facet
+                                    labeling[adjacent_facet] = new_label; // also change the label of the adjacent facet
                                 }
                             }
                         }
                     }
 
-                    lg.fill_from(mesh,attribute_name,feature_edges);
+                    lg.fill_from(mesh,labeling);
 
                     // we need to stop fix_as_much_invalid_corners_as_possible() now
                     // because the loop iterating over `lg.invalid_corners` is no longer up to date
@@ -416,7 +409,7 @@ size_t fix_as_much_invalid_corners_as_possible(GEO::Mesh& mesh, const std::vecto
                     mesh,
                     facets_to_edit,
                     chart_in_common == b0.left_chart ? OnlyRight : OnlyLeft,
-                    facet2chart,
+                    lg.facet2chart,
                     1 // include facet at a distance of 1 (touch the boundary from a vertex)
                 );
                 // `facets_to_edit` is not cleared inside get_adjacent_facets(), we can call it a second time on top of the existing set values
@@ -424,11 +417,11 @@ size_t fix_as_much_invalid_corners_as_possible(GEO::Mesh& mesh, const std::vecto
                     mesh,
                     facets_to_edit,
                     chart_in_common == b1.left_chart ? OnlyRight : OnlyLeft,
-                    facet2chart,
+                    lg.facet2chart,
                     1 // include facet at a distance of 1 (touch the boundary from a vertex)
                 );
                 for(index_t f : facets_to_edit) {
-                    label[f] = label_of_chart_in_common;
+                    labeling[f] = label_of_chart_in_common;
                 }
                 nb_invalid_corners_processed++;
             }
@@ -439,21 +432,20 @@ size_t fix_as_much_invalid_corners_as_possible(GEO::Mesh& mesh, const std::vecto
 }
 
 // from https://github.com/LIHPC-Computational-Geometry/evocube/blob/master/src/labeling_ops.cpp removeChartMutation()
-bool remove_invalid_charts(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, const LabelingGraph& lg) {
+bool remove_invalid_charts(const MeshExt& mesh, Attribute<index_t>& labeling, const LabelingGraph& lg) {
+    geo_debug_assert(labeling.is_bound());
 
     if(lg.invalid_charts.empty()) {
         fmt::println(Logger::warn("fix_labeling"),"remove_invalid_charts canceled because there are no invalid charts"); Logger::warn("fix_labeling").flush();
         return false;
     }
 
-    Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // get labeling attribute
-
     // Fill invalid charts using a Graph-Cut optimization,
     // preventing existing label from being re-applied
 
     // compactness = 1
-    GraphCutLabeling gcl(mesh,normals);
-    gcl.data_cost__set__locked_labels(label); // start by locking all the labels, so valid charts will not be modified
+    GraphCutLabeling gcl(mesh);
+    gcl.data_cost__set__locked_labels(labeling); // start by locking all the labels, so valid charts will not be modified
     gcl.smooth_cost__set__default();
     gcl.neighbors__set__compactness_based(1);
 
@@ -472,11 +464,11 @@ bool remove_invalid_charts(GEO::Mesh& mesh, const std::vector<vec3>& normals, co
             // if facet next to a boundary, lower the cost of assigning the neighboring label
             FOR(le,3) { // for each local edge
                 index_t adjacent_facet = mesh.facets.adjacent(facet_index,le);
-                if(label[adjacent_facet] != label[facet_index]) {
-                    gcl.data_cost__change_to__scaled(facet_index,label[adjacent_facet],0.5f); // halve the cost
+                if(labeling[adjacent_facet] != labeling[facet_index]) {
+                    gcl.data_cost__change_to__scaled(facet_index,labeling[adjacent_facet],0.5f); // halve the cost
                 }
             }
-            gcl.data_cost__change_to__forbidden_polycube_label(facet_index,label[facet_index]); // prevent the label from staying the same
+            gcl.data_cost__change_to__forbidden_polycube_label(facet_index,labeling[facet_index]); // prevent the label from staying the same
         }
         nb_charts_to_remove++;
     }
@@ -486,18 +478,17 @@ bool remove_invalid_charts(GEO::Mesh& mesh, const std::vector<vec3>& normals, co
         return true;
     }
 
-    gcl.compute_solution(label);
+    gcl.compute_solution(labeling);
     return false;
 }
 
-void remove_charts_around_invalid_boundaries(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, const LabelingGraph& lg) {
+void remove_charts_around_invalid_boundaries(const MeshExt& mesh, Attribute<index_t>& labeling, const LabelingGraph& lg) {
+    geo_debug_assert(labeling.is_bound());
     
     if(lg.invalid_boundaries.empty()) {
         fmt::println(Logger::out("fix_labeling"),"Warning : operation canceled because there are no invalid boundaries"); Logger::out("fix_labeling").flush();
         return;
     }
-
-    Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // get labeling attribute
 
     // In involved charts, preventing existing label from being re-applied
     // Lock labels in other charts
@@ -508,8 +499,8 @@ void remove_charts_around_invalid_boundaries(GEO::Mesh& mesh, const std::vector<
         charts_to_remove.insert(lg.boundaries[b].right_chart);
     }
 
-    GraphCutLabeling gcl(mesh,normals);
-    gcl.data_cost__set__locked_labels(label); // start by locking all the labels, so other charts will not be modified
+    GraphCutLabeling gcl(mesh);
+    gcl.data_cost__set__locked_labels(labeling); // start by locking all the labels, so other charts will not be modified
     gcl.smooth_cost__set__default();
     gcl.neighbors__set__compactness_based(1);
 
@@ -520,19 +511,20 @@ void remove_charts_around_invalid_boundaries(GEO::Mesh& mesh, const std::vector<
             // if facet next to a boundary, lower the cost of assigning the neighboring label
             FOR(le,3) { // for each local edge
                 index_t adjacent_facet = mesh.facets.adjacent(facet_index,le);
-                if(label[adjacent_facet] != label[facet_index]) {
-                    gcl.data_cost__change_to__scaled(facet_index,label[adjacent_facet],0.5f); // halve the cost
+                if(labeling[adjacent_facet] != labeling[facet_index]) {
+                    gcl.data_cost__change_to__scaled(facet_index,labeling[adjacent_facet],0.5f); // halve the cost
                 }
             }
-            gcl.data_cost__change_to__forbidden_polycube_label(facet_index,label[facet_index]); // prevent the label from staying the same
+            gcl.data_cost__change_to__forbidden_polycube_label(facet_index,labeling[facet_index]); // prevent the label from staying the same
         }
     }
 
-    gcl.compute_solution(label);
+    gcl.compute_solution(labeling);
 
 }
 
-bool increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, LabelingGraph& lg, const std::vector<std::vector<index_t>>& adj_facets, const std::set<std::pair<index_t,index_t>>& feature_edges) {
+bool increase_chart_valence(const MeshExt& mesh, Attribute<index_t>& labeling, LabelingGraph& lg) {
+    geo_debug_assert(labeling.is_bound());
 
     FOR(invalid_chart_index,lg.invalid_charts.size()) {
         index_t chart_index = lg.invalid_charts[invalid_chart_index];
@@ -540,9 +532,7 @@ bool increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
         if(!chart.is_surrounded_by_feature_edges(lg.boundaries)) {
             continue; // check next invalid chart
         }
-        Attribute<index_t> label(mesh.facets.attributes(), attribute_name);
-        MeshHalfedgesExt mesh_he(mesh);
-        mesh_he.set_use_facet_region(attribute_name);
+        geo_assert(mesh.halfedges.is_using_facet_region());
 
         // transform the set of boundaries around `chart` into a vector
 
@@ -561,7 +551,7 @@ bool increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
         index_t axis_to_insert = index_t(-1);
 
         std::vector<std::pair<index_t,bool>> counterclockwise_order;
-        chart.counterclockwise_boundaries_order(mesh_he,lg.halfedge2boundary,lg.boundaries,counterclockwise_order);
+        chart.counterclockwise_boundaries_order(mesh.halfedges,lg.halfedge2boundary,lg.boundaries,counterclockwise_order);
 
         FOR(lb,counterclockwise_order.size()) { // for each local boundary index (relative to the chart contour)
             auto [b,b_is_same_direction] = counterclockwise_order[lb]; // b is a boundary index
@@ -589,10 +579,10 @@ bool increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
                     current_boundary_as_counterclockwise = lg.boundaries[b];
                 }
                 else {
-                    lg.boundaries[b].get_flipped(mesh_he,current_boundary_as_counterclockwise);
+                    lg.boundaries[b].get_flipped(mesh.halfedges,current_boundary_as_counterclockwise);
                     ltp = ((index_t) lg.boundaries[b].turning_points.size()) - 1 - ltp;
                 }
-                current_boundary_as_counterclockwise.split_at_turning_point(mesh_he,downward_boundary,upward_boundary,ltp);
+                current_boundary_as_counterclockwise.split_at_turning_point(mesh.halfedges,downward_boundary,upward_boundary,ltp);
                 axis_to_insert = nearest_axis_of_edges(mesh,{
                     lg.boundaries[b].halfedges[lg.boundaries[b].turning_points[ltp].outgoing_local_halfedge_index_],
                     lg.boundaries[b].halfedges[lg.boundaries[b].turning_points[ltp].outgoing_local_halfedge_index_-1]
@@ -607,7 +597,7 @@ bool increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
                 geo_assert(lg.boundaries[b].axis != -1);
                 current_axis = (index_t) lg.boundaries[b].axis;
                 if(b_is_same_direction) {
-                    lg.boundaries[b].get_flipped(mesh_he,downward_boundary);
+                    lg.boundaries[b].get_flipped(mesh.halfedges,downward_boundary);
                     problematic_corner = lg.boundaries[b].end_corner;
                 }
                 else {
@@ -619,7 +609,7 @@ bool increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
                 double sd_boundary_angles = lg.corners[problematic_corner].sd_boundary_angles(mesh);
                 if(
                     (lg.corners[problematic_corner].valence() == 4) && 
-                    lg.corners[problematic_corner].all_adjacent_boundary_edges_are_on_feature_edges(mesh,feature_edges) &&
+                    lg.corners[problematic_corner].all_adjacent_boundary_edges_are_on_feature_edges(mesh) &&
                     sd_boundary_angles < 0.02 // required to distinguish B20 from S36, S33
                 ) {
                     problematic_corner = index_t(-1);
@@ -630,7 +620,7 @@ bool increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
                     upward_boundary = lg.boundaries[next_b];
                 }
                 else {
-                    lg.boundaries[next_b].get_flipped(mesh_he,upward_boundary);
+                    lg.boundaries[next_b].get_flipped(mesh.halfedges,upward_boundary);
                 }
                 problematic_vertex = lg.corners[problematic_corner].vertex;
                 axis_to_insert = nearest_axis_of_edges(mesh,{
@@ -729,19 +719,19 @@ bool increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
         vec3 direction;
         
         // neighborhood of `downward_boundary_equilibrium_vertex`
-        outgoing_halfedge = get_an_outgoing_halfedge_of_vertex(mesh,adj_facets,downward_boundary_equilibrium_vertex);
-        outgoing_halfedge = get_most_aligned_halfedge_around_vertex(outgoing_halfedge,mesh_he,label2vector[chart.label]);
+        outgoing_halfedge = get_an_outgoing_halfedge_of_vertex(mesh,downward_boundary_equilibrium_vertex);
+        outgoing_halfedge = get_most_aligned_halfedge_around_vertex(mesh,outgoing_halfedge,label2vector[chart.label]);
         double max_angle_same_direction = angle(normalize(halfedge_vector(mesh,outgoing_halfedge)),label2vector[chart.label]);
 
-        outgoing_halfedge = get_most_aligned_halfedge_around_vertex(outgoing_halfedge,mesh_he,label2vector[opposite_label(chart.label)]);
+        outgoing_halfedge = get_most_aligned_halfedge_around_vertex(mesh,outgoing_halfedge,label2vector[opposite_label(chart.label)]);
         double max_angle_opposite_direction = angle(normalize(halfedge_vector(mesh,outgoing_halfedge)),label2vector[opposite_label(chart.label)]);
 
         // neighborhood of `upward_boundary_equilibrium_vertex`
-        outgoing_halfedge = get_an_outgoing_halfedge_of_vertex(mesh,adj_facets,upward_boundary_equilibrium_vertex);
-        outgoing_halfedge = get_most_aligned_halfedge_around_vertex(outgoing_halfedge,mesh_he,label2vector[chart.label]);
+        outgoing_halfedge = get_an_outgoing_halfedge_of_vertex(mesh,upward_boundary_equilibrium_vertex);
+        outgoing_halfedge = get_most_aligned_halfedge_around_vertex(mesh,outgoing_halfedge,label2vector[chart.label]);
         max_angle_same_direction = std::max(max_angle_same_direction,angle(normalize(halfedge_vector(mesh,outgoing_halfedge)),label2vector[chart.label]));
 
-        outgoing_halfedge = get_most_aligned_halfedge_around_vertex(outgoing_halfedge,mesh_he,label2vector[opposite_label(chart.label)]);
+        outgoing_halfedge = get_most_aligned_halfedge_around_vertex(mesh,outgoing_halfedge,label2vector[opposite_label(chart.label)]);
         max_angle_opposite_direction = std::max(max_angle_opposite_direction,angle(normalize(halfedge_vector(mesh,outgoing_halfedge)),label2vector[opposite_label(chart.label)]));
 
         if(max_angle_same_direction < max_angle_opposite_direction) {
@@ -778,7 +768,7 @@ bool increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
         }
         else {
             // trace path
-            trace_path_on_chart(mesh_he,adj_facets,lg.facet2chart,lg.turning_point_vertices,downward_boundary_equilibrium_vertex,direction*10,facets_of_new_chart,walls,path);
+            trace_path_on_chart(mesh,lg.facet2chart,lg.turning_point_vertices,downward_boundary_equilibrium_vertex,direction*10,facets_of_new_chart,walls,path);
         }
 
         if( (upward_boundary_equilibrium_vertex == problematic_vertex) && (problematic_corner != index_t(-1)) ) {
@@ -799,7 +789,7 @@ bool increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
         }
         else {
             // trace path
-            trace_path_on_chart(mesh_he,adj_facets,lg.facet2chart,lg.turning_point_vertices,upward_boundary_equilibrium_vertex,direction*10,walls,facets_of_new_chart,path);
+            trace_path_on_chart(mesh,lg.facet2chart,lg.turning_point_vertices,upward_boundary_equilibrium_vertex,direction*10,walls,facets_of_new_chart,path);
         }
 
         index_t chart_on_wich_the_new_chart_will_be = lg.facet2chart[*facets_of_new_chart.begin()];
@@ -816,17 +806,18 @@ bool increase_chart_valence(GEO::Mesh& mesh, const std::vector<vec3>& normals, c
             },
             {},
             {}, // no need to specify orthogonality constraints, becase we already forbid 2 axes over 3
-            average_facets_normal(normals,facets_of_new_chart) // among the 2 remaining labels, choose the one the closest to the avg normal of `facets_of_new_chart`
+            average_facets_normal(mesh.facet_normals.as_vector(),facets_of_new_chart) // among the 2 remaining labels, choose the one the closest to the avg normal of `facets_of_new_chart`
         );
 
-        propagate_label(mesh,attribute_name,label_to_insert,facets_of_new_chart,walls,lg.facet2chart,chart_on_wich_the_new_chart_will_be);
+        propagate_label(mesh,labeling,label_to_insert,facets_of_new_chart,walls,lg.facet2chart,chart_on_wich_the_new_chart_will_be);
 
         return true; // an invalid chart has been processed
     }
     return false;
 }
 
-bool auto_fix_validity(Mesh& mesh, std::vector<vec3>& normals, const char* attribute_name, LabelingGraph& lg, unsigned int max_nb_loop, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<vec3>& facet_normals, const std::vector<std::vector<index_t>>& adj_facets) {
+bool auto_fix_validity(const MeshExt& mesh, Attribute<index_t>& labeling, LabelingGraph& lg, unsigned int max_nb_loop) {
+    geo_debug_assert(labeling.is_bound());
     unsigned int nb_loops = 0;
     size_t nb_processed = 0;
     std::set<std::array<std::size_t,7>> set_of_labeling_features_combinations_encountered;
@@ -835,25 +826,25 @@ bool auto_fix_validity(Mesh& mesh, std::vector<vec3>& normals, const char* attri
 
         // as much as possible, remove isolated (surrounded) charts
         do {
-            nb_processed = remove_surrounded_charts(mesh,attribute_name,lg);
+            nb_processed = remove_surrounded_charts(labeling,lg);
             // update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
-            lg.fill_from(mesh,attribute_name,feature_edges);
+            lg.fill_from(mesh,labeling);
         } while(nb_processed != 0);
 
         if(lg.is_valid())
             return true;
 
         do {
-            nb_processed = (size_t) increase_chart_valence(mesh,normals,attribute_name,lg,adj_facets,feature_edges);
-            lg.fill_from(mesh,attribute_name,feature_edges);
+            nb_processed = (size_t) increase_chart_valence(mesh,labeling,lg);
+            lg.fill_from(mesh,labeling);
         } while(nb_processed != 0);
 
         if(lg.is_valid())
             return true;
 
         do {
-            nb_processed = (size_t) fix_an_invalid_boundary(mesh,attribute_name,lg,facet_normals,feature_edges,adj_facets);
-            lg.fill_from(mesh,attribute_name,feature_edges);
+            nb_processed = (size_t) fix_an_invalid_boundary(mesh,labeling,lg);
+            lg.fill_from(mesh,labeling);
         }
         while (nb_processed != 0);
 
@@ -861,8 +852,8 @@ bool auto_fix_validity(Mesh& mesh, std::vector<vec3>& normals, const char* attri
             return true;
         
         do {
-            nb_processed = fix_as_much_invalid_corners_as_possible(mesh,normals,attribute_name,lg,feature_edges,lg.facet2chart,adj_facets);
-            lg.fill_from(mesh,attribute_name,feature_edges);
+            nb_processed = fix_as_much_invalid_corners_as_possible(mesh,labeling,lg);
+            lg.fill_from(mesh,labeling);
         }
         while (nb_processed != 0);
 
@@ -881,8 +872,8 @@ bool auto_fix_validity(Mesh& mesh, std::vector<vec3>& normals, const char* attri
         });
 
         while(1) {
-            remove_invalid_charts(mesh,normals,attribute_name,lg);
-            lg.fill_from(mesh,attribute_name,feature_edges);
+            remove_invalid_charts(mesh,labeling,lg);
+            lg.fill_from(mesh,labeling);
 
             if(lg.is_valid())
                 return true;
@@ -900,8 +891,8 @@ bool auto_fix_validity(Mesh& mesh, std::vector<vec3>& normals, const char* attri
             if(VECTOR_CONTAINS(set_of_labeling_features_combinations_encountered,features_combination)) { // we can use VECTOR_CONTAINS() on sets because they also have find(), cbegin() and cend()
                 // we backtracked
                 // There is probably small charts that we can remove to help the fixing routine
-                remove_charts_around_invalid_boundaries(mesh,normals,attribute_name,lg);
-                lg.fill_from(mesh,attribute_name,feature_edges);
+                remove_charts_around_invalid_boundaries(mesh,labeling,lg);
+                lg.fill_from(mesh,labeling);
                 break; // go back to the beginning of the loop, with other fix operators
             }
             else {

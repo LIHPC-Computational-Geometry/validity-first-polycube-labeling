@@ -13,14 +13,16 @@
 #include <vector>
 #include <array>
 #include <map>
-#include <utility>      // for std::pair
+#include <utility> // for std::pair
+
+#include "geometry_mesh_ext.h" // for MeshExt
 
 using namespace GEO;
 
 typedef vecng<6, float> vec6f; // useful to store per label weights in `graphcut_labeling` app (in case of an optimization with 6 possible labels per facet)
 typedef vecng<6, int> vec6i; // useful to store per label weights (in case of an optimization with 6 possible labels per facet)
 
-// GCoptimizationGeneralGraph has 2 methods for neighbors weigths : setNeighbors() and setAllNeighbors()
+// GCoptimizationGeneralGraph has 2 methods for neighbors weights : setNeighbors() and setAllNeighbors()
 // -> setNeighbors() will require redundancy: weights in GCoptimizationGeneralGraph given by value, weights in GraphCutLabeling, maybe also in GraphCutLabelingApp
 // -> setAllNeighbors() read weights by address
 // The class NeighborsCosts is meant to hide the complexity of the GCoptimizationGeneralGraph interface (set_neighbors() is like GCoptimization::setNeighbors()),
@@ -59,9 +61,9 @@ public:
      * \brief Prepare a labeling computation with a Graph-Cut optimization
      * \param[in] mesh A surface triangle mesh
      */
-    GraphCutLabeling(const Mesh& mesh, const std::vector<vec3>& normals);
+    GraphCutLabeling(const MeshExt& mesh_ext);
 
-    GraphCutLabeling(const Mesh& mesh, const std::vector<vec3>& normals, index_t nb_facets, std::vector<index_t> labels); // if graph-cut on a subset of the surface and/or a subset of the labels
+    GraphCutLabeling(const MeshExt& mesh_ext, index_t nb_facets, std::vector<index_t> labels); // if graph-cut on a subset of the surface and/or a subset of the labels
 
     //// Facets definition //////////////////
 
@@ -134,14 +136,13 @@ public:
 
     static vec6i per_siteID_data_cost_as_vector(const std::vector<int>& data_cost, GCoptimization::SiteID siteID, index_t nb_labels, index_t nb_siteID);
 
-    static void fill_neighbors_cost__compactness_based(const Mesh& mesh, const std::vector<vec3>& normals, int compactness, NeighborsCosts& neighbors_costs, const std::map<index_t,GCoptimization::SiteID>& facet2siteID);
+    static void fill_neighbors_cost__compactness_based(const MeshExt& mesh_ext, int compactness, NeighborsCosts& neighbors_costs, const std::map<index_t,GCoptimization::SiteID>& facet2siteID);
 
 private:
 
     // mesh
 
-    const Mesh& mesh_; // needed for the facet number (everywhere) and facet adjacency (neighborhood weights)
-    const std::vector<vec3>& normals_; // facet normals
+    const MeshExt& mesh_ext_; // needed for the facet number (everywhere), facet adjacency (neighborhood weights), facet normals
 
     // facets on which the optimization will operate
 

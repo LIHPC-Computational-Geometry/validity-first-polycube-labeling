@@ -38,7 +38,8 @@ int main(int argc, char** argv) {
 		return 1;
 	}
 
-    load_labeling(filenames[1],M,LABELING_ATTRIBUTE_NAME);
+	Attribute<index_t> labeling(M.facets.attributes(),LABELING_ATTRIBUTE_NAME);
+    load_labeling(filenames[1],M,labeling);
 
     if(!mesh_save(M,filenames[2])) {
 		fmt::println(Logger::err("I/O"),"Unable to save mesh to {}",filenames[2]);

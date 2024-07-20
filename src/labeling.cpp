@@ -51,10 +51,10 @@ index_t opposite_label(index_t label) {
     return (label % 2 == 0) ? label+1 : label-1;
 }
 
-void flip_labeling(Mesh& mesh, const char* attribute_name) {
-    Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // create a facet attribute in this mesh
+void flip_labeling(Mesh& mesh, Attribute<index_t>& labeling) {
+    geo_debug_assert(labeling.is_bound());
     FOR(f,mesh.facets.nb()) { // for each facet
-        label[f] = opposite_label(label[f]);
+        labeling[f] = opposite_label(labeling[f]);
     }
 }
 
@@ -109,14 +109,14 @@ index_t find_optimal_label(std::initializer_list<index_t> forbidden_axes, std::i
     return optimal_label;
 }
 
-void propagate_label(const Mesh& mesh, const char* attribute_name, index_t new_label, const std::set<index_t>& facets_in, const std::set<index_t> facets_out, const std::vector<index_t>& facet2chart, index_t chart_index) {
+void propagate_label(const Mesh& mesh, Attribute<index_t>& labeling, index_t new_label, const std::set<index_t>& facets_in, const std::set<index_t> facets_out, const std::vector<index_t>& facet2chart, index_t chart_index) {
     // change label to `new_label` for all facets in `facets_in` and their neighbors, step by step.
     // 2 limits for the propagation:
     //  - stay on `chart_index`
     //  - do not cross facets in `facets_out`
+    geo_debug_assert(labeling.is_bound());
     std::vector<index_t> to_process(facets_in.begin(),facets_in.end()); // set -> vector data structure
     geo_assert(!to_process.empty());
-    Attribute<index_t> label(mesh.facets.attributes(),attribute_name);
 
     index_t current_facet = index_t(-1),
             adjacent_facet = index_t(-1);
@@ -124,11 +124,11 @@ void propagate_label(const Mesh& mesh, const char* attribute_name, index_t new_l
         current_facet = to_process.back();
         to_process.pop_back();
         // don't check if `current_facet` is on `chart_index`, too restrictive is some cases
-        if(label[current_facet] == new_label) {
+        if(labeling[current_facet] == new_label) {
             // facet already processed since insertion
             continue;
         }
-        label[current_facet] = new_label;
+        labeling[current_facet] = new_label;
         FOR(le,3) { // process adjacent triangles
             adjacent_facet = mesh.facets.adjacent(current_facet,le);
             if(facets_out.contains(adjacent_facet)) { // do not cross `facets_out` (walls)
@@ -142,7 +142,24 @@ void propagate_label(const Mesh& mesh, const char* attribute_name, index_t new_l
     }
 }
 
-unsigned int count_lost_feature_edges(const MeshHalfedgesExt& mesh_he, const std::set<std::pair<index_t,index_t>>& feature_edges) {
+void compute_per_facet_fidelity(const MeshExt& mesh_ext, Attribute<index_t>& labeling, const char* fidelity_attribute_name, IncrementalStats& stats) {
+    // goal of the fidelity metric : measure how close the assigned direction (label) is from the triangle normal
+    //   fidelity=1 (high fidelity) -> label equal to the normal      ex: triangle is oriented towards +X and we assign +X
+    //   fidelity=0 (low fidelity)  -> label opposite to the normal   ex: triangle is oriented towards +X and we assign -X
+    // 1. compute and normalize the normal
+    // 2. compute the vector (ex: 0.0,1.0,0.0) of the label (ex: +Y) with label2vector[] (already normalized)
+    // 3. compute the dot product, which is in [-1:1] : 1=equal, -1=opposite
+    // 4. add 1 and divide by 2 so that the range is [0:1] : 1=equal, 0=opposite
+    geo_debug_assert(labeling.is_bound());
+    Attribute<double> per_facet_fidelity(mesh_ext.facets.attributes(), fidelity_attribute_name);
+    stats.reset();
+    FOR(f,mesh_ext.facets.nb()) {
+        per_facet_fidelity[f] = (GEO::dot(mesh_ext.facet_normals[f],label2vector[labeling[f]]) + 1.0)/2.0;
+        stats.insert(per_facet_fidelity[f]);
+    }
+}
+
+unsigned int count_lost_feature_edges(const MeshExt& mesh) {
     // parse all facet
     // parse all local vertex for each facet (= facet corners)
     // get halfedge
@@ -152,21 +169,20 @@ unsigned int count_lost_feature_edges(const MeshHalfedgesExt& mesh_he, const std
     // if same labeling, increment counter
 
     unsigned int nb_lost_feature_edges = 0;
-    geo_assert(mesh_he.is_using_facet_region()); // expecting the labeling to be bounded in `mesh_he`
-    const Mesh& mesh = mesh_he.mesh();
+    geo_assert(mesh.halfedges.is_using_facet_region()); // expecting the labeling to be bounded in `mesh.halfedges`
     MeshHalfedges::Halfedge current_halfedge;
     FOR(f,mesh.facets.nb()) {
         FOR(lv,3) { // for each local vertex of the current facet
             current_halfedge.facet = f;
             current_halfedge.corner = mesh.facets.corner(f,lv);
-            geo_assert(mesh_he.halfedge_is_valid(current_halfedge));
+            geo_assert(mesh.halfedges.halfedge_is_valid(current_halfedge));
             if(halfedge_vertex_index_to(mesh,current_halfedge) < halfedge_vertex_index_from(mesh,current_halfedge)) {
                 continue;
             }
-            if(!halfedge_is_on_feature_edge(mesh,current_halfedge,feature_edges)) {
+            if(!mesh.feature_edges.contain_halfedge(current_halfedge)) {
                 continue; // not on feature edge
             }
-            if(!mesh_he.halfedge_is_border(current_halfedge)) {
+            if(!mesh.halfedges.halfedge_is_border(current_halfedge)) {
                 // so our `current_halfedge`
                 // - has v0 < v1 (to count each undirected edge once)
                 // - is on a feature edge
@@ -175,7 +191,7 @@ unsigned int count_lost_feature_edges(const MeshHalfedgesExt& mesh_he, const std
             }
         }
     }
-    geo_assert(nb_lost_feature_edges <= feature_edges.size());
+    geo_assert(nb_lost_feature_edges <= mesh.feature_edges.nb());
     return nb_lost_feature_edges;
 }
 

@@ -30,7 +30,7 @@ class GraphCutLabelingApp : public LabelingViewerApp {
 public:
 
     GraphCutLabelingApp() : LabelingViewerApp("graphcut_labeling") {
-		// PolyCut [1, Section 3.1, page 5] and Evocube [2, section 4, p. 7] use a fidelity/compatness ratio of 3 for the first try
+		// PolyCut [1, Section 3.1, page 5] and Evocube [2, section 4, p. 7] use a fidelity/compactness ratio of 3 for the first try
 		// [1] Livesu, Vining, Sheffer, Gregson, Scateni, "Polycut: Monotone graph-cuts for polycube base-complex construction", ACM Trans. on Graphics, 2013
 		// [2] Dumery, Protais, Mestrallet, Bourcier, Ledoux, "Evocube: a Genetic Labeling Framework for Polycube-Maps", Computer Graphics Forum, 2022
 		compactness_coeff_ = 1;
@@ -60,8 +60,8 @@ protected:
 				return;
 			}
 			data_cost_.resize(mesh_.facets.nb()*6);
-			GraphCutLabeling::fill_data_cost__fidelity_based(normals_,data_cost_,fidelity_coeff_,mesh_);
-			graphcut_labeling(mesh_,normals_,LABELING_ATTRIBUTE_NAME,compactness_coeff_,fidelity_coeff_); // compute graph-cut with init value of parameters
+			GraphCutLabeling::fill_data_cost__fidelity_based(mesh_ext_.facet_normals.as_vector(),data_cost_,fidelity_coeff_,mesh_);
+			graphcut_labeling(mesh_ext_,labeling_,compactness_coeff_,fidelity_coeff_); // compute graph-cut with init value of parameters
 			update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			new_state = labeling;
 		}
@@ -117,7 +117,7 @@ protected:
 			}
 
 			if(ImGui::Button("Compute solution")) {
-				auto gcl = GraphCutLabeling(mesh_,normals_);
+				auto gcl = GraphCutLabeling(mesh_ext_);
 				gcl.data_cost__set__fidelity_based(fidelity_coeff_);
 				gcl.smooth_cost__set__custom(smooth_cost_);
 				gcl.neighbors__set__compactness_based(compactness_coeff_);
@@ -192,7 +192,7 @@ protected:
 					new_data_cost_[4] - selected_chart_data_cost_stats_.avg[4],
 					new_data_cost_[5] - selected_chart_data_cost_stats_.avg[5]
 				};
-				auto gcl = GraphCutLabeling(mesh_,normals_);
+				auto gcl = GraphCutLabeling(mesh_ext_);
 				gcl.smooth_cost__set__custom(smooth_cost_);
 				gcl.neighbors__set__compactness_based(compactness_coeff_);
 				for(index_t f : lg_.charts[selected_chart_].facets) { // for each facet of the current chart

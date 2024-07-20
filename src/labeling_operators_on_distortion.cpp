@@ -6,7 +6,8 @@
 
 #include <deque>
 
-size_t move_boundaries_near_turning_points(GEO::Mesh& mesh, const char* attribute_name, const LabelingGraph& lg, const std::set<std::pair<index_t,index_t>>& feature_edges) {
+size_t move_boundaries_near_turning_points(const MeshExt& mesh, Attribute<index_t>& labeling, const LabelingGraph& lg) {
+    geo_debug_assert(labeling.is_bound());
 
     size_t nb_labels_changed = 0;
     size_t nb_turning_points_moved = 0;
@@ -16,9 +17,7 @@ size_t move_boundaries_near_turning_points(GEO::Mesh& mesh, const char* attribut
         return nb_labels_changed;
     }
 
-    Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // get labeling attribute
-    MeshHalfedgesExt mesh_halfedges(mesh); // create an halfedges interface for this mesh
-    mesh_halfedges.set_use_facet_region(attribute_name);
+    geo_assert(mesh.halfedges.is_using_facet_region());
     MeshHalfedges::Halfedge initial_halfedge, current_halfedge;
     index_t new_label = index_t(-1);
 
@@ -33,18 +32,17 @@ size_t move_boundaries_near_turning_points(GEO::Mesh& mesh, const char* attribut
         for(auto tp : lg.boundaries[b].turning_points) {
 
             initial_halfedge = lg.boundaries[b].halfedges[tp.outgoing_local_halfedge_index_];
-            geo_assert(mesh_halfedges.halfedge_is_border(initial_halfedge));
+            geo_assert(mesh.halfedges.halfedge_is_border(initial_halfedge));
             geo_assert(MAP_CONTAINS(lg.halfedge2boundary,initial_halfedge));
 
             // if one of the halfedges, the one before or the one after,
             // is on a feature edge, don't move this boundary
 
-            if(halfedge_is_on_feature_edge(mesh,initial_halfedge,feature_edges)) {
+            if(mesh.feature_edges.contain_halfedge(initial_halfedge)) {
                 break; // don't move this boundary away from the feature edge
             }
-            if(halfedge_is_on_feature_edge(mesh,
-                lg.boundaries[b].halfedges[(tp.outgoing_local_halfedge_index_+1) % lg.boundaries[b].halfedges.size()],
-                feature_edges
+            if(mesh.feature_edges.contain_halfedge(
+                lg.boundaries[b].halfedges[(tp.outgoing_local_halfedge_index_+1) % lg.boundaries[b].halfedges.size()]
             )) {
                 break; // don't move this boundary away from the feature edge
             }
@@ -55,7 +53,7 @@ size_t move_boundaries_near_turning_points(GEO::Mesh& mesh, const char* attribut
             geo_assert(lg.vertex2corner[current_vertex] == index_t(-1)); // a turning point should not be a corner
             // test if the valence of current_vertex is 2
             VertexRingWithBoundaries vr;
-            vr.explore(initial_halfedge,mesh_halfedges);
+            vr.explore(initial_halfedge,mesh.halfedges);
             geo_assert(vr.valence() == 2); // should have only 2 charts
 
             // new label according to towards which chart the turning point is
@@ -64,9 +62,9 @@ size_t move_boundaries_near_turning_points(GEO::Mesh& mesh, const char* attribut
             current_halfedge = initial_halfedge;
             // go around the vertex and assign new_label to adjacent facets
             do {
-                mesh_halfedges.move_counterclockwise_around_vertex(current_halfedge,true);
-                if(label[current_halfedge.facet] != new_label) {
-                    label[current_halfedge.facet] = new_label;
+                mesh.halfedges.move_counterclockwise_around_vertex(current_halfedge,true);
+                if(labeling[current_halfedge.facet] != new_label) {
+                    labeling[current_halfedge.facet] = new_label;
                     nb_labels_changed++;
                 }
             } while (current_halfedge != initial_halfedge);
@@ -77,14 +75,13 @@ size_t move_boundaries_near_turning_points(GEO::Mesh& mesh, const char* attribut
     return nb_turning_points_moved;
 }
 
-void straighten_boundary_with_GCO(GEO::Mesh& mesh, const std::vector<vec3>& normals, const char* attribute_name, const LabelingGraph& lg, index_t boundary_index) {
-    Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // get labeling attribute
+void straighten_boundary_with_GCO(const MeshExt& mesh, Attribute<index_t>& labeling, const LabelingGraph& lg, index_t boundary_index) {
+    geo_debug_assert(labeling.is_bound());
     const Boundary& current_boundary = lg.boundaries[boundary_index];
     index_t left_chart_index = current_boundary.left_chart;
     index_t right_chart_index = current_boundary.right_chart;
     const Chart& left_chart = lg.charts[left_chart_index];
     const Chart& right_chart = lg.charts[right_chart_index];
-    MeshHalfedgesExt mesh_he(mesh);
 
     #ifndef NDEBUG
         fmt::println("Working on boundary {} -> charts {} and {}",boundary_index,left_chart_index,right_chart_index);
@@ -126,7 +123,7 @@ void straighten_boundary_with_GCO(GEO::Mesh& mesh, const std::vector<vec3>& norm
         current_halfedge = (*boundary_halfedge); // copy the boundary halfedge into a mutable variable
         do { // for each facet around the vertex at the base of the current boundary halfedge
             distance_to_boundary[current_halfedge.facet] = 0; // set distance to 0 (the current facet touch the boundary by an edge or a vertex)
-            mesh_he.move_counterclockwise_around_vertex(current_halfedge,true);
+            mesh.halfedges.move_counterclockwise_around_vertex(current_halfedge,true);
         } while (current_halfedge != *boundary_halfedge); // go around the vertex, until we are back on the initial boundary edge
     }
     per_facet_distance(mesh,distance_to_boundary);
@@ -147,7 +144,7 @@ void straighten_boundary_with_GCO(GEO::Mesh& mesh, const std::vector<vec3>& norm
         dump_facets("contour",mesh,contour);
     #endif
 
-    auto gcl = GraphCutLabeling(mesh,normals, (index_t) distance_to_boundary.size(),{0,1,2,3,4,5}); // graph-cut only on the two charts
+    auto gcl = GraphCutLabeling(mesh, (index_t) distance_to_boundary.size(), {0,1,2,3,4,5}); // graph-cut only on the two charts
     for(const auto& kv : distance_to_boundary) {
         gcl.add_facet(kv.first);
     }
@@ -160,13 +157,13 @@ void straighten_boundary_with_GCO(GEO::Mesh& mesh, const std::vector<vec3>& norm
              !distance_to_boundary.contains(mesh.facets.adjacent(kv.first,1)) || 
              !distance_to_boundary.contains(mesh.facets.adjacent(kv.first,2)) ) {
             // this facet is on the contour of the 2 charts -> lock its label
-            gcl.data_cost__change_to__locked_polycube_label(kv.first,label[kv.first]);
+            gcl.data_cost__change_to__locked_polycube_label(kv.first,labeling[kv.first]);
         }
         else {
             // penalize modification proportionally to the distance to the boundary (only close facets should be modifiable)
             // kv.second is the distance
             // -> multiply the cost of re-assigning by (0.8)^distance
-            gcl.data_cost__change_to__scaled(kv.first,label[kv.first],(float) std::pow(0.8,kv.second));
+            gcl.data_cost__change_to__scaled(kv.first,labeling[kv.first],(float) std::pow(0.8,kv.second));
         }
     }
     gcl.smooth_cost__set__default();
@@ -208,11 +205,11 @@ void straighten_boundary_with_GCO(GEO::Mesh& mesh, const std::vector<vec3>& norm
             dump_edges("dot_products","dot_product",mesh,per_edge_dot_product);
         #endif
     }
-    gcl.compute_solution(label);
+    gcl.compute_solution(labeling);
 }
 
-bool straighten_boundary(GEO::Mesh& mesh, const char* attribute_name, const LabelingGraph& lg, index_t boundary_index, const std::vector<std::vector<index_t>>& adj_facets) {
-    Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // get labeling attribute
+bool straighten_boundary(const MeshExt& mesh, Attribute<index_t>& labeling, const LabelingGraph& lg, index_t boundary_index) {
+    geo_debug_assert(labeling.is_bound());
     const Boundary& current_boundary = lg.boundaries[boundary_index];
 
     #ifndef NDEBUG
@@ -231,7 +228,6 @@ bool straighten_boundary(GEO::Mesh& mesh, const char* attribute_name, const Labe
     index_t right_chart_index = current_boundary.right_chart;
     const Chart& left_chart = lg.charts[left_chart_index];
     const Chart& right_chart = lg.charts[right_chart_index];
-    MeshHalfedgesExt mesh_he(mesh);
 
     index_t target_vertex = halfedge_vertex_index_from(mesh,*current_boundary.halfedges.rbegin()); // origin of laft halfedge
     vec3 target_point = mesh_vertex(mesh,target_vertex);
@@ -247,14 +243,14 @@ bool straighten_boundary(GEO::Mesh& mesh, const char* attribute_name, const Labe
     facets_at_right.insert(halfedge_facet_right(mesh,*current_boundary.halfedges.rbegin()));
     while (halfedge_vertex_index_to(mesh,current_halfedge) != target_vertex) {
         previous_halfedge = current_halfedge;
-        mesh_he.move_to_opposite(previous_halfedge); // flip `previous_halfedge` so that its origin vertex is the origin vertex of the next halfedge
-        current_halfedge = get_most_aligned_halfedge_around_vertex(previous_halfedge,mesh_he,target_point - halfedge_vertex_from(mesh,previous_halfedge));
+        mesh.halfedges.move_to_opposite(previous_halfedge); // flip `previous_halfedge` so that its origin vertex is the origin vertex of the next halfedge
+        current_halfedge = get_most_aligned_halfedge_around_vertex(mesh,previous_halfedge,target_point - halfedge_vertex_from(mesh,previous_halfedge));
         if(current_halfedge == previous_halfedge) {
             // we are backtracking
             fmt::println(Logger::warn("monotonicity"),"Cannot straighten boundary {} (backtracking)",boundary_index); Logger::warn("monotonicity").flush();
             return false;
         }
-        if(!lg.vertex_is_only_surrounded_by(halfedge_vertex_index_to(mesh,current_halfedge),{left_chart_index,right_chart_index},adj_facets)) {
+        if(!lg.vertex_is_only_surrounded_by(mesh,halfedge_vertex_index_to(mesh,current_halfedge),{left_chart_index,right_chart_index})) {
             // the `current_halfedge` is leading us away from the two charts on which the boundary must stay, we are going to cross another boundary
             // -> we have to straighten the other boundary first
 
@@ -277,14 +273,14 @@ bool straighten_boundary(GEO::Mesh& mesh, const char* attribute_name, const Labe
     while (!left_facets_to_process.empty()) {
         current_facet = left_facets_to_process.back();
         left_facets_to_process.pop_back();
-        if(label[current_facet] == left_chart.label) {
+        if(labeling[current_facet] == left_chart.label) {
             // facet already processed since insertion
             continue;
         }
-        label[current_facet] = left_chart.label;
+        labeling[current_facet] = left_chart.label;
         FOR(le,3) { // process adjacent triangles
             adjacent_facet = mesh.facets.adjacent(current_facet,le);
-            if(label[adjacent_facet] == left_chart.label) {
+            if(labeling[adjacent_facet] == left_chart.label) {
                 continue;
             }
             if(facets_at_right.contains(adjacent_facet)) {
@@ -302,14 +298,14 @@ bool straighten_boundary(GEO::Mesh& mesh, const char* attribute_name, const Labe
     while (!right_facets_to_process.empty()) {
         current_facet = right_facets_to_process.back();
         right_facets_to_process.pop_back();
-        if(label[current_facet] == right_chart.label) {
+        if(labeling[current_facet] == right_chart.label) {
             // facet already processed since insertion
             continue;
         }
-        label[current_facet] = right_chart.label;
+        labeling[current_facet] = right_chart.label;
         FOR(le,3) { // process adjacent triangles
             adjacent_facet = mesh.facets.adjacent(current_facet,le);
-            if(label[adjacent_facet] == right_chart.label) {
+            if(labeling[adjacent_facet] == right_chart.label) {
                 continue;
             }
             if(facets_at_left.contains(adjacent_facet)) {
@@ -325,13 +321,15 @@ bool straighten_boundary(GEO::Mesh& mesh, const char* attribute_name, const Labe
     return true;
 }
 
-void straighten_boundaries(GEO::Mesh& mesh, const char* attribute_name, LabelingGraph& lg, const std::vector<std::vector<index_t>>& adj_facets, const std::set<std::pair<index_t,index_t>>& feature_edges) {
+void straighten_boundaries(const MeshExt& mesh, Attribute<index_t>& labeling, LabelingGraph& lg) {
+    geo_debug_assert(labeling.is_bound());
+
     if(lg.boundaries.empty()) {
         fmt::println(Logger::out("monotonicity"),"No boundaries, operation canceled"); Logger::out("monotonicity").flush();
         return;
     }
 
-    geo_assert(!adj_facets.empty())
+    geo_assert(mesh.adj_facet_corners.size_matches_nb_vertices());
 
     // Because the boundaries may not have the same index before and after lg.fill_from()
     // and because we need to call lg.fill_from() after that one boundary is processed to update charts,
@@ -357,9 +355,9 @@ void straighten_boundaries(GEO::Mesh& mesh, const char* attribute_name, Labeling
         boundary_edges_to_process.pop_back();
         std::tie(boundary_index,boundary_in_same_direction) = lg.halfedge2boundary[current_boundary_edge];
         geo_assert(boundary_index != index_t(-1));
-        if(straighten_boundary(mesh,attribute_name,lg,boundary_index,adj_facets)) 
+        if(straighten_boundary(mesh,labeling,lg,boundary_index)) 
         {
-            lg.fill_from(mesh,attribute_name,feature_edges);
+            lg.fill_from(mesh,labeling);
         }
         else {
             boundary_edges_to_process.push_front(current_boundary_edge); // re-process this boundary edge later
@@ -374,10 +372,9 @@ void straighten_boundaries(GEO::Mesh& mesh, const char* attribute_name, Labeling
     }
 }
 
-void move_corners(GEO::Mesh& mesh, const char* attribute_name, const LabelingGraph& lg, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<std::vector<index_t>>& adj_facets) {
-    Attribute<index_t> label(mesh.facets.attributes(), attribute_name); // get labeling attribute
-    MeshHalfedgesExt mesh_he(mesh);
-    mesh_he.set_use_facet_region(attribute_name);
+void move_corners(const MeshExt& mesh, Attribute<index_t>& labeling, const LabelingGraph& lg) {
+    geo_debug_assert(labeling.is_bound());
+    geo_assert(mesh.halfedges.is_using_facet_region());
     std::set<index_t> adjacent_charts_of_corner; // indices of adjacent charts
     std::set<index_t> adjacent_charts_of_new_vertex;
     vec3 average_coordinates;
@@ -398,7 +395,7 @@ void move_corners(GEO::Mesh& mesh, const char* attribute_name, const LabelingGra
 
         // 1.
 
-        if(current_corner.all_adjacent_boundary_edges_are_on_feature_edges(mesh,feature_edges)) {
+        if(current_corner.all_adjacent_boundary_edges_are_on_feature_edges(mesh)) {
             fmt::println(Logger::out("monotonicity"),"Corner {} ignored because surrounded by feature edges",c); Logger::out("monotonicity").flush();
             continue; // do not move this corner
         }
@@ -407,7 +404,7 @@ void move_corners(GEO::Mesh& mesh, const char* attribute_name, const LabelingGra
 
         // 2.
 
-        lg.get_adjacent_charts_of_vertex(current_corner.vertex,adj_facets,adjacent_charts_of_corner);
+        lg.get_adjacent_charts_of_vertex(mesh,current_corner.vertex,adjacent_charts_of_corner);
 
         // 3.
 
@@ -415,7 +412,7 @@ void move_corners(GEO::Mesh& mesh, const char* attribute_name, const LabelingGra
 
         // 4.
 
-        nearest_vertex_of_average_coordinates = get_nearest_vertex_of_coordinates(mesh_he,adj_facets,average_coordinates,current_corner.vertex,1);
+        nearest_vertex_of_average_coordinates = get_nearest_vertex_of_coordinates(mesh,average_coordinates,current_corner.vertex,1);
         if(nearest_vertex_of_average_coordinates == current_corner.vertex) {
             fmt::println(Logger::out("monotonicity"),"Corner {} ignored because new position is on the same vertex",c); Logger::out("monotonicity").flush();
             continue;
@@ -423,7 +420,7 @@ void move_corners(GEO::Mesh& mesh, const char* attribute_name, const LabelingGra
 
         // 5.
         
-        lg.get_adjacent_charts_of_vertex(nearest_vertex_of_average_coordinates,adj_facets,adjacent_charts_of_new_vertex);
+        lg.get_adjacent_charts_of_vertex(mesh,nearest_vertex_of_average_coordinates,adjacent_charts_of_new_vertex);
         if(adjacent_charts_of_new_vertex != adjacent_charts_of_corner) {
             fmt::println(Logger::out("monotonicity"),"Corner {} ignored because new position will break validity",c); Logger::out("monotonicity").flush();
             continue;
@@ -432,17 +429,17 @@ void move_corners(GEO::Mesh& mesh, const char* attribute_name, const LabelingGra
         // 6.
 
         // Because we impose a max distance of 1 for `get_nearest_vertex_of_coordinates()`,
-        // and beacause `nearest_vertex_of_average_coordinates` != `current_corner.vertex`,
+        // and because `nearest_vertex_of_average_coordinates` != `current_corner.vertex`,
         // we know there is only one edge between `nearest_vertex_of_average_coordinates` and `current_corner.vertex`
-        displacement_halfedge = get_halfedge_between_two_vertices(mesh_he,adj_facets,current_corner.vertex,nearest_vertex_of_average_coordinates);
+        displacement_halfedge = get_halfedge_between_two_vertices(mesh,current_corner.vertex,nearest_vertex_of_average_coordinates);
         geo_assert(halfedge_vertex_index_from(mesh,displacement_halfedge) == current_corner.vertex);
         geo_assert(halfedge_vertex_index_to(mesh,displacement_halfedge) == nearest_vertex_of_average_coordinates);
 
-        mesh_he.move_clockwise_around_vertex(displacement_halfedge,true);
-        label[halfedge_facet_left(mesh,displacement_halfedge)] = label[halfedge_facet_right(mesh,displacement_halfedge)]; // copy label
-        mesh_he.move_counterclockwise_around_vertex(displacement_halfedge,true);
-        mesh_he.move_counterclockwise_around_vertex(displacement_halfedge,true);
-        label[halfedge_facet_right(mesh,displacement_halfedge)] = label[halfedge_facet_left(mesh,displacement_halfedge)]; // copy label
+        mesh.halfedges.move_clockwise_around_vertex(displacement_halfedge,true);
+        labeling[halfedge_facet_left(mesh,displacement_halfedge)] = labeling[halfedge_facet_right(mesh,displacement_halfedge)]; // copy label
+        mesh.halfedges.move_counterclockwise_around_vertex(displacement_halfedge,true);
+        mesh.halfedges.move_counterclockwise_around_vertex(displacement_halfedge,true);
+        labeling[halfedge_facet_right(mesh,displacement_halfedge)] = labeling[halfedge_facet_left(mesh,displacement_halfedge)]; // copy label
 
         nb_corner_moved++;
     }
@@ -450,12 +447,13 @@ void move_corners(GEO::Mesh& mesh, const char* attribute_name, const LabelingGra
     fmt::println(Logger::out("monotonicity"),"{} corners moved",nb_corner_moved); Logger::out("monotonicity").flush();
 }
 
-bool merge_a_turning_point_and_its_closest_corner(GEO::Mesh& mesh, const char* attribute_name, const LabelingGraph& lg, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<std::vector<index_t>>& adj_facets) {
+bool merge_a_turning_point_and_its_closest_corner(const MeshExt& mesh, Attribute<index_t>& labeling, const LabelingGraph& lg) {
+    geo_debug_assert(labeling.is_bound());
     
     if(lg.non_monotone_boundaries.empty()) {
         return false;
     }
-    if(feature_edges.empty()) {
+    if(mesh.feature_edges.nb() == 0) {
         return false;
     }
 
@@ -490,7 +488,7 @@ bool merge_a_turning_point_and_its_closest_corner(GEO::Mesh& mesh, const char* a
             ingoing_local_halfedge_index = (outgoing_local_halfedge_index-1) % (index_t) non_monotone_boundary.halfedges.size();
             ingoing_local_halfedge = non_monotone_boundary.halfedges[ingoing_local_halfedge_index];
             outgoing_local_halfedge = non_monotone_boundary.halfedges[outgoing_local_halfedge_index];
-            if(halfedge_is_on_feature_edge(mesh,ingoing_local_halfedge,feature_edges) || halfedge_is_on_feature_edge(mesh,outgoing_local_halfedge,feature_edges)) {
+            if(mesh.feature_edges.contain_halfedge(ingoing_local_halfedge) || mesh.feature_edges.contain_halfedge(outgoing_local_halfedge)) {
                 nb_turning_points_on_feature_edges++;
                 if(nb_turning_points_on_feature_edges == 1) {
                     first_turning_point_on_feature_edge = turning_point;
@@ -503,10 +501,7 @@ bool merge_a_turning_point_and_its_closest_corner(GEO::Mesh& mesh, const char* a
             continue; // check next non-monotone boundary
         }
 
-        // get labeling attribute and instanciate the halfedges API
-        Attribute<index_t> label(mesh.facets.attributes(), attribute_name);
-        MeshHalfedgesExt mesh_he(mesh);
-        mesh_he.set_use_facet_region(attribute_name);
+        geo_assert(mesh.halfedges.is_using_facet_region());
         index_t first_turning_point_on_feature_edge_vertex = first_turning_point_on_feature_edge.vertex(non_monotone_boundary,mesh);
 
         // 3. Only process `first_turning_point_on_feature_edge`. Find which corner of `non_monotone_boundary` is the closest.
@@ -515,7 +510,7 @@ bool merge_a_turning_point_and_its_closest_corner(GEO::Mesh& mesh, const char* a
             dump_vertex("current_tp",mesh_vertex(mesh,first_turning_point_on_feature_edge_vertex));
         #endif
         
-        index_t closest_corner = first_turning_point_on_feature_edge.get_closest_corner(non_monotone_boundary,mesh_he);
+        index_t closest_corner = first_turning_point_on_feature_edge.get_closest_corner(non_monotone_boundary,mesh.halfedges);
         #ifndef NDEBUG
             dump_vertex("closest_corner",mesh,lg.corners[closest_corner].vertex);
         #endif
@@ -523,7 +518,7 @@ bool merge_a_turning_point_and_its_closest_corner(GEO::Mesh& mesh, const char* a
         // 4. Find which boundary around `closest_corner` is closest to `first_turning_point_on_feature_edge`, excluding `non_monotone_boundary`
         //    Also compute the vector between its corners
 
-        const Boundary& boundary_to_move = lg.boundaries[non_monotone_boundary.get_closest_boundary_of_turning_point(first_turning_point_on_feature_edge,closest_corner,mesh_he,lg.halfedge2boundary,lg.corners)];
+        const Boundary& boundary_to_move = lg.boundaries[non_monotone_boundary.get_closest_boundary_of_turning_point(first_turning_point_on_feature_edge,closest_corner,mesh.halfedges,lg.halfedge2boundary,lg.corners)];
         #ifndef NDEBUG
             dump_boundary_with_halfedges_indices("boundary_to_move",mesh,boundary_to_move);
         #endif
@@ -534,7 +529,7 @@ bool merge_a_turning_point_and_its_closest_corner(GEO::Mesh& mesh, const char* a
             boundary_to_move_vector *= -1.0;
         }
         #ifndef NDEBUG
-            dump_vector("direction_for_new_boundary",mesh,first_turning_point_on_feature_edge.vertex(non_monotone_boundary,mesh_he.mesh()),boundary_to_move_vector);
+            dump_vector("direction_for_new_boundary",mesh,first_turning_point_on_feature_edge.vertex(non_monotone_boundary,mesh),boundary_to_move_vector);
         #endif
 
         // 5. find which label to assign between `boundary_to_move` and its "parallel" passing by the turning point
@@ -567,11 +562,11 @@ bool merge_a_turning_point_and_its_closest_corner(GEO::Mesh& mesh, const char* a
         // after auto_fix_validity(): some corners are misplaced & turning-points are very close to one of the corners,
         // separated by a lost feature edge
         MeshHalfedges::Halfedge halfedge_on_lost_feature_edge;
-        if(vertex_has_lost_feature_edge_in_neighborhood(mesh_he,adj_facets,feature_edges,first_turning_point_on_feature_edge_vertex,halfedge_on_lost_feature_edge)) {
+        if(vertex_has_lost_feature_edge_in_neighborhood(mesh,first_turning_point_on_feature_edge_vertex,halfedge_on_lost_feature_edge)) {
             if(dot(normalize(halfedge_vector(mesh,halfedge_on_lost_feature_edge)),normalize(boundary_to_move_vector)) < 0.5) { // if the direction of the lost feature edge is far from the direction of the boundary to move
                 goto default_behavior; // S9 also has a lost feature edge but we must use the default behavior
             }
-            follow_feature_edge_on_chart(mesh_he,halfedge_on_lost_feature_edge,feature_edges,lg.facet2chart,facets_at_left,facets_at_right);
+            follow_feature_edge_on_chart(mesh,halfedge_on_lost_feature_edge,lg.facet2chart,facets_at_left,facets_at_right);
             const std::set<index_t>& facets_to_re_label = 
                 (closest_corner == non_monotone_boundary.end_corner) ?
                 (first_turning_point_on_feature_edge.is_towards_right_ ? facets_at_left : facets_at_right) : 
@@ -580,13 +575,13 @@ bool merge_a_turning_point_and_its_closest_corner(GEO::Mesh& mesh, const char* a
                 (closest_corner == non_monotone_boundary.end_corner) ?
                 (first_turning_point_on_feature_edge.is_towards_right_ ? facets_at_right : facets_at_left) :
                 (first_turning_point_on_feature_edge.is_towards_right_ ? facets_at_left : facets_at_right);
-            propagate_label(mesh,attribute_name,new_label,facets_to_re_label,wall,lg.facet2chart,chart_on_which_the_new_boundary_will_be);
+            propagate_label(mesh,labeling,new_label,facets_to_re_label,wall,lg.facet2chart,chart_on_which_the_new_boundary_will_be);
             return true;
         }
 
     default_behavior:
 
-        trace_path_on_chart(mesh_he,adj_facets,lg.facet2chart,lg.turning_point_vertices,first_turning_point_on_feature_edge_vertex,boundary_to_move_vector,facets_at_left,facets_at_right,path);
+        trace_path_on_chart(mesh,lg.facet2chart,lg.turning_point_vertices,first_turning_point_on_feature_edge_vertex,boundary_to_move_vector,facets_at_left,facets_at_right,path);
         #ifndef NDEBUG
             dump_facets("facets_at_left",mesh,facets_at_left);
             dump_facets("facets_at_right",mesh,facets_at_right);
@@ -606,12 +601,12 @@ bool merge_a_turning_point_and_its_closest_corner(GEO::Mesh& mesh, const char* a
         index_t vertex = index_t(-1);
         for(auto halfedge = path.begin()+1 ; halfedge != path.end(); ++halfedge) {
             vertex = halfedge_vertex_index_from(mesh,*halfedge);
-            for(index_t facet : adj_facets[vertex]) {
-                label[facet] = lg.charts[chart_on_which_the_new_boundary_will_be].label;
+            for(const auto& facet_corner : mesh.adj_facet_corners.of_vertex(vertex)) {
+                labeling[facet_corner.facet_index] = lg.charts[chart_on_which_the_new_boundary_will_be].label;
             }
         }
 
-        propagate_label(mesh,attribute_name,new_label,facets_to_process,wall_facets,lg.facet2chart,chart_on_which_the_new_boundary_will_be);
+        propagate_label(mesh,labeling,new_label,facets_to_process,wall_facets,lg.facet2chart,chart_on_which_the_new_boundary_will_be);
 
         return true;
 
@@ -622,15 +617,16 @@ bool merge_a_turning_point_and_its_closest_corner(GEO::Mesh& mesh, const char* a
 
 // returns true if a chart has been created
 // returns false if any of the turning-points can be processed with this operator
-bool join_turning_points_pair_with_new_chart(GEO::Mesh& mesh, const char* attribute_name, LabelingGraph& lg, const std::vector<vec3>& normals, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<std::vector<index_t>>& adj_facets) {
+bool join_turning_points_pair_with_new_chart(const MeshExt& mesh, Attribute<index_t>& labeling, LabelingGraph& lg) {
+    geo_debug_assert(labeling.is_bound());
+
     if(lg.non_monotone_boundaries.empty()) {
         return false;
     }
-    if(feature_edges.empty()) {
+    if(mesh.feature_edges.nb() == 0) {
         return false; // nothing to do, there are no feature edges
     }
-    geo_assert(!adj_facets.empty()); // `adj_facets` must have been filled in a parent function
-    geo_assert(!normals.empty()); // `normals` must have been filled in a parent function
+    geo_assert(mesh.adj_facet_corners.size_matches_nb_vertices());
 
     // Parse all turning-points
     // Look at their neighboring halfedges
@@ -639,9 +635,7 @@ bool join_turning_points_pair_with_new_chart(GEO::Mesh& mesh, const char* attrib
     // If we arrive at another turning point, trace a chart between the two turning-points
     // Else do nothing
 
-    Attribute<index_t> label(mesh.facets.attributes(), attribute_name);
-    MeshHalfedgesExt mesh_he(mesh);
-    mesh_he.set_use_facet_region(attribute_name);
+    geo_assert(mesh.halfedges.is_using_facet_region());
     MeshHalfedges::Halfedge halfedge;
     index_t chart_on_which_the_lost_feature_edge_is = index_t(-1);
     index_t label_on_which_the_lost_feature_edge_is = index_t(-1);
@@ -654,11 +648,11 @@ bool join_turning_points_pair_with_new_chart(GEO::Mesh& mesh, const char* attrib
 
     for(index_t b : lg.non_monotone_boundaries) { // for each non-monotone boundary (b is an index of lg.boundaries)
         for(const auto& tp : lg.boundaries[b].turning_points) { // for each turning-point of the current boundary
-            if(vertex_has_lost_feature_edge_in_neighborhood(mesh_he,adj_facets,feature_edges,tp.vertex(lg.boundaries[b],mesh),halfedge)) {
+            if(vertex_has_lost_feature_edge_in_neighborhood(mesh,tp.vertex(lg.boundaries[b],mesh),halfedge)) {
                 chart_on_which_the_lost_feature_edge_is = lg.facet2chart[halfedge_facet_left(mesh,halfedge)];
                 geo_assert(chart_on_which_the_lost_feature_edge_is == lg.facet2chart[halfedge_facet_right(mesh,halfedge)]);
                 label_on_which_the_lost_feature_edge_is = lg.charts[chart_on_which_the_lost_feature_edge_is].label;
-                halfedge = follow_feature_edge_on_chart(mesh_he,halfedge,feature_edges,lg.facet2chart,facets_at_left,facets_at_right);
+                halfedge = follow_feature_edge_on_chart(mesh,halfedge,lg.facet2chart,facets_at_left,facets_at_right);
                 // so move unsuccessful (no more halfedges on feature edge), or we left the chart (found a boundary / corner / turning-point)
                 vertex_at_tip_of_feature_edge = halfedge_vertex_index_to(mesh,halfedge);
                 if(lg.turning_point_vertices.contains(vertex_at_tip_of_feature_edge)) {
@@ -672,21 +666,21 @@ bool join_turning_points_pair_with_new_chart(GEO::Mesh& mesh, const char* attrib
                             lg.boundaries[boundary_of_the_second_turning_point].other_label(lg.charts,label_on_which_the_lost_feature_edge_is)
                         }, 
                         {},
-                        (average_facets_normal(normals,facets_at_left) + average_facets_normal(normals,facets_at_right)) / 2.0 // new label must be close to the facet normals
+                        (average_facets_normal(mesh.facet_normals.as_vector(),facets_at_left) + average_facets_normal(mesh.facet_normals.as_vector(),facets_at_right)) / 2.0 // new label must be close to the facet normals
                     );
-                    bool keep_left_facet = average_dot_product(normals,facets_at_left,label2vector[new_label]) > average_dot_product(normals,facets_at_right,label2vector[new_label]);
+                    bool keep_left_facet = average_dot_product(mesh.facet_normals.as_vector(),facets_at_left,label2vector[new_label]) > average_dot_product(mesh.facet_normals.as_vector(),facets_at_right,label2vector[new_label]);
                     const std::set<index_t>& facets_to_edit = keep_left_facet ? facets_at_left : facets_at_right;
                     const std::set<index_t>& wall = keep_left_facet ? facets_at_right : facets_at_left;
                     // change label to `new_label` for `facets_to_edit` and their adjacent facets
                     for(auto f : facets_to_edit) {
-                        label[f] = new_label;
+                        labeling[f] = new_label;
                         FOR(le,3) { // for each local edge of facet f
                             adjacent_facet = mesh.facets.adjacent(f,le);
                             if(wall.contains(adjacent_facet)) {
                                 continue;
                             }
                             if(lg.facet2chart[adjacent_facet] == chart_on_which_the_lost_feature_edge_is) {
-                                label[adjacent_facet] = new_label; // also change the label of the adjacent facet
+                                labeling[adjacent_facet] = new_label; // also change the label of the adjacent facet
                             }
                         }
                     }
@@ -710,7 +704,8 @@ bool join_turning_points_pair_with_new_chart(GEO::Mesh& mesh, const char* attrib
     return false;
 }
 
-bool auto_fix_monotonicity(Mesh& mesh, const char* attribute_name, LabelingGraph& lg, std::vector<std::vector<index_t>>& adj_facets, const std::set<std::pair<index_t,index_t>>& feature_edges, const std::vector<vec3>& normals) {
+bool auto_fix_monotonicity(const MeshExt& mesh, Attribute<index_t>& labeling, LabelingGraph& lg) {
+    geo_debug_assert(labeling.is_bound());
     
     size_t nb_processed = 0;
 
@@ -718,19 +713,9 @@ bool auto_fix_monotonicity(Mesh& mesh, const char* attribute_name, LabelingGraph
         return true;
     }
 
-    // compute vertex-to-facet adjacency if not already done
-    // required for
-    //   join_turning_points_pair_with_new_chart(),
-    //   merge_a_turning_point_and_its_closest_corner(),
-    //   straighten_boundaries()
-    
-    if(adj_facets.empty()) {
-        compute_adjacent_facets_of_vertices(mesh,adj_facets);
-    }
-
     do {
-        nb_processed = (size_t) join_turning_points_pair_with_new_chart(mesh,attribute_name,lg,normals,feature_edges,adj_facets);
-        lg.fill_from(mesh,attribute_name,feature_edges);
+        nb_processed = (size_t) join_turning_points_pair_with_new_chart(mesh,labeling,lg);
+        lg.fill_from(mesh,labeling);
     } while (nb_processed != 0);
 
     if (lg.non_monotone_boundaries.empty()) {
@@ -739,8 +724,8 @@ bool auto_fix_monotonicity(Mesh& mesh, const char* attribute_name, LabelingGraph
 
     size_t nb_iter = 0;
     do {
-        nb_processed = (size_t) merge_a_turning_point_and_its_closest_corner(mesh,attribute_name,lg,feature_edges,adj_facets);
-        lg.fill_from(mesh,attribute_name,feature_edges);
+        nb_processed = (size_t) merge_a_turning_point_and_its_closest_corner(mesh,labeling,lg);
+        lg.fill_from(mesh,labeling);
         nb_iter++;
         if(nb_iter > 20) {
             break;
@@ -751,14 +736,14 @@ bool auto_fix_monotonicity(Mesh& mesh, const char* attribute_name, LabelingGraph
         return true;
     }
 
-    move_boundaries_near_turning_points(mesh,attribute_name,lg,feature_edges);
-    lg.fill_from(mesh,attribute_name,feature_edges);
+    move_boundaries_near_turning_points(mesh,labeling,lg);
+    lg.fill_from(mesh,labeling);
 
     if (lg.non_monotone_boundaries.empty()) {
         return true;
     }
 
-    straighten_boundaries(mesh,attribute_name,lg,adj_facets,feature_edges);
+    straighten_boundaries(mesh,labeling,lg);
     // `lg` already updated in straighten_boundaries()
 
     if (lg.non_monotone_boundaries.empty()) {

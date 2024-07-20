@@ -46,17 +46,6 @@ namespace GEO {
 
         MeshHalfedgesExt(Mesh& mesh) : MeshHalfedges(mesh) {}
 
-        // re-expose this method from MeshHalfedges
-        void set_use_facet_region(std::string attribute_name) {
-            MeshHalfedges::set_use_facet_region(attribute_name);
-        }
-
-        // enforce the right function when passing a char array
-        // fixed since https://github.com/BrunoLevy/geogram/commit/ddacc7013124fbb1b8e4514f8d9613bf48d2d95e
-        void set_use_facet_region(const char* attribute_name) {
-            set_use_facet_region(std::string(attribute_name));
-        }
-
         bool is_using_facet_region() const {
             return facet_region_.is_bound();
         }

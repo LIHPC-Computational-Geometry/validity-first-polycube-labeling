@@ -6,6 +6,6 @@
 
 using namespace GEO;
 
-bool load_labeling(const std::string& filename, Mesh& mesh, const char* attribute_name);
+bool load_labeling(const std::string& filename, const Mesh& mesh, Attribute<index_t>& labeling);
 
-bool save_labeling(const std::string& filename, Mesh& mesh, const char* attribute_name);
+bool save_labeling(const std::string& filename, const Mesh& mesh, Attribute<index_t>& labeling);

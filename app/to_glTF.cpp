@@ -51,6 +51,7 @@ int main(int argc, char **argv)
     std::string polycube_filename = GEO::CmdLine::get_arg("polycube");
 
     GEO::Mesh M;
+    MeshExt M_ext(M);
     mesh_load(filenames[0],M);
 
     if(M.cells.nb() != 0) {
@@ -74,7 +75,7 @@ int main(int argc, char **argv)
 	}
 
     if(labeling_filename.empty()) {
-        write_glTF__triangle_mesh(filenames[1],M,true);
+        write_glTF__triangle_mesh(filenames[1],M_ext,true);
         return 0;
 	}
     //else: the user provided a labeling
@@ -84,10 +85,10 @@ int main(int argc, char **argv)
         labeling_filename.replace(0, 1, std::string(getenv("HOME")));
     }
 
-    load_labeling(labeling_filename,M,"label");
+    Attribute<index_t> labeling(M.facets.attributes(),LABELING_ATTRIBUTE_NAME);
+    load_labeling(labeling_filename,M,labeling);
 
-    std::vector<std::vector<AdjacentFacetOfVertex>> per_vertex_adj_facets;
-    compute_adjacent_facets_of_vertices(M,per_vertex_adj_facets);
+    M_ext.adj_facet_corners.recompute();
 
     if(polycube_filename.empty()) {
 
@@ -116,7 +117,7 @@ int main(int argc, char **argv)
         #endif
         };
         
-        write_glTF__labeled_triangle_mesh(filenames[1],M,"label",per_vertex_adj_facets,remove_facet_fx);
+        write_glTF__labeled_triangle_mesh(filenames[1],M_ext,labeling,remove_facet_fx);
         return 0;
     }
     //else: the user provided a polycube
@@ -129,7 +130,7 @@ int main(int argc, char **argv)
     GEO::Mesh polycube;
     mesh_load(polycube_filename,polycube);
 
-    write_glTF__labeled_triangle_mesh_with_polycube_animation(filenames[1],M,polycube,"label",per_vertex_adj_facets);
+    write_glTF__labeled_triangle_mesh_with_polycube_animation(filenames[1],M_ext,polycube,labeling);
 
     return 0;
 }

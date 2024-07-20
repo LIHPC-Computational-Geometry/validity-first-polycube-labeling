@@ -74,6 +74,7 @@ int main(int argc, const char** argv) {
     geo_assert(line_count == nb_facets+2); // check if the file is long enough
 
     // read the surface labeling
+    // TODO use load_labeling()
 
     std::vector<index_t> surface_labeling(nb_facets);
     ifs.open(argv[1]);

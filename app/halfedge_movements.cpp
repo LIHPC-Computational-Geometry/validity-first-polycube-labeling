@@ -25,8 +25,7 @@ public:
 
     HalfedgeMovementsApp()
     : LabelingViewerApp("halfedge_movements",false), // do not auto flip normals (in order to know the orientation in the file)
-    mesh_he(mesh_),
-    mesh_he_ext(mesh_) {
+    mesh_he(mesh_) {
         // change default values
         show_surface_ = true;
         surface_color_ = vec4f(0.9f,0.9f,0.9f,1.0f);
@@ -174,11 +173,11 @@ protected:
         ImGui::TextDisabled("(?)");
         ImGui::SetItemTooltip("Allow \"move (counter)clockwise around vertex\" functions to cross borders");
         if(ImGui::Button(icon_UTF8("star-of-life") + "Move clockwise around vertex")) {
-            mesh_he_ext.move_clockwise_around_vertex(halfedge,ignore_borders_around_vertices);
+            mesh_ext_.halfedges.move_clockwise_around_vertex(halfedge,ignore_borders_around_vertices);
             update_geometry_data();
         }
         if(ImGui::Button(icon_UTF8("star-of-life") + "Move counterclockwise around vertex")) {
-            mesh_he_ext.move_counterclockwise_around_vertex(halfedge,ignore_borders_around_vertices);
+            mesh_ext_.halfedges.move_counterclockwise_around_vertex(halfedge,ignore_borders_around_vertices);
             update_geometry_data();
         }
 
@@ -221,7 +220,7 @@ protected:
             if(state_ == labeling) {
                 labeling_visu_mode_transition(VIEW_RAW_LABELING);
                 mesh_he.set_use_facet_region(std::string(LABELING_ATTRIBUTE_NAME));
-                mesh_he_ext.set_use_facet_region(std::string(LABELING_ATTRIBUTE_NAME));
+                mesh_ext_.halfedges.set_use_facet_region(std::string(LABELING_ATTRIBUTE_NAME));
             }
             facet_normals_inward = facet_normals_are_inward(mesh_);
             return true;
@@ -247,7 +246,6 @@ protected:
     }
 
     MeshHalfedges mesh_he;
-    MeshHalfedgesExt mesh_he_ext;
     MeshHalfedges::Halfedge halfedge;
     index_t origin_vertex;
     double origin[3];

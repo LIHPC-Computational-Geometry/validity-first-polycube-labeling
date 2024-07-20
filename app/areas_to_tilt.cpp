@@ -27,7 +27,7 @@ using namespace GEO;
 class AreasToTiltApp : public SimpleMeshApplicationExt {
 public:
 
-    AreasToTiltApp() : SimpleMeshApplicationExt("areas_to_tilt") {
+    AreasToTiltApp() : SimpleMeshApplicationExt("areas_to_tilt"), mesh_ext_(mesh_) {
         // change default values
         show_surface_ = true;
         show_volume_ = false;
@@ -66,12 +66,6 @@ protected:
 
         mesh_.vertices.set_double_precision();
 
-        // compute facet normals
-        normals_.resize(mesh_.facets.nb());
-        FOR(f,mesh_.facets.nb()) { // for each facet
-            normals_[f] = normalize(Geom::mesh_facet_normal(mesh_,f));
-        }
-
         compute_areas_to_tilt();
 
         update_drawing_settings();
@@ -82,7 +76,7 @@ protected:
     void compute_areas_to_tilt() {
 
         std::set<index_t> facets_to_tilt;
-        size_t nb_facet_on_areas_to_tilt = get_facets_to_tilt(mesh_,normals_,facets_to_tilt,sensitivity_);
+        size_t nb_facet_on_areas_to_tilt = get_facets_to_tilt(mesh_ext_,facets_to_tilt,sensitivity_);
         Attribute<bool> on_area_to_tilt(mesh_.facets.attributes(),"on_area_to_tilt");
         FOR(f,mesh_.facets.nb()) { // for each facet
             on_area_to_tilt[f] = facets_to_tilt.contains(f);
@@ -126,7 +120,7 @@ protected:
         }
     }
 
-    std::vector<vec3> normals_; // per facet normals
+    MeshExt mesh_ext_;
     float sensitivity_;
     bool group_by_area_;
     std::size_t nb_areas;
