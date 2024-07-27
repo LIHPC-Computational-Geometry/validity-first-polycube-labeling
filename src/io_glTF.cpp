@@ -289,6 +289,9 @@ void write_glTF__labeled_triangle_mesh(std::string filename, MeshExt& M, Attribu
     }
     M.facets.delete_elements(to_delete,true);
     fmt::println(Logger::warn("glTF"),"{} facets ({:.2f} %) removed before glTF export",nb_facets_removed,((double)nb_facets_removed)/M.facets.nb()*100); Logger::warn("glTF").flush();
+    M.adj_facet_corners.clear();
+    M.adj_facet_corners.recompute(); // mandatory : recompute the vertex-to-facets adjacency 
+    geo_assert(M.adj_facet_corners.size_matches_nb_vertices());
 
     // create a vector that will enumerate vertices in the glTF mesh
     std::vector<glTF_vertex<index_t>> glTF_vertices; // for each vertex in the glTF mesh, store the corresponding vertex in M and the label (future texture coordinate) of this glTF vertex

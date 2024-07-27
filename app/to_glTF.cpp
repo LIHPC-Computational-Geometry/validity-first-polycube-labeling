@@ -20,7 +20,7 @@
 #include "labeling.h"
 #include "labeling_io.h"
 
-// To see the inside of some 3D model, remove specific facets
+// To see the inside of some 3D models, remove specific facets
 // #define REMOVE_FACETS_FOR_IN_VOLUME_TWIST_MODEL
 // #define REMOVE_FACETS_FOR_IN_VOLUME_KNOT_MODEL
 
@@ -106,9 +106,19 @@ int main(int argc, char **argv)
                 (mesh_vertex(M,M.facets.vertex(facet_index,1)).z > Z_axis_threshold) && 
                 (mesh_vertex(M,M.facets.vertex(facet_index,2)).z > Z_axis_threshold)
             );
-        #elif REMOVE_FACETS_FOR_IN_VOLUME_KNOT_MODEL
+        #elif defined(REMOVE_FACETS_FOR_IN_VOLUME_KNOT_MODEL)
             // Delete some facets for the new 'in-volume_knot' model (https://github.com/LIHPC-Computational-Geometry/nightmare_of_polycubes)
-            // TODO
+            // Facets whose:
+            // - label is +Z (=4)
+            // and
+            // - vertices are near 6000 in the Z axis
+            const double Z_axis_threshold = 6000*0.99; // = remove 1% to the delta Z
+            return (
+                (label[facet_index] == 4) &&
+                (mesh_vertex(M,M.facets.vertex(facet_index,0)).z > Z_axis_threshold) && 
+                (mesh_vertex(M,M.facets.vertex(facet_index,1)).z > Z_axis_threshold) && 
+                (mesh_vertex(M,M.facets.vertex(facet_index,2)).z > Z_axis_threshold)
+            );
         #else
             geo_argused(M);
             geo_argused(label);
