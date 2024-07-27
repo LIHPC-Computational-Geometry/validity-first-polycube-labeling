@@ -15,6 +15,7 @@ int main(int argc, char** argv) {
 
     std::vector<std::string> filenames;
 	initialize();
+	CmdLine::import_arg_group("sys"); // to export .geogram files
 	if(!CmdLine::parse(
 		argc,
 		argv,
