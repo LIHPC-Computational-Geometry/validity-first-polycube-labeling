@@ -23,6 +23,7 @@
 // To see the inside of some 3D models, remove specific facets
 // #define REMOVE_FACETS_FOR_IN_VOLUME_TWIST_MODEL
 // #define REMOVE_FACETS_FOR_IN_VOLUME_KNOT_MODEL
+// #define REMOVE_FACETS_FOR_PIPE_HELIX
 
 using GEO::index_t; // to use the FOR() macro of Geogram
 
@@ -51,6 +52,7 @@ int main(int argc, char **argv)
     std::string polycube_filename = GEO::CmdLine::get_arg("polycube");
 
     GEO::Mesh M;
+    M.edges.clear(); // we don't need feature edges, delete them to avoid potential issues with the removal of facets (and thus isolated vertices)
     MeshExt M_ext(M);
     mesh_load(filenames[0],M);
 
@@ -118,6 +120,18 @@ int main(int argc, char **argv)
                 (mesh_vertex(M,M.facets.vertex(facet_index,0)).z > Z_axis_threshold) && 
                 (mesh_vertex(M,M.facets.vertex(facet_index,1)).z > Z_axis_threshold) && 
                 (mesh_vertex(M,M.facets.vertex(facet_index,2)).z > Z_axis_threshold)
+            );
+        #elif defined(REMOVE_FACETS_FOR_PIPE_HELIX)
+            // Delete some facets for the 'pipe_helix' .stl model (https://github.com/LIHPC-Computational-Geometry/nightmare_of_polycubes)
+            // Facets whose:
+            // - label is -X (=1)
+            // and
+            // - vertices' x coordinate is below -0.013
+            return (
+                (label[facet_index] == 1) &&
+                (mesh_vertex(M,M.facets.vertex(facet_index,0)).x < -0.013) && 
+                (mesh_vertex(M,M.facets.vertex(facet_index,1)).x < -0.013) && 
+                (mesh_vertex(M,M.facets.vertex(facet_index,2)).x < -0.013)
             );
         #else
             geo_argused(M);
