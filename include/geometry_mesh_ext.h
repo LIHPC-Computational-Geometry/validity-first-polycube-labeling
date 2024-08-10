@@ -184,9 +184,9 @@ public:
 
         fmt::println(
             Logger::out("feature edges"),
-            "{} feature edge(s) removed ({:.1f}%) because dihedral angle < {}",
+            "{} feature edge(s) removed {} because dihedral angle < {}",
             nb_edges_removed,
-            (nb_edges_removed * 100.0) / (double) nb_edges,
+            (nb_edges==0 ? "" : fmt::format("({:.1f}%)",(nb_edges_removed * 100.0) / (double) nb_edges)),
             FEATURE_EDGES_MIN_ANGLE);
         Logger::out("feature edges").flush();
     }
