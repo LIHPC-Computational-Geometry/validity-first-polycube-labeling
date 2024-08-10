@@ -24,6 +24,7 @@
 // #define REMOVE_FACETS_FOR_IN_VOLUME_TWIST_MODEL
 // #define REMOVE_FACETS_FOR_IN_VOLUME_KNOT_MODEL
 // #define REMOVE_FACETS_FOR_PIPE_HELIX
+// #define REMOVE_FACETS_FOR_PIPE_HELIX_7
 
 using GEO::index_t; // to use the FOR() macro of Geogram
 
@@ -133,6 +134,11 @@ int main(int argc, char **argv)
                 (mesh_vertex(M,M.facets.vertex(facet_index,1)).x < -0.013) && 
                 (mesh_vertex(M,M.facets.vertex(facet_index,2)).x < -0.013)
             );
+        #elif defined(REMOVE_FACETS_FOR_PIPE_HELIX_7)
+            // Opening the .stl converted to .obj with Graphite, we can see that the facets we want to remove are #0, #1, #2 and #3 !
+            geo_argused(M);
+            geo_argused(label);
+            return (facet_index <= 3);
         #else
             geo_argused(M);
             geo_argused(label);
