@@ -66,9 +66,8 @@ protected:
 
         mesh_.vertices.set_double_precision();
 
+        mesh_ext_.facet_normals.recompute();
         compute_areas_to_tilt();
-
-        update_drawing_settings();
 
         return true;
     }
@@ -88,13 +87,20 @@ protected:
         nb_areas = group_facets<Attribute>(mesh_,facets_to_tilt,area_index);
 
         std::vector<index_t> color_randomizer(nb_areas);
-        FOR(a,nb_areas)
+        FOR(a,nb_areas) {
             color_randomizer[a] = a;
+        }
         std::random_shuffle(color_randomizer.begin(),color_randomizer.end());
-        FOR(f,mesh_.facets.nb())
+        FOR(f,mesh_.facets.nb()) {
             area_index[f] = color_randomizer[area_index[f]];
+        }
 
         fmt::println(Logger::out("areas to tilt"),"facets grouped into {} area(s)",nb_areas); Logger::out("areas to tilt").flush();
+    }
+
+    void GL_initialize() override {
+        SimpleMeshApplicationExt::GL_initialize();
+        update_drawing_settings();
     }
 
     void update_drawing_settings() {
