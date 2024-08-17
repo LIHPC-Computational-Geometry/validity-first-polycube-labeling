@@ -98,12 +98,13 @@ protected:
 			ImGui::SeparatorText("Monotonicity");
 
 			if(ImGui::Button("Join turning-points pair with new chart")) {
-				join_turning_points_pair_with_new_chart(mesh_,labeling_,lg_);
+				join_turning_points_pair_with_new_chart(mesh_ext_,labeling_,lg_);
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 
-			if(ImGui::Button("Merge a turning-points and its closest corners")) {
-				bool a_non_monotone_boundary_was_processed = merge_a_turning_point_and_its_closest_corner(mesh_,labeling_,lg_);
+			if(ImGui::Button("Merge a turning-point and its closest corners")) {
+				geo_assert(mesh_ext_.halfedges.is_using_facet_region());
+				bool a_non_monotone_boundary_was_processed = merge_a_turning_point_and_its_closest_corner(mesh_ext_,labeling_,lg_);
 				fmt::println(Logger::out("monotonicity"),"{} non-monotone boundaries processed",(size_t) a_non_monotone_boundary_was_processed); Logger::out("monotonicity").flush();
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
@@ -112,13 +113,13 @@ protected:
 			ImGui::SetItemTooltip("Parse non-monotone boundaries, and if one of them has a turning-point on a feature edge, try to pull the closest corner so that they coincide");
 
 			if(ImGui::Button("Move boundaries near turning points")) {
-				size_t nb_turning_points_processed = move_boundaries_near_turning_points(mesh_,labeling_,lg_);
+				size_t nb_turning_points_processed = move_boundaries_near_turning_points(mesh_ext_,labeling_,lg_);
 				fmt::println(Logger::out("monotonicity"),"{} turning-points processed",nb_turning_points_processed); Logger::out("monotonicity").flush();
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 
 			if(ImGui::Button("Straighten boundaries")) {
-				straighten_boundaries(mesh_,labeling_,lg_);
+				straighten_boundaries(mesh_ext_,labeling_,lg_);
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 			ImGui::SameLine();
@@ -126,7 +127,7 @@ protected:
 			ImGui::SetItemTooltip("Re-draw boundaries so that they are straighter");
 
 			if(ImGui::Button("Move corners")) {
-				move_corners(mesh_,labeling_,lg_);
+				move_corners(mesh_ext_,labeling_,lg_);
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 
@@ -134,7 +135,7 @@ protected:
 			ImGui::PushStyleColor(ImGuiCol_ButtonHovered,	ImVec4(0.3f, 0.8f, 0.3f, 1.0f)); // darker green
 			ImGui::PushStyleColor(ImGuiCol_ButtonActive,	ImVec4(0.0f, 0.8f, 0.0f, 1.0f));
 			if(ImGui::Button("Auto fix monotonicity")) {
-				auto_fix_monotonicity(mesh_,labeling_,lg_);
+				auto_fix_monotonicity(mesh_ext_,labeling_,lg_);
 				update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
 			}
 			ImGui::PopStyleColor(3);
@@ -222,23 +223,24 @@ int main(int argc, char** argv) {
 	// Compute initial labeling
 	//////////////////////////////////////////////////
 
-	Attribute<index_t> labeling(M.facets.attributes(),LABELING_ATTRIBUTE_NAME);
-	smart_init_labeling(M,labeling);
+	Attribute<index_t> labeling(M_ext.facets.attributes(),LABELING_ATTRIBUTE_NAME);
+	smart_init_labeling(M_ext,labeling);
 
 	//////////////////////////////////////////////////
 	// Construct charts, boundaries & corners
 	//////////////////////////////////////////////////
 
 	LabelingGraph lg;
-	lg.fill_from(M,labeling,allow_boundaries_between_opposite_labels);
+	lg.fill_from(M_ext,labeling,allow_boundaries_between_opposite_labels);
 
 	//////////////////////////////////////////////////
 	// Validity & monotonicity correction
 	//////////////////////////////////////////////////
 
-	if(auto_fix_validity(M,labeling,lg,100)) {
+	M_ext.halfedges.set_use_facet_region(LABELING_ATTRIBUTE_NAME);
+	if(auto_fix_validity(M_ext,labeling,lg,100)) {
 		// auto-fix the monotonicity only if the validity was fixed
-		auto_fix_monotonicity(M,labeling,lg);
+		auto_fix_monotonicity(M_ext,labeling,lg);
 	}
 
 	//////////////////////////////////////////////////
@@ -246,7 +248,7 @@ int main(int argc, char** argv) {
 	//////////////////////////////////////////////////
 
 	fmt::println(Logger::out("I/O"),"Writing {}...",filenames[1]); Logger::out("I/O").flush();
-	save_labeling(filenames[1],M,labeling);
+	save_labeling(filenames[1],M_ext,labeling);
 	fmt::println(Logger::out("I/O"),"Done"); Logger::out("I/O").flush();
 	
     return 0;

@@ -89,6 +89,7 @@ void LabelingViewerApp::state_transition(State new_state) {
             show_turning_points_ = false;
             break;
         case labeling:
+            mesh_ext_.halfedges.set_use_facet_region(LABELING_ATTRIBUTE_NAME);
             labeling_visu_mode_transition(VIEW_LABELING_GRAPH);
             break;
         default:

@@ -449,6 +449,7 @@ void move_corners(const MeshExt& mesh, Attribute<index_t>& labeling, const Label
 
 bool merge_a_turning_point_and_its_closest_corner(const MeshExt& mesh, Attribute<index_t>& labeling, const LabelingGraph& lg) {
     geo_debug_assert(labeling.is_bound());
+    geo_assert(mesh.halfedges.is_using_facet_region());
     
     if(lg.non_monotone_boundaries.empty()) {
         return false;
@@ -501,7 +502,6 @@ bool merge_a_turning_point_and_its_closest_corner(const MeshExt& mesh, Attribute
             continue; // check next non-monotone boundary
         }
 
-        geo_assert(mesh.halfedges.is_using_facet_region());
         index_t first_turning_point_on_feature_edge_vertex = first_turning_point_on_feature_edge.vertex(non_monotone_boundary,mesh);
 
         // 3. Only process `first_turning_point_on_feature_edge`. Find which corner of `non_monotone_boundary` is the closest.
@@ -706,6 +706,7 @@ bool join_turning_points_pair_with_new_chart(const MeshExt& mesh, Attribute<inde
 
 bool auto_fix_monotonicity(const MeshExt& mesh, Attribute<index_t>& labeling, LabelingGraph& lg) {
     geo_debug_assert(labeling.is_bound());
+    geo_assert(mesh.halfedges.is_using_facet_region());
     
     size_t nb_processed = 0;
 
