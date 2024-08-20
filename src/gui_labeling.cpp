@@ -1,3 +1,5 @@
+#include <geogram_gfx/full_screen_effects/ambient_occlusion.h>
+
 #include "gui_labeling.h"
 
 LabelingViewerApp::LabelingViewerApp(const std::string name, bool auto_flip_normals) :
@@ -327,6 +329,21 @@ void LabelingViewerApp::draw_menu_bar() {
         }
         ImGui::EndMainMenuBar();
     }
+}
+
+void LabelingViewerApp::draw_viewer_properties() {
+    SimpleMeshApplicationExt::draw_viewer_properties();
+    if(!full_screen_effect_.is_null()) {
+        AmbientOcclusionImpl* ambiant_occlusion = dynamic_cast<AmbientOcclusionImpl*>(full_screen_effect_.get());
+        if(ambiant_occlusion != nullptr) {
+            if(ImGui::InputInt("contrast",&contrast,1,10)) {
+                ambiant_occlusion->set_contrast((index_t) contrast);
+                ambiant_occlusion->update();
+            }
+        }
+        // else: a full screen effect is used, but not Ambiant Occlusion
+    }
+    // else: no full screen effect applied
 }
 
 void LabelingViewerApp::draw_object_properties() {
