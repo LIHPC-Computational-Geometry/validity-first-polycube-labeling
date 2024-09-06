@@ -148,7 +148,7 @@ void write_glTF__triangle_mesh(std::string filename, MeshExt& M, bool with_wiref
     bufferview_0_vertices_coordinates.byteLength = buffer_coordinates_length;
     bufferview_0_vertices_coordinates.target = TINYGLTF_TARGET_ARRAY_BUFFER;
 
-    // 2nd chunk of the bufffer 0 : triangles = vertex indices (type ELEMENT_ARRAY_BUFFER)
+    // 2nd chunk of the buffer 0 : triangles = vertex indices (type ELEMENT_ARRAY_BUFFER)
     bufferview_1_triangles_vertices.buffer = BUFFER_0;
     bufferview_1_triangles_vertices.byteOffset = buffer_triangles_start;
     bufferview_1_triangles_vertices.byteLength = buffer_triangles_length;

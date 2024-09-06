@@ -180,6 +180,10 @@ add_executable(polycube_distortion app/polycube_distortion.cpp)
 target_include_directories(polycube_distortion PRIVATE include)
 target_link_libraries(polycube_distortion PRIVATE automatic_polycube_lib ${EXTERNAL_LIBS})
 
+add_executable(convert_labeled_obj app/convert_labeled_obj.cpp)
+target_include_directories(convert_labeled_obj PRIVATE include)
+target_link_libraries(convert_labeled_obj PRIVATE automatic_polycube_lib ${EXTERNAL_LIBS})
+
 # optional test subdirectory (using googletest)
 option(AUTOMATIC_POLYCUBE_BUILD_TESTS "Build automatic_polycube tests" OFF)
 if(AUTOMATIC_POLYCUBE_BUILD_TESTS)
