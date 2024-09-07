@@ -44,6 +44,8 @@ LabelingViewerApp::LabelingViewerApp(const std::string name, bool auto_flip_norm
     show_feature_edges_ = true;
     feature_edges_width_ = 5;
     allow_boundaries_between_opposite_labels_ = false; // parameter of LabelingGraph::fill_from()
+    fidelity_graphcuts_coeff_ = 3;
+	compactness_graphcuts_coeff_ = 1;
     show_boundaries_ = false;
     boundaries_width_ = 6;
     X_boundaries_group_index_ = 0;
@@ -587,6 +589,17 @@ void LabelingViewerApp::draw_object_properties() {
         
         if(ImGui::Button("Smart init labeling")) {
             smart_init_labeling(mesh_ext_,labeling_);
+            mesh_ext_.halfedges.set_use_facet_region(LABELING_ATTRIBUTE_NAME);
+            update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
+            state_transition(labeling);
+        }
+
+        ImGui::SetNextItemWidth(120.0f);
+        ImGui::InputInt("fidelity coeff",&fidelity_graphcuts_coeff_);
+        ImGui::SetNextItemWidth(120.0f);
+        ImGui::InputInt("compactness coeff",&compactness_graphcuts_coeff_);
+        if(ImGui::Button("Compute graph-cuts labeling")) {
+            graphcut_labeling(mesh_ext_,labeling_,compactness_graphcuts_coeff_,fidelity_graphcuts_coeff_);
             mesh_ext_.halfedges.set_use_facet_region(LABELING_ATTRIBUTE_NAME);
             update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
             state_transition(labeling);

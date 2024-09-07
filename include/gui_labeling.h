@@ -114,6 +114,8 @@ protected:
 	int feature_edges_width_; // width of feature edges
 	// Related to labelings
 	bool allow_boundaries_between_opposite_labels_; // if boundaries between charts labeled to the same axis, but on > 180° angles, are allowed (when computing the labeling graph)
+	int fidelity_graphcuts_coeff_; // fidelity coeff for a graph-cuts labeling computation
+	int compactness_graphcuts_coeff_; // compactness coeff for a graph-cuts labeling computation
 	bool show_boundaries_; // display labeling graph boundaries
 	int boundaries_width_; // width of labeling graph boundaries
 	std::size_t X_boundaries_group_index_; // index of the edges group in the overlay storing edges of boundaries mapped to the X axis
