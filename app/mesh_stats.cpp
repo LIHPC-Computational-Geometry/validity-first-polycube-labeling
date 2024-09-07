@@ -27,6 +27,8 @@
 #include <iostream>
 #include <iomanip>
 #include <array>
+#include <set>
+#include <vector>
 
 #include "labeling.h"
 #include "stats.h"
@@ -159,6 +161,9 @@ int main(int argc, char** argv) {
     // Edges
     ////////////////////////////////
 
+    // In Geogram, edges are unrelated to the surfacic and volumetric parts of the mesh
+    // https://github.com/BrunoLevy/geogram/wiki/Mesh#mesh-edges
+
     output_JSON["edges"]["nb"] = input_mesh.edges.nb();
     if(input_mesh.edges.nb()!=0) {
         IncrementalStats edges_length_stats;
@@ -189,7 +194,47 @@ int main(int argc, char** argv) {
         output_JSON["facets"]["area"]["avg"] = facets_area_stats.avg();
         output_JSON["facets"]["area"]["sd"]  = facets_area_stats.sd();
         output_JSON["facets"]["area"]["sum"] = facets_area_stats.sum();
-        output_JSON["facets"]["normals_outward"] = (facet_normals_are_inward(input_mesh) == false);
+        if(input_mesh.cells.nb()==0) { // if there is no cells in the mesh (surface only)
+            output_JSON["facets"]["normals_outward"] = (facet_normals_are_inward(input_mesh) == false);
+        }
+    }
+
+    ////////////////////////////////
+    // Facet edges
+    ////////////////////////////////
+
+    std::set<std::set<index_t>> unique_facet_edges;
+    index_t nb_corners = index_t(-1);
+    index_t v0 = index_t(-1);
+    index_t v1 = index_t(-1);
+    if(input_mesh.facets.nb()!=0) {
+        FOR(f,input_mesh.facets.nb()) { // for each facet
+            nb_corners = input_mesh.facets.nb_corners(f);
+            FOR(lv,nb_corners) { // for each local vertex of f
+                v0 = input_mesh.facet_corners.vertex(input_mesh.facets.corner(f,lv));
+                v1 = input_mesh.facet_corners.vertex(input_mesh.facets.corner(f,(lv+1) % nb_corners));
+                unique_facet_edges.insert({v0,v1}); // auto-sorted by the set
+            }
+        }
+        output_JSON["facets"]["edges"]["nb"] = unique_facet_edges.size();
+        IncrementalStats facet_edges_length_stats;
+        for(const std::set<index_t>& edge : unique_facet_edges) {
+            geo_debug_assert(edge.size()==2); // only 2 vertex indices
+            facet_edges_length_stats.insert(length(
+                mesh_vertex(input_mesh,*edge.rbegin()) - mesh_vertex(input_mesh,*edge.begin())
+            ));
+        }
+        output_JSON["facets"]["edges"]["length"]["min"] = facet_edges_length_stats.min();
+        output_JSON["facets"]["edges"]["length"]["max"] = facet_edges_length_stats.max();
+        output_JSON["facets"]["edges"]["length"]["avg"] = facet_edges_length_stats.avg();
+        output_JSON["facets"]["edges"]["length"]["sd"] = facet_edges_length_stats.sd();
+        fmt::println(
+            "Euler characteristic for surface polyhedra = V - E + F = {} - {} + {} = {}",
+            input_mesh.vertices.nb(),
+            unique_facet_edges.size(),
+            input_mesh.facets.nb(),
+            input_mesh.vertices.nb() - unique_facet_edges.size() + input_mesh.facets.nb()
+        );
     }
 
     ////////////////////////////////
@@ -223,6 +268,67 @@ int main(int argc, char** argv) {
             output_JSON["cells"]["quality"]["hex_SJ"]["avg"] = scaled_jacobian_stats.avg();
             output_JSON["cells"]["quality"]["hex_SJ"]["sd"]  = scaled_jacobian_stats.sd();
         }
+    }
+
+    ////////////////////////////////
+    // Cells facets
+    ////////////////////////////////
+
+    std::map<std::set<index_t>,std::vector<index_t>> unique_cell_facets; // set as key -> ensure uniqueness, vector as value -> keep vertices ordering for later
+    std::vector<index_t> facet_vertices;
+    if(input_mesh.cells.nb()!=0) {
+        FOR(c,input_mesh.cells.nb()) { // for each cell
+            index_t nb_facets = input_mesh.cells.nb_facets(c);
+            FOR(lf,nb_facets) { // for each local facet of c
+                index_t nb_vertices = input_mesh.cells.facet_nb_vertices(c,lf);
+                facet_vertices.clear();
+                FOR(lv,nb_vertices) { // for each local vertex of this facet
+                    facet_vertices.push_back(input_mesh.cells.facet_vertex(c,lf,lv));
+                }
+                unique_cell_facets.insert_or_assign(
+                    std::set(facet_vertices.begin(),facet_vertices.end()),// auto-sorted by the set
+                    facet_vertices
+                );
+            }
+        }
+        output_JSON["cells"]["facets"]["nb"] = unique_cell_facets.size();
+        // TODO compute min/max/avg/sd area like GEO::Geom::mesh_facet_area() does
+    }
+
+
+    ////////////////////////////////
+    // Cells edges
+    ////////////////////////////////
+
+    std::set<std::set<index_t>> unique_cell_edges;
+    if(input_mesh.cells.nb()!=0) {
+        FOR(c,input_mesh.cells.nb()) { // for each cell
+            FOR(ce,input_mesh.cells.nb_edges(c)) { // for each edge of c
+                v0 = input_mesh.cells.edge_vertex(c,ce,0);
+                v1 = input_mesh.cells.edge_vertex(c,ce,1);
+                unique_cell_edges.insert({v0,v1}); // auto-sorted by the set
+            }
+        }
+        output_JSON["cells"]["edges"]["nb"] = unique_cell_edges.size();
+        IncrementalStats cell_edges_length_stats;
+        for(const std::set<index_t>& edge : unique_cell_edges) {
+            geo_debug_assert(edge.size()==2); // only 2 vertex indices
+            cell_edges_length_stats.insert(length(
+                mesh_vertex(input_mesh,*edge.rbegin()) - mesh_vertex(input_mesh,*edge.begin())
+            ));
+        }
+        output_JSON["cells"]["edges"]["length"]["min"] = cell_edges_length_stats.min();
+        output_JSON["cells"]["edges"]["length"]["max"] = cell_edges_length_stats.max();
+        output_JSON["cells"]["edges"]["length"]["avg"] = cell_edges_length_stats.avg();
+        output_JSON["cells"]["edges"]["length"]["sd"] = cell_edges_length_stats.sd();
+        fmt::println(
+            "Euler characteristic for volume polyhedra = V - E + F - C = {} - {} + {} - {} = {}",
+            input_mesh.vertices.nb(),
+            unique_cell_edges.size(),
+            unique_cell_facets.size(),
+            input_mesh.cells.nb(),
+            input_mesh.vertices.nb() - unique_cell_edges.size() + unique_cell_facets.size() - input_mesh.cells.nb()
+        );
     }
 
     // write to stdout or file, according to the number of arguments
