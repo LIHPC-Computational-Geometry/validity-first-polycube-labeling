@@ -19,6 +19,7 @@ From a 3D triangle mesh, generate a labeling which maps each triangle to one of 
 - [`extract_surface.cpp`](extract_surface.cpp) : extract the surface triangle mesh from a tetrahedral mesh
 - [`flip_normals.cpp`](flip_normals.cpp) : flip all the triangles, so that their normals are in the other direction
 - [`reorient_mesh.cpp`](reorient_mesh.cpp) : rotate a mesh according to the principal axes of the point cloud
+- [`convert_labeled_obj.cpp`](convert_labeled_obj.cpp) : extract the labeling (as .txt) and the un-labeled mesh (as .obj) from a labeled .obj (PolyCut outputs)
 
 ## Stats and metrics computation
 
