@@ -1030,6 +1030,7 @@ void write_glTF__hex_mesh_surface(std::string filename, const GEO::Mesh& hex_mes
     std::vector<index_t> triangle_to_old_facet;
     std::vector<index_t> corner_to_old_corner;
     triangulate_facets(mesh,triangle_to_old_facet,corner_to_old_corner);
+    mesh.adj_facet_corners.recompute();
 
     // 6.
 
