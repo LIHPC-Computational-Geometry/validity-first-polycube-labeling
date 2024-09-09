@@ -836,9 +836,7 @@ void LabelingViewerApp::GL_initialize() {
     SimpleMeshApplicationExt::GL_initialize();
     init_rgba_colormap("labeling",6,1,labeling_colors_.as_chars());
     init_rgba_colormap("validity",2,1,validity_colors_.as_chars());
-    if((mesh_.vertices.nb()!=0) && mesh_.facets.attributes().is_defined(LABELING_ATTRIBUTE_NAME)) {
-        state_transition(labeling);
-    }
+    state_transition(state_); // not all state_transition() code has been executed if GL was not initialized (in particular because missing colormaps)
 }
 
 void LabelingViewerApp::mouse_button_callback(int button, int action, int mods, int source) {
