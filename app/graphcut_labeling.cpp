@@ -3,6 +3,8 @@
 
 // TODO do not lauch GUI if both parameters are given by CLI
 
+#include <geogram/basic/command_line_args.h> // for import_arg_group()
+
 #include <algorithm>	// for std::max_element(), std::min_element()
 #include <cmath>		// for std::round()
 
@@ -11,6 +13,14 @@
 #include "gui_labeling.h"
 #include "labeling.h"
 #include "containers_Geogram.h"	// for max() on a Geogram vector
+
+// PolyCut [1, Section 3.1, page 5] and Evocube [2, section 4, p. 7] use a fidelity/compactness ratio of 3 for the first try
+// [1] Livesu, Vining, Sheffer, Gregson, Scateni, "Polycut: Monotone graph-cuts for polycube base-complex construction", ACM Trans. on Graphics, 2013
+// [2] Dumery, Protais, Mestrallet, Bourcier, Ledoux, "Evocube: a Genetic Labeling Framework for Polycube-Maps", Computer Graphics Forum, 2022
+#define DEFAULT_COMPACTNESS 1
+#define DEFAULT_FIDELITY	3
+
+#define DEFAULT_OUTPUT_FILENAME "labeling.txt"
 
 template <typename T>
 struct StatsComponents {
@@ -30,11 +40,8 @@ class GraphCutLabelingApp : public LabelingViewerApp {
 public:
 
     GraphCutLabelingApp() : LabelingViewerApp("graphcut_labeling") {
-		// PolyCut [1, Section 3.1, page 5] and Evocube [2, section 4, p. 7] use a fidelity/compactness ratio of 3 for the first try
-		// [1] Livesu, Vining, Sheffer, Gregson, Scateni, "Polycut: Monotone graph-cuts for polycube base-complex construction", ACM Trans. on Graphics, 2013
-		// [2] Dumery, Protais, Mestrallet, Bourcier, Ledoux, "Evocube: a Genetic Labeling Framework for Polycube-Maps", Computer Graphics Forum, 2022
-		compactness_coeff_ = 1;
-		fidelity_coeff_ = 3;
+		compactness_coeff_ = DEFAULT_COMPACTNESS;
+		fidelity_coeff_ = DEFAULT_FIDELITY;
 		smooth_cost_.resize(6*6);
 		// fill smooth_cost_. equivalent to what GraphCutLabeling::smooth_cost__set__default() does.
 		FOR(label1,6) {
@@ -275,7 +282,117 @@ protected:
 };
 
 int main(int argc, char** argv) {
-    GraphCutLabelingApp app;
-	app.start(argc,argv);
-    return 0;
+
+	GEO::initialize();
+
+	CmdLine::import_arg_group("standard");
+	CmdLine::declare_arg(
+		"gui",
+		true,
+		"Show the graphical user interface"
+	);
+	CmdLine::declare_arg(
+        "output",
+        "",
+        "where to write the output labeling (in case gui=false)"
+    ); // not a positional arg, to have a similar CLI with/without GUI
+	CmdLine::declare_arg(
+		"compactness",
+		DEFAULT_COMPACTNESS,
+		"the compactness coefficient"
+	);
+	CmdLine::declare_arg(
+		"fidelity",
+		DEFAULT_FIDELITY,
+		"the fidelity coefficient"
+	);
+
+	std::vector<std::string> filenames;
+	if(!CmdLine::parse(
+		argc,
+		argv,
+		filenames,
+		"<input_surface_mesh>"
+		))
+	{
+		return 1;
+	}
+	
+	if(CmdLine::get_arg_bool("gui")) { // if GUI mode
+		GraphCutLabelingApp app;
+		app.start(argc,argv);
+		return 0;
+	}
+    // else: no GUI, auto-process the input mesh
+
+	if(filenames.size() < 1) { // missing filenames[0], that is <input_surface_mesh> argument
+		fmt::println(Logger::err("I/O"),"When gui=false, the input filename must be given as CLI argument"); Logger::err("I/O").flush();
+		return 1;
+	}
+
+	std::string output_labeling_path = GEO::CmdLine::get_arg("output");
+	if(output_labeling_path.empty()) {
+		fmt::println(Logger::warn("I/O"),"The output filename was not provided, using default '{}'",DEFAULT_OUTPUT_FILENAME); Logger::warn("I/O").flush();
+		output_labeling_path = DEFAULT_OUTPUT_FILENAME;
+	}
+
+	Mesh M;
+	if(!mesh_load(filenames[0],M)) {
+		fmt::println(Logger::err("I/O"),"Unable to load mesh from {}",filenames[0]);
+		return 1;
+	}
+
+	if(M.facets.nb() == 0) {
+		fmt::println(Logger::err("I/O"),"Input mesh {} has no facets",filenames[0]);
+		return 1;
+	}
+
+	if(!M.facets.are_simplices()) {
+		fmt::println(Logger::err("I/O"),"Input mesh {} is not a triangle mesh",filenames[0]);
+		return 1;
+	}
+
+	if(M.cells.nb() != 0) {
+		fmt::println(Logger::err("I/O"),"Input mesh {} is a volume mesh (#cells is not zero)",filenames[0]);
+		return 1;
+	}
+
+	//////////////////////////////////////////////////
+	// Geometry preprocessing, see LabelingViewerApp::load()
+	//////////////////////////////////////////////////
+
+	// TODO mesh rotation according to the PCA, see rotate_mesh_according_to_principal_axes() in geometry.h
+
+	// ensure facet normals are outward
+	if(facet_normals_are_inward(M)) {
+		flip_facet_normals(M);
+		fmt::println(Logger::warn("normals dir."),"Facet normals of the input mesh were inward");
+		fmt::println(Logger::warn("normals dir."),"You should flip them and update the file for consistency.");
+		Logger::warn("normals dir.").flush();
+	}
+
+	MeshExt M_ext(M); // will compute facet normals, feature edges, and vertex -> facets adjacency
+
+	//////////////////////////////////////////////////
+	// Labeling optimization with Graph-cuts
+	//////////////////////////////////////////////////
+
+	fmt::println(Logger::out("graph-cut"),"Using {} as compactness coeff",CmdLine::get_arg_int("compactness"));
+	fmt::println(Logger::out("graph-cut"),"Using {} as fidelity coeff",CmdLine::get_arg_int("fidelity"));
+
+	Attribute<index_t> labeling(M_ext.facets.attributes(),LABELING_ATTRIBUTE_NAME);
+	graphcut_labeling(
+		M_ext,
+		labeling,
+		CmdLine::get_arg_int("compactness"),
+		CmdLine::get_arg_int("fidelity")
+	);
+
+	//////////////////////////////////////////////////
+	// Write output labeling
+	//////////////////////////////////////////////////
+
+	fmt::println(Logger::out("I/O"),"Writing {}...",output_labeling_path); Logger::out("I/O").flush();
+	save_labeling(output_labeling_path,M_ext,labeling);
+	fmt::println(Logger::out("I/O"),"Done"); Logger::out("I/O").flush();
 }

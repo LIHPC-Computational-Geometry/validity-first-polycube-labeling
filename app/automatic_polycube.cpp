@@ -167,7 +167,7 @@ int main(int argc, char** argv) {
         "output",
         "",
         "where to write the output labeling (in case gui=false)"
-    );
+    ); // not a positional arg, to have a similar CLI with/without GUI
 
 	std::vector<std::string> filenames;
 	if(!CmdLine::parse(
