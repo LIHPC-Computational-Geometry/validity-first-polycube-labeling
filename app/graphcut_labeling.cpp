@@ -8,17 +8,11 @@
 #include <algorithm>	// for std::max_element(), std::min_element()
 #include <cmath>		// for std::round()
 
-#include "labeling_graphcuts.h"
+#include "labeling_graphcuts.h" // for DEFAULT_COMPACTNESS, DEFAULT_FIDELITY, DEFAULT_SENSITIVITY, DEFAULT_ANGLE_OF_ROTATION
 #include "labeling_generators.h"
 #include "gui_labeling.h"
 #include "labeling.h"
 #include "containers_Geogram.h"	// for max() on a Geogram vector
-
-// PolyCut [1, Section 3.1, page 5] and Evocube [2, section 4, p. 7] use a fidelity/compactness ratio of 3 for the first try
-// [1] Livesu, Vining, Sheffer, Gregson, Scateni, "Polycut: Monotone graph-cuts for polycube base-complex construction", ACM Trans. on Graphics, 2013
-// [2] Dumery, Protais, Mestrallet, Bourcier, Ledoux, "Evocube: a Genetic Labeling Framework for Polycube-Maps", Computer Graphics Forum, 2022
-#define DEFAULT_COMPACTNESS 1
-#define DEFAULT_FIDELITY	3
 
 #define DEFAULT_OUTPUT_FILENAME "labeling.txt"
 
@@ -50,6 +44,8 @@ public:
 				smooth_cost_[label1+label2*6] = (label1==label2) ? 0 : 1;
 			}
 		}
+		sensitivity_ = DEFAULT_SENSITIVITY;
+		angle_of_rotation_ = DEFAULT_ANGLE_OF_ROTATION;
 		selected_chart_ = index_t(-1);
 		selected_chart_mode_ = false;
 		selected_chart_data_cost_stats_.reset();
@@ -93,6 +89,10 @@ protected:
 			ImGui::InputInt("Compactness", &compactness_coeff_);
 			ImGui::InputInt("Fidelity", &fidelity_coeff_);
 
+			ImGui::TextUnformatted("Normals pre-processing:");
+			ImGui::InputDouble("Sensitivity", &sensitivity_, 0.0, 0.0, "%.15f");
+			ImGui::InputDouble("Angle of rotation", &angle_of_rotation_);
+
 			ImGui::Text("Smooth cost");
 			if (ImGui::BeginTable("Smooth cost table", 7, ImGuiTableFlags_Borders)) { // 7 columns
 				ImGui::TableNextRow();
@@ -125,7 +125,28 @@ protected:
 
 			if(ImGui::Button("Compute solution")) {
 				auto gcl = GraphCutLabeling(mesh_ext_);
-				gcl.data_cost__set__fidelity_based(fidelity_coeff_);
+				// TODO remove redundancy with src/labeling_generators.cpp graphcut_labeling()
+				if(std::fpclassify(sensitivity_) == FP_ZERO) {
+					// sensitivity is null, use the fidelity based data cost
+					gcl.data_cost__set__fidelity_based(fidelity_coeff_);
+				}
+				else {
+					std::vector<int> custom_data_cost(mesh_ext_.facets.nb()*6);
+					vec3 normal;
+					mat3 rotation_to_apply = rotation_matrix(angle_of_rotation_);
+					FOR(f,mesh_ext_.facets.nb()) {
+						normal = mesh_ext_.facet_normals[f];
+						if(is_a_facet_to_tilt(normal,sensitivity_)) {
+							normal = mult(rotation_to_apply,normal); // rotation of the normal
+						}
+						FOR(label,6) {
+							double dot = (GEO::dot(normal,label2vector[label]) - 1.0)/0.2;
+							double cost = 1.0 - std::exp(-(1.0/2.0)*std::pow(dot,2));
+							custom_data_cost[f*6+label] = (int) (fidelity_coeff_*100*cost);
+						}
+					}
+					gcl.data_cost__set__all_at_once(custom_data_cost);
+				}
 				gcl.smooth_cost__set__custom(smooth_cost_);
 				gcl.neighbors__set__compactness_based(compactness_coeff_);
 				Attribute<index_t> label(mesh_.facets.attributes(), LABELING_ATTRIBUTE_NAME);
@@ -274,6 +295,8 @@ protected:
 	int fidelity_coeff_;
 	std::vector<int> data_cost_;
 	std::vector<int> smooth_cost_;
+	double sensitivity_;
+	double angle_of_rotation_;
 	index_t selected_chart_;
 	bool selected_chart_mode_;
 	StatsComponents<vec6f> selected_chart_data_cost_stats_; // 3 vec6f : per-label min, per-label max and per-label avg

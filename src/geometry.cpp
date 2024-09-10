@@ -607,3 +607,30 @@ void triangulate_facets(Mesh& M, std::vector<index_t>& triangle_index_to_old_fac
     }
     M.facets.assign_triangle_mesh(new_corner_vertex_index, true);
 }
+
+mat3 rotation_matrix(double OX_OY_OZ_angle) {
+    // https://en.wikipedia.org/wiki/Rotation_matrix#Basic_3D_rotations
+    // rotation of the same angle value around the OX, OY and OZ axes
+    const double _cos = cos(OX_OY_OZ_angle);
+    const double _sin = sin(OX_OY_OZ_angle);
+    const double _cos_squared = _cos*_cos;
+    const double _sin_squared = _sin*_sin;
+    const double _sin_times_cos = _sin*_cos;
+    return mat3({
+        {
+            _cos_squared,            // <=> cos*cos              @ (0,0)
+            _sin_times_cos*(_sin-1), // <=> sin*sin*cos-cos*sin  @ (0,1)
+            _sin*(_cos_squared+_sin) // <=> cos*sin*cos+sin*sin  @ (0,2)
+        },
+        {
+            _sin_times_cos,                 // <=> cos*sin              @ (1,0)
+            _sin_squared*_sin+_cos_squared, // <=> sin*sin*sin+cos*cos  @ (1,1)
+            _sin_times_cos*(_sin-1)         // <=> cos*sin*sin-sin*cos  @ (1,2)
+        },
+        {
+            -_sin,          // <=> -sin     @ (2,0)
+            _sin_times_cos, // <=> sin*cos  @ (2,1)
+            _cos_squared    // <=> cos*cos  @ (2,2)
+        }
+    });
+}

@@ -164,3 +164,5 @@ index_t group_facets(const Mesh& mesh, const std::set<index_t>& facets_to_tilt, 
 double sd_adjacent_facets_area(const Mesh& mesh, const std::vector<std::vector<index_t>>& adj_facets, index_t vertex_index);
 
 void triangulate_facets(Mesh& M, std::vector<index_t>& triangle_index_to_old_facet_index, std::vector<index_t>& corner_index_to_old_corner_index);
+
+mat3 rotation_matrix(double OX_OY_OZ_angle);
