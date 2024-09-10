@@ -62,6 +62,7 @@ bool save_labeling(const std::string& filename, const Mesh& mesh, Attribute<inde
     geo_debug_assert(labeling.is_bound());
     auto out = fmt::output_file(filename);
     FOR(f,mesh.facets.nb()) {
+        geo_debug_assert(f < labeling.size());
         out.print("{}",labeling[f]);
         if(f != mesh.facets.nb()-1)
             out.print("\n");

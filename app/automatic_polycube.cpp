@@ -1,12 +1,17 @@
 /*
  * Tricky CLI arguments format with Geogram :
  * Filenames first, then options without dashes prefixes
+ * ex: ./executable filename1 filename2 arg1=value arg2=value 
  * 
  * With GUI:
  *     ./automatic_polycube surface_mesh.obj gui=true
+ *     ./automatic_polycube surface_mesh.obj init_labeling.txt gui=true
  * 
  * Without GUI:
- *     ./automatic_polycube surface_mesh.obj output_labeling.txt gui=false
+ *     ./automatic_polycube surface_mesh.obj gui=false # use DEFAULT_OUTPUT_FILENAME
+ *     ./automatic_polycube surface_mesh.obj gui=false output=output_labeling.txt
+ *     ./automatic_polycube surface_mesh.obj init_labeling.txt gui=false # use DEFAULT_OUTPUT_FILENAME
+ *     ./automatic_polycube surface_mesh.obj init_labeling.txt gui=false output=output_labeling.txt
  */
 
 #include <geogram/basic/attributes.h>
@@ -29,7 +34,7 @@
 #include "labeling_operators_on_invalidity.h"
 #include "labeling_operators_on_distortion.h"
 
-#define STDDEV_BASED_CHART_REFINEMENT
+#define DEFAULT_OUTPUT_FILENAME "labeling.txt"
 
 class AutomaticPolycubeApp : public LabelingViewerApp {
 public:
@@ -150,15 +155,26 @@ protected:
 
 int main(int argc, char** argv) {
 
-	std::vector<std::string> filenames;
 	GEO::initialize();
+
 	CmdLine::import_arg_group("standard"); // strangely, this line is required for the Logger to work on Release mode when gui=false...
-	CmdLine::declare_arg("gui", true, "Show the graphical user interface");
+	CmdLine::declare_arg(
+		"gui",
+		true,
+		"Show the graphical user interface"
+	);
+	CmdLine::declare_arg(
+        "output",
+        "",
+        "where to write the output labeling (in case gui=false)"
+    );
+
+	std::vector<std::string> filenames;
 	if(!CmdLine::parse(
 		argc,
 		argv,
 		filenames,
-		"<input_surface_mesh> <output_labeling>"
+		"<input_surface_mesh> <input_init_labeling>"
 		))
 	{
 		return 1;
@@ -171,14 +187,15 @@ int main(int argc, char** argv) {
 	}
 	// else: no GUI, auto-process the input mesh
 
-	if(filenames.size() == 0) { // missing filenames[0], that is <input_surface_mesh> argument
+	if(filenames.size() < 1) { // missing filenames[0], that is <input_surface_mesh> argument
 		fmt::println(Logger::err("I/O"),"When gui=false, the input filename must be given as CLI argument"); Logger::err("I/O").flush();
 		return 1;
 	}
 
-	if(filenames.size() < 2) { // missing filenames[1], that is <output_labeling> argument
-		fmt::println(Logger::warn("I/O"),"The output filename was not provided, using default labeling.txt"); Logger::warn("I/O").flush();
-		filenames.push_back("labeling.txt"); // default output filename
+	std::string output_labeling_path = GEO::CmdLine::get_arg("output");
+	if(output_labeling_path.empty()) {
+		fmt::println(Logger::warn("I/O"),"The output filename was not provided, using default '{}'",DEFAULT_OUTPUT_FILENAME); Logger::warn("I/O").flush();
+		output_labeling_path = DEFAULT_OUTPUT_FILENAME;
 	}
 
 	bool allow_boundaries_between_opposite_labels = true;
@@ -220,11 +237,18 @@ int main(int argc, char** argv) {
 	MeshExt M_ext(M); // will compute facet normals, feature edges, and vertex -> facets adjacency
 
 	//////////////////////////////////////////////////
-	// Compute initial labeling
+	// Load/compute initial labeling
 	//////////////////////////////////////////////////
 
 	Attribute<index_t> labeling(M_ext.facets.attributes(),LABELING_ATTRIBUTE_NAME);
-	smart_init_labeling(M_ext,labeling);
+	if(filenames.size() >= 2) { // there is a filenames[1], that is the <input_init_labeling> argument
+		load_labeling(filenames[1],M,labeling);
+	}
+	else {
+		fmt::println(Logger::warn("I/O"),"No initial labeling was provided, using smart_init_labeling()"); Logger::warn("I/O").flush();
+		smart_init_labeling(M_ext,labeling);
+	}
+	M_ext.halfedges.set_use_facet_region(LABELING_ATTRIBUTE_NAME);
 
 	//////////////////////////////////////////////////
 	// Construct charts, boundaries & corners
@@ -237,7 +261,6 @@ int main(int argc, char** argv) {
 	// Validity & monotonicity correction
 	//////////////////////////////////////////////////
 
-	M_ext.halfedges.set_use_facet_region(LABELING_ATTRIBUTE_NAME);
 	if(auto_fix_validity(M_ext,labeling,lg,100)) {
 		// auto-fix the monotonicity only if the validity was fixed
 		auto_fix_monotonicity(M_ext,labeling,lg);
@@ -247,8 +270,8 @@ int main(int argc, char** argv) {
 	// Write output labeling
 	//////////////////////////////////////////////////
 
-	fmt::println(Logger::out("I/O"),"Writing {}...",filenames[1]); Logger::out("I/O").flush();
-	save_labeling(filenames[1],M_ext,labeling);
+	fmt::println(Logger::out("I/O"),"Writing {}...",output_labeling_path); Logger::out("I/O").flush();
+	save_labeling(output_labeling_path,M_ext,labeling);
 	fmt::println(Logger::out("I/O"),"Done"); Logger::out("I/O").flush();
 	
     return 0;
