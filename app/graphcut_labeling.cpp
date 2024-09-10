@@ -39,9 +39,9 @@ struct StatsComponents {
 class GraphCutLabelingApp : public LabelingViewerApp {
 public:
 
-    GraphCutLabelingApp() : LabelingViewerApp("graphcut_labeling") {
-		compactness_coeff_ = DEFAULT_COMPACTNESS;
-		fidelity_coeff_ = DEFAULT_FIDELITY;
+    GraphCutLabelingApp(int compactness = DEFAULT_COMPACTNESS, int fidelity = DEFAULT_FIDELITY) : LabelingViewerApp("graphcut_labeling") {
+		compactness_coeff_ = compactness;
+		fidelity_coeff_ = fidelity;
 		smooth_cost_.resize(6*6);
 		// fill smooth_cost_. equivalent to what GraphCutLabeling::smooth_cost__set__default() does.
 		FOR(label1,6) {
@@ -319,7 +319,10 @@ int main(int argc, char** argv) {
 	}
 	
 	if(CmdLine::get_arg_bool("gui")) { // if GUI mode
-		GraphCutLabelingApp app;
+		GraphCutLabelingApp app(
+			CmdLine::get_arg_int("compactness"),
+			CmdLine::get_arg_int("fidelity")
+		);
 		app.start(argc,argv);
 		return 0;
 	}
