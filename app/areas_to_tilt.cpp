@@ -21,6 +21,7 @@
 
 #include "gui_base.h" // for SimpleMeshApplicationExt, colormaps indices
 #include "geometry.h" // for is_a_facet_to_tilt()
+#include "labeling_generators.h" // for DEFAULT_SENSITIVITY
 
 using namespace GEO;
 
@@ -33,7 +34,7 @@ public:
         show_volume_ = false;
         show_colored_cells_ = false;
         // init own variables
-        sensitivity_ = 0.3f; // 0.02f
+        sensitivity_ = DEFAULT_SENSITIVITY;
         group_by_area_ = false;
         nb_areas = 0;
     }
@@ -41,7 +42,7 @@ public:
 protected:
 
     void draw_object_properties() override {
-        ImGui::SliderFloat("Sensitivity",&sensitivity_,0.0f,1.0f,"%0.4f");
+        ImGui::InputDouble("Sensitivity", &sensitivity_, 0.0, 0.0, "%.15f");
         if(ImGui::Checkbox("Group by area",&group_by_area_)) {
             update_drawing_settings();
         }
@@ -127,7 +128,7 @@ protected:
     }
 
     MeshExt mesh_ext_;
-    float sensitivity_;
+    double sensitivity_;
     bool group_by_area_;
     std::size_t nb_areas;
 
