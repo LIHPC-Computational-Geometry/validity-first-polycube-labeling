@@ -34,7 +34,12 @@ struct StatsComponents {
 class GraphCutLabelingApp : public LabelingViewerApp {
 public:
 
-    GraphCutLabelingApp(int compactness = DEFAULT_COMPACTNESS, int fidelity = DEFAULT_FIDELITY) : LabelingViewerApp("graphcut_labeling") {
+    GraphCutLabelingApp(
+		int compactness = DEFAULT_COMPACTNESS,
+		int fidelity = DEFAULT_FIDELITY,
+		double sensitivity = DEFAULT_SENSITIVITY,
+		double angle_of_rotation = DEFAULT_ANGLE_OF_ROTATION
+	) : LabelingViewerApp("graphcut_labeling") {
 		compactness_coeff_ = compactness;
 		fidelity_coeff_ = fidelity;
 		smooth_cost_.resize(6*6);
@@ -45,8 +50,8 @@ public:
 				smooth_cost_[label1+label2*6] = (label1==label2) ? 0 : 1;
 			}
 		}
-		sensitivity_ = DEFAULT_SENSITIVITY;
-		angle_of_rotation_ = DEFAULT_ANGLE_OF_ROTATION;
+		sensitivity_ = sensitivity;
+		angle_of_rotation_ = angle_of_rotation;
 		selected_chart_ = index_t(-1);
 		selected_chart_mode_ = false;
 		selected_chart_data_cost_stats_.reset();
@@ -330,6 +335,16 @@ int main(int argc, char** argv) {
 		DEFAULT_FIDELITY,
 		"the fidelity coefficient"
 	);
+	CmdLine::declare_arg(
+		"sensitivity",
+		DEFAULT_SENSITIVITY,
+		"sensitivity (delta between 2 best label weights) that triggers a facet normal rotation"
+	);
+	CmdLine::declare_arg(
+		"angle_of_rotation",
+		DEFAULT_ANGLE_OF_ROTATION,
+		"angle around OX, OY & OZ applied to the facet normals to rotate"
+	);
 
 	std::vector<std::string> filenames;
 	if(!CmdLine::parse(
@@ -345,7 +360,9 @@ int main(int argc, char** argv) {
 	if(CmdLine::get_arg_bool("gui")) { // if GUI mode
 		GraphCutLabelingApp app(
 			CmdLine::get_arg_int("compactness"),
-			CmdLine::get_arg_int("fidelity")
+			CmdLine::get_arg_int("fidelity"),
+			CmdLine::get_arg_double("sensitivity"),
+			CmdLine::get_arg_double("angle_of_rotation")
 		);
 		app.start(argc,argv);
 		return 0;
@@ -412,7 +429,9 @@ int main(int argc, char** argv) {
 		M_ext,
 		labeling,
 		CmdLine::get_arg_int("compactness"),
-		CmdLine::get_arg_int("fidelity")
+		CmdLine::get_arg_int("fidelity"),
+		CmdLine::get_arg_double("sensitivity"),
+		CmdLine::get_arg_double("angle_of_rotation")
 	);
 
 	//////////////////////////////////////////////////
