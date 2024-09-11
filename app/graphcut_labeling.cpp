@@ -421,8 +421,15 @@ int main(int argc, char** argv) {
 	// Labeling optimization with Graph-cuts
 	//////////////////////////////////////////////////
 
-	fmt::println(Logger::out("graph-cut"),"Using {} as compactness coeff",CmdLine::get_arg_int("compactness"));
-	fmt::println(Logger::out("graph-cut"),"Using {} as fidelity coeff",CmdLine::get_arg_int("fidelity"));
+	fmt::println(
+		Logger::out("graph-cut"),
+		"Using {} as compactness coeff\nUsing {} as fidelity coeff\nUsing {} as sensitivity\nUsing {} as angle of rotation",
+		CmdLine::get_arg_int("compactness"),
+		CmdLine::get_arg_int("fidelity"),
+		CmdLine::get_arg_double("sensitivity"),
+		CmdLine::get_arg_double("angle_of_rotation")
+	);
+	Logger::out("graph-cut").flush();
 
 	Attribute<index_t> labeling(M_ext.facets.attributes(),LABELING_ATTRIBUTE_NAME);
 	graphcut_labeling(
