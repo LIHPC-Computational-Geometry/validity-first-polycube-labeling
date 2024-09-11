@@ -18,7 +18,7 @@
 
 // normals pre-processing
 #define DEFAULT_SENSITIVITY		  10e-10
-#define DEFAULT_ANGLE_OF_ROTATION 0.1
+#define DEFAULT_ANGLE_OF_ROTATION 0.05
 
 using namespace GEO;
 
