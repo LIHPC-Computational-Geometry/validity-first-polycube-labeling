@@ -4,7 +4,8 @@
 
 #include <cmath> // for std::pow(), std::abs()
 
-#include <geometry_mesh_ext.h> // for MeshExt
+#include "geometry_mesh_ext.h" // for MeshExt
+#include "geometry.h" // for rotation_matrix()
 
 #define NAIVE_LABELING_TWEAK_SENSITIVITY 0.1 // min difference between the 2 closest labels before the rotation tweak
 #define NAIVE_LABELING_TWEAK_ANGLE 0.1 // angle of rotation of the normal when we cannot choose between 2 or 3 labels

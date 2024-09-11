@@ -13,6 +13,7 @@
 #include "gui_labeling.h"
 #include "labeling.h"
 #include "containers_Geogram.h"	// for max() on a Geogram vector
+#include "geometry.h" // for rotation_matrix()
 
 #define DEFAULT_OUTPUT_FILENAME "labeling.txt"
 

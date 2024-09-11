@@ -8,6 +8,7 @@
 #include "labeling.h"
 #include "containers_std.h" // for key_at_max_value(), fill_set_with_map_keys()
 #include "labeling_graphcuts.h"
+#include "geometry.h" // for rotation_matrix()
 
 void random_labeling(const Mesh& mesh, Attribute<index_t>& labeling) {
     geo_debug_assert(labeling.is_bound());
