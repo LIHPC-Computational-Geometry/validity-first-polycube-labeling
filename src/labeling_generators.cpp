@@ -19,81 +19,20 @@ void random_labeling(const Mesh& mesh, Attribute<index_t>& labeling) {
     }
 }
 
-void naive_labeling(const MeshExt& mesh_ext, Attribute<index_t>& labeling) {
+void naive_labeling(const MeshExt& mesh_ext, Attribute<index_t>& labeling, double sensitivity, double angle_of_rotation) {
     geo_debug_assert(labeling.is_bound());
     // use GEO::Geom::triangle_normal_axis() instead ?
+
+    std::set<index_t> facets_to_tilt;
+    mat3 rotation_to_apply;
+    if(std::fpclassify(sensitivity) != FP_ZERO) {
+        get_facets_to_tilt(mesh_ext,facets_to_tilt,sensitivity);
+        rotation_to_apply = rotation_matrix(angle_of_rotation);
+    }
+    // else: leave `facets_to_tilt` empty
+    
     for(index_t f: mesh_ext.facets) { // for each facet
-        labeling[f] = nearest_label(mesh_ext.facet_normals[f]);
-    }
-}
-
-void tweaked_naive_labeling(const MeshExt& mesh_ext, Attribute<index_t>& labeling) {
-    geo_debug_assert(labeling.is_bound());
-    std::set<index_t> facets_to_tilt;
-    get_facets_to_tilt(mesh_ext,facets_to_tilt,(double) NAIVE_LABELING_TWEAK_SENSITIVITY);
-    FOR(f,mesh_ext.facets.nb()) { // for each facet
-        labeling[f] = facets_to_tilt.contains(f) ? nearest_label(mult(ROTATION_MATRIX,mesh_ext.facet_normals[f])) : nearest_label(mesh_ext.facet_normals[f]);
-    }
-}
-
-void smart_init_labeling(const MeshExt& mesh_ext, Attribute<index_t>& labeling) {
-    geo_debug_assert(labeling.is_bound());
-    std::set<index_t> facets_to_tilt;
-    get_facets_to_tilt(mesh_ext,facets_to_tilt,(double) NAIVE_LABELING_TWEAK_SENSITIVITY);
-    std::vector<index_t> per_facet_group_index(mesh_ext.facets.nb());
-    index_t nb_groups = group_facets<std::vector>(mesh_ext,facets_to_tilt,per_facet_group_index);
-    // The group n°0 is facets we don't have to tilt
-    // For groups we have to tilt, compute total surface area
-    std::map<index_t,double> per_group_area;
-    index_t current_facet_group_index = index_t(-1);
-    double current_facet_area = 0.0;
-    FOR(f,mesh_ext.facets.nb()) {
-        current_facet_group_index = per_facet_group_index[f];
-        if(current_facet_group_index == 0) {
-            continue; // do not compute the area of group n°0
-        }
-        current_facet_area = mesh_facet_area(mesh_ext,f);
-        per_group_area[current_facet_group_index] = (per_group_area.contains(current_facet_group_index) ? per_group_area[current_facet_group_index] : 0.0) + current_facet_area;
-    }
-    geo_assert(per_group_area.size() == nb_groups-1);
-
-    double total_surface_area = mesh_area(mesh_ext);
-    index_t group_having_largest_area = key_at_max_value(per_group_area);
-
-    std::set<index_t> groups_surrounded_by_feature_edges;
-    fill_set_with_map_keys(per_group_area,groups_surrounded_by_feature_edges);
-    index_t adjacent_facet = index_t(-1);
-    FOR(f,mesh_ext.facets.nb()) {
-        FOR(le,3) {
-            adjacent_facet = mesh_ext.facets.adjacent(f,le);
-            // local edge k is the one between local vertices k and (k+1)%3
-            // see https://github.com/BrunoLevy/geogram/wiki/Mesh#triangulated-and-polygonal-meshes
-            if(
-                (!mesh_ext.feature_edges.contain_facet_edge(f,le)) &&
-                (per_facet_group_index[f] != per_facet_group_index[adjacent_facet])
-            ) {
-                groups_surrounded_by_feature_edges.erase(per_facet_group_index[f]);
-                groups_surrounded_by_feature_edges.erase(per_facet_group_index[adjacent_facet]);
-                if(groups_surrounded_by_feature_edges.empty()) {
-                    goto break_both_loops;
-                }
-            }
-        }
-    }
-
-break_both_loops:
-
-    if(
-        (per_group_area[group_having_largest_area] > total_surface_area * 0.01) ||
-        !groups_surrounded_by_feature_edges.empty()
-    ) {
-        // the group having the largest area is bigger than 1% of the total surface
-        fmt::println(Logger::out("labeling"),"Init labeling: *tweaked* naive labeling"); Logger::out("labeling").flush();
-        tweaked_naive_labeling(mesh_ext,labeling); // TODO transmit `per_facet_group_index` to not recompute it
-    }
-    else {
-        fmt::println(Logger::out("labeling"),"Init labeling: naive labeling"); Logger::out("labeling").flush();
-        naive_labeling(mesh_ext,labeling);
+        labeling[f] = facets_to_tilt.contains(f) ? nearest_label(mult(rotation_to_apply,mesh_ext.facet_normals[f])) : nearest_label(mesh_ext.facet_normals[f]);
     }
 }
 

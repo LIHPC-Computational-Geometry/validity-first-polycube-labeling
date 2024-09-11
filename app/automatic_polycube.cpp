@@ -242,11 +242,19 @@ int main(int argc, char** argv) {
 
 	Attribute<index_t> labeling(M_ext.facets.attributes(),LABELING_ATTRIBUTE_NAME);
 	if(filenames.size() >= 2) { // there is a filenames[1], that is the <input_init_labeling> argument
+		fmt::println(Logger::out("I/O"),"Using specified initial labeling: {}",filenames[1]); Logger::out("I/O").flush();
 		load_labeling(filenames[1],M,labeling);
 	}
 	else {
-		fmt::println(Logger::warn("I/O"),"No initial labeling was provided, using smart_init_labeling()"); Logger::warn("I/O").flush();
-		smart_init_labeling(M_ext,labeling);
+		fmt::println(
+			Logger::warn("I/O"),
+			"No initial labeling was provided, using a graph-cuts optimization with compactness={}, fidelity={}, sensitivity={}, angle of rotation={}",
+			DEFAULT_COMPACTNESS,
+			DEFAULT_FIDELITY,
+			DEFAULT_SENSITIVITY,
+			DEFAULT_ANGLE_OF_ROTATION
+		); Logger::warn("I/O").flush();
+		graphcut_labeling(M_ext,labeling,DEFAULT_COMPACTNESS,DEFAULT_FIDELITY,DEFAULT_SENSITIVITY,DEFAULT_ANGLE_OF_ROTATION);
 	}
 	M_ext.halfedges.set_use_facet_region(LABELING_ATTRIBUTE_NAME);
 

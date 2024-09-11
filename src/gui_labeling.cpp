@@ -44,6 +44,8 @@ LabelingViewerApp::LabelingViewerApp(const std::string name, bool auto_flip_norm
     show_feature_edges_ = true;
     feature_edges_width_ = 5;
     allow_boundaries_between_opposite_labels_ = false; // parameter of LabelingGraph::fill_from()
+    sensitivity_ = DEFAULT_SENSITIVITY;
+	angle_of_rotation_ = DEFAULT_ANGLE_OF_ROTATION;
     fidelity_graphcuts_coeff_ = 3;
 	compactness_graphcuts_coeff_ = 1;
     show_boundaries_ = false;
@@ -567,43 +569,33 @@ void LabelingViewerApp::draw_object_properties() {
         ImGui::TextDisabled("(?)");
         ImGui::SetItemTooltip("If on, boundaries between opposite labels (e.g. +X and -X)\ncan be considered valid if they only contain > 180° angles");
 
-        if(ImGui::Button("Compute naive labeling")) {
-            naive_labeling(mesh_ext_,labeling_);
-            mesh_ext_.halfedges.set_use_facet_region(LABELING_ATTRIBUTE_NAME);
-            update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
-            state_transition(labeling);
-        }
-        ImGui::SameLine();
-        ImGui::TextDisabled("(?)");
-        ImGui::SetItemTooltip("Associate each facet to the label the closest to its normal");
+        ImGui::TextUnformatted("Normals pre-processing:");
+        ImGui::InputDouble("Sensitivity", &sensitivity_, 0.0, 0.0, "%.15f");
+        ImGui::InputDouble("Angle of rotation", &angle_of_rotation_);
 
-        if(ImGui::Button("Compute tweaked naive labeling")) {
-            tweaked_naive_labeling(mesh_ext_,labeling_);
+        if(ImGui::Button("Compute naive labeling")) {
+            naive_labeling(mesh_ext_,labeling_,sensitivity_,angle_of_rotation_);
             mesh_ext_.halfedges.set_use_facet_region(LABELING_ATTRIBUTE_NAME);
             update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
             state_transition(labeling);
         }
         ImGui::SameLine();
         ImGui::TextDisabled("(?)");
-        ImGui::SetItemTooltip("Like the naive labeling, but facets normals close to multiple labels\nare slightly rotated before choosing the closest label,\nto avoid labeling fragmentation on subsurfaces\npoorly aligned with XY, XZ, YZ planes");
-        
-        if(ImGui::Button("Smart init labeling")) {
-            smart_init_labeling(mesh_ext_,labeling_);
-            mesh_ext_.halfedges.set_use_facet_region(LABELING_ATTRIBUTE_NAME);
-            update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
-            state_transition(labeling);
-        }
+        ImGui::SetItemTooltip("Associate each facet to the label the closest to its normal.\nIf sensitivity != 0.0, pre-process normals.");
 
         ImGui::SetNextItemWidth(120.0f);
         ImGui::InputInt("fidelity coeff",&fidelity_graphcuts_coeff_);
         ImGui::SetNextItemWidth(120.0f);
         ImGui::InputInt("compactness coeff",&compactness_graphcuts_coeff_);
         if(ImGui::Button("Compute graph-cuts labeling")) {
-            graphcut_labeling(mesh_ext_,labeling_,compactness_graphcuts_coeff_,fidelity_graphcuts_coeff_);
+            graphcut_labeling(mesh_ext_,labeling_,compactness_graphcuts_coeff_,fidelity_graphcuts_coeff_,sensitivity_,angle_of_rotation_);
             mesh_ext_.halfedges.set_use_facet_region(LABELING_ATTRIBUTE_NAME);
             update_static_labeling_graph(allow_boundaries_between_opposite_labels_);
             state_transition(labeling);
         }
+        ImGui::SameLine();
+        ImGui::TextDisabled("(?)");
+        ImGui::SetItemTooltip("Generate a labeling with a graph-cuts optimization.\nIf sensitivity != 0.0, pre-process normals.");
 
         break;
     case labeling:

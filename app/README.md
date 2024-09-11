@@ -33,5 +33,5 @@ From a 3D triangle mesh, generate a labeling which maps each triangle to one of 
 
 ## Debug
 
-- [`areas_to_tilt.cpp`](areas_to_tilt.cpp) : to tweak the sensitivity for [`../include/labeling_generators.h`](../include/labeling_generators.h) > `tweaked_naive_labeling()`
+- [`areas_to_tilt.cpp`](areas_to_tilt.cpp) : to tweak the sensitivity for [`../include/labeling_generators.h`](../include/labeling_generators.h) > `naive_labeling()` & `graphcut_labeling()`
 - [`halfedge_movements.cpp`](halfedge_movements.cpp) : to understand the half-edges API of Geogram
