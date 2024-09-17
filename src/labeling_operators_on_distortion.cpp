@@ -648,7 +648,13 @@ bool join_turning_points_pair_with_new_chart(const MeshExt& mesh, Attribute<inde
 
     for(index_t b : lg.non_monotone_boundaries) { // for each non-monotone boundary (b is an index of lg.boundaries)
         for(const auto& tp : lg.boundaries[b].turning_points) { // for each turning-point of the current boundary
-            if(vertex_has_lost_feature_edge_in_neighborhood(mesh,tp.vertex(lg.boundaries[b],mesh),halfedge)) {
+            if(vertex_has_a_feature_edge_in_its_ring(mesh,tp.vertex(lg.boundaries[b],mesh))) {
+                // this boundary `b` has a turning-point `tp` that is very close, but not coincident, to a feature edge
+                // (cases like MAMBO S25)
+                fmt::println("TODO implement dedicated fix");
+                return true;
+            }
+            else if(vertex_has_lost_feature_edge_in_neighborhood(mesh,tp.vertex(lg.boundaries[b],mesh),halfedge)) {
                 chart_on_which_the_lost_feature_edge_is = lg.facet2chart[halfedge_facet_left(mesh,halfedge)];
                 geo_assert(chart_on_which_the_lost_feature_edge_is == lg.facet2chart[halfedge_facet_right(mesh,halfedge)]);
                 label_on_which_the_lost_feature_edge_is = lg.charts[chart_on_which_the_lost_feature_edge_is].label;
@@ -658,6 +664,8 @@ bool join_turning_points_pair_with_new_chart(const MeshExt& mesh, Attribute<inde
                 if(lg.turning_point_vertices.contains(vertex_at_tip_of_feature_edge)) {
                     geo_assert(lg.turning_point_vertices[vertex_at_tip_of_feature_edge].size() == 1); // assert only one turning-point associated to this vertex
                     boundary_of_the_second_turning_point = lg.non_monotone_boundaries[lg.turning_point_vertices[vertex_at_tip_of_feature_edge][0].first];
+                    // we found a series of lost feature edges, with both ends beings turning-points
+                    // (cases like MAMBO B29)
                     new_label = find_optimal_label(
                         {},
                         { // forbidden labels

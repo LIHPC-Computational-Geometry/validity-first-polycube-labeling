@@ -634,3 +634,26 @@ mat3 rotation_matrix(double OX_OY_OZ_angle) {
         }
     });
 }
+
+bool vertex_has_a_feature_edge_in_its_ring(const MeshExt& M, index_t vertex_index) {
+    if(M.feature_edges.nb() == 0) {
+        return false;
+    }
+    MeshHalfedges::Halfedge init_halfedge = get_an_outgoing_halfedge_of_vertex(M,vertex_index);
+    MeshHalfedges::Halfedge current_halfedge = init_halfedge;
+    do {
+        M.halfedges.move_to_next_around_facet(current_halfedge);
+        // now `current_halfedge` is no longer an outgoing halfedge
+        // neither the origin nor the tip vertex is the `vertex_index`
+        geo_debug_assert(halfedge_vertex_index_from(M,current_halfedge) != vertex_index);
+        geo_debug_assert(halfedge_vertex_index_to(M,current_halfedge) != vertex_index);
+        if(M.feature_edges.contain_halfedge(current_halfedge)) {
+            return true;
+        }
+        // move back to the outgoing halfedge
+        M.halfedges.move_to_prev_around_facet(current_halfedge);
+        // go to next around vertex
+        M.halfedges.move_to_next_around_vertex(current_halfedge,true);
+    } while (init_halfedge != current_halfedge);
+    return false;
+}

@@ -166,3 +166,5 @@ double sd_adjacent_facets_area(const Mesh& mesh, const std::vector<std::vector<i
 void triangulate_facets(Mesh& M, std::vector<index_t>& triangle_index_to_old_facet_index, std::vector<index_t>& corner_index_to_old_corner_index);
 
 mat3 rotation_matrix(double OX_OY_OZ_angle);
+
+bool vertex_has_a_feature_edge_in_its_ring(const MeshExt& M, index_t vertex_index);
