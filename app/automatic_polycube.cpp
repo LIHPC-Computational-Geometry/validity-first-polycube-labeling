@@ -269,7 +269,7 @@ int main(int argc, char** argv) {
 	// Validity & monotonicity correction
 	//////////////////////////////////////////////////
 
-	if(auto_fix_validity(M_ext,labeling,lg,100)) {
+	if(auto_fix_validity(M_ext,labeling,lg,5)) {
 		// auto-fix the monotonicity only if the validity was fixed
 		auto_fix_monotonicity(M_ext,labeling,lg);
 	}

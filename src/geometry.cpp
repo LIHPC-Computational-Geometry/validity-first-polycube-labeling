@@ -455,14 +455,15 @@ void trace_path_on_chart(const MeshExt& mesh, const std::vector<index_t>& facet2
         }
         mesh.halfedges.move_to_opposite(current_halfedge); // flip `current_halfedge` so that its origin vertex is the origin vertex of the next halfedge
         next_halfedge = get_most_aligned_halfedge_around_vertex(mesh,current_halfedge,target_point - halfedge_vertex_from(mesh,current_halfedge)); // reference vector = vector toward the `target_point`
-        geo_assert(next_halfedge != current_halfedge); // assert the previous halfedge is not the one the best aligned. else we are backtracking
+        if (next_halfedge == current_halfedge) {
+            // we are backtracking :(
+            return;
+        }
         target_point += normalized_direction * length(halfedge_vector(mesh,current_halfedge)); // move the target forward
         if(supporting_chart == index_t(-1)) {
             supporting_chart = facet2chart[Geom::halfedge_facet_left(mesh,next_halfedge)];
             if(facet2chart[Geom::halfedge_facet_right(mesh,next_halfedge)] != supporting_chart) {
-                dump_edges("trace_path_on_chart() halfedges",mesh,halfedges);
-                dump_edge("trace_path_on_chart() next_halfedge",mesh,next_halfedge);
-                geo_assert_not_reached;
+                return; // cannot trace a path on `supporting_chart` is this configuration
             }
         }
     } while(

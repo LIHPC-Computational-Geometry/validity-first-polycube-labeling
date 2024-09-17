@@ -707,7 +707,6 @@ bool join_turning_points_pair_with_new_chart(const MeshExt& mesh, Attribute<inde
                 index_t parallel_boundary = lg.halfedge2boundary[target_halfedge].first;
                 vec3 direction = mesh_vertex(mesh,target_vertex) - mesh_vertex(mesh,tp_vertex);
                 vec3 direction_to_start_corner = mesh_vertex(mesh,lg.corners[lg.boundaries[parallel_boundary].start_corner].vertex) - mesh_vertex(mesh,tp_vertex);
-                vec3 direction_to_end_corner = mesh_vertex(mesh,lg.corners[lg.boundaries[parallel_boundary].end_corner].vertex) - mesh_vertex(mesh,tp_vertex);
                 std::vector<GEO::MeshHalfedges::Halfedge> halfedges_along_path;
                 if(dot(direction,direction_to_start_corner) > 0) {
                     // we have to go toward the start corner
@@ -715,10 +714,13 @@ bool join_turning_points_pair_with_new_chart(const MeshExt& mesh, Attribute<inde
                     mesh.halfedges.move_to_opposite(halfedge);
                     mesh.halfedges.move_to_opposite(target_halfedge);
                 }
+            #ifndef NDEBUG
                 else {
-                    geo_debug_assert(dot(direction,direction_to_end_corner) > 0);
+                    vec3 direction_to_end_corner = mesh_vertex(mesh,lg.corners[lg.boundaries[parallel_boundary].end_corner].vertex) - mesh_vertex(mesh,tp_vertex);
+                    geo_assert(dot(direction,direction_to_end_corner) > 0);
                     // we have to go toward the end corner
                 }
+            #endif
                 geo_debug_assert(mesh.halfedges.halfedge_is_border(halfedge));
                 halfedges_along_path.push_back(halfedge);
                 do {

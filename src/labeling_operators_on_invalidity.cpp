@@ -306,7 +306,9 @@ size_t fix_as_much_invalid_corners_as_possible(const MeshExt& mesh, Attribute<in
                 index_t current_chart = lg.facet2chart[halfedge_facet_left(mesh,halfedge)];
                 index_t label_of_current_chart = lg.charts[current_chart].label;
                 index_t new_label = index_t(-1);
-                geo_assert(label_of_current_chart == labeling[halfedge_facet_right(mesh,halfedge)]);
+                if(label_of_current_chart != labeling[halfedge_facet_right(mesh,halfedge)]) {
+                    return nb_invalid_corners_processed; // cannot process this configuration. Seems to arise on MAMBO M8
+                }
                 std::set<index_t> facets_at_left;
                 std::set<index_t> facets_at_right;
                 index_t adjacent_facet = index_t(-1);
@@ -842,11 +844,13 @@ bool auto_fix_validity(const MeshExt& mesh, Attribute<index_t>& labeling, Labeli
         if(lg.is_valid())
             return true;
 
+        unsigned int nb_iter_fix_invalid_boundary = 0; // on some models like MAMBO M8, the loop of this operator is called indefinitely -> add a max number of iterations
         do {
             nb_processed = (size_t) fix_an_invalid_boundary(mesh,labeling,lg);
             lg.fill_from(mesh,labeling);
+            nb_iter_fix_invalid_boundary++;
         }
-        while (nb_processed != 0);
+        while ((nb_processed != 0) && nb_iter_fix_invalid_boundary < 20);
 
         if(lg.is_valid())
             return true;
