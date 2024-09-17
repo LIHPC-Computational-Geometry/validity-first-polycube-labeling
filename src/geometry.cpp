@@ -21,6 +21,7 @@
 #include "labeling_graph.h"
 #include "labeling.h" // for label2vector
 #include "containers_macros.h" // for VECTOR_MAX_INDEX()
+#include "io_dump.h"
 
 void per_facet_distance(const Mesh& mesh, std::map<index_t,unsigned int>& distance) {
     // thank you Trizalio https://stackoverflow.com/a/72437022
@@ -458,7 +459,11 @@ void trace_path_on_chart(const MeshExt& mesh, const std::vector<index_t>& facet2
         target_point += normalized_direction * length(halfedge_vector(mesh,current_halfedge)); // move the target forward
         if(supporting_chart == index_t(-1)) {
             supporting_chart = facet2chart[Geom::halfedge_facet_left(mesh,next_halfedge)];
-            geo_assert(facet2chart[Geom::halfedge_facet_right(mesh,next_halfedge)] == supporting_chart);
+            if(facet2chart[Geom::halfedge_facet_right(mesh,next_halfedge)] != supporting_chart) {
+                dump_edges("trace_path_on_chart() halfedges",mesh,halfedges);
+                dump_edge("trace_path_on_chart() next_halfedge",mesh,next_halfedge);
+                geo_assert_not_reached;
+            }
         }
     } while(
         facet2chart[Geom::halfedge_facet_left(mesh,next_halfedge)] == supporting_chart &&
@@ -635,7 +640,7 @@ mat3 rotation_matrix(double OX_OY_OZ_angle) {
     });
 }
 
-bool vertex_has_a_feature_edge_in_its_ring(const MeshExt& M, index_t vertex_index) {
+bool vertex_has_a_feature_edge_in_its_ring(const MeshExt& M, index_t vertex_index, MeshHalfedges::Halfedge& found_halfedge) {
     if(M.feature_edges.nb() == 0) {
         return false;
     }
@@ -648,6 +653,7 @@ bool vertex_has_a_feature_edge_in_its_ring(const MeshExt& M, index_t vertex_inde
         geo_debug_assert(halfedge_vertex_index_from(M,current_halfedge) != vertex_index);
         geo_debug_assert(halfedge_vertex_index_to(M,current_halfedge) != vertex_index);
         if(M.feature_edges.contain_halfedge(current_halfedge)) {
+            found_halfedge = current_halfedge;
             return true;
         }
         // move back to the outgoing halfedge

@@ -637,6 +637,7 @@ bool join_turning_points_pair_with_new_chart(const MeshExt& mesh, Attribute<inde
 
     geo_assert(mesh.halfedges.is_using_facet_region());
     MeshHalfedges::Halfedge halfedge;
+    index_t tp_vertex = index_t(-1);
     index_t chart_on_which_the_lost_feature_edge_is = index_t(-1);
     index_t label_on_which_the_lost_feature_edge_is = index_t(-1);
     std::set<index_t> facets_at_left;
@@ -648,13 +649,96 @@ bool join_turning_points_pair_with_new_chart(const MeshExt& mesh, Attribute<inde
 
     for(index_t b : lg.non_monotone_boundaries) { // for each non-monotone boundary (b is an index of lg.boundaries)
         for(const auto& tp : lg.boundaries[b].turning_points) { // for each turning-point of the current boundary
-            if(vertex_has_a_feature_edge_in_its_ring(mesh,tp.vertex(lg.boundaries[b],mesh))) {
+            tp_vertex = tp.vertex(lg.boundaries[b],mesh);
+            if(vertex_has_a_feature_edge_in_its_ring(mesh,tp_vertex,halfedge)) {
                 // this boundary `b` has a turning-point `tp` that is very close, but not coincident, to a feature edge
                 // (cases like MAMBO S25)
-                fmt::println("TODO implement dedicated fix");
+                // parse remaining turning-point
+                // if the vertex of one of them also have a feature edge in its ring,
+                // trace a path from the first to the second (expecting to stay on the same chart)
+                // and re-label facets between the chart and the parallel feature edges
+                geo_debug_assert(mesh.halfedges.is_using_facet_region());
+                geo_debug_assert(mesh.halfedges.halfedge_is_border(halfedge));
+                index_t target_vertex = index_t(-1);
+                MeshHalfedges::Halfedge target_halfedge;
+                for(const auto& [v, turning_points_info] : lg.turning_point_vertices) {
+                    if(turning_points_info.size() != 1) {
+                        continue; // ignore vertices where more than one turning-points are
+                    }
+                    if (v == tp_vertex) {
+                        continue; // we want to find another turning-point, ignore the one we already have
+                    }
+                    if(vertex_has_a_feature_edge_in_its_ring(mesh,v,target_halfedge)) {
+                        target_vertex = v;
+                        geo_debug_assert(mesh.halfedges.halfedge_is_border(target_halfedge));
+                        break;
+                    }
+                }
+                if(target_vertex == index_t(-1)) {
+                    // no other turning-point found having a feature edge in its vertex ring
+                    break; // we don't know how to handle this case
+                }
+                geo_debug_assert(target_halfedge.facet != NO_FACET);
+                geo_debug_assert(target_halfedge.corner != NO_CORNER);
+                index_t parallel_boundary = lg.halfedge2boundary[target_halfedge].first;
+                bool same_direction = lg.halfedge2boundary[target_halfedge].second;
+                vec3 direction = mesh_vertex(mesh,target_vertex) - mesh_vertex(mesh,tp_vertex);
+                vec3 direction_to_start_corner = mesh_vertex(mesh,lg.corners[lg.boundaries[parallel_boundary].start_corner].vertex) - mesh_vertex(mesh,tp_vertex);
+                vec3 direction_to_end_corner = mesh_vertex(mesh,lg.corners[lg.boundaries[parallel_boundary].end_corner].vertex) - mesh_vertex(mesh,tp_vertex);
+                std::vector<GEO::MeshHalfedges::Halfedge> halfedges_along_path;
+                if(dot(direction,direction_to_start_corner) > 0) {
+                    // we have to go toward the start corner
+                    // flip `halfedge` and `target_halfedge` to have them in the direction to follow
+                    mesh.halfedges.move_to_opposite(halfedge);
+                    mesh.halfedges.move_to_opposite(target_halfedge);
+                }
+                else {
+                    geo_debug_assert(dot(direction,direction_to_end_corner) > 0);
+                    // we have to go toward the end corner
+                }
+                geo_debug_assert(mesh.halfedges.halfedge_is_border(halfedge));
+                halfedges_along_path.push_back(halfedge);
+                do {
+                    mesh.halfedges.move_to_next_around_border(halfedge);
+                    geo_debug_assert(mesh.halfedges.halfedge_is_border(halfedge));
+                    halfedges_along_path.push_back(halfedge);
+                } while (halfedge != target_halfedge);
+                bool relabel_left_facet = halfedge_left_facet_tip_vertex(mesh,halfedges_along_path[0]) == tp_vertex;
+                index_t chart_to_edit = index_t(-1);
+                if(!relabel_left_facet) {
+                    geo_debug_assert(halfedge_right_facet_tip_vertex(mesh,halfedges_along_path[0]) == tp_vertex);
+                    chart_to_edit = lg.facet2chart[halfedge_facet_right(mesh,halfedges_along_path[0])];
+                    new_label = labeling[halfedge_facet_left(mesh,halfedges_along_path[0])];
+                }
+                else {
+                    chart_to_edit = lg.facet2chart[halfedge_facet_left(mesh,halfedges_along_path[0])];
+                    new_label = labeling[halfedge_facet_right(mesh,halfedges_along_path[0])];
+                }
+                geo_debug_assert(chart_to_edit != index_t(-1));
+                geo_debug_assert(new_label != index_t(-1));
+                index_t facet_to_relabel = index_t(-1);
+                FOR(path_halfedge_index,halfedges_along_path.size()) {
+                    facet_to_relabel = relabel_left_facet ? halfedge_facet_left(mesh,halfedges_along_path[path_halfedge_index]) : halfedge_facet_right(mesh,halfedges_along_path[path_halfedge_index]);
+                    geo_debug_assert(lg.facet2chart[facet_to_relabel] == chart_to_edit);
+                    labeling[facet_to_relabel] = new_label;
+                    if(
+                        (path_halfedge_index != 0) &&
+                        (path_halfedge_index != halfedges_along_path.size()-1)
+                    ) {
+                        // not the first nor the last halfedge of the path
+                        // -> also relabel adjacent facets, if they belong to the `chart_to_edit`
+                        FOR(le,3) { // for each local edge of facet f
+                            adjacent_facet = mesh.facets.adjacent(facet_to_relabel,le);
+                            if(lg.facet2chart[adjacent_facet] != chart_to_edit) {
+                                continue;
+                            }
+                            labeling[adjacent_facet] = new_label; // also change the label of the adjacent facet
+                        }
+                    }
+                }
                 return true;
             }
-            else if(vertex_has_lost_feature_edge_in_neighborhood(mesh,tp.vertex(lg.boundaries[b],mesh),halfedge)) {
+            else if(vertex_has_lost_feature_edge_in_neighborhood(mesh,tp_vertex,halfedge)) {
                 chart_on_which_the_lost_feature_edge_is = lg.facet2chart[halfedge_facet_left(mesh,halfedge)];
                 geo_assert(chart_on_which_the_lost_feature_edge_is == lg.facet2chart[halfedge_facet_right(mesh,halfedge)]);
                 label_on_which_the_lost_feature_edge_is = lg.charts[chart_on_which_the_lost_feature_edge_is].label;
