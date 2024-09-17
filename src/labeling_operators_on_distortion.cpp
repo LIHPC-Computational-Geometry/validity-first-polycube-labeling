@@ -447,7 +447,7 @@ void move_corners(const MeshExt& mesh, Attribute<index_t>& labeling, const Label
     fmt::println(Logger::out("monotonicity"),"{} corners moved",nb_corner_moved); Logger::out("monotonicity").flush();
 }
 
-bool merge_a_turning_point_and_its_closest_corner(const MeshExt& mesh, Attribute<index_t>& labeling, const LabelingGraph& lg) {
+bool merge_a_turning_point_and_its_closest_corner(const MeshExt& mesh, Attribute<index_t>& labeling, LabelingGraph& lg) {
     geo_debug_assert(labeling.is_bound());
     geo_assert(mesh.halfedges.is_using_facet_region());
     
@@ -470,6 +470,9 @@ bool merge_a_turning_point_and_its_closest_corner(const MeshExt& mesh, Attribute
     // 6. Move edge by edge from the turning point following the same direction as the boundary to move,
     //    and store facets at left/right of this path
     // 7. Facet by facet, change the labels on one side of the path, effectively moving the boundary
+
+    geo_debug_assert(labeling.can_get_vector());
+    GEO::vector<index_t> previous_labeling = labeling.get_vector();
 
     // 1. 
 
@@ -607,6 +610,27 @@ bool merge_a_turning_point_and_its_closest_corner(const MeshExt& mesh, Attribute
         }
 
         propagate_label(mesh,labeling,new_label,facets_to_process,wall_facets,lg.facet2chart,chart_on_which_the_new_boundary_will_be);
+
+        // recompute labeling graph and check if we broke the labeling validity
+        // if so, restore the previous labeling and trace a NEW chart along the path, instead of moving a boundary
+        // (cases like MAMBO S5)
+
+        lg.fill_from(mesh,labeling);
+        if(!lg.is_valid()) {
+            fmt::println(Logger::warn("monotonicity"),"Operator merging a turning-point & its closest corner broke the labeling validity. Restoring the previous labeling."); Logger::warn("monotonicity").flush();
+            labeling.get_vector() = previous_labeling;
+            for(index_t f : facets_to_process) {
+                labeling[f] = new_label;
+                index_t adjacent_facet = index_t(-1);
+                FOR(le,3) {
+                    adjacent_facet = mesh.facets.adjacent(f,le);
+                    if(wall_facets.contains(adjacent_facet)) {
+                        continue;
+                    }
+                    labeling[adjacent_facet] = new_label;
+                }
+            }
+        }
 
         return true;
 

@@ -24,7 +24,7 @@ void move_corners(const MeshExt& mesh, Attribute<index_t>& labeling, const Label
 // on a non-monotone boundary, find turning-points on feature edges, and for each of them, move the closest corner to the same vertex
 // return true if a turning point was merge with a corner
 // -> if returned false, no need to call the function again
-bool merge_a_turning_point_and_its_closest_corner(const MeshExt& mesh, Attribute<index_t>& labeling, const LabelingGraph& lg);
+bool merge_a_turning_point_and_its_closest_corner(const MeshExt& mesh, Attribute<index_t>& labeling, LabelingGraph& lg);
 
 // return true if a pair of turning-point was processed
 // -> if returned false, no need to call the function again
