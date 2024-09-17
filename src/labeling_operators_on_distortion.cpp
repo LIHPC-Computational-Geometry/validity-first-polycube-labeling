@@ -681,7 +681,6 @@ bool join_turning_points_pair_with_new_chart(const MeshExt& mesh, Attribute<inde
                 geo_debug_assert(target_halfedge.facet != NO_FACET);
                 geo_debug_assert(target_halfedge.corner != NO_CORNER);
                 index_t parallel_boundary = lg.halfedge2boundary[target_halfedge].first;
-                bool same_direction = lg.halfedge2boundary[target_halfedge].second;
                 vec3 direction = mesh_vertex(mesh,target_vertex) - mesh_vertex(mesh,tp_vertex);
                 vec3 direction_to_start_corner = mesh_vertex(mesh,lg.corners[lg.boundaries[parallel_boundary].start_corner].vertex) - mesh_vertex(mesh,tp_vertex);
                 vec3 direction_to_end_corner = mesh_vertex(mesh,lg.corners[lg.boundaries[parallel_boundary].end_corner].vertex) - mesh_vertex(mesh,tp_vertex);
