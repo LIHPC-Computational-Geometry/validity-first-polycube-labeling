@@ -70,13 +70,13 @@ int main(int argc, char** argv) {
     MeshExt mesh_ext(input_mesh); // compute normals, vertex-facets adjacency, feature edges
 
     Attribute<index_t> labeling(input_mesh.facets.attributes(),LABELING_ATTRIBUTE_NAME);
+    mesh_ext.halfedges.set_use_facet_region(LABELING_ATTRIBUTE_NAME);
     if (!load_labeling(filenames[1],input_mesh,labeling)) {
         exit(1);
     }
 
     LabelingGraph lg;
-    lg.fill_from(input_mesh,labeling,CmdLine::get_arg_bool("allow-opposite-labels"));
-    mesh_ext.halfedges.set_use_facet_region(LABELING_ATTRIBUTE_NAME);
+    lg.fill_from(mesh_ext,labeling,CmdLine::get_arg_bool("allow-opposite-labels"));
 
     nlohmann::json output_JSON;
 
