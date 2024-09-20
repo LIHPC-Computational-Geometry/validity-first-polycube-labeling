@@ -270,8 +270,25 @@ int main(int argc, char** argv) {
 	//////////////////////////////////////////////////
 
 	if(auto_fix_validity(M_ext,labeling,lg,5)) {
-		// auto-fix the monotonicity only if the validity was fixed
+		// call auto_fix_monotonicity() only if the validity was fixed
+
+		// backup the valid labeling
+		geo_debug_assert(labeling.can_get_vector());
+		GEO::vector<index_t> backup_valid_labeling = labeling.get_vector();
+
 		auto_fix_monotonicity(M_ext,labeling,lg);
+
+		// check if auto_fix_monotonicity() broke the labeling validity (to investigate... it happens with one or two tested 3D models like MAMBO M5)
+
+		if(!lg.is_valid()) { // the labeling graph `lg` is already updated inside auto_fix_monotonicity()
+			// restore `backup_valid_labeling`
+			fmt::println(Logger::warn("monotonicity"),"Restoring the valid labeling obtained earlier"); Logger::warn("monotonicity").flush();
+			labeling.get_vector() = backup_valid_labeling;
+			#ifndef NDEBUG
+			lg.fill_from(M_ext,labeling);
+			geo_debug_assert(lg.is_valid())
+			#endif
+		}
 	}
 
 	//////////////////////////////////////////////////
