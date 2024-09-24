@@ -98,14 +98,14 @@ bool facet_normals_are_inward(Mesh& mesh) {
 }
 
 void flip_facet_normals(Mesh& mesh) {
-    geo_assert(mesh.cells.nb() == 0); // must be a surface mesh
     geo_assert(mesh.facets.nb() != 0); // must have facets
     geo_assert(mesh.facets.are_simplices()); // must be a triangle mesh
 
     index_t tmp_vertex_index = index_t(-1);
     index_t tmp_facet_index = index_t(-1);
     FOR(f,mesh.facets.nb()) { // for each facet
-        //
+        // use mesh.facets.flip(f) instead ?
+
         // f = index of current facet
         // lv = local vertex in {0,1,2}
         // le = local edge in {0,1,2}

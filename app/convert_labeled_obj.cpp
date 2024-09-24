@@ -7,7 +7,9 @@
 // to export a color-less .obj
 //
 // Usage:
-//   ./bin/convert_labeled_obj input.obj output.obj output.txt
+//   ./bin/convert_labeled_obj input.obj output.txt
+// or
+//   ./bin/convert_labeled_obj input.obj output.txt colorless_obj=output.obj
 //
 // Input format:
 // mtllib segmentation.mtl                // Reference the materials definition
@@ -56,18 +58,28 @@ const std::map<std::string,index_t> MATERIAL_TO_LABEL = {
 int main(int argc, char** argv) {
     GEO::initialize();
 
+    CmdLine::declare_arg(
+        "colorless_obj",
+        "",
+        "path to the output, color-less, .obj mesh"
+    );
+
     std::vector<std::string> filenames;
     if(!CmdLine::parse(
 		argc,
 		argv,
 		filenames,
-		"input_obj output.obj output_labeling.txt"
+		"input_obj output_labeling.txt"
     )) {
 		return 1;
 	}
 
-    if(!FileSystem::is_file(filenames[0])) {
-        fmt::println(Logger::err("I/O"),"{} does not exist",filenames[0]); Logger::err("I/O").flush();
+    std::string input_obj_filepath = filenames[0];
+    std::string output_labeling_filepath = filenames[1];
+    std::string colorless_obj_filepath = CmdLine::get_arg("colorless_obj");
+
+    if(!FileSystem::is_file(input_obj_filepath)) {
+        fmt::println(Logger::err("I/O"),"{} does not exist",input_obj_filepath); Logger::err("I/O").flush();
         return 1;
     }
 
@@ -81,9 +93,9 @@ int main(int argc, char** argv) {
     std::string word;
     std::vector<std::string> word_splitted;
     std::vector<index_t> labeling;
-    file.open(filenames[0].c_str());
+    file.open(input_obj_filepath.c_str());
     if(!file.good()) {
-        fmt::println(Logger::err("I/O"),"Cannot open {}",filenames[0]); Logger::err("I/O").flush();
+        fmt::println(Logger::err("I/O"),"Cannot open {}",input_obj_filepath); Logger::err("I/O").flush();
         return 1;
     }
     while (file >> word) { // parse the file word by word
@@ -136,7 +148,7 @@ int main(int argc, char** argv) {
             );
         }
         else {
-            fmt::println(Logger::err("I/O"),"Unexpected word '{}' in {}",word,filenames[0]); Logger::err("I/O").flush();
+            fmt::println(Logger::err("I/O"),"Unexpected word '{}' in {}",word,input_obj_filepath); Logger::err("I/O").flush();
         }
     }
     file.close();
@@ -147,13 +159,20 @@ int main(int argc, char** argv) {
 
     geo_assert(M.facets.nb() == labeling.size());
 
-    // write the color-less .obj
-    fmt::println(Logger::out("I/O"),"Writing {}...",filenames[1]); Logger::out("I/O").flush();
-    mesh_save(M,filenames[1]);
+    if(!colorless_obj_filepath.empty()) {
+        // expand '~' to $HOME
+        if(colorless_obj_filepath[0] == '~') {
+            colorless_obj_filepath.replace(0, 1, std::string(getenv("HOME")));
+        }
+        // write the color-less .obj
+        if(!mesh_save(M,colorless_obj_filepath)) {
+            fmt::println(Logger::err("I/O"),"Unable to write {}",colorless_obj_filepath); Logger::err("I/O").flush();
+        }
+    }
 
     // write labeling as .txt
-    fmt::println(Logger::out("I/O"),"Writing {}...",filenames[2]); Logger::out("I/O").flush();
-    auto out = fmt::output_file(filenames[2]);
+    fmt::println(Logger::out("I/O"),"Saving file {}...",output_labeling_filepath); Logger::out("I/O").flush();
+    auto out = fmt::output_file(output_labeling_filepath);
     FOR(f,labeling.size()) { // for each facet (= label)
         out.print("{}\n",labeling[f]);
     }

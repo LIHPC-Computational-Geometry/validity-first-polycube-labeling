@@ -6,7 +6,7 @@
 // The volume mesh is used later in the pipeline to extract a hexahedral mesh from a polycube (parametrization & quantization).
 // 
 // But : parametrization algorithms https://github.com/fprotais/polycube_withHexEx and https://github.com/fprotais/robustPolycube
-// want a volume labeling/flagging, that is, instead of associating labels to surface triangles, they need labels associated to all cell facets (4 per tetrahedra).
+// want a volume labeling, that is, instead of associating labels to surface triangles, they need labels associated to all cell facets (4 per tetrahedron).
 // For inner facets, -1 value is used, for "no label".
 // 
 // So we need a map between surface triangle and cell facets, to generate, when we need it, the volume labeling from the surface one:
@@ -16,7 +16,7 @@
 // 
 // The map between surface and volume mesh must give, for each surface triangle (1) which cell (2) which of the 4 facets of this cell
 // We can write (4*cell + cell_facet) for each line (= surface triangle), so we can get both with integer division or modulo by 4.
-// For preallocation, it is convenient to have the number of triangles and the number of tetrehedra, so they are written in a header (2 lines)
+// For preallocation, it is convenient to have the number of triangles and the number of tetrahedra, so they are written in a header (2 lines)
 //
 // Format of surface map ("surface_map.txt" in the help message):
 //   line 1      (header)                  | 158110 triangles
@@ -36,11 +36,14 @@
 // Issue : Geogram can compute the surface mesh with mesh.cells.compute_borders(),
 // but only gives us the corresponding cell, without the cell facet.
 // So we need to recover which cell facet it was, by comparing surface triangle vertices with vertices of each cell facet.
+//
+// 2024-09-24: allow to write a .mesh (MEDIT format) with tetrahedra + surface triangles, the input expected by PolyCut's mesh2vtu.exe
 
 #include <geogram/mesh/mesh.h>  // for GEO::Mesh
 #include <geogram/mesh/mesh_io.h>
 #include <geogram/basic/file_system.h>
 #include <geogram/basic/attributes.h>
+#include <geogram/basic/command_line.h> // for declare_arg(), parse(), get_arg_bool()
 
 #include <fmt/core.h>
 #include <fmt/os.h>
@@ -54,37 +57,51 @@
 
 using namespace GEO;
 
-int main(int argc, const char** argv) {
-
-    if (argc<4) {
-        fmt::println("Missing arguments");
-        fmt::println("./extract_surface input_tetra.mesh output_surface.obj surface_map.txt");
-        return 1;
-    }
+int main(int argc, char** argv) {
 
     GEO::initialize();
 
-    std::string input = argv[1];
+    CmdLine::declare_arg(
+		"write-cells",
+		false,
+		"Write cells (tetrahedra) alongside the surface triangles. If true, .mesh (MEDIT) is the recommended extension, else .obj (Wavefront)."
+	);
 
-    Mesh tetra_mesh, triangle_mesh;
+    std::vector<std::string> filenames;
+	if(!CmdLine::parse(
+		argc,
+		argv,
+		filenames,
+		"input_tet.mesh output_surface.ext surface_map.txt"
+    )) {
+		return 1;
+	}   
+
+    std::string input_tetrahedra_filepath = filenames[0];
+    std::string output_surface_filepath = filenames[1];
+    std::string output_map_filepath = filenames[2];
+
+    Mesh tet_mesh, triangle_mesh;
     MeshIOFlags flags;
     flags.set_element(MESH_CELLS);
-    geo_assert(FileSystem::is_file(input));
+    geo_assert(FileSystem::is_file(input_tetrahedra_filepath));
 
-    if(!GEO::mesh_load(input,tetra_mesh,flags)) {
-        fmt::println("Unable to open {}",input);
+    if(!GEO::mesh_load(input_tetrahedra_filepath,tet_mesh,flags)) {
+        fmt::println("Unable to open {}",input_tetrahedra_filepath);
         return 1;
     }
-    geo_assert(tetra_mesh.cells.nb() != 0); // must be a volumetric mesh
-    geo_assert(tetra_mesh.cells.are_simplices()); // must be a tetrahedral mesh
-    index_t nb_tetra = tetra_mesh.cells.nb();
+    geo_assert(tet_mesh.cells.nb() != 0); // must be a volumetric mesh
+    geo_assert(tet_mesh.cells.are_simplices()); // must be a tetrahedral mesh
+    index_t nb_tetra = tet_mesh.cells.nb();
 
-    triangle_mesh.copy(tetra_mesh);
+    triangle_mesh.copy(tet_mesh);
     Attribute<index_t> surface_map(triangle_mesh.facets.attributes(),"cell");
     triangle_mesh.facets.clear();
-    triangle_mesh.cells.compute_borders(surface_map);
-    triangle_mesh.cells.clear();
-    triangle_mesh.vertices.remove_isolated();
+    triangle_mesh.cells.compute_borders(surface_map); // surface extraction happens here
+    if(!CmdLine::get_arg_bool("write-cells")) {
+        triangle_mesh.cells.clear();
+        triangle_mesh.vertices.remove_isolated();
+    }
 
     index_t nb_facets = triangle_mesh.facets.nb();
     geo_assert(surface_map.size() == nb_facets);
@@ -95,7 +112,7 @@ int main(int argc, const char** argv) {
         fmt::println(Logger::out("normals dir."),"Facet normals were inward and are now outward"); Logger::out("normals dir.").flush();
     }
 
-    mesh_save(triangle_mesh,argv[2]);
+    mesh_save(triangle_mesh,output_surface_filepath);
 
     // Write map between surface facets & cells
     // For each surface facet, we want to store on which cell it was, and which of the 4 facets of this cell it is
@@ -107,9 +124,9 @@ int main(int argc, const char** argv) {
     //   cell facet 2 -> vertices {0,1,3}
     //   cell facet 3 -> vertices {0,2,1}
     // which is the facets ordering of https://github.com/ssloy/ultimaille
-    // Geogram seems to follow the same ordering for tetra_mesh.cells.corner(cell,_)...
-    fmt::println(Logger::out("I/O"),"Writing {}",argv[3]); Logger::out("I/O").flush();
-    auto out = fmt::output_file(argv[3]);
+    // Geogram seems to follow the same ordering for tet_mesh.cells.corner(cell,_)...
+    fmt::println(Logger::out("I/O"),"Writing {}",output_map_filepath); Logger::out("I/O").flush();
+    auto out = fmt::output_file(output_map_filepath);
     // write 2 lines of header : number of triangles and number of tetrahedra
     out.print("{} triangles\n",nb_facets);
     out.print("{} tetrahedra\n",nb_tetra);
@@ -125,10 +142,10 @@ int main(int argc, const char** argv) {
         // retrieve on which cell was this facet
         cell = surface_map[facet];
         // get the 4 vertices of this cell
-        v0 = tetra_mesh.cell_corners.vertex(tetra_mesh.cells.corner(cell,0));
-        v1 = tetra_mesh.cell_corners.vertex(tetra_mesh.cells.corner(cell,1));
-        v2 = tetra_mesh.cell_corners.vertex(tetra_mesh.cells.corner(cell,2));
-        v3 = tetra_mesh.cell_corners.vertex(tetra_mesh.cells.corner(cell,3));
+        v0 = tet_mesh.cell_corners.vertex(tet_mesh.cells.corner(cell,0));
+        v1 = tet_mesh.cell_corners.vertex(tet_mesh.cells.corner(cell,1));
+        v2 = tet_mesh.cell_corners.vertex(tet_mesh.cells.corner(cell,2));
+        v3 = tet_mesh.cell_corners.vertex(tet_mesh.cells.corner(cell,3));
         // now we need to know which of the 4 cell facets is the current facet
         if (facet_vertices == std::set<index_t>({v1,v2,v3})) {
             out.print("{}\n",4*cell+0); // current facet is the cell facet n°0
