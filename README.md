@@ -45,6 +45,10 @@ Then:
 # from automatic_polycube/
 mkdir build_Release
 cd build_Release
+# You may need to specify the platform by adding something like
+# '-DVORPALINE_PLATFORM=Linux64-gcc-dynamic' to the next command
+# See https://github.com/BrunoLevy/geogram/wiki#compiling
+# and https://github.com/BrunoLevy/geogram/blob/main/configure.sh#L120
 cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release
 ninja automatic_polycube
 ```
