@@ -71,7 +71,7 @@ LabelingViewerApp::LabelingViewerApp(const std::string name, bool auto_flip_norm
 
 void LabelingViewerApp::ImGui_initialize() {
     Application::ImGui_initialize();
-    set_style("Light");
+    set_style("Dark");
     if(GEO::FileSystem::is_file("gui.ini")) {
         // Layout modification, saved with ImGui::SaveIniSettingsToDisk()
         // Larger docked object properties panel
@@ -302,6 +302,17 @@ void LabelingViewerApp::draw_menu_bar() {
     SimpleApplication::draw_menu_bar();
 
     if(ImGui::BeginMainMenuBar()) {
+
+        if(ImGui::MenuItem("Toggle light/dark mode")) {
+            // ignoring 'DarkGray' and 'LightGray' styles
+            if(get_style() == "Light") {
+                set_style("Dark");
+            }
+            else {
+                set_style("Light");
+            }
+        }
+
         if(ImGui::BeginMenu("Debug")) {
             if(ImGui::MenuItem("Dump labeling graph as text file")) {
                 lg_.dump_to_text_file("LabelingGraph.txt",mesh_);
@@ -331,6 +342,7 @@ void LabelingViewerApp::draw_menu_bar() {
             }
             ImGui::EndMenu();
         }
+
         ImGui::EndMainMenuBar();
     }
 }
