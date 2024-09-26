@@ -163,7 +163,7 @@ unsigned int count_lost_feature_edges(const MeshExt& mesh) {
     // parse all facet
     // parse all local vertex for each facet (= facet corners)
     // get halfedge
-    // ignore if v1 < v0 (they are 2 halfeges for a given edge, keep the one where v0 < v1)
+    // ignore if v1 < v0 (they are 2 halfedges for a given edge, keep the one where v0 < v1)
     // ignore if halfedge not on feature edge
     // fetch label at left and right
     // if same labeling, increment counter

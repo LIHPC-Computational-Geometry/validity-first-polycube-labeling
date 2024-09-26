@@ -434,7 +434,7 @@ void write_glTF__labeled_triangle_mesh(std::string filename, MeshExt& M, Attribu
         }
     }
     // write vertices position coordinates (= 3D coordinates)
-    // & write vertices texture coordinates (= 2D coordinates aligned on 3D coordiates)
+    // & write vertices texture coordinates (= 2D coordinates aligned on 3D coordinates)
     uint16_t zeros_on_4_bytes = 0x00000000;
     FOR(glTF_v,glTF_vertices.size()) { // for each vertex index
         // write position
@@ -737,7 +737,7 @@ void write_glTF__labeled_triangle_mesh_with_polycube_animation(std::string filen
         }
     }
     // write vertices position coordinates (= 3D coordinates)
-    // & write vertices texture coordinates (= 2D coordinates aligned on 3D coordiates)
+    // & write vertices texture coordinates (= 2D coordinates aligned on 3D coordinates)
     uint16_t zeros_on_4_bytes = 0x00000000;
     FOR(glTF_v,glTF_vertices.size()) { // for each vertex index
         // write position

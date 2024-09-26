@@ -1,6 +1,6 @@
 /* Reorient a mesh according to the principal axes of its point cloud.
  * Not as good as "Alignment of 3D models" by Chaouch & Verroust-Blondet https://inria.hal.science/hal-00804653
- * But in our case, misalignment is good because there might be less surfaces where 2 signed axes are equaly close to the normals
+ * But in our case, misalignment is good because there might be less surfaces where 2 signed axes are equally close to the normals
  */
 
 #include <geogram/mesh/mesh.h>              // for Mesh

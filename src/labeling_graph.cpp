@@ -289,7 +289,7 @@ vec3 Corner::average_coordinates_of_neighborhood(const Mesh& mesh, const Labelin
             const Boundary& boundary = lg.boundaries.at(boundary_index);
             if(same_direction) { // the corner is the start_corner of `boundary`
                 dist = 1;
-                for(auto boundary_halfedge : boundary.halfedges) { // go accross the boundary
+                for(auto boundary_halfedge : boundary.halfedges) { // go across the boundary
                     sum += halfedge_vertex_to(mesh,boundary_halfedge) /* / (double) dist */; // the further the vertex is from the corner, the lesser its contribution to the sum
                     count_vertices_in_sum++;
                     dist++;
@@ -300,7 +300,7 @@ vec3 Corner::average_coordinates_of_neighborhood(const Mesh& mesh, const Labelin
             }
             else { // the corner is the end_corner of `boundary`
                 dist = 1;
-                for(auto boundary_halfedge = boundary.halfedges.rbegin(); boundary_halfedge != boundary.halfedges.rend(); boundary_halfedge++) { // go accross the boundary in reverse order of halfedges
+                for(auto boundary_halfedge = boundary.halfedges.rbegin(); boundary_halfedge != boundary.halfedges.rend(); boundary_halfedge++) { // go across the boundary in reverse order of halfedges
                     sum += halfedge_vertex_from(mesh,*boundary_halfedge) /* / (double) dist */; // the further the vertex is from the corner, the lesser its contribution to the sum
                     count_vertices_in_sum++;
                     dist++;
@@ -539,7 +539,7 @@ void Boundary::explore(const MeshExt& mesh, // contains both the halfedges API a
             halfedge2boundary[current_halfedge] = {index_of_self,false}; // mark this halfedge, link it to the current boundary (opposite orientation)
             mesh.halfedges.move_to_opposite(current_halfedge); // switch orientation
 
-            // update the averge normal of the boundary
+            // update the average normal of the boundary
             average_normal += halfedge_normal(mesh,current_halfedge);
 
             // check if we (still) are on a feature edge
@@ -841,7 +841,7 @@ void Boundary::get_flipped(const MeshHalfedges& mesh_he, Boundary& flipped_bound
         flipped_boundary.halfedges.push_back(current_halfedge);
     }
     geo_assert(flipped_boundary.halfedges.size() == halfedges.size());
-    // `turning_points` store indices in `halfedges` where a turning poin is on the origin vertex
+    // `turning_points` store indices in `halfedges` where a turning point is on the origin vertex
     for(auto it = turning_points.rbegin(); it != turning_points.rend(); ++it) {
         TurningPoint current_turning_point = *it;
         geo_assert(current_turning_point.outgoing_local_halfedge_index_ < halfedges.size());
@@ -901,7 +901,7 @@ void Boundary::split_at_turning_point(const MeshHalfedges& mesh_he, Boundary& do
     geo_assert(downward_boundary.halfedges.size() + upward_boundary.halfedges.size() == halfedges.size());
 }
 
-void Boundary::per_edges_axis_assignement_cost(const Mesh& mesh, index_t axis, std::vector<double>& costs) const {
+void Boundary::per_edges_axis_assignment_cost(const Mesh& mesh, index_t axis, std::vector<double>& costs) const {
     geo_assert(axis < 3); // must be either 0=X, 1=Y or 2=Z
     costs.resize(halfedges.size());
     FOR(he_index,halfedges.size()) {
@@ -909,8 +909,8 @@ void Boundary::per_edges_axis_assignement_cost(const Mesh& mesh, index_t axis, s
     }
 }
 
-void Boundary::per_edges_cumulative_axis_assignement_cost(const Mesh& mesh, index_t axis, std::vector<double>& costs, bool accumulation_from_start_corner) const {
-    per_edges_axis_assignement_cost(mesh,axis,costs);
+void Boundary::per_edges_cumulative_axis_assignment_cost(const Mesh& mesh, index_t axis, std::vector<double>& costs, bool accumulation_from_start_corner) const {
+    per_edges_axis_assignment_cost(mesh,axis,costs);
     if(accumulation_from_start_corner) {
         for(index_t he_index = 1; he_index < halfedges.size(); ++he_index) {
             costs[he_index] += costs[he_index-1];

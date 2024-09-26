@@ -21,12 +21,12 @@ inline std::size_t index_of_last(const T& a) {
 // to check is a vector has duplicate values
 template<class T>
 bool has_duplicates(const std::vector<T>& container) {
-    std::set<T> values_encontered;
+    std::set<T> values_encountered;
     for(const auto& value : container) {
-        if(values_encontered.contains(value)) {
+        if(values_encountered.contains(value)) {
             return true;
         }
-        values_encontered.insert(value);
+        values_encountered.insert(value);
     }
     return false;
 }

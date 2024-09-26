@@ -185,7 +185,7 @@ namespace GEO {
             Plane plane(mesh_.vertices.point(vertex0),mesh_.vertices.point(vertex1),mesh_.vertices.point(vertex2));
             // change direction, so that H.facet is the facet at the other side of the edge
             move_to_opposite(H);
-            // move so that the 3rd vertex of this facet (the one that is not on the original halfedge) is on the tip of the halhedge
+            // move so that the 3rd vertex of this facet (the one that is not on the original halfedge) is on the tip of the halfedge
             move_to_next_around_facet(H);
             vec3 tip = halfedge_vertex_to(mesh_,H); // get the coordinates
             // move back to the initial halfedge

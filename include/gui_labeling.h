@@ -123,8 +123,8 @@ protected:
 	std::size_t X_boundaries_group_index_; // index of the edges group in the overlay storing edges of boundaries mapped to the X axis
 	std::size_t Y_boundaries_group_index_; // index of the edges group in the overlay storing edges of boundaries mapped to the Y axis
 	std::size_t Z_boundaries_group_index_; // index of the edges group in the overlay storing edges of boundaries mapped to the Z axis
-	std::size_t axisless_and_invalid_boundaries_group_index; // index of the edges group in the overlay storing axisless and invalid boundary edges
-	std::size_t axisless_but_valid_boundaries_group_index_; // index of the edges group in the overlay storing axisless but valid boundary edges
+	std::size_t axisless_and_invalid_boundaries_group_index; // index of the edges group in the overlay storing axis-less and invalid boundary edges
+	std::size_t axisless_but_valid_boundaries_group_index_; // index of the edges group in the overlay storing axis-less but valid boundary edges
 	bool show_corners_; // display labeling graph corners
 	vec3f corners_color_; // color of labeling graph corners
 	float corners_size_; // size of labeling graph corners

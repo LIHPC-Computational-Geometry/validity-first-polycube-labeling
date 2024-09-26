@@ -106,7 +106,7 @@ MeshHalfedges::Halfedge get_most_aligned_halfedge_around_vertex(const MeshExt& m
 
 void get_adjacent_facets_conditional(const Mesh& mesh, index_t facet_index, index_t which_chart, const std::vector<index_t>& facet2chart, std::set<index_t>& out);
 
-// for given 3D coodinates and a start vertex not too far, find the nearest vertex
+// for given 3D coordinates and a start vertex not too far, find the nearest vertex
 index_t get_nearest_vertex_of_coordinates(const MeshExt& mesh, vec3 target_coordinates, index_t start_vertex, size_t max_dist);
 
 index_t nearest_axis_of_edges(const Mesh& mesh, std::initializer_list<MeshHalfedges::Halfedge> edges, std::initializer_list<index_t> forbidden_axes);

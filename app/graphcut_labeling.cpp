@@ -1,8 +1,6 @@
 // Rewriting of https://github.com/LIHPC-Computational-Geometry/genomesh/blob/main/apps/graphcut_labeling.cpp
 // using Geogram instead of libigl, and with a GUI.
 
-// TODO do not lauch GUI if both parameters are given by CLI
-
 #include <geogram/basic/command_line_args.h> // for import_arg_group()
 
 #include <algorithm>	// for std::max_element(), std::min_element()

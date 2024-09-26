@@ -64,7 +64,7 @@ bool NeighborsCosts::are_neighbors(GCoptimization::SiteID site1, GCoptimization:
 }
 
 void NeighborsCosts::set_neighbors(GCoptimization::SiteID site1, GCoptimization::SiteID site2, GCoptimization::EnergyTermType cost) {
-    geo_assert(nb_sites_ != 0); // set_nb_sites() must heve been called before
+    geo_assert(nb_sites_ != 0); // set_nb_sites() must have been called before
     geo_assert(site1 < nb_sites_);
     geo_assert(site2 < nb_sites_);
     geo_assert(cost >= 0);
@@ -345,7 +345,7 @@ void GraphCutLabeling::smooth_cost__set__prevent_opposite_neighbors() {
     FOR(labelID1,nb_labels_) {
         FOR(labelID2,nb_labels_) {
             smooth_cost_[(std::vector<int>::size_type) labelID1 + (std::vector<int>::size_type) labelID2 * (std::vector<int>::size_type) nb_labels_] =
-                (labelID1==labelID2) ? 0 : ( // if samel label -> null cost
+                (labelID1==labelID2) ? 0 : ( // if same label -> null cost
                 (label2axis(labelID2polycubeLabel_[labelID1])==label2axis(labelID2polycubeLabel_[labelID2])) ? HIGH_COST : 1 // if same axis but different label (= opposite labels) -> high cost, else small cost (1)
                 );
         }

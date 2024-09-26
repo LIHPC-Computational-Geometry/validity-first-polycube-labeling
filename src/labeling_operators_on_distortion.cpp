@@ -21,7 +21,7 @@ size_t move_boundaries_near_turning_points(const MeshExt& mesh, Attribute<index_
     MeshHalfedges::Halfedge initial_halfedge, current_halfedge;
     index_t new_label = index_t(-1);
 
-    // Get turning points, change the label if this doesnt break charts connectivity
+    // Get turning points, change the label if this doesn't break charts connectivity
 
     for(auto b : lg.non_monotone_boundaries) {
 
@@ -105,7 +105,7 @@ void straighten_boundary_with_GCO(const MeshExt& mesh, Attribute<index_t>& label
         for(auto f : right_chart.facets) {
             facets_of_the_2_charts[f] = 1; // insert this facet, associated to 1=right
         }
-        dump_facets("2_charts","on_wich_side",mesh,facets_of_the_2_charts);
+        dump_facets("2_charts","on_which_side",mesh,facets_of_the_2_charts);
     #endif
 
     std::map<index_t,unsigned int> distance_to_boundary; // map a facet index to a distance. only defined for facet inside the 2 charts
@@ -229,7 +229,7 @@ bool straighten_boundary(const MeshExt& mesh, Attribute<index_t>& labeling, cons
     const Chart& left_chart = lg.charts[left_chart_index];
     const Chart& right_chart = lg.charts[right_chart_index];
 
-    index_t target_vertex = halfedge_vertex_index_from(mesh,*current_boundary.halfedges.rbegin()); // origin of laft halfedge
+    index_t target_vertex = halfedge_vertex_index_from(mesh,*current_boundary.halfedges.rbegin()); // origin of left halfedge
     vec3 target_point = mesh_vertex(mesh,target_vertex);
 
     MeshHalfedges::Halfedge previous_halfedge;

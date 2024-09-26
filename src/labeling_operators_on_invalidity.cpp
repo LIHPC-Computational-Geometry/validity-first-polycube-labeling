@@ -648,10 +648,10 @@ bool increase_chart_valence(const MeshExt& mesh, Attribute<index_t>& labeling, L
         std::vector<double> downward_boundary_cumulative_cost_for_axis_to_insert;
         std::vector<double> upward_boundary_cumulative_cost_for_current_axis;
         std::vector<double> upward_boundary_cumulative_cost_for_axis_to_insert;
-        downward_boundary.per_edges_cumulative_axis_assignement_cost(mesh,current_axis,downward_boundary_cumulative_cost_for_current_axis,false);
-        downward_boundary.per_edges_cumulative_axis_assignement_cost(mesh,axis_to_insert,downward_boundary_cumulative_cost_for_axis_to_insert,true);
-        upward_boundary.per_edges_cumulative_axis_assignement_cost(mesh,current_axis,upward_boundary_cumulative_cost_for_current_axis,false);
-        upward_boundary.per_edges_cumulative_axis_assignement_cost(mesh,axis_to_insert,upward_boundary_cumulative_cost_for_axis_to_insert,true);
+        downward_boundary.per_edges_cumulative_axis_assignment_cost(mesh,current_axis,downward_boundary_cumulative_cost_for_current_axis,false);
+        downward_boundary.per_edges_cumulative_axis_assignment_cost(mesh,axis_to_insert,downward_boundary_cumulative_cost_for_axis_to_insert,true);
+        upward_boundary.per_edges_cumulative_axis_assignment_cost(mesh,current_axis,upward_boundary_cumulative_cost_for_current_axis,false);
+        upward_boundary.per_edges_cumulative_axis_assignment_cost(mesh,axis_to_insert,upward_boundary_cumulative_cost_for_axis_to_insert,true);
 
         // find equilibrium along `downward_boundary`
 
@@ -794,7 +794,7 @@ bool increase_chart_valence(const MeshExt& mesh, Attribute<index_t>& labeling, L
             trace_path_on_chart(mesh,lg.facet2chart,lg.turning_point_vertices,upward_boundary_equilibrium_vertex,direction*10,walls,facets_of_new_chart,path);
         }
 
-        index_t chart_on_wich_the_new_chart_will_be = lg.facet2chart[*facets_of_new_chart.begin()];
+        index_t chart_on_which_the_new_chart_will_be = lg.facet2chart[*facets_of_new_chart.begin()];
 
         #ifndef NDEBUG
             dump_facets("facets_of_new_chart",mesh,facets_of_new_chart);
@@ -804,14 +804,14 @@ bool increase_chart_valence(const MeshExt& mesh, Attribute<index_t>& labeling, L
         index_t label_to_insert = find_optimal_label(
             { // 2 forbidden axes:
                 chart.label/2, // the axis of the chart we're going to increase the valence
-                lg.charts[chart_on_wich_the_new_chart_will_be].label/2 // the axis of the chart on which we traced boundaries
+                lg.charts[chart_on_which_the_new_chart_will_be].label/2 // the axis of the chart on which we traced boundaries
             },
             {},
-            {}, // no need to specify orthogonality constraints, becase we already forbid 2 axes over 3
+            {}, // no need to specify orthogonality constraints, because we already forbid 2 axes over 3
             average_facets_normal(mesh.facet_normals.as_vector(),facets_of_new_chart) // among the 2 remaining labels, choose the one the closest to the avg normal of `facets_of_new_chart`
         );
 
-        propagate_label(mesh,labeling,label_to_insert,facets_of_new_chart,walls,lg.facet2chart,chart_on_wich_the_new_chart_will_be);
+        propagate_label(mesh,labeling,label_to_insert,facets_of_new_chart,walls,lg.facet2chart,chart_on_which_the_new_chart_will_be);
 
         return true; // an invalid chart has been processed
     }

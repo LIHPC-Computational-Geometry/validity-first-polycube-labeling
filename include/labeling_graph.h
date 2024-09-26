@@ -243,9 +243,9 @@ struct Boundary {
 
     void split_at_turning_point(const MeshHalfedges& mesh_he, Boundary& downward_boundary, Boundary& upward_boundary, index_t local_turning_point_index = 0) const;
 
-    void per_edges_axis_assignement_cost(const Mesh& mesh, index_t axis, std::vector<double>& costs) const;
+    void per_edges_axis_assignment_cost(const Mesh& mesh, index_t axis, std::vector<double>& costs) const;
 
-    void per_edges_cumulative_axis_assignement_cost(const Mesh& mesh, index_t axis, std::vector<double>& costs, bool accumulation_from_start_corner) const;
+    void per_edges_cumulative_axis_assignment_cost(const Mesh& mesh, index_t axis, std::vector<double>& costs, bool accumulation_from_start_corner) const;
 
     double length(const Mesh& mesh) const;
 };
