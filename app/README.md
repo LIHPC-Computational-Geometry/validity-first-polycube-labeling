@@ -30,6 +30,7 @@ From a 3D triangle mesh, generate a labeling which maps each triangle to one of 
 ## Export
 
 - [`to_glTF.cpp`](to_glTF.cpp) : write a 3D render (triangle mesh, labeled triangle mesh, hexahedral mesh) as glTF 2.0
+- [`volume_labeling.cpp`](volume_labeling.cpp) : export a per-tetrahedron-facet labeling from a per-surface-triangle labeling and a triangle-to-tetrahedron-facet map
 
 ## Debug
 
