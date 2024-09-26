@@ -1,6 +1,6 @@
-# automatic_polycube
+# Validity-first automatic polycube labeling for CAD models
 
-Automatic polycube generation for hex-meshing. WIP
+Reference implementation
 
 ## Requirements
 
@@ -45,32 +45,72 @@ cd build_Release
 # See https://github.com/BrunoLevy/geogram/wiki#compiling
 # and https://github.com/BrunoLevy/geogram/blob/main/configure.sh#L120
 cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release
-ninja automatic_polycube
+ninja
 ```
 
-Remove `-G Ninja` to use Make instead, if you don't have Ninja.
+Remove `-G Ninja` to use [Make](https://www.gnu.org/software/make/) instead, if you don't have [Ninja](https://ninja-build.org/).
 
-## Run `automatic_polycube` app
+## File format
 
-### With the GUI
+During development, we used :
+- the MEDIT / Gamma mesh file (GMF) ASCII format (.mesh) for tetrahedral and hexahedral meshes
+- the Wavefront OBJ (.obj) format for 3D triangle meshes
+
+but, as Geogram-based code, [other formats can be used](https://github.com/BrunoLevy/geogram/wiki/Mesh#loading-and-saving-a-mesh).
+
+The .obj surface of a tetrahedral mesh can be generated withe the `extract_surface` app.
+
+Polycube labelings are stored in a separate file, in plain text (.txt), with as many lines as there are triangles in the input 3D triangle mesh. For each line there is an integer in [0:5] encoding {+X,-X,+Y,-Y,+Z,-Z}.
+
+## Main algorithm : `automatic_polycube` app
+
+It generates a polycube labeling `labeling.txt` from a 3D triangle mesh `surface.obj`.
 
 ```bash
-# from automatic_polycube/build_Release
-./bin/automatic_polycube ../../data/B0/surface.obj gui=true
+# from automatic_polycube/build_Release/
+./bin/automatic_polycube ../../data/B0/surface.obj ../../data/B0/labeling.txt gui=false
 ```
 
-You can ommit the file path to drag-and-drop the input file.
+There is also a graphic user interface, to manually apply labeling operators :
 
-1. In the right panel, click on "Compute naive labeling"
-1. If the labeling in invalid*, try "Auto fix validity", which loop over manual operators just over the button
-1. If not all boundaries are monotone*, try "Auto fix monotonicity", which loop over some of the operators listed above.
-1. In the menu bar, click on "Save as", choose a location and a filename, and select "txt" as extension to export the per-surface-triangle labeling.
+```bash
+# from automatic_polycube/build_Release/
+./bin/automatic_polycube ../../data/B0/surface.obj gui=true
+# or just
+./bin/automatic_polycube
+# then drag-and-drop a .obj in the 3D viewer
+```
+
+1. In the right panel, click on "Compute graph-cuts labeling" to generate de default initial labeling
+1. If the labeling in invalid*, try the "Auto fix validity" button, which loop over manual operators whose button is just above
+1. If not all boundaries are monotone*, try "Auto fix monotonicity", which loop over manual operators whose button is just above
+1. In the menu bar, click on "File" > "Save as", choose a location and a filename, and select "txt" as extension to export the per-surface-triangle labeling.
 
 *Not the case with the provided B0 model.
 
-### Without the GUI
+## Visualize an existing labeling
+
+You can use the `labeling_viewer` app, which is the base of the `automatic_polycube` one and does not contain labeling modification buttons.
 
 ```bash
-# from automatic_polycube/build_Release
-./bin/automatic_polycube ../../data/B0/surface.obj ../../data/B0/labeling.txt gui=false
+# from automatic_polycube/build_Release/
+./bin/labeling_viewer ../../data/B0/surface.obj ../../data/B0/labeling.txt
+# or just
+./bin/labeling_viewer
+# then drag-and-drop a .obj then a .txt in the 3D viewer
 ```
+
+You can also export a `.geogram` mesh, with the polycube labeling as embedded attribute, and open it with [Graphite](https://github.com/brunolevy/GraphiteThree).
+
+```bash
+# from automatic_polycube/build_Release/
+./bin/labeling_viewer ../../data/B0/surface.obj ../../data/B0/labeling.txt ../../data/B0/output_labeled_surface.geogram
+```
+
+## Generate a hexahedral mesh from a given labeling
+
+See
+- [polycube_withHexEx](https://github.com/fprotais/polycube_withHexEx) : simple polycube parametrization, then calls [libHexEx](https://gitlab.vci.rwth-aachen.de:9000/HexEx/libHexEx) for the quantization ([Lyon et al. 2016](http://dx.doi.org/10.1145/2897824.2925976))
+- [robustPolycube](https://github.com/fprotais/robustPolycube) : robust quantization ([Protais et al. 2022](https://doi.org/10.1016/j.cad.2022.103321))
+
+You may need to use our `volume_labeling` app first to export a per-tetrahedron-facet labeling.
