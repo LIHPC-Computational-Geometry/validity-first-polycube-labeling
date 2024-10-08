@@ -49,6 +49,25 @@
 
 using namespace GEO;
 
+// write `output_JSON` to stdout or file, depending on `filenames` size
+void write_output_JSON(const std::vector<std::string>& filenames, const nlohmann::json& output_JSON) {
+    if(filenames.size() <= 1) {
+        // no output JSON filename provided
+        std::cout << std::setw(4) << output_JSON << std::endl;
+    }
+    else {
+        // write values in a JSON file
+        std::fstream ofs(filenames[1],std::ios_base::out);
+        if(ofs.good()) {
+            fmt::println(Logger::out("I/O"),"Saving file {}...",filenames[1]); Logger::out("I/O").flush();
+            ofs << std::setw(4) << output_JSON << std::endl;
+        }
+        else {
+            fmt::println(Logger::err("I/O"),"Cannot write into {}",filenames[1]); Logger::err("I/O").flush();
+        }
+    }
+}
+
 int main(int argc, char** argv) {
     
     GEO::initialize();
@@ -77,14 +96,26 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    nlohmann::json output_JSON;
+
     mesh_io_initialize();
     Mesh input_mesh;
     if(!mesh_load(filenames[0],input_mesh)) {
         fmt::println(Logger::err("I/O"),"Unable to load the mesh from {}",filenames[0]); Logger::err("I/O").flush();
+        // write a JSON file anyway
+        // because sometimes the PolyCut pipeline writes an empty hex-mesh:
+        // | MeshVersionFormatted 1
+        // | Dimension
+        // | 3
+        // | End
+        // (MEDIT format) and we don't want to execute `mesh_stats` each time we generate a report or a stats table in dds-hexmeshing
+        output_JSON["vertices"]["nb"] = 0;
+        output_JSON["edges"]["nb"] = 0;
+        output_JSON["facets"]["nb"] = 0;
+        output_JSON["cells"]["nb"] = 0;
+        write_output_JSON(filenames,output_JSON);
         return 1;
     }
-
-    nlohmann::json output_JSON;
 
     ////////////////////////////////
     // Vertices
@@ -331,23 +362,6 @@ int main(int argc, char** argv) {
         );
     }
 
-    // write to stdout or file, according to the number of arguments
-
-    if(filenames.size() <= 1) {
-        // no output JSON filename provided
-        std::cout << std::setw(4) << output_JSON << std::endl;
-    }
-    else {
-        // write values in a JSON file
-        std::fstream ofs(filenames[1],std::ios_base::out);
-        if(ofs.good()) {
-            fmt::println(Logger::out("I/O"),"Saving file {}...",filenames[1]); Logger::out("I/O").flush();
-            ofs << std::setw(4) << output_JSON << std::endl;
-        }
-        else {
-            fmt::println(Logger::err("I/O"),"Cannot write into {}",filenames[1]); Logger::err("I/O").flush();
-        }
-    }
-
+    write_output_JSON(filenames,output_JSON);
     return 0;
 }
