@@ -101,6 +101,6 @@ void write_glTF__triangle_mesh(std::string filename, MeshExt& M, bool with_wiref
 
 void write_glTF__labeled_triangle_mesh(std::string filename, MeshExt& M, Attribute<index_t>& labeling, std::function<bool(const Mesh& M, const Attribute<index_t>& label, index_t facet_index)> remove_facet_fx);
 
-void write_glTF__labeled_triangle_mesh_with_polycube_animation(std::string filename, MeshExt& M, GEO::Mesh& polycube, Attribute<index_t>& labeling);
+void write_glTF__labeled_triangle_mesh_with_polycube_animation(std::string filename, MeshExt& M, GEO::Mesh& polycube, Attribute<index_t>& labeling, std::function<bool(const Mesh& M, const Attribute<index_t>& label, index_t facet_index)> remove_facet_fx);
 
 void write_glTF__hex_mesh_surface(std::string filename, const GEO::Mesh& hex_mesh);

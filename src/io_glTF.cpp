@@ -557,7 +557,7 @@ void write_glTF__labeled_triangle_mesh(std::string filename, MeshExt& M, Attribu
                             true); // write binary
 }
 
-void write_glTF__labeled_triangle_mesh_with_polycube_animation(std::string filename, MeshExt& M, GEO::Mesh& polycube, Attribute<index_t>& labeling) {
+void write_glTF__labeled_triangle_mesh_with_polycube_animation(std::string filename, MeshExt& M, GEO::Mesh& polycube, Attribute<index_t>& labeling, std::function<bool(const Mesh& M, const Attribute<index_t>& label, index_t facet_index)> remove_facet_fx) {
     // https://github.khronos.org/glTF-Tutorials/gltfTutorial/gltfTutorial_004_ScenesNodes.html
     // https://github.khronos.org/glTF-Tutorials/gltfTutorial/gltfTutorial_006_SimpleAnimation.html
     // https://github.khronos.org/glTF-Tutorials/gltfTutorial/gltfTutorial_007_Animations.html
@@ -572,6 +572,23 @@ void write_glTF__labeled_triangle_mesh_with_polycube_animation(std::string filen
     geo_debug_assert(M.adj_facet_corners.size_matches_nb_vertices());
     geo_debug_assert(M.vertices.nb() == polycube.vertices.nb());
     geo_debug_assert(M.facets.nb() == polycube.facets.nb());
+
+    std::size_t nb_facets_removed = 0;
+    GEO::vector<index_t> to_delete(M.facets.nb(),0);
+    FOR(f, M.facets.nb()) {
+        if(remove_facet_fx(M,labeling,f)) {
+            to_delete[f] = 1;
+            nb_facets_removed++;
+        }
+    }
+    GEO::vector<index_t> to_delete_copy = to_delete;
+    M.facets.delete_elements(to_delete,true);
+    polycube.facets.delete_elements(to_delete_copy,true);
+    fmt::println(Logger::warn("glTF"),"{} facets ({:.2f} %) removed before glTF export",nb_facets_removed,((double)nb_facets_removed)/M.facets.nb()*100); Logger::warn("glTF").flush();
+    M.adj_facet_corners.clear();
+    M.adj_facet_corners.recompute(); // mandatory : recompute the vertex-to-facets adjacency 
+    geo_assert(M.adj_facet_corners.size_matches_nb_vertices());
+    geo_assert(M.facets.nb() == polycube.facets.nb());
 
     center_mesh(M,true);
     center_mesh(polycube,true);

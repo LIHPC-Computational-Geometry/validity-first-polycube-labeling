@@ -93,44 +93,44 @@ int main(int argc, char **argv)
 
     M_ext.adj_facet_corners.recompute();
 
-    if(polycube_filename.empty()) {
+    auto remove_facet_fx = [](const Mesh& M, const Attribute<index_t>& label, index_t facet_index) { // return true if the facet at `facet_index` should be remove before glTF export
+    #ifdef REMOVE_FACETS_FOR_IN_VOLUME_TWIST_MODEL
+        // Delete some facets for the new 'in-volume_twist' .stl model (https://github.com/LIHPC-Computational-Geometry/nightmare_of_polycubes)
+        // Opening the .stl converted to .obj with Graphite, we can see that the facets we want to remove are #62 and #63
+        geo_argused(M);
+        geo_argused(label);
+        return (
+            (facet_index==62) or (facet_index==63)
+        );
+    #elif defined(REMOVE_FACETS_FOR_IN_VOLUME_KNOT_MODEL)
+        // Delete some facets for the new 'in-volume_knot' .stl model (https://github.com/LIHPC-Computational-Geometry/nightmare_of_polycubes)
+        // Opening the .stl converted to .obj with Graphite, we can see that the facets we want to remove are #16 and #17
+        geo_argused(M);
+        geo_argused(label);
+        return (
+            (facet_index==16) or (facet_index==17)
+        );
+    #elif defined(REMOVE_FACETS_FOR_PIPE_HELIX)
+        // Delete some facets for the 'pipe_helix' .stl model (https://github.com/LIHPC-Computational-Geometry/nightmare_of_polycubes)
+        // Opening the .stl converted to .obj with Graphite, we can see that the facets we want to remove are #0, #1, #2 and #3 !
+        geo_argused(M);
+        geo_argused(label);
+        return (facet_index <= 3);
+    #elif defined(REMOVE_FACETS_FOR_PIPE_HELIX_7)
+        // Delete some facets for the 'pipe_helix_7' .stl model (https://github.com/LIHPC-Computational-Geometry/nightmare_of_polycubes)
+        // Opening the .stl converted to .obj with Graphite, we can see that the facets we want to remove are #0, #1, #2 and #3 !
+        geo_argused(M);
+        geo_argused(label);
+        return (facet_index <= 3);
+    #else
+        geo_argused(M);
+        geo_argused(label);
+        geo_argused(facet_index);
+        return false; // remove no facets
+    #endif
+    };
 
-        auto remove_facet_fx = [](const Mesh& M, const Attribute<index_t>& label, index_t facet_index) { // return true if the facet at `facet_index` should be remove before glTF export
-        #ifdef REMOVE_FACETS_FOR_IN_VOLUME_TWIST_MODEL
-            // Delete some facets for the new 'in-volume_twist' .stl model (https://github.com/LIHPC-Computational-Geometry/nightmare_of_polycubes)
-            // Opening the .stl converted to .obj with Graphite, we can see that the facets we want to remove are #62 and #63
-            geo_argused(M);
-            geo_argused(label);
-            return (
-                (facet_index==62) or (facet_index==63)
-            );
-        #elif defined(REMOVE_FACETS_FOR_IN_VOLUME_KNOT_MODEL)
-            // Delete some facets for the new 'in-volume_knot' .stl model (https://github.com/LIHPC-Computational-Geometry/nightmare_of_polycubes)
-            // Opening the .stl converted to .obj with Graphite, we can see that the facets we want to remove are #16 and #17
-            geo_argused(M);
-            geo_argused(label);
-            return (
-                (facet_index==16) or (facet_index==17)
-            );
-        #elif defined(REMOVE_FACETS_FOR_PIPE_HELIX)
-            // Delete some facets for the 'pipe_helix' .stl model (https://github.com/LIHPC-Computational-Geometry/nightmare_of_polycubes)
-            // Opening the .stl converted to .obj with Graphite, we can see that the facets we want to remove are #0, #1, #2 and #3 !
-            geo_argused(M);
-            geo_argused(label);
-            return (facet_index <= 3);
-        #elif defined(REMOVE_FACETS_FOR_PIPE_HELIX_7)
-            // Delete some facets for the 'pipe_helix_7' .stl model (https://github.com/LIHPC-Computational-Geometry/nightmare_of_polycubes)
-            // Opening the .stl converted to .obj with Graphite, we can see that the facets we want to remove are #0, #1, #2 and #3 !
-            geo_argused(M);
-            geo_argused(label);
-            return (facet_index <= 3);
-        #else
-            geo_argused(M);
-            geo_argused(label);
-            geo_argused(facet_index);
-            return false; // remove no facets
-        #endif
-        };
+    if(polycube_filename.empty()) {
         
         write_glTF__labeled_triangle_mesh(filenames[1],M_ext,labeling,remove_facet_fx);
         return 0;
@@ -145,7 +145,7 @@ int main(int argc, char **argv)
     GEO::Mesh polycube;
     mesh_load(polycube_filename,polycube);
 
-    write_glTF__labeled_triangle_mesh_with_polycube_animation(filenames[1],M_ext,polycube,labeling);
+    write_glTF__labeled_triangle_mesh_with_polycube_animation(filenames[1],M_ext,polycube,labeling,remove_facet_fx);
 
     return 0;
 }
