@@ -1,4 +1,5 @@
 #include <geogram/basic/command_line.h> // for CmdLine::get_arg() and CmdLine::set_arg()
+#include <geogram_gfx/full_screen_effects/ambient_occlusion.h> // for AmbientOcclusionImpl
 
 #include "gui_base.h"
 
@@ -48,7 +49,7 @@ void SimpleMeshApplicationExt::ColorArray::update_chars_of_color(std::size_t col
     chars_[4*color_index+3] = static_cast<unsigned char>(floats_[4*color_index+3]*255.0f); // A
 }
 
-SimpleMeshApplicationExt::SimpleMeshApplicationExt(const std::string &name) : SimpleMeshApplication(name) {}
+SimpleMeshApplicationExt::SimpleMeshApplicationExt(const std::string &name) : SimpleMeshApplication(name), contrast(10) {}
 
 SimpleMeshApplicationExt::~SimpleMeshApplicationExt() {
     clear_scene_overlay();
@@ -103,6 +104,21 @@ void SimpleMeshApplicationExt::set_points_group_color(std::size_t index, const f
 void SimpleMeshApplicationExt::set_edges_group_color(std::size_t index, unsigned int new_colormap_index, double new_texture_coordinate) {
     edges_groups_.at(index).colormap_index = new_colormap_index;
     edges_groups_.at(index).texture_coordinate = new_texture_coordinate;
+}
+
+void SimpleMeshApplicationExt::draw_viewer_properties() {
+    SimpleMeshApplication::draw_viewer_properties();
+    if(!full_screen_effect_.is_null()) {
+        AmbientOcclusionImpl* ambiant_occlusion = dynamic_cast<AmbientOcclusionImpl*>(full_screen_effect_.get());
+        if(ambiant_occlusion != nullptr) {
+            if(ImGui::InputInt("contrast",&contrast,1,10)) {
+                ambiant_occlusion->set_contrast((index_t) contrast);
+                ambiant_occlusion->update();
+            }
+        }
+        // else: a full screen effect is used, but not Ambiant Occlusion
+    }
+    // else: no full screen effect applied
 }
 
 void SimpleMeshApplicationExt::draw_scene() {

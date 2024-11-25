@@ -103,6 +103,8 @@ public:
 
     void set_edges_group_color(std::size_t index, unsigned int new_colormap_index, double new_texture_coordinate);
 
+    void draw_viewer_properties() override;
+
     void draw_scene() override;
 
     void cursor_pos_callback( double x, double y, int source ) override;
@@ -121,4 +123,5 @@ private:
     vector<PointsGroup> points_groups_;
     vector<EdgesGroup> edges_groups_;
     Memory::byte buffer[4]; // a 4-bytes buffer to read pixels
+    int contrast; // ambiant occlusion setting
 };

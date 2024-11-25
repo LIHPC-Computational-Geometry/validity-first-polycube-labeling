@@ -68,8 +68,6 @@ protected:
 
 	void draw_menu_bar() override;
 
-	void draw_viewer_properties() override;
-
     void draw_object_properties() override;
 
     bool load(const std::string& filename) override;
@@ -102,8 +100,6 @@ protected:
 	// GUI
 
 	bool show_ImGui_demo_window_; // if the ImGui demo window is currently displayed
-	// Related to ambiant occlusion
-	int contrast = 10;
 	// Related to the triangle mesh
 	bool show_normals_; // display facet normals as segments + vertices at the tips
 	vec3f normals_color_; // color of the facet normals
