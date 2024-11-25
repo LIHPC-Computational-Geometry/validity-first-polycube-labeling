@@ -55,6 +55,11 @@ private:
         ImGui::SameLine();
         ImGui::ColorEdit3WithPalette("Mesh", mesh_color_.data());
         ImGui::SliderFloat("Mesh size", &mesh_width_, 0.1f, 2.0f, "%.1f");
+        ImGui::BeginDisabled(show_SJ_);
+        ImGui::ColorEdit3WithPalette("##Cells color", volume_color_.data());
+        ImGui::SameLine();
+        ImGui::TextUnformatted("Cells color");
+        ImGui::EndDisabled();
         if(ImGui::Checkbox("Cell color by SJ",&show_SJ_)) {
             drawing_settings_dirty_ = true;
         }
