@@ -38,12 +38,15 @@
 // So we need to recover which cell facet it was, by comparing surface triangle vertices with vertices of each cell facet.
 //
 // 2024-09-24: allow to write a .mesh (MEDIT format) with tetrahedra + surface triangles, the input expected by PolyCut's mesh2vtu.exe
+//
+// 2024-12-14: allow to reconstruct the surface map from the tetrahedra and triangles
 
 #include <geogram/mesh/mesh.h>  // for GEO::Mesh
 #include <geogram/mesh/mesh_io.h>
 #include <geogram/basic/file_system.h>
 #include <geogram/basic/attributes.h>
 #include <geogram/basic/command_line.h> // for declare_arg(), parse(), get_arg_bool()
+#include <geogram/points/nn_search.h>
 
 #include <fmt/core.h>
 #include <fmt/os.h>
@@ -52,6 +55,7 @@
 #include <vector>
 #include <string>
 #include <set>
+#include <map>
 
 #include "geometry.h"
 
@@ -93,6 +97,76 @@ int main(int argc, char** argv) {
     geo_assert(tet_mesh.cells.nb() != 0); // must be a volumetric mesh
     geo_assert(tet_mesh.cells.are_simplices()); // must be a tetrahedral mesh
     index_t nb_tetra = tet_mesh.cells.nb();
+
+    // special mode: the output surface triangle mesh is provided -> try to reconstruct the map between triangles and tetrahedra
+
+    if (FileSystem::is_file(output_surface_filepath)) {
+
+        fmt::println(Logger::out("I/O"),"{} exists -> try to recontruct the surface map",output_surface_filepath); Logger::out("I/O").flush();
+        
+        if(!GEO::mesh_load(output_surface_filepath,triangle_mesh)) {
+            fmt::println("Unable to open {}",output_surface_filepath);
+            return 1;
+        }
+        geo_assert(triangle_mesh.cells.nb() == 0); // must be a surface mesh
+        geo_assert(triangle_mesh.facets.nb() != 0); // must have facets
+        geo_assert(triangle_mesh.facets.are_simplices()); // only triangles
+        index_t nb_facets = triangle_mesh.facets.nb();
+        
+        // First, fill the map between triangle mesh vertex indices
+        // and tetrahedral mesh vertex indices
+        auto nn_search = NearestNeighborSearch::create(3,"BNN");
+        nn_search->set_points(tet_mesh.vertices.nb(),tet_mesh.vertices.point_ptr(0)); // here we assume contiguous double[3] on memory
+        index_t nearest_index= index_t(-1);
+        double nearest_sq_dist = 0.0;
+        std::map<index_t,index_t> vertex_indices_surface2volume;
+        FOR(v,triangle_mesh.vertices.nb()) {
+            nn_search->get_nearest_neighbors(1,triangle_mesh.vertices.point_ptr(v),&nearest_index,&nearest_sq_dist);
+            vertex_indices_surface2volume[v] = nearest_index;
+        }
+
+        // Then map vertices trios to tetraheda facets
+        std::map<std::set<index_t>,index_t> vertices_to_cell_facet;
+        index_t v0 = 0;
+        index_t v1 = 0;
+        index_t v2 = 0;
+        index_t v3 = 0;
+        FOR(c,tet_mesh.cells.nb()) {
+            // get the 4 vertices of this cell
+            v0 = tet_mesh.cell_corners.vertex(tet_mesh.cells.corner(c,0));
+            v1 = tet_mesh.cell_corners.vertex(tet_mesh.cells.corner(c,1));
+            v2 = tet_mesh.cell_corners.vertex(tet_mesh.cells.corner(c,2));
+            v3 = tet_mesh.cell_corners.vertex(tet_mesh.cells.corner(c,3));
+            vertices_to_cell_facet[{v1,v2,v3}] = 4*c+0;
+            vertices_to_cell_facet[{v0,v3,v2}] = 4*c+1;
+            vertices_to_cell_facet[{v0,v1,v3}] = 4*c+2;
+            vertices_to_cell_facet[{v0,v2,v1}] = 4*c+3;
+        }
+
+        // Write surface map header
+        fmt::println(Logger::out("I/O"),"Writing {}",output_map_filepath); Logger::out("I/O").flush();
+        auto out = fmt::output_file(output_map_filepath);
+        out.print("{} triangles\n",nb_facets);
+        out.print("{} tetrahedra\n",nb_tetra);
+
+        // Parse surface triangles and map them to tetraheda facets
+        FOR(f,triangle_mesh.facets.nb()) {
+            v0 = triangle_mesh.facet_corners.vertex(triangle_mesh.facets.corner(f,0));
+            v1 = triangle_mesh.facet_corners.vertex(triangle_mesh.facets.corner(f,1));
+            v2 = triangle_mesh.facet_corners.vertex(triangle_mesh.facets.corner(f,2));
+            out.print("{}\n",
+                vertices_to_cell_facet[{
+                    vertex_indices_surface2volume[v0],
+                    vertex_indices_surface2volume[v1],
+                    vertex_indices_surface2volume[v2]
+                }]
+            );
+        }
+
+        return 0;
+    }
+
+    // normal mode
 
     triangle_mesh.copy(tet_mesh);
     Attribute<index_t> surface_map(triangle_mesh.facets.attributes(),"cell");
