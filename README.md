@@ -130,12 +130,12 @@ You may need to use our `volume_labeling` app first to export a per-tetrahedron-
 <details>
 <summary>BibTex</summary>
 
-```tex
+```bibtex
 @inproceedings{mestrallet2025,
     title     = {Validity-first automatic polycube labeling for CAD models},
     author    = {Mestrallet, S{\'e}bastien and Bourcier, Christophe and Ledoux, Franck},
     year      = {2025},
-    month     = {March}
+    month     = {March},
     url       = {https://github.com/LIHPC-Computational-Geometry/validity-first-polycube-labeling},
     booktitle = {International Meshing Roundtable},
     publisher = {SIAM}
