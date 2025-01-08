@@ -3,7 +3,8 @@
     <p>
         Sébastien Mestrallet <a href="https://orcid.org/0000-0002-4519-2814"><img height="15px" src="./images/ORCID-iD_icon_vector.svg"></a>, Christophe Bourcier <a href="https://orcid.org/0000-0001-6171-024X"><img height="15px" src="./images/ORCID-iD_icon_vector.svg"></a>, Franck Ledoux <a href="https://orcid.org/0000-0003-3469-3186"><img height="15px" src="./images/ORCID-iD_icon_vector.svg"></a><br/>
         <em>SIAM International Meshing Roundtable Workshop 2025</em><br/>
-        Reference implementation
+        Reference implementation<br/>
+        <a href="https://gist.github.com/cheerfulstoic/d107229326a01ff0f333a1d3476e068d"><img src="https://badgen.net/badge/Maintenance%20Level/Inactively%20Maintained?color=a4a61d" alt="Maintenance Level: Inactively Maintained"></a>
     </p>
     <img src="./images/mosaic.png">
 </div>
