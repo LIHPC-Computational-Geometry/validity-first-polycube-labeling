@@ -122,3 +122,42 @@ See
 - [robustPolycube](https://github.com/fprotais/robustPolycube) : robust quantization ([Protais et al. 2022](https://doi.org/10.1016/j.cad.2022.103321))
 
 You may need to use our `volume_labeling` app first to export a per-tetrahedron-facet labeling.
+
+## How to cite our work
+
+> S. Mestrallet, C. Bourcier, and F. Ledoux, "Validity-first automatic polycube labeling for CAD models", _Proceedings of the 2025 International Meshing Roundtable_, SIAM, March 2025
+
+<details>
+<summary>BibTex</summary>
+
+```tex
+@inproceedings{mestrallet2025,
+    title     = {Validity-first automatic polycube labeling for CAD models},
+    author    = {Mestrallet, S{\'e}bastien and Bourcier, Christophe and Ledoux, Franck},
+    year      = {2025},
+    month     = {March}
+    url       = {https://github.com/LIHPC-Computational-Geometry/validity-first-polycube-labeling},
+    booktitle = {International Meshing Roundtable},
+    publisher = {SIAM}
+}
+```
+
+</details>
+
+<details>
+<summary><a href="https://github.com/typst/hayagriva/blob/main/docs/file-format.md">Hayagriva</a> (for <a href="https://typst.app/">Typst</a>)</summary>
+
+```yaml
+mestrallet2025:
+    title: Validity-first automatic polycube labeling for CAD models
+    author: ["Mestrallet, Sébastien", "Bourcier, Christophe", "Ledoux, Franck"]
+    type: article
+    date: 2025-03
+    url: https://github.com/LIHPC-Computational-Geometry/validity-first-polycube-labeling
+    parent:
+    - type: proceedings
+      title: International Meshing Roundtable
+      publisher: SIAM
+```
+
+</details>
