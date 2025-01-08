@@ -1,7 +1,7 @@
 <div align="center">
-    <h1>Validity-first automatic polycube labeling for CAD models</h1>
+    <h1>Validity-first automatic polycube<br/>labeling for CAD models</h1>
     <p>
-        Sébastien Mestrallet <a href="https://orcid.org/0000-0002-4519-2814"><img height="25px" src="./images/ORCID-iD_icon_vector.svg"></a>, Christophe Bourcier <a href="https://orcid.org/0000-0001-6171-024X"><img height="25px" src="./images/ORCID-iD_icon_vector.svg"></a>, Franck Ledoux <a href="https://orcid.org/0000-0003-3469-3186"><img height="25px" src="./images/ORCID-iD_icon_vector.svg"></a><br/>
+        Sébastien Mestrallet <a href="https://orcid.org/0000-0002-4519-2814"><img height="15px" src="./images/ORCID-iD_icon_vector.svg"></a>, Christophe Bourcier <a href="https://orcid.org/0000-0001-6171-024X"><img height="15px" src="./images/ORCID-iD_icon_vector.svg"></a>, Franck Ledoux <a href="https://orcid.org/0000-0003-3469-3186"><img height="15px" src="./images/ORCID-iD_icon_vector.svg"></a><br/>
         <em>SIAM International Meshing Roundtable Workshop 2025</em><br/>
         Reference implementation
     </p>
