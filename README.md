@@ -5,6 +5,7 @@
         <em>SIAM International Meshing Roundtable Workshop 2025</em><br/>
         Reference implementation
     </p>
+    <img src="./images/mosaic.png">
 </div>
 
 ## Paper
