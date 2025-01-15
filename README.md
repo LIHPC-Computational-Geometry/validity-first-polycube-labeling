@@ -88,6 +88,8 @@ It generates a polycube labeling `labeling.txt` from a 3D triangle mesh `surface
 ./bin/automatic_polycube ../data/B0/surface.obj output=../data/B0/labeling.txt gui=false
 ```
 
+![CLI usage GIF](images/automatic_polycube.gif)
+
 There is also a graphic user interface, to manually apply labeling operators :
 
 ```bash
