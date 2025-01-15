@@ -9,6 +9,15 @@
     <img src="./images/mosaic.png">
 </div>
 
+## Abstract
+
+For many simulation codes, block-structured hex meshes remain preferred while their automatic generation is unsolved.
+We investigate the usage of a polycube-based approach.
+More specifically, we focus on the labeling stage, which consists in assigning each boundary facet to one of the 6 signed principal axis.
+Similar works are confronted with 2 challenges: over-constraining validity criteria, and the conflated processing of validity criteria with quality metrics.
+We tackle these obstacles with automatic routines based on semi-global labeling operators.
+Our approach is successfully tested on CAD models, which are of interest for many numerical simulation problems.
+
 ## Paper
 
 We will link to the IMR 2025 proceedings.
@@ -49,7 +58,7 @@ Open `ext/geogram/src/lib/geogram/mesh/mesh_halfedges.h` and change accessibilit
 Then:
 
 ```bash
-# from automatic_polycube/
+# from validity-first-polycube-labeling/
 mkdir build_Release
 cd build_Release
 cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release
@@ -75,14 +84,14 @@ Polycube labelings are stored in a separate file, in plain text (.txt), with as 
 It generates a polycube labeling `labeling.txt` from a 3D triangle mesh `surface.obj`.
 
 ```bash
-# from automatic_polycube/build_Release/
+# from validity-first-polycube-labeling/build_Release/
 ./bin/automatic_polycube ../../data/B0/surface.obj ../../data/B0/labeling.txt gui=false
 ```
 
 There is also a graphic user interface, to manually apply labeling operators :
 
 ```bash
-# from automatic_polycube/build_Release/
+# from validity-first-polycube-labeling/build_Release/
 ./bin/automatic_polycube ../../data/B0/surface.obj gui=true
 # or just
 ./bin/automatic_polycube
@@ -101,7 +110,7 @@ There is also a graphic user interface, to manually apply labeling operators :
 You can use the `labeling_viewer` app, which is the base of the `automatic_polycube` one and does not contain labeling modification buttons.
 
 ```bash
-# from automatic_polycube/build_Release/
+# from validity-first-polycube-labeling/build_Release/
 ./bin/labeling_viewer ../../data/B0/surface.obj ../../data/B0/labeling.txt
 # or just
 ./bin/labeling_viewer
@@ -111,7 +120,7 @@ You can use the `labeling_viewer` app, which is the base of the `automatic_polyc
 You can also export a `.geogram` mesh, with the polycube labeling as embedded attribute, and open it with [Graphite](https://github.com/brunolevy/GraphiteThree).
 
 ```bash
-# from automatic_polycube/build_Release/
+# from validity-first-polycube-labeling/build_Release/
 ./bin/labeling_viewer ../../data/B0/surface.obj ../../data/B0/labeling.txt ../../data/B0/output_labeled_surface.geogram
 ```
 
@@ -128,7 +137,7 @@ You may need to use our `volume_labeling` app first to export a per-tetrahedron-
 > S. Mestrallet, C. Bourcier, and F. Ledoux, "Validity-first automatic polycube labeling for CAD models", _Proceedings of the 2025 International Meshing Roundtable_, SIAM, March 2025
 
 <details>
-<summary>BibTex</summary>
+<summary>BibTeX</summary>
 
 ```bibtex
 @inproceedings{mestrallet2025,
