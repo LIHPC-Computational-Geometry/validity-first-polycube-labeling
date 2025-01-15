@@ -85,14 +85,14 @@ It generates a polycube labeling `labeling.txt` from a 3D triangle mesh `surface
 
 ```bash
 # from validity-first-polycube-labeling/build_Release/
-./bin/automatic_polycube ../../data/B0/surface.obj ../../data/B0/labeling.txt gui=false
+./bin/automatic_polycube ../data/B0/surface.obj output=../data/B0/labeling.txt gui=false
 ```
 
 There is also a graphic user interface, to manually apply labeling operators :
 
 ```bash
 # from validity-first-polycube-labeling/build_Release/
-./bin/automatic_polycube ../../data/B0/surface.obj gui=true
+./bin/automatic_polycube ../data/B0/surface.obj gui=true
 # or just
 ./bin/automatic_polycube
 # then drag-and-drop a .obj in the 3D viewer
@@ -111,7 +111,7 @@ You can use the `labeling_viewer` app, which is the base of the `automatic_polyc
 
 ```bash
 # from validity-first-polycube-labeling/build_Release/
-./bin/labeling_viewer ../../data/B0/surface.obj ../../data/B0/labeling.txt
+./bin/labeling_viewer ../data/B0/surface.obj ../data/B0/labeling.txt
 # or just
 ./bin/labeling_viewer
 # then drag-and-drop a .obj then a .txt in the 3D viewer
@@ -121,7 +121,7 @@ You can also export a `.geogram` mesh, with the polycube labeling as embedded at
 
 ```bash
 # from validity-first-polycube-labeling/build_Release/
-./bin/labeling_viewer ../../data/B0/surface.obj ../../data/B0/labeling.txt ../../data/B0/output_labeled_surface.geogram
+./bin/labeling_viewer ../data/B0/surface.obj ../data/B0/labeling.txt ../data/B0/output_labeled_surface.geogram
 ```
 
 ## Generate a hexahedral mesh from a given labeling
