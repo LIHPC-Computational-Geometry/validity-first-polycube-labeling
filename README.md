@@ -44,6 +44,11 @@ We will link to the IMR 2025 proceedings.
 
 ## How to build
 
+```bash
+git clone --recurse-submodules https://github.com/LIHPC-Computational-Geometry/validity-first-polycube-labeling.git
+cd validity-first-polycube-labeling
+```
+
 Open `ext/geogram/src/lib/geogram/mesh/mesh_halfedges.h` and change accessibility of `MeshHalfedges` variables from `private` to `protected`.
 
 ```diff
