@@ -123,5 +123,5 @@ private:
     vector<PointsGroup> points_groups_;
     vector<EdgesGroup> edges_groups_;
     Memory::byte buffer[4]; // a 4-bytes buffer to read pixels
-    int contrast; // ambiant occlusion setting
+    int contrast; // ambient occlusion setting
 };

@@ -40,7 +40,7 @@ size_t remove_surrounded_charts(Attribute<index_t>& labeling, const LabelingGrap
 
 
         skip_modification:
-            ; // just end this loop interation
+            ; // just end this loop iteration
     }
 
     return nb_invalid_charts_processed;

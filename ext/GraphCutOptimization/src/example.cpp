@@ -4,7 +4,7 @@
 /////////////////////////////////////////////////////////////////////////////
 //
 //  Optimization problem:
-//  is a set of sites (pixels) of width 10 and hight 5. Thus number of pixels is 50
+//  is a set of sites (pixels) of width 10 and height 5. Thus number of pixels is 50
 //  grid neighborhood: each pixel has its left, right, up, and bottom pixels as neighbors
 //  7 labels
 //  Data costs: D(pixel,label) = 0 if pixel < 25 and label = 0

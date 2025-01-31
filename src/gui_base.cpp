@@ -109,14 +109,14 @@ void SimpleMeshApplicationExt::set_edges_group_color(std::size_t index, unsigned
 void SimpleMeshApplicationExt::draw_viewer_properties() {
     SimpleMeshApplication::draw_viewer_properties();
     if(!full_screen_effect_.is_null()) {
-        AmbientOcclusionImpl* ambiant_occlusion = dynamic_cast<AmbientOcclusionImpl*>(full_screen_effect_.get());
-        if(ambiant_occlusion != nullptr) {
+        AmbientOcclusionImpl* ambient_occlusion = dynamic_cast<AmbientOcclusionImpl*>(full_screen_effect_.get());
+        if(ambient_occlusion != nullptr) {
             if(ImGui::InputInt("contrast",&contrast,1,10)) {
-                ambiant_occlusion->set_contrast((index_t) contrast);
-                ambiant_occlusion->update();
+                ambient_occlusion->set_contrast((index_t) contrast);
+                ambient_occlusion->update();
             }
         }
-        // else: a full screen effect is used, but not Ambiant Occlusion
+        // else: a full screen effect is used, but not Ambient Occlusion
     }
     // else: no full screen effect applied
 }

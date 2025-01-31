@@ -976,7 +976,7 @@ GCoptimization::EnergyType GCoptimization::expansion(int max_num_iterations)
 	{
 		if ( max_num_iterations == -1 )
 		{
-			// Strategic expansion loop focuses on labels that successfuly reduced the energy
+			// Strategic expansion loop focuses on labels that successfully reduced the energy
 			printStatus1("starting alpha-expansion w/ adaptive cycles");
 			std::vector<LabelID> queueSizes;
 			queueSizes.push_back(m_num_labels);
@@ -1059,7 +1059,7 @@ void GCoptimization::setLabelOrder(bool isRandom)
 void GCoptimization::setLabelOrder(const LabelID* order, LabelID size)
 {
 	if ( size > m_num_labels )
-		handleError("setLabelOrder receieved too many labels");
+		handleError("setLabelOrder received too many labels");
 	for ( LabelID i = 0; i < size; ++i )
 		if ( order[i] < 0 || order[i] >= m_num_labels )
 			handleError("Invalid label id in setLabelOrder");

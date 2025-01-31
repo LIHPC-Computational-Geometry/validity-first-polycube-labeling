@@ -43,7 +43,7 @@
 #include "block.h"
 
 #include <assert.h>
-// NOTE: in UNIX you need to use -DNDEBUG preprocessor option to supress assert's!!!
+// NOTE: in UNIX you need to use -DNDEBUG preprocessor option to suppress assert's!!!
 
 
 

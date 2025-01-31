@@ -72,7 +72,7 @@
     must cite publications according to the rules given above. Only
     Olga Veksler has the right to redistribute this code, unless expressed
     permission is given otherwise. Commercial use of this code, any of 
-    its parts, or its modifications is not permited. The copyright notices 
+    its parts, or its modifications is not permitted. The copyright notices 
     must not be removed in case of any modifications. This Licence 
     commences on the date it is electronically or physically delivered 
     to you and continues in effect unless you fail to comply with any of 
@@ -185,21 +185,21 @@ public:
 	GCoptimization(SiteID num_sites, LabelID num_labels);
 	virtual ~GCoptimization();
 
-	// Peforms expansion algorithm. Runs the number of iterations specified by max_num_iterations 
+	// Performs expansion algorithm. Runs the number of iterations specified by max_num_iterations 
 	// If no input specified,runs until convergence. Returns total energy of labeling. 
 	EnergyType expansion(int max_num_iterations=-1);
 
-	// Peforms  expansion on one label, specified by the input parameter alpha_label 
+	// Performs  expansion on one label, specified by the input parameter alpha_label 
 	bool alpha_expansion(LabelID alpha_label);
 
-	// Peforms swap algorithm. Runs it the specified number of iterations. If no  
+	// Performs swap algorithm. Runs it the specified number of iterations. If no  
 	// input is specified,runs until convergence                                  
 	EnergyType swap(int max_num_iterations=-1);
 
-	// Peforms  swap on a pair of labels, specified by the input parameters alpha_label, beta_label 
+	// Performs  swap on a pair of labels, specified by the input parameters alpha_label, beta_label 
 	void alpha_beta_swap(LabelID alpha_label, LabelID beta_label);
 
-	// Peforms  swap on a pair of labels, specified by the input parameters alpha_label, beta_label 
+	// Performs  swap on a pair of labels, specified by the input parameters alpha_label, beta_label 
 	// only on the sitess in the specified arrays, alphaSites and betaSitess, and the array sizes  
 	// are, respectively, alpha_size and beta_size                                                  
 	void alpha_beta_swap(LabelID alpha_label, LabelID beta_label, SiteID *alphaSites, 
@@ -474,7 +474,7 @@ protected:
 	static void checkInterrupt();
 
 private:
-	// Peforms one iteration (one pass over all pairs of labels) of expansion/swap algorithm
+	// Performs one iteration (one pass over all pairs of labels) of expansion/swap algorithm
 	EnergyType oneExpansionIteration();
 	EnergyType oneSwapIteration();
 	void printStatus1(const char* extraMsg=0);

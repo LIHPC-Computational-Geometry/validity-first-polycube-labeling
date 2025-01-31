@@ -91,7 +91,7 @@ int main(int argc, char** argv) {
 
     std::fstream file;
     std::string word;
-    std::vector<std::string> word_splitted;
+    std::vector<std::string> word_split;
     std::vector<index_t> labeling;
     file.open(input_obj_filepath.c_str());
     if(!file.good()) {
@@ -121,25 +121,25 @@ int main(int argc, char** argv) {
         else if (word == "f") {
             // read first vertex index of this facet
             file >> word;
-            String::split_string(word,'/',word_splitted);
-            indices.x = std::stoi(word_splitted[0])-1;
-            // ignore word_splitted[1] which is a texture coordinate
-            // ignore word_splitted[2] which is a vertex normal
-            word_splitted.clear();
+            String::split_string(word,'/',word_split);
+            indices.x = std::stoi(word_split[0])-1;
+            // ignore word_split[1] which is a texture coordinate
+            // ignore word_split[2] which is a vertex normal
+            word_split.clear();
             // read second vertex index of this facet
             file >> word;
-            String::split_string(word,'/',word_splitted);
-            indices.y = std::stoi(word_splitted[0])-1;
-            // ignore word_splitted[1] which is a texture coordinate
-            // ignore word_splitted[2] which is a vertex normal
-            word_splitted.clear();
+            String::split_string(word,'/',word_split);
+            indices.y = std::stoi(word_split[0])-1;
+            // ignore word_split[1] which is a texture coordinate
+            // ignore word_split[2] which is a vertex normal
+            word_split.clear();
             // read third vertex index of this facet
             file >> word;
-            String::split_string(word,'/',word_splitted);
-            indices.z = std::stoi(word_splitted[0])-1;
-            // ignore word_splitted[1] which is a texture coordinate
-            // ignore word_splitted[2] which is a vertex normal
-            word_splitted.clear();
+            String::split_string(word,'/',word_split);
+            indices.z = std::stoi(word_split[0])-1;
+            // ignore word_split[1] which is a texture coordinate
+            // ignore word_split[2] which is a vertex normal
+            word_split.clear();
             // store facet in the GEO::Mesh
             M.facets.create_triangle(
                 (index_t) indices.x,

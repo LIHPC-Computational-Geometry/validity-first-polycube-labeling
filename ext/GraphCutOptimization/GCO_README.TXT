@@ -71,7 +71,7 @@
     must cite publications according to the rules given above. Only
     Olga Veksler has the right to redistribute this code, unless expressed
     permission is given otherwise. Commercial use of this code, any of 
-    its parts, or its modifications is not permited. The copyright notices 
+    its parts, or its modifications is not permitted. The copyright notices 
     must not be removed in case of any modifications. This Licence 
     commences on the date it is electronically or physically delivered 
     to you and continues in effect unless you fail to comply with any of 
@@ -187,7 +187,7 @@ Constructor A.
 GCoptimizationGridGraph(int width, int height,int num_labels);
 
 Use this constructor only for grid of size width by height.  If you use this constructor, 
-4 connected grid neigbhorhood structure is assumed, so you don't need to specify neighborhood
+4 connected grid neighborhood structure is assumed, so you don't need to specify neighborhood
 structure separately (and indeed cannot do so). 
 _______________________________________________________________________________________________
 
@@ -219,7 +219,7 @@ Here:
         stores the indexes of neighbors. Example: if sites i and j are neighbors, then 
         for some k and m, neighborsIndexes[i][k] == j and neighborsIndexes[j][m] = i. Then
         neighborWeights[i][k] = w_ij and neighborWeights[j][m] = w_ij, where w_ij is the weight
-        betwen neighbors i and j, that is V_ij = w_ij *V(l_i,l_j)
+        between neighbors i and j, that is V_ij = w_ij *V(l_i,l_j)
 
 
 _______________________________________________________________________________________________
@@ -286,7 +286,7 @@ The following functions can be called any time before or after expansion.
 
 (b) void setSmoothCost(SmoothCostFn fn);
 
-    fn is pointer to a function f(s1,s2,l1,l2) such that smoothness penalty for neigboring sites     
+    fn is pointer to a function f(s1,s2,l1,l2) such that smoothness penalty for neighboring sites     
     s1 and s2 to  have labels, respectively, l1 and l2 is f(s1,s2,l1,l2). This function can be 
     called only one time.         
 
@@ -330,7 +330,7 @@ The following functions can be called any time before or after expansion.
 (b) void setLabelCost(EnergyTermType* costArray);
     Set each individual label cost separately. The costArray must have one
     entry for each possible label. Replaces all current label costs, if any.
-    The cost array will be copied intenally, so your array can be freed.
+    The cost array will be copied internally, so your array can be freed.
 
 (c) void setLabelSubsetCost(LabelID* labels, LabelID numLabels, EnergyTermType cost);
     Set cost for a specific subset of labels. The cost will be imposed iff the
@@ -343,7 +343,7 @@ The following functions can be called any time before or after expansion.
 
 You can optimize the energy and get the resulting labeling using the following functions.  Notice that they can 
 be called as many times as one wishes after the constructor has been called and the data/smoothness terms
-(and the neighborhood system, if general graph) has beeen set.  The initial labeling is set to consists of
+(and the neighborhood system, if general graph) has been set.  The initial labeling is set to consists of
 all 0's. Use function setLabel(SiteID pixelP, LabelID labelL), described under heading (x) in this section
 to initialize the labeling to anything else (but in the valid range, of course, labels must be between
 0 and num_labels-1)
@@ -369,7 +369,7 @@ e) EnergyType compute_energy();
    EnergyType giveDataEnergy();
    EnergyType giveSmoothEnergy();
    EnergyType giveLabelEnergy();
-   Returns respectively the total, data part, smooth part, and label part of the energy of the current labling.
+   Returns respectively the total, data part, smooth part, and label part of the energy of the current labeling.
 
 f) LabelID whatLabel(SiteID site);
    Returns the current label assigned to site.  Can be called at any time after the constructor call.

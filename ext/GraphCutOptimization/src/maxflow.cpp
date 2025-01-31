@@ -638,7 +638,7 @@ template <typename captype, typename tcaptype, typename flowtype>
 
 	for (i=nodes; i<node_last; i++)
 	{
-		// test whether all edges in seach trees are non-saturated
+		// test whether all edges in search trees are non-saturated
 		if (i->parent == NULL) {}
 		else if (i->parent == ORPHAN) {}
 		else if (i->parent == TERMINAL)

@@ -26,7 +26,7 @@ public:
 	inline LinkedBlockList(){m_head = 0; m_head_block_size = GCLL_BLOCK_SIZE;}; 
 	~LinkedBlockList();
 
-	// Next three functins are for the linked list traversal
+	// Next three functions are for the linked list traversal
 	inline void setCursorFront(){m_cursor = m_head; m_cursor_ind = 0;};
 	ListType next();
 	bool hasNext();

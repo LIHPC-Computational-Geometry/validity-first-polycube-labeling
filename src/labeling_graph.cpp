@@ -547,7 +547,7 @@ void Boundary::explore(const MeshExt& mesh, // contains both the halfedges API a
                 on_feature_edge = false;
             }
 
-            // the vertex at the base of halfedge will be explored in the next interation
+            // the vertex at the base of halfedge will be explored in the next iteration
         }
         else {
             // else : we found a corner !

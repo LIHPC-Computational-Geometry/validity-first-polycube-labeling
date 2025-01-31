@@ -102,7 +102,7 @@ int main(int argc, char** argv) {
 
     if (FileSystem::is_file(output_surface_filepath)) {
 
-        fmt::println(Logger::out("I/O"),"{} exists -> try to recontruct the surface map",output_surface_filepath); Logger::out("I/O").flush();
+        fmt::println(Logger::out("I/O"),"{} exists -> try to reconstruct the surface map",output_surface_filepath); Logger::out("I/O").flush();
         
         if(!GEO::mesh_load(output_surface_filepath,triangle_mesh)) {
             fmt::println("Unable to open {}",output_surface_filepath);

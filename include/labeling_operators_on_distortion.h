@@ -17,7 +17,7 @@ bool straighten_boundary(const MeshExt& mesh, Attribute<index_t>& labeling, cons
 void straighten_boundaries(const MeshExt& mesh, Attribute<index_t>& labeling, LabelingGraph& lg);
 
 // Typically called after straighten_boundary()
-// Adjust postion of corners so that they are more aligned with adjacent boundaries
+// Adjust position of corners so that they are more aligned with adjacent boundaries
 void move_corners(const MeshExt& mesh, Attribute<index_t>& labeling, const LabelingGraph& lg);
 
 // only for turning-points on feature edges
