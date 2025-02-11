@@ -22,6 +22,11 @@ Our approach is successfully tested on CAD models, which are of interest for man
 
 We will link to the IMR 2025 proceedings.
 
+Preprint: [arXiv:2502.05712](https://arxiv.org/abs/2502.05712)
+<a href="https://arxiv.org/pdf/2502.05712">
+<img src="./images/paper.png" alt="paper preview">
+</a>
+
 ## Requirements
 
 - Linux-based OS
@@ -141,20 +146,22 @@ You may need to use our `volume_labeling` app first to export a per-tetrahedron-
 
 ## How to cite our work
 
-> S. Mestrallet, C. Bourcier, and F. Ledoux, "Validity-first automatic polycube labeling for CAD models", _Proceedings of the 2025 International Meshing Roundtable_, SIAM, March 2025
+> S. Mestrallet, C. Bourcier, and F. Ledoux, "Validity-first automatic polycube labeling for CAD models", _Proceedings of the 2025 International Meshing Roundtable_, SIAM, March 2025, arXiv:[2502.05712](https://arxiv.org/abs/2502.05712) [cs.CG]
 
 <details>
 <summary>BibTeX</summary>
 
 ```bibtex
 @inproceedings{mestrallet2025,
-    title     = {Validity-first automatic polycube labeling for CAD models},
-    author    = {Mestrallet, S{\'e}bastien and Bourcier, Christophe and Ledoux, Franck},
-    year      = {2025},
-    month     = {March},
-    url       = {https://github.com/LIHPC-Computational-Geometry/validity-first-polycube-labeling},
-    booktitle = {International Meshing Roundtable},
-    publisher = {SIAM}
+    title      = {Validity-first automatic polycube labeling for CAD models},
+    author     = {Mestrallet, S{\'e}bastien and Bourcier, Christophe and Ledoux, Franck},
+    year       = {2025},
+    month      = {March},
+    url        = {https://github.com/LIHPC-Computational-Geometry/validity-first-polycube-labeling},
+    booktitle  = {International Meshing Roundtable},
+    publisher  = {SIAM}
+    eprinttype = {arxiv},
+    eprint     = {2502.05712},
 }
 ```
 
@@ -170,6 +177,8 @@ mestrallet2025:
     type: article
     date: 2025-03
     url: https://github.com/LIHPC-Computational-Geometry/validity-first-polycube-labeling
+    serial-number:
+        arxiv: "2502.05712"
     parent:
     - type: proceedings
       title: International Meshing Roundtable
