@@ -111,8 +111,8 @@ There is also a graphic user interface, to manually apply labeling operators :
 ```
 
 1. In the right panel, click on "Compute graph-cuts labeling" to generate de default initial labeling
-1. If the labeling in invalid*, try the "Auto fix validity" button, which loop over manual operators whose button is just above
-1. If not all boundaries are monotone*, try "Auto fix monotonicity", which loop over manual operators whose button is just above
+1. If the labeling in invalid*, try the "Auto fix validity" button, which loop over manual operators whose buttons are just above
+1. If not all boundaries are monotone*, try "Auto fix monotonicity", which loop over manual operators whose buttons are just above
 1. In the menu bar, click on "File" > "Save as", choose a location and a filename, and select "txt" as extension to export the per-surface-triangle labeling.
 
 *Not the case with the provided B0 model.
@@ -143,6 +143,10 @@ See
 - [robustPolycube](https://github.com/fprotais/robustPolycube) : robust quantization ([Protais et al. 2022](https://doi.org/10.1016/j.cad.2022.103321))
 
 You may need to use our `volume_labeling` app first to export a per-tetrahedron-facet labeling.
+
+## Wiki
+
+More information can be found on [this wiki page](https://github.com/LIHPC-Computational-Geometry/dds-hexmeshing/wiki/validity%E2%80%90first%E2%80%90polycube%E2%80%90labeling).
 
 ## How to cite our work
 
