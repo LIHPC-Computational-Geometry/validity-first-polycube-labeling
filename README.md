@@ -20,7 +20,7 @@ Our approach is successfully tested on CAD models, which are of interest for man
 
 ## Paper
 
-We will link to the IMR 2025 proceedings.
+https://internationalmeshingroundtable.com/assets/papers/2025/1008-compressed.pdf
 
 Preprint: [arXiv:2502.05712](https://arxiv.org/abs/2502.05712)
 <a href="https://arxiv.org/pdf/2502.05712">
